@@ -98,15 +98,15 @@ export function canEdit(role: AppRole | null, module: string): boolean {
     case "interviews":
     case "clients":
     case "jobs":
-      return role === "recruiter" || role === "admin";
+      return role === "recruiter";
     case "offers":
-      return role === "operations" || role === "recruiter" || role === "admin";
+      return role === "operations" || role === "recruiter";
     case "billing":
-      return role === "finance" || role === "admin";
+      return role === "finance";
     case "users":
     case "settings":
     case "audit":
-      return role === "admin";
+      return false;
     default:
       return false;
   }
