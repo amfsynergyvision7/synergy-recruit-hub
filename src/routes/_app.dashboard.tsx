@@ -13,7 +13,9 @@ import {
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
-const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--primary)"];
+const COLORS = ["#2563EB", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
+const CHART_PRIMARY = "#2563EB";
+const CHART_ACCENT = "#06B6D4";
 
 const TONES: Record<string, string> = {
   primary: "from-[oklch(0.55_0.22_265)] to-[oklch(0.36_0.16_265)]",
