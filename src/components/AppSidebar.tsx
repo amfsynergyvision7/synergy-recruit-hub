@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Building2, Briefcase, Send, CalendarCheck,
-  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut
+  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -23,6 +23,10 @@ const items = [
   { title: "Audit Logs", url: "/audit", icon: ScrollText },
   { title: "User Management", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
+];
+
+const adminItems = [
+  { title: "Import Data", url: "/import", icon: Upload },
 ];
 
 export function AppSidebar() {
@@ -58,6 +62,25 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {role === "admin" && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild isActive={path === item.url}>
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-3">
         <div className="flex flex-col gap-2">
