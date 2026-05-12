@@ -141,40 +141,52 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
+        <Card className="card-hover">
           <CardHeader><CardTitle>Monthly Joining Trend</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer><LineChart data={monthly}>
-              <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month"/><YAxis/><Tooltip/>
-              <Line type="monotone" dataKey="joined" stroke="#2563eb" strokeWidth={2}/>
+              <defs>
+                <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor={CHART_PRIMARY}/>
+                  <stop offset="100%" stopColor={CHART_ACCENT}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="month" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
+              <Line type="monotone" dataKey="joined" stroke="url(#lineGrad)" strokeWidth={3} dot={{ r: 4, fill: CHART_PRIMARY }}/>
             </LineChart></ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader><CardTitle>Hiring Funnel</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer><BarChart data={funnel}>
-              <CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="stage" tick={{fontSize:11}}/><YAxis/><Tooltip/>
-              <Bar dataKey="count" fill="#2563eb"/>
+              <defs>
+                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_ACCENT}/>
+                  <stop offset="100%" stopColor={CHART_PRIMARY}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="stage" tick={{fontSize:11}} stroke="currentColor"/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
+              <Bar dataKey="count" fill="url(#barGrad)" radius={[6,6,0,0]}/>
             </BarChart></ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader><CardTitle>Candidate Sources</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer><PieChart>
-              <Pie data={sources} dataKey="value" nameKey="name" outerRadius={90} label>
+              <Pie data={sources} dataKey="value" nameKey="name" outerRadius={90} innerRadius={45} paddingAngle={2} label>
                 {sources.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-              </Pie><Legend/><Tooltip/>
+              </Pie><Legend/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
             </PieChart></ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover">
           <CardHeader><CardTitle>Recruiter Performance</CardTitle></CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer><BarChart data={recruiters}>
-              <CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name"/><YAxis/><Tooltip/>
-              <Bar dataKey="count" fill="#0ea5e9"/>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
+              <Bar dataKey="count" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
             </BarChart></ResponsiveContainer>
           </CardContent>
         </Card>
