@@ -3,21 +3,40 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Users, UserPlus, CalendarCheck, CheckCircle2, FileSignature, Trophy,
+  Building2, Briefcase, Wallet, Clock, type LucideIcon,
+} from "lucide-react";
+import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line,
   PieChart, Pie, Cell, CartesianGrid, Legend,
 } from "recharts";
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
-const COLORS = ["#2563eb", "#0ea5e9", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+const COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--primary)"];
 
-function Kpi({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+const TONES: Record<string, string> = {
+  primary: "from-[oklch(0.55_0.22_265)] to-[oklch(0.36_0.16_265)]",
+  cyan: "from-[oklch(0.72_0.15_210)] to-[oklch(0.55_0.22_265)]",
+  success: "from-[oklch(0.68_0.16_160)] to-[oklch(0.72_0.15_210)]",
+  warning: "from-[oklch(0.78_0.16_75)] to-[oklch(0.65_0.2_45)]",
+  danger: "from-[oklch(0.65_0.24_27)] to-[oklch(0.55_0.22_355)]",
+  violet: "from-[oklch(0.55_0.22_300)] to-[oklch(0.45_0.2_270)]",
+};
+
+function Kpi({ label, value, hint, icon: Icon, tone = "primary" }:
+  { label: string; value: string | number; hint?: string; icon: LucideIcon; tone?: keyof typeof TONES }) {
   return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className="text-2xl font-semibold mt-1">{value}</div>
-        {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
+    <Card className="card-hover overflow-hidden border-border/60">
+      <CardContent className="p-5 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</div>
+          <div className="text-2xl font-bold mt-1.5 tracking-tight">{value}</div>
+          {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
+        </div>
+        <div className={`h-11 w-11 shrink-0 rounded-xl bg-gradient-to-br ${TONES[tone]} text-white flex items-center justify-center shadow-elegant`}>
+          <Icon className="h-5 w-5" />
+        </div>
       </CardContent>
     </Card>
   );
