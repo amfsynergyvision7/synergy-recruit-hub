@@ -15,7 +15,18 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppUsersRouteImport } from './routes/_app.users'
+import { Route as AppSubmissionsRouteImport } from './routes/_app.submissions'
+import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppOffersRouteImport } from './routes/_app.offers'
+import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
+import { Route as AppJobsRouteImport } from './routes/_app.jobs'
+import { Route as AppInterviewsRouteImport } from './routes/_app.interviews'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppClientsRouteImport } from './routes/_app.clients'
+import { Route as AppCandidatesRouteImport } from './routes/_app.candidates'
+import { Route as AppBillingRouteImport } from './routes/_app.billing'
+import { Route as AppAuditRouteImport } from './routes/_app.audit'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -46,9 +57,64 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppUsersRoute = AppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSubmissionsRoute = AppSubmissionsRouteImport.update({
+  id: '/submissions',
+  path: '/submissions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOffersRoute = AppOffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsRoute = AppJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInterviewsRoute = AppInterviewsRouteImport.update({
+  id: '/interviews',
+  path: '/interviews',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientsRoute = AppClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCandidatesRoute = AppCandidatesRouteImport.update({
+  id: '/candidates',
+  path: '/candidates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -58,7 +124,18 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/audit': typeof AppAuditRoute
+  '/billing': typeof AppBillingRoute
+  '/candidates': typeof AppCandidatesRoute
+  '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/interviews': typeof AppInterviewsRoute
+  '/jobs': typeof AppJobsRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/offers': typeof AppOffersRoute
+  '/settings': typeof AppSettingsRoute
+  '/submissions': typeof AppSubmissionsRoute
+  '/users': typeof AppUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -66,7 +143,18 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/audit': typeof AppAuditRoute
+  '/billing': typeof AppBillingRoute
+  '/candidates': typeof AppCandidatesRoute
+  '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/interviews': typeof AppInterviewsRoute
+  '/jobs': typeof AppJobsRoute
+  '/notifications': typeof AppNotificationsRoute
+  '/offers': typeof AppOffersRoute
+  '/settings': typeof AppSettingsRoute
+  '/submissions': typeof AppSubmissionsRoute
+  '/users': typeof AppUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -76,7 +164,18 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_app/audit': typeof AppAuditRoute
+  '/_app/billing': typeof AppBillingRoute
+  '/_app/candidates': typeof AppCandidatesRoute
+  '/_app/clients': typeof AppClientsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/interviews': typeof AppInterviewsRoute
+  '/_app/jobs': typeof AppJobsRoute
+  '/_app/notifications': typeof AppNotificationsRoute
+  '/_app/offers': typeof AppOffersRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/submissions': typeof AppSubmissionsRoute
+  '/_app/users': typeof AppUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -86,7 +185,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/audit'
+    | '/billing'
+    | '/candidates'
+    | '/clients'
     | '/dashboard'
+    | '/interviews'
+    | '/jobs'
+    | '/notifications'
+    | '/offers'
+    | '/settings'
+    | '/submissions'
+    | '/users'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -94,7 +204,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/audit'
+    | '/billing'
+    | '/candidates'
+    | '/clients'
     | '/dashboard'
+    | '/interviews'
+    | '/jobs'
+    | '/notifications'
+    | '/offers'
+    | '/settings'
+    | '/submissions'
+    | '/users'
   id:
     | '__root__'
     | '/'
@@ -103,7 +224,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/_app/audit'
+    | '/_app/billing'
+    | '/_app/candidates'
+    | '/_app/clients'
     | '/_app/dashboard'
+    | '/_app/interviews'
+    | '/_app/jobs'
+    | '/_app/notifications'
+    | '/_app/offers'
+    | '/_app/settings'
+    | '/_app/submissions'
+    | '/_app/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -159,6 +291,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/users': {
+      id: '/_app/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AppUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/submissions': {
+      id: '/_app/submissions'
+      path: '/submissions'
+      fullPath: '/submissions'
+      preLoaderRoute: typeof AppSubmissionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/offers': {
+      id: '/_app/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof AppOffersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/notifications': {
+      id: '/_app/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs': {
+      id: '/_app/jobs'
+      path: '/jobs'
+      fullPath: '/jobs'
+      preLoaderRoute: typeof AppJobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/interviews': {
+      id: '/_app/interviews'
+      path: '/interviews'
+      fullPath: '/interviews'
+      preLoaderRoute: typeof AppInterviewsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -166,15 +347,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/clients': {
+      id: '/_app/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AppClientsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/candidates': {
+      id: '/_app/candidates'
+      path: '/candidates'
+      fullPath: '/candidates'
+      preLoaderRoute: typeof AppCandidatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/billing': {
+      id: '/_app/billing'
+      path: '/billing'
+      fullPath: '/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/audit': {
+      id: '/_app/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAuditRoute: typeof AppAuditRoute
+  AppBillingRoute: typeof AppBillingRoute
+  AppCandidatesRoute: typeof AppCandidatesRoute
+  AppClientsRoute: typeof AppClientsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppInterviewsRoute: typeof AppInterviewsRoute
+  AppJobsRoute: typeof AppJobsRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppOffersRoute: typeof AppOffersRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppSubmissionsRoute: typeof AppSubmissionsRoute
+  AppUsersRoute: typeof AppUsersRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAuditRoute: AppAuditRoute,
+  AppBillingRoute: AppBillingRoute,
+  AppCandidatesRoute: AppCandidatesRoute,
+  AppClientsRoute: AppClientsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppInterviewsRoute: AppInterviewsRoute,
+  AppJobsRoute: AppJobsRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppOffersRoute: AppOffersRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppSubmissionsRoute: AppSubmissionsRoute,
+  AppUsersRoute: AppUsersRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
