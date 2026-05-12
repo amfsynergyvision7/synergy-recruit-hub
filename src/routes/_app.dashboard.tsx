@@ -126,16 +126,16 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground">Live overview of recruitment activity.</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Kpi label="Total Candidates" value={stats.totalCand ?? 0}/>
-        <Kpi label="New This Month" value={stats.newCand ?? 0}/>
-        <Kpi label="Interviews Scheduled" value={stats.intSched ?? 0}/>
-        <Kpi label="Interviews Completed" value={stats.intDone ?? 0}/>
-        <Kpi label="Offers Released" value={stats.offers ?? 0}/>
-        <Kpi label="Joined Candidates" value={stats.joined ?? 0}/>
-        <Kpi label="Active Clients" value={stats.clients ?? 0}/>
-        <Kpi label="Open Positions" value={stats.jobs ?? 0}/>
-        <Kpi label="Revenue" value={`₹${(stats.revenue ?? 0).toLocaleString()}`}/>
-        <Kpi label="Pending Payments" value={`₹${(stats.pending ?? 0).toLocaleString()}`}/>
+        <Kpi label="Total Candidates" value={stats.totalCand ?? 0} icon={Users} tone="primary"/>
+        <Kpi label="New This Month" value={stats.newCand ?? 0} icon={UserPlus} tone="cyan"/>
+        <Kpi label="Interviews Scheduled" value={stats.intSched ?? 0} icon={CalendarCheck} tone="warning"/>
+        <Kpi label="Interviews Completed" value={stats.intDone ?? 0} icon={CheckCircle2} tone="success"/>
+        <Kpi label="Offers Released" value={stats.offers ?? 0} icon={FileSignature} tone="violet"/>
+        <Kpi label="Joined Candidates" value={stats.joined ?? 0} icon={Trophy} tone="success"/>
+        <Kpi label="Active Clients" value={stats.clients ?? 0} icon={Building2} tone="primary"/>
+        <Kpi label="Open Positions" value={stats.jobs ?? 0} icon={Briefcase} tone="cyan"/>
+        <Kpi label="Revenue" value={`₹${(stats.revenue ?? 0).toLocaleString()}`} icon={Wallet} tone="success"/>
+        <Kpi label="Pending Payments" value={`₹${(stats.pending ?? 0).toLocaleString()}`} icon={Clock} tone="danger"/>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
