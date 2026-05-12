@@ -25,6 +25,10 @@ const items = [
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
+const adminItems = [
+  { title: "Import Data", url: "/import", icon: Upload },
+];
+
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { profile, role, signOut } = useAuth();
