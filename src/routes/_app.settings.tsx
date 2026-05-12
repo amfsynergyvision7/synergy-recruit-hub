@@ -12,7 +12,7 @@ import { Upload } from "lucide-react";
 export const Route = createFileRoute("/_app/settings")({ component: Page });
 
 function Page() {
-  const { profile, refresh } = useAuth();
+  const { profile, role, refresh } = useAuth();
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
