@@ -38,6 +38,17 @@ function Page() {
           <Button onClick={save}>Save</Button>
         </CardContent>
       </Card>
+      {role === "admin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Import Data</CardTitle>
+            <CardDescription>Bulk-upload Clients, Jobs, Candidates, Submissions, Interviews, Offers, and Billing from Excel or CSV.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild><Link to="/import"><Upload className="h-4 w-4 mr-2"/>Open Import Tool</Link></Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
