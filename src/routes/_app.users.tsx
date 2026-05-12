@@ -29,7 +29,7 @@ function Page() {
   };
   useEffect(()=>{ load(); },[]);
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: "approved"|"pending"|"rejected"|"suspended") => {
     if (!isAdmin) return toast.error("Admin only");
     const { error } = await supabase.from("profiles").update({ status, is_active: status === "approved" }).eq("id", id);
     if (error) return toast.error(error.message);
