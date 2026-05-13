@@ -134,16 +134,16 @@ function Page() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!form.sheet_url || detectMut.isPending}>
+            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!hasValidUrl || detectMut.isPending}>
               {detectMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>} Detect columns
             </Button>
             <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
               {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin"/>} Save settings
             </Button>
-            <Button variant="secondary" onClick={() => syncMut.mutate(false)} disabled={syncMut.isPending || !integQ.data?.spreadsheet_id}>
+            <Button variant="secondary" onClick={() => syncMut.mutate(false)} disabled={syncMut.isPending || !canSync}>
               {syncMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4"/>} Sync new rows
             </Button>
-            <Button variant="outline" onClick={() => syncMut.mutate(true)} disabled={syncMut.isPending || !integQ.data?.spreadsheet_id}>
+            <Button variant="outline" onClick={() => syncMut.mutate(true)} disabled={syncMut.isPending || !canSync}>
               <History className="h-4 w-4"/> Import full history
             </Button>
           </div>
