@@ -50,7 +50,7 @@ function Page() {
 
   const detectMut = useMutation({
     mutationFn: () => detect({ data: { sheet_url: form.sheet_url, sheet_name: form.sheet_name, header_row: form.header_row } }),
-    onSuccess: (r) => { setHeaders(r.headers); setMapping((m) => ({ ...r.suggested, ...m })); toast.success(`Detected ${r.headers.length} columns`); },
+    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); toast.success(`Detected ${hs.length} columns`); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -72,7 +72,16 @@ function Page() {
   const status = integQ.data?.last_status;
   const statusVariant: any = status === "success" ? "default" : status === "partial" ? "secondary" : status === "error" ? "destructive" : "outline";
 
-  const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping), [headers, mapping]);
+  const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
+  const logs = Array.isArray(logsQ.data) ? logsQ.data : [];
+
+  if (integQ.isError) {
+    // surface error but don't crash
+    console.error("integration load error", integQ.error);
+  }
+  if (logsQ.isError) {
+    console.error("sync logs load error", logsQ.error);
+  }
 
   return (
     <div className="space-y-6">
@@ -173,24 +182,24 @@ function Page() {
               <TableHead>Created</TableHead><TableHead>Updated</TableHead><TableHead>Skipped</TableHead><TableHead>Errors</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {(logsQ.data ?? []).map((l: any) => (
+              {logs.map((l: any) => (
                 <TableRow key={l.id}>
-                  <TableCell className="text-xs">{new Date(l.created_at).toLocaleString()}</TableCell>
+                  <TableCell className="text-xs">{l.created_at ? new Date(l.created_at).toLocaleString() : "—"}</TableCell>
                   <TableCell className="text-xs">{l.triggered_by}</TableCell>
                   <TableCell>
                     {l.status === "success" ? <Badge><CheckCircle2 className="h-3 w-3 mr-1"/>success</Badge>
                       : l.status === "partial" ? <Badge variant="secondary">partial</Badge>
                       : <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1"/>error</Badge>}
                   </TableCell>
-                  <TableCell>{l.rows_created}</TableCell>
-                  <TableCell>{l.rows_updated}</TableCell>
-                  <TableCell>{l.rows_skipped}</TableCell>
+                  <TableCell>{l.rows_created ?? 0}</TableCell>
+                  <TableCell>{l.rows_updated ?? 0}</TableCell>
+                  <TableCell>{l.rows_skipped ?? 0}</TableCell>
                   <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
-                    {Array.isArray(l.errors) && l.errors.length ? l.errors.map((e: any) => `R${e.row}: ${e.message}`).join(" | ") : "—"}
+                    {Array.isArray(l.errors) && l.errors.length ? l.errors.map((e: any) => `R${e.row ?? "?"}: ${e.message ?? ""}`).join(" | ") : "—"}
                   </TableCell>
                 </TableRow>
               ))}
-              {!logsQ.data?.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No sync runs yet.</TableCell></TableRow>}
+              {logs.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No sync runs yet.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
