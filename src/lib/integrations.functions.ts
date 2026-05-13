@@ -19,7 +19,7 @@ export const getIntegration = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdminUser(context.userId);
     const integration = await getSavedGoogleIntegration({ userId: context.userId });
-    return { integration, diagnostics: diagnosticsForIntegration(integration, null) };
+    return { integration, diagnostics: diagnosticsForIntegration(integration, null, { loggedUserId: context.userId }) };
   });
 
 export const saveIntegration = createServerFn({ method: "POST" })
@@ -36,7 +36,7 @@ export const saveIntegration = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdminUser(context.userId);
     const integration = await saveGoogleIntegrationSettings({ ...data, user_id: context.userId });
-    return { integration, diagnostics: diagnosticsForIntegration(integration, null) };
+    return { integration, diagnostics: diagnosticsForIntegration(integration, null, { loggedUserId: context.userId, saveSuccess: true, saveError: null }) };
   });
 
 export const detectHeaders = createServerFn({ method: "POST" })
