@@ -5,6 +5,15 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
 export { CANDIDATE_FIELDS };
 
+const LEGACY_FIELD_NAMES: Record<string, string> = {
+  position: "position_applied",
+  experience: "experience_years",
+};
+
+function normalizeFieldName(field: string | undefined): string | undefined {
+  if (!field) return undefined;
+  return LEGACY_FIELD_NAMES[field] ?? field;
+}
 
 const FIELD_ALIASES: Record<string, string> = {
   "full name": "full_name", "name": "full_name", "candidate name": "full_name",
@@ -58,9 +67,10 @@ async function gw(path: string, init?: RequestInit) {
 }
 
 export async function fetchSheetValues(spreadsheetId: string, sheetName: string) {
-  const range = `${sheetName}!A1:Z100000`;
+  const safeSheetName = /^[A-Za-z0-9_]+$/.test(sheetName) ? sheetName : `'${sheetName.replace(/'/g, "''")}'`;
+  const range = `${safeSheetName}!A1:Z100000`;
   const data = await gw(`/spreadsheets/${spreadsheetId}/values/${range}`);
-  return (data.values ?? []) as string[][];
+  return Array.isArray(data?.values) ? data.values as string[][] : [];
 }
 
 function num(v: any): number | null {
@@ -72,7 +82,7 @@ function num(v: any): number | null {
 function rowToCandidate(headers: string[], row: string[], mapping: Record<string, string>) {
   const obj: Record<string, any> = {};
   headers.forEach((h, i) => {
-    const field = mapping[h];
+    const field = normalizeFieldName(mapping[h]);
     if (!field) return;
     const val = row[i];
     if (val === undefined || val === "") return;
