@@ -277,8 +277,8 @@ function emptyResult(): SyncResult {
   return { created: 0, updated: 0, skipped: 0, errors: 0, rows_scanned: 0, rows_created: 0, rows_updated: 0, rows_skipped: 0, error_details: [] };
 }
 
-async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
-  const integ = await getSavedGoogleIntegration();
+async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string }): Promise<SyncResult> {
+  const integ = await getSavedGoogleIntegration({ userId: opts.userId });
   if (!integ || !integ.spreadsheet_id) throw new Error("Google Sheet not configured");
 
   const sheetName = integ.sheet_name || "Form Responses 1";
@@ -396,7 +396,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   return result;
 }
 
-export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
+export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string }): Promise<SyncResult> {
   try {
     return await runCandidateSyncUnsafe(opts);
   } catch (e: any) {
@@ -406,7 +406,7 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
     result.error_details = [{ row: 0, message }];
 
     try {
-      const integ = await getSavedGoogleIntegration({ backfillLegacy: false });
+      const integ = await getSavedGoogleIntegration({ backfillLegacy: false, userId: opts.userId });
       if (integ?.id) await (supabaseAdmin as any).from("google_integrations").update({
         last_sync: new Date().toISOString(),
         connection_status: "error",
