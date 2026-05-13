@@ -7,17 +7,19 @@ export { CANDIDATE_FIELDS };
 
 
 const FIELD_ALIASES: Record<string, string> = {
-  "name": "full_name", "full name": "full_name", "candidate name": "full_name",
-  "phone": "mobile", "phone number": "mobile", "mobile": "mobile", "contact": "mobile",
+  "full name": "full_name", "name": "full_name", "candidate name": "full_name",
+  "mobile": "mobile", "phone": "mobile", "phone number": "mobile", "contact": "mobile",
   "email": "email", "email address": "email", "e-mail": "email",
   "location": "location", "city": "location", "current location": "location",
   "position": "position_applied", "position applied": "position_applied", "role": "position_applied", "applied for": "position_applied",
   "current company": "current_company", "company": "current_company", "employer": "current_company",
-  "experience": "experience_years", "experience years": "experience_years", "years of experience": "experience_years", "exp": "experience_years",
+  "experience (yrs)": "experience_years", "experience": "experience_years", "experience years": "experience_years", "years of experience": "experience_years", "exp": "experience_years",
   "current salary": "current_salary", "ctc": "current_salary",
   "expected salary": "expected_salary", "expected ctc": "expected_salary",
   "notice period": "notice_period", "notice": "notice_period",
   "resume": "resume_url", "resume url": "resume_url", "resume link": "resume_url", "cv": "resume_url",
+  "source": "source",
+  "notes": "notes", "note": "notes", "remarks": "notes",
 };
 
 export function autoMap(headers: string[]): Record<string, string> {
@@ -80,12 +82,19 @@ function rowToCandidate(headers: string[], row: string[], mapping: Record<string
       obj[field] = String(val).trim();
     }
   });
+  if (obj.email) obj.email = String(obj.email).trim().toLowerCase();
+  if (obj.mobile) obj.mobile = String(obj.mobile).replace(/[\s()-]/g, "").trim();
   return obj;
 }
 
 export interface SyncResult {
+  created: number; updated: number; skipped: number; errors: number;
   rows_scanned: number; rows_created: number; rows_updated: number;
-  rows_skipped: number; errors: { row: number; message: string }[];
+  rows_skipped: number; error_details: { row: number; message: string }[];
+}
+
+function emptyResult(): SyncResult {
+  return { created: 0, updated: 0, skipped: 0, errors: 0, rows_scanned: 0, rows_created: 0, rows_updated: 0, rows_skipped: 0, error_details: [] };
 }
 
 export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
