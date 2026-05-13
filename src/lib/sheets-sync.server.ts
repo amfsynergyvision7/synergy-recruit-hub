@@ -1,12 +1,10 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { CANDIDATE_FIELDS } from "./candidate-fields";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
-export const CANDIDATE_FIELDS = [
-  "full_name", "mobile", "email", "location", "position_applied",
-  "current_company", "experience_years", "current_salary", "expected_salary",
-  "notice_period", "resume_url", "source", "notes",
-] as const;
+export { CANDIDATE_FIELDS };
+
 
 const FIELD_ALIASES: Record<string, string> = {
   "name": "full_name", "full name": "full_name", "candidate name": "full_name",
