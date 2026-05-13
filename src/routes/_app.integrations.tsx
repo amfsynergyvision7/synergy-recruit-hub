@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, RefreshCw, Sparkles, History, AlertCircle, CheckCircle2, Link2 } from "lucide-react";
 import { getIntegration, saveIntegration, detectHeaders, triggerSync, getSyncLogs } from "@/lib/integrations.functions";
-import { CANDIDATE_FIELDS } from "@/lib/sheets-sync.server";
+import { CANDIDATE_FIELDS } from "@/lib/candidate-fields";
 
 export const Route = createFileRoute("/_app/integrations")({ component: Page });
 
