@@ -103,21 +103,31 @@ function formatSupabaseError(action: string, error: any) {
 
 export interface SyncDiagnostics {
   settingsLoaded: boolean;
+  settingsRowFound?: boolean;
+  loggedUserId?: string | null;
+  settingsRowId?: string | null;
+  fetchedSheetUrl?: string | null;
+  saveSuccess?: boolean;
+  saveError?: string | null;
   spreadsheetFound: boolean;
   tabFound: boolean;
   headersFound: boolean;
   rowsFetched: number;
 }
 
-export function diagnosticsForIntegration(integ?: GoogleIntegrationSettings | null, values?: unknown[][] | null): SyncDiagnostics {
+export function diagnosticsForIntegration(integ?: GoogleIntegrationSettings | null, values?: unknown[][] | null, extra: Partial<SyncDiagnostics> = {}): SyncDiagnostics {
   const headerRow = integ?.header_row || 1;
   const headers = Array.isArray(values) ? values[headerRow - 1] : null;
   return {
     settingsLoaded: !!integ,
+    settingsRowFound: !!integ,
+    settingsRowId: integ?.id ?? null,
+    fetchedSheetUrl: integ?.sheet_url ?? null,
     spreadsheetFound: !!integ?.spreadsheet_id,
     tabFound: Array.isArray(values),
     headersFound: Array.isArray(headers) && headers.length > 0,
     rowsFetched: Array.isArray(values) ? Math.max(0, values.length - headerRow) : 0,
+    ...extra,
   };
 }
 
@@ -186,7 +196,6 @@ export async function saveGoogleIntegrationSettings(input: {
   }
 
   const payload = {
-    ...(current?.id ? { id: current.id } : {}),
     user_id: input.user_id,
     sheet_url: input.sheet_url || null,
     spreadsheet_id: spreadsheetId,
@@ -196,17 +205,17 @@ export async function saveGoogleIntegrationSettings(input: {
     sync_frequency_minutes: input.sync_frequency_minutes || current?.sync_frequency_minutes || 2,
     connection_status: spreadsheetId ? "configured" : "not_configured",
     column_mapping: input.column_mapping ?? current?.column_mapping ?? {},
+    mapping: input.column_mapping ?? current?.column_mapping ?? {},
     google_account_email: input.google_account_email ?? current?.google_account_email ?? null,
     last_error: null,
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await (supabaseAdmin as any)
-    .from("google_integrations")
-    .upsert(payload, { onConflict: "user_id" })
-    .select("*")
-    .single();
-  if (error) throw new Error(formatSupabaseError("Save Google integration settings failed", error));
+  const write = current?.id
+    ? (supabaseAdmin as any).from("google_integrations").update(payload).eq("id", current.id).eq("user_id", input.user_id).select("*").single()
+    : (supabaseAdmin as any).from("google_integrations").insert(payload).select("*").single();
+  const { data, error } = await write;
+  if (error) throw new Error(formatSupabaseError(current?.id ? "Update Google integration settings failed" : "Insert Google integration settings failed", error));
   if (!data) throw new Error("Save returned no integration settings");
   return data as GoogleIntegrationSettings;
 }
