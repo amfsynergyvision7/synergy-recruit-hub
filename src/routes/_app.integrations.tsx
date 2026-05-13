@@ -32,26 +32,38 @@ function Page() {
   const integQ = useQuery({ queryKey: ["integration"], queryFn: () => fetchIntegration() });
   const logsQ = useQuery({ queryKey: ["sync-logs"], queryFn: () => fetchLogs(), refetchInterval: 10000 });
 
-  const [form, setForm] = useState({ sheet_url: "", sheet_name: "Form Responses 1", header_row: 1, auto_sync: false });
+  const [form, setForm] = useState({ sheet_url: "", sheet_name: "Form Responses 1", header_row: 1, auto_sync_enabled: false, sync_frequency_minutes: 2 });
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<any>(null);
+
+  const integration = integQ.data?.integration ?? null;
+  const diagnostics = runtimeDiagnostics ?? integQ.data?.diagnostics ?? {
+    settingsLoaded: false,
+    spreadsheetFound: false,
+    tabFound: false,
+    headersFound: false,
+    rowsFetched: 0,
+  };
 
   useEffect(() => {
-    if (integQ.data) {
+    if (integration) {
       setForm({
-        sheet_url: integQ.data.sheet_url ?? "",
-        sheet_name: integQ.data.sheet_name ?? "Form Responses 1",
-        header_row: integQ.data.header_row ?? 1,
-        auto_sync: !!integQ.data.auto_sync,
+        sheet_url: integration.sheet_url ?? "",
+        sheet_name: integration.sheet_name ?? "Form Responses 1",
+        header_row: integration.header_row ?? 1,
+        auto_sync_enabled: !!integration.auto_sync_enabled,
+        sync_frequency_minutes: integration.sync_frequency_minutes ?? 2,
       });
-      setMapping((integQ.data.column_mapping as any) ?? {});
+      setMapping((integration.column_mapping as any) ?? {});
     }
-  }, [integQ.data]);
+  }, [integration]);
 
   const saveMut = useMutation({
     mutationFn: () => save({ data: { ...form, column_mapping: mapping } }),
     onSuccess: (row: any) => {
       toast.success("Settings saved");
+      setRuntimeDiagnostics(row?.diagnostics ?? null);
       qc.setQueryData(["integration"], row);
       qc.invalidateQueries({ queryKey: ["integration"] });
     },
@@ -59,15 +71,16 @@ function Page() {
   });
 
   const ensureSaved = async () => {
-    const cur = integQ.data;
+    const cur = integration;
     const dirty = !cur || cur.sheet_url !== (form.sheet_url || null) || cur.sheet_name !== form.sheet_name
-      || cur.header_row !== form.header_row || !!cur.auto_sync !== form.auto_sync;
+      || cur.header_row !== form.header_row || !!cur.auto_sync_enabled !== form.auto_sync_enabled
+      || cur.sync_frequency_minutes !== form.sync_frequency_minutes;
     if (dirty) await saveMut.mutateAsync();
   };
 
   const detectMut = useMutation({
-    mutationFn: async () => { await ensureSaved(); return detect({ data: { sheet_url: form.sheet_url, sheet_name: form.sheet_name, header_row: form.header_row } }); },
-    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); toast.success(`Detected ${hs.length} columns`); },
+    mutationFn: async () => { await ensureSaved(); return detect({ data: {} }); },
+    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); setRuntimeDiagnostics(r?.diagnostics ?? null); toast.success(`Detected ${hs.length} columns`); },
     onError: (e: any) => toast.error(e?.message || "Detect failed"),
   });
 
@@ -78,6 +91,7 @@ function Page() {
       const updated = Number(r?.updated ?? r?.rows_updated ?? 0);
       const skipped = Number(r?.skipped ?? r?.rows_skipped ?? 0);
       const errors = Number(r?.errors ?? (Array.isArray(r?.error_details) ? r.error_details.length : 0));
+      setRuntimeDiagnostics(r?.diagnostics ?? null);
       toast.success(`Sync Complete\nCreated: ${created}\nUpdated: ${updated}\nSkipped: ${skipped}\nErrors: ${errors}`);
       qc.invalidateQueries({ queryKey: ["integration"] }); qc.invalidateQueries({ queryKey: ["sync-logs"] });
     },
@@ -85,10 +99,10 @@ function Page() {
   });
 
   const hasValidUrl = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.test(form.sheet_url || "");
-  const canSync = hasValidUrl || !!integQ.data?.spreadsheet_id;
+  const canSync = hasValidUrl || !!integration?.spreadsheet_id;
 
-  const status = integQ.data?.last_status;
-  const statusVariant: any = status === "success" ? "default" : status === "partial" ? "secondary" : status === "error" ? "destructive" : "outline";
+  const status = integration?.connection_status;
+  const statusVariant: any = status === "success" ? "default" : status === "partial" || status === "configured" || status === "headers_detected" ? "secondary" : status === "error" ? "destructive" : "outline";
 
   const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
   const logs = Array.isArray(logsQ.data) ? logsQ.data : [];
