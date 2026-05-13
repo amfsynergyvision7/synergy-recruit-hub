@@ -4,10 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import {
   runCandidateSync,
-  fetchHeaders,
   fetchSheetValues,
   autoMap,
-  extractSpreadsheetId,
   getSavedGoogleIntegration,
   saveGoogleIntegrationSettings,
   diagnosticsForIntegration,
