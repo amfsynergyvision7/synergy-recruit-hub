@@ -26,6 +26,7 @@ const items = [
 ];
 
 const adminItems = [
+  { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Import Data", url: "/import", icon: Upload },
 ];
 
