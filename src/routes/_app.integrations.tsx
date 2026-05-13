@@ -48,26 +48,40 @@ function Page() {
     }
   }, [integQ.data]);
 
-  const detectMut = useMutation({
-    mutationFn: () => detect({ data: { sheet_url: form.sheet_url, sheet_name: form.sheet_name, header_row: form.header_row } }),
-    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); toast.success(`Detected ${hs.length} columns`); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
   const saveMut = useMutation({
     mutationFn: () => save({ data: { ...form, column_mapping: mapping } }),
-    onSuccess: () => { toast.success("Settings saved"); qc.invalidateQueries({ queryKey: ["integration"] }); },
-    onError: (e: any) => toast.error(e.message),
+    onSuccess: (row: any) => {
+      toast.success("Settings saved");
+      qc.setQueryData(["integration"], row);
+      qc.invalidateQueries({ queryKey: ["integration"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Save failed"),
+  });
+
+  const ensureSaved = async () => {
+    const cur = integQ.data;
+    const dirty = !cur || cur.sheet_url !== (form.sheet_url || null) || cur.sheet_name !== form.sheet_name
+      || cur.header_row !== form.header_row || !!cur.auto_sync !== form.auto_sync;
+    if (dirty) await saveMut.mutateAsync();
+  };
+
+  const detectMut = useMutation({
+    mutationFn: async () => { await ensureSaved(); return detect({ data: { sheet_url: form.sheet_url, sheet_name: form.sheet_name, header_row: form.header_row } }); },
+    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); toast.success(`Detected ${hs.length} columns`); },
+    onError: (e: any) => toast.error(e?.message || "Detect failed"),
   });
 
   const syncMut = useMutation({
-    mutationFn: (full: boolean) => sync({ data: { fullHistory: full } }),
+    mutationFn: async (full: boolean) => { await ensureSaved(); return sync({ data: { fullHistory: full } }); },
     onSuccess: (r) => {
       toast.success(`Sync done: ${r.rows_created} created, ${r.rows_updated} updated, ${r.rows_skipped} skipped`);
       qc.invalidateQueries({ queryKey: ["integration"] }); qc.invalidateQueries({ queryKey: ["sync-logs"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message || "Sync failed"),
   });
+
+  const hasValidUrl = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.test(form.sheet_url || "");
+  const canSync = hasValidUrl || !!integQ.data?.spreadsheet_id;
 
   const status = integQ.data?.last_status;
   const statusVariant: any = status === "success" ? "default" : status === "partial" ? "secondary" : status === "error" ? "destructive" : "outline";
@@ -120,16 +134,16 @@ function Page() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!form.sheet_url || detectMut.isPending}>
+            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!hasValidUrl || detectMut.isPending}>
               {detectMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>} Detect columns
             </Button>
             <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
               {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin"/>} Save settings
             </Button>
-            <Button variant="secondary" onClick={() => syncMut.mutate(false)} disabled={syncMut.isPending || !integQ.data?.spreadsheet_id}>
+            <Button variant="secondary" onClick={() => syncMut.mutate(false)} disabled={syncMut.isPending || !canSync}>
               {syncMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4"/>} Sync new rows
             </Button>
-            <Button variant="outline" onClick={() => syncMut.mutate(true)} disabled={syncMut.isPending || !integQ.data?.spreadsheet_id}>
+            <Button variant="outline" onClick={() => syncMut.mutate(true)} disabled={syncMut.isPending || !canSync}>
               <History className="h-4 w-4"/> Import full history
             </Button>
           </div>
