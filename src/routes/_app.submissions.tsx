@@ -12,9 +12,9 @@ function Page() {
       module="submissions"
       searchFields={["role_title","status"]}
       fields={[
-        { name: "candidate_id", label: "Candidate ID", required: true },
-        { name: "client_id", label: "Client ID" },
-        { name: "job_id", label: "Job ID", hideInTable: true },
+        { name: "candidate_uuid", label: "Candidate", required: true, type: "relation", relation: { table: "candidates", select: "id, full_name, candidate_code, email, position_applied", label: (r) => `${r.full_name} (${r.candidate_code ?? "No code"})`, description: (r) => r.email ?? r.position_applied ?? "" } },
+        { name: "client_uuid", label: "Client", type: "relation", relation: { table: "clients", select: "id, company_name, contact_person, email", label: (r) => r.company_name, description: (r) => r.contact_person ?? r.email ?? "" } },
+        { name: "job_uuid", label: "Job", hideInTable: true, type: "relation", relation: { table: "job_openings", select: "id, job_title, location, status", label: (r) => r.job_title, description: (r) => [r.location, r.status].filter(Boolean).join(" • ") } },
         { name: "role_title", label: "Role" },
         { name: "submission_date", label: "Submitted On", type: "date" },
         { name: "status", label: "Status", type: "select", options: [
