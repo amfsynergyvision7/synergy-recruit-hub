@@ -263,6 +263,60 @@ export type Database = {
         }
         Relationships: []
       }
+      google_integrations: {
+        Row: {
+          auto_sync_enabled: boolean
+          column_mapping: Json
+          connection_status: string
+          created_at: string
+          google_account_email: string | null
+          header_row: number
+          id: string
+          last_error: string | null
+          last_sync: string | null
+          last_synced_row: number
+          sheet_name: string
+          sheet_url: string | null
+          spreadsheet_id: string | null
+          sync_frequency_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          auto_sync_enabled?: boolean
+          column_mapping?: Json
+          connection_status?: string
+          created_at?: string
+          google_account_email?: string | null
+          header_row?: number
+          id?: string
+          last_error?: string | null
+          last_sync?: string | null
+          last_synced_row?: number
+          sheet_name?: string
+          sheet_url?: string | null
+          spreadsheet_id?: string | null
+          sync_frequency_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auto_sync_enabled?: boolean
+          column_mapping?: Json
+          connection_status?: string
+          created_at?: string
+          google_account_email?: string | null
+          header_row?: number
+          id?: string
+          last_error?: string | null
+          last_sync?: string | null
+          last_synced_row?: number
+          sheet_name?: string
+          sheet_url?: string | null
+          spreadsheet_id?: string | null
+          sync_frequency_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           auto_sync: boolean
