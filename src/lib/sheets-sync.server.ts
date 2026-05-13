@@ -107,7 +107,7 @@ function emptyResult(): SyncResult {
   return { created: 0, updated: 0, skipped: 0, errors: 0, rows_scanned: 0, rows_created: 0, rows_updated: 0, rows_skipped: 0, error_details: [] };
 }
 
-export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
+async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
   const { data: integ, error: ierr } = await supabaseAdmin
     .from("integrations").select("*").eq("module", "candidates").maybeSingle();
   if (ierr) throw ierr;
@@ -126,9 +126,15 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
   }
 
   const headers = values[headerRow - 1];
-  let mapping: Record<string, string> = (integ.column_mapping ?? {}) as any;
-  if (!mapping || Object.keys(mapping).length === 0) {
-    mapping = autoMap(headers);
+  const allowedFields = new Set<string>(CANDIDATE_FIELDS);
+  const savedMapping: Record<string, string> = (integ.column_mapping ?? {}) as any;
+  const normalizedSaved = Object.fromEntries(Object.entries(savedMapping).flatMap(([header, field]) => {
+    const normalized = normalizeFieldName(field);
+    if (!normalized || !allowedFields.has(normalized) || header.toLowerCase().trim() === "timestamp") return [];
+    return [[header, normalized]];
+  }));
+  const mapping: Record<string, string> = { ...normalizedSaved, ...autoMap(headers) };
+  if (JSON.stringify(mapping) !== JSON.stringify(savedMapping)) {
     await supabaseAdmin.from("integrations").update({ column_mapping: mapping }).eq("id", integ.id);
   }
 
@@ -219,6 +225,41 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
   });
 
   return result;
+}
+
+export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
+  try {
+    return await runCandidateSyncUnsafe(opts);
+  } catch (e: any) {
+    const message = e?.message || String(e) || "Sync failed";
+    const result = emptyResult();
+    result.errors = 1;
+    result.error_details = [{ row: 0, message }];
+
+    try {
+      await supabaseAdmin.from("integrations").update({
+        last_sync_at: new Date().toISOString(),
+        last_status: "error",
+        last_error: message,
+      }).eq("module", "candidates");
+
+      await supabaseAdmin.from("sync_logs").insert({
+        module: "candidates",
+        triggered_by: opts.triggeredBy,
+        rows_scanned: 0,
+        rows_created: 0,
+        rows_updated: 0,
+        rows_skipped: 0,
+        errors: result.error_details,
+        status: "error",
+        message,
+      });
+    } catch (logError) {
+      console.error("Failed to write sync failure log", logError);
+    }
+
+    return result;
+  }
 }
 
 export async function fetchHeaders(spreadsheetId: string, sheetName: string, headerRow: number): Promise<string[]> {
