@@ -161,10 +161,10 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
 
   const { data: inserted, error: insertError } = await (supabaseAdmin as any)
     .from("google_integrations")
-    .insert(payload)
+    .upsert(payload, { onConflict: "user_id" })
     .select("*")
     .single();
-  if (insertError) throw insertError;
+  if (insertError) throw new Error(formatSupabaseError("Backfill Google integration settings failed", insertError));
   return inserted as GoogleIntegrationSettings;
 }
 
