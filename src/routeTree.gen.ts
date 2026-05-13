@@ -22,6 +22,7 @@ import { Route as AppOffersRouteImport } from './routes/_app.offers'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppJobsRouteImport } from './routes/_app.jobs'
 import { Route as AppInterviewsRouteImport } from './routes/_app.interviews'
+import { Route as AppIntegrationsRouteImport } from './routes/_app.integrations'
 import { Route as AppImportRouteImport } from './routes/_app.import'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
@@ -94,6 +95,11 @@ const AppInterviewsRoute = AppInterviewsRouteImport.update({
   path: '/interviews',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIntegrationsRoute = AppIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppImportRoute = AppImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
   '/import': typeof AppImportRoute
+  '/integrations': typeof AppIntegrationsRoute
   '/interviews': typeof AppInterviewsRoute
   '/jobs': typeof AppJobsRoute
   '/notifications': typeof AppNotificationsRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
   '/import': typeof AppImportRoute
+  '/integrations': typeof AppIntegrationsRoute
   '/interviews': typeof AppInterviewsRoute
   '/jobs': typeof AppJobsRoute
   '/notifications': typeof AppNotificationsRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/_app/clients': typeof AppClientsRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/import': typeof AppImportRoute
+  '/_app/integrations': typeof AppIntegrationsRoute
   '/_app/interviews': typeof AppInterviewsRoute
   '/_app/jobs': typeof AppJobsRoute
   '/_app/notifications': typeof AppNotificationsRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/import'
+    | '/integrations'
     | '/interviews'
     | '/jobs'
     | '/notifications'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/dashboard'
     | '/import'
+    | '/integrations'
     | '/interviews'
     | '/jobs'
     | '/notifications'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/_app/clients'
     | '/_app/dashboard'
     | '/_app/import'
+    | '/_app/integrations'
     | '/_app/interviews'
     | '/_app/jobs'
     | '/_app/notifications'
@@ -366,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInterviewsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/integrations': {
+      id: '/_app/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof AppIntegrationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/import': {
       id: '/_app/import'
       path: '/import'
@@ -425,6 +444,7 @@ interface AppRouteChildren {
   AppClientsRoute: typeof AppClientsRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppImportRoute: typeof AppImportRoute
+  AppIntegrationsRoute: typeof AppIntegrationsRoute
   AppInterviewsRoute: typeof AppInterviewsRoute
   AppJobsRoute: typeof AppJobsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
@@ -441,6 +461,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientsRoute: AppClientsRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppImportRoute: AppImportRoute,
+  AppIntegrationsRoute: AppIntegrationsRoute,
   AppInterviewsRoute: AppInterviewsRoute,
   AppJobsRoute: AppJobsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
