@@ -66,6 +66,124 @@ async function gw(path: string, init?: RequestInit) {
   return data;
 }
 
+export interface GoogleIntegrationSettings {
+  id: string;
+  sheet_url: string | null;
+  spreadsheet_id: string | null;
+  sheet_name: string | null;
+  header_row: number;
+  auto_sync_enabled: boolean;
+  sync_frequency_minutes: number;
+  last_sync: string | null;
+  last_synced_row: number;
+  google_account_email: string | null;
+  connection_status: string | null;
+  column_mapping: Record<string, string> | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SyncDiagnostics {
+  settingsLoaded: boolean;
+  spreadsheetFound: boolean;
+  tabFound: boolean;
+  headersFound: boolean;
+  rowsFetched: number;
+}
+
+export function diagnosticsForIntegration(integ?: GoogleIntegrationSettings | null, values?: unknown[][] | null): SyncDiagnostics {
+  const headerRow = integ?.header_row || 1;
+  const headers = Array.isArray(values) ? values[headerRow - 1] : null;
+  return {
+    settingsLoaded: !!integ,
+    spreadsheetFound: !!integ?.spreadsheet_id,
+    tabFound: Array.isArray(values),
+    headersFound: Array.isArray(headers) && headers.length > 0,
+    rowsFetched: Array.isArray(values) ? Math.max(0, values.length - headerRow) : 0,
+  };
+}
+
+export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean } = {}): Promise<GoogleIntegrationSettings | null> {
+  const { data, error } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (data) return data as GoogleIntegrationSettings;
+  if (opts.backfillLegacy === false) return null;
+
+  const { data: legacy, error: legacyError } = await supabaseAdmin
+    .from("integrations")
+    .select("*")
+    .eq("module", "candidates")
+    .maybeSingle();
+  if (legacyError) throw legacyError;
+  if (!legacy?.sheet_url && !legacy?.spreadsheet_id) return null;
+
+  const spreadsheetId = legacy.spreadsheet_id || (legacy.sheet_url ? extractSpreadsheetId(legacy.sheet_url) : null);
+  const payload = {
+    sheet_url: legacy.sheet_url,
+    spreadsheet_id: spreadsheetId,
+    sheet_name: legacy.sheet_name || "Form Responses 1",
+    header_row: legacy.header_row || 1,
+    auto_sync_enabled: !!legacy.auto_sync,
+    sync_frequency_minutes: 2,
+    last_sync: legacy.last_sync_at,
+    last_synced_row: legacy.last_synced_row || 1,
+    connection_status: spreadsheetId ? "configured" : "not_configured",
+    column_mapping: legacy.column_mapping ?? {},
+    last_error: legacy.last_error ?? null,
+  };
+
+  const { data: inserted, error: insertError } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .insert(payload)
+    .select("*")
+    .single();
+  if (insertError) throw insertError;
+  return inserted as GoogleIntegrationSettings;
+}
+
+export async function saveGoogleIntegrationSettings(input: {
+  sheet_url: string;
+  sheet_name: string;
+  header_row: number;
+  auto_sync_enabled: boolean;
+  sync_frequency_minutes?: number;
+  column_mapping?: Record<string, string>;
+}) {
+  const current = await getSavedGoogleIntegration({ backfillLegacy: true });
+  const spreadsheetId = input.sheet_url ? extractSpreadsheetId(input.sheet_url) : null;
+  if (input.sheet_url && !spreadsheetId) {
+    throw new Error("Invalid Google Sheet URL — must look like https://docs.google.com/spreadsheets/d/<ID>/edit");
+  }
+
+  const payload = {
+    ...(current?.id ? { id: current.id } : {}),
+    sheet_url: input.sheet_url || null,
+    spreadsheet_id: spreadsheetId,
+    sheet_name: input.sheet_name || "Form Responses 1",
+    header_row: input.header_row || 1,
+    auto_sync_enabled: !!input.auto_sync_enabled,
+    sync_frequency_minutes: input.sync_frequency_minutes || current?.sync_frequency_minutes || 2,
+    connection_status: spreadsheetId ? "configured" : "not_configured",
+    column_mapping: input.column_mapping ?? current?.column_mapping ?? {},
+    last_error: null,
+  };
+
+  const { data, error } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .upsert(payload, { onConflict: "id" })
+    .select("*")
+    .single();
+  if (error) throw new Error(`Save failed: ${error.message}`);
+  if (!data) throw new Error("Save returned no integration settings");
+  return data as GoogleIntegrationSettings;
+}
+
 export async function fetchSheetValues(spreadsheetId: string, sheetName: string) {
   const safeSheetName = /^[A-Za-z0-9_]+$/.test(sheetName) ? sheetName : `'${sheetName.replace(/'/g, "''")}'`;
   const range = `${safeSheetName}!A1:Z100000`;
