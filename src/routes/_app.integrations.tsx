@@ -50,7 +50,7 @@ function Page() {
 
   const detectMut = useMutation({
     mutationFn: () => detect({ data: { sheet_url: form.sheet_url, sheet_name: form.sheet_name, header_row: form.header_row } }),
-    onSuccess: (r) => { setHeaders(r.headers); setMapping((m) => ({ ...r.suggested, ...m })); toast.success(`Detected ${r.headers.length} columns`); },
+    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); toast.success(`Detected ${hs.length} columns`); },
     onError: (e: any) => toast.error(e.message),
   });
 
