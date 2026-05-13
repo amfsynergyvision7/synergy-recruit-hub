@@ -107,7 +107,7 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
   const headerRow = integ.header_row || 1;
   const values = await fetchSheetValues(integ.spreadsheet_id, sheetName);
 
-  const result: SyncResult = { rows_scanned: 0, rows_created: 0, rows_updated: 0, rows_skipped: 0, errors: [] };
+  const result = emptyResult();
   if (values.length < headerRow) {
     await supabaseAdmin.from("integrations").update({
       last_sync_at: new Date().toISOString(), last_status: "success", last_error: null,
@@ -133,26 +133,38 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
       if (!cand.full_name && !cand.email && !cand.mobile) {
         result.rows_skipped++; lastSynced = sheetRowNumber; continue;
       }
+      cand.full_name = cand.full_name || cand.email || cand.mobile;
       cand.source = cand.source || "Google Form";
       cand.stage = "lead_received";
+      cand.status = "active";
+      cand.created_source = "google_form_sync";
 
-      // Duplicate detection
       let existingId: string | null = null;
-      if (cand.email) {
-        const { data: e } = await supabaseAdmin.from("candidates")
-          .select("id").ilike("email", cand.email).maybeSingle();
-        if (e) existingId = e.id;
+      let existing: Record<string, any> | null = null;
+      const candidateSelect = "id, full_name, mobile, email, location, position_applied, current_company, experience_years, current_salary, expected_salary, notice_period, source, resume_url, notes, status, created_source";
+      if (cand.mobile) {
+        const { data: m, error } = await (supabaseAdmin.from("candidates") as any)
+          .select(candidateSelect).eq("mobile", cand.mobile).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (error) throw error;
+        if (m) { existingId = m.id; existing = m; }
       }
-      if (!existingId && cand.mobile) {
-        const { data: m } = await supabaseAdmin.from("candidates")
-          .select("id").eq("mobile", cand.mobile).maybeSingle();
-        if (m) existingId = m.id;
+      if (cand.email) {
+        const { data: e, error } = await (supabaseAdmin.from("candidates") as any)
+          .select(candidateSelect).ilike("email", cand.email).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (error) throw error;
+        if (!existingId && e) { existingId = e.id; existing = e; }
       }
 
       if (existingId) {
-        const upd: Record<string, any> = { ...cand }; delete upd.stage;
-        const { error } = await (supabaseAdmin.from("candidates") as any).update(upd).eq("id", existingId);
-        if (error) throw error;
+        const upd: Record<string, any> = {};
+        Object.entries(cand).forEach(([key, value]) => {
+          if (key === "stage" || value === undefined || value === null || value === "") return;
+          if (String(existing?.[key] ?? "") !== String(value)) upd[key] = value;
+        });
+        if (Object.keys(upd).length > 0) {
+          const { error } = await (supabaseAdmin.from("candidates") as any).update(upd).eq("id", existingId);
+          if (error) throw error;
+        }
         result.rows_updated++;
       } else {
         const { data: ins, error } = await (supabaseAdmin.from("candidates") as any).insert(cand).select("id, candidate_code, full_name").single();
@@ -166,17 +178,22 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
       }
       lastSynced = sheetRowNumber;
     } catch (e: any) {
-      result.errors.push({ row: sheetRowNumber, message: e?.message || String(e) });
+      result.error_details.push({ row: sheetRowNumber, message: e?.message || String(e) });
       result.rows_skipped++;
     }
   }
 
-  const status = result.errors.length ? (result.rows_created + result.rows_updated > 0 ? "partial" : "error") : "success";
+  result.created = result.rows_created;
+  result.updated = result.rows_updated;
+  result.skipped = result.rows_skipped;
+  result.errors = result.error_details.length;
+
+  const status = result.errors ? (result.created + result.updated > 0 ? "partial" : "error") : "success";
   await supabaseAdmin.from("integrations").update({
     last_sync_at: new Date().toISOString(),
     last_synced_row: lastSynced,
     last_status: status,
-    last_error: result.errors.length ? result.errors[0].message : null,
+    last_error: result.error_details.length ? result.error_details[0].message : null,
   }).eq("id", integ.id);
 
   await supabaseAdmin.from("sync_logs").insert({
@@ -186,9 +203,9 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
     rows_created: result.rows_created,
     rows_updated: result.rows_updated,
     rows_skipped: result.rows_skipped,
-    errors: result.errors,
+    errors: result.error_details,
     status,
-    message: `Created ${result.rows_created}, updated ${result.rows_updated}, skipped ${result.rows_skipped}`,
+    message: `Created ${result.created}, updated ${result.updated}, skipped ${result.skipped}, errors ${result.errors}`,
   });
 
   return result;
