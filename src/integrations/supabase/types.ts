@@ -275,6 +275,7 @@ export type Database = {
           last_error: string | null
           last_sync: string | null
           last_synced_row: number
+          mapping: Json
           sheet_name: string
           sheet_url: string | null
           spreadsheet_id: string | null
@@ -293,6 +294,7 @@ export type Database = {
           last_error?: string | null
           last_sync?: string | null
           last_synced_row?: number
+          mapping?: Json
           sheet_name?: string
           sheet_url?: string | null
           spreadsheet_id?: string | null
@@ -311,6 +313,7 @@ export type Database = {
           last_error?: string | null
           last_sync?: string | null
           last_synced_row?: number
+          mapping?: Json
           sheet_name?: string
           sheet_url?: string | null
           spreadsheet_id?: string | null
