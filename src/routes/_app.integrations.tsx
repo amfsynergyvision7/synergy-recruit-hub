@@ -145,7 +145,7 @@ function Page() {
             </div>
             <div className="flex items-end gap-3">
               <div className="flex items-center gap-2">
-                <Switch checked={form.auto_sync} onCheckedChange={(v) => setForm({ ...form, auto_sync: v })}/>
+                <Switch checked={form.auto_sync_enabled} onCheckedChange={(v) => setForm({ ...form, auto_sync_enabled: v })}/>
                 <Label>Auto sync (every 2 min)</Label>
               </div>
             </div>
@@ -197,11 +197,11 @@ function Page() {
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-sm">Last sync</CardTitle></CardHeader>
-          <CardContent className="text-sm">{integQ.data?.last_sync_at ? new Date(integQ.data.last_sync_at).toLocaleString() : "—"}</CardContent>
+          <CardContent className="text-sm">{integration?.last_sync ? new Date(integration.last_sync).toLocaleString() : "—"}</CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-sm">Last synced row</CardTitle></CardHeader>
-          <CardContent className="text-sm">{integQ.data?.last_synced_row ?? 1}</CardContent>
+          <CardContent className="text-sm">{integration?.last_synced_row ?? 1}</CardContent>
         </Card>
       </div>
 
