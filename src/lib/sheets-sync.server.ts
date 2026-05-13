@@ -79,6 +79,7 @@ async function gw(path: string, init?: RequestInit) {
 
 export interface GoogleIntegrationSettings {
   id: string;
+  user_id: string;
   sheet_url: string | null;
   spreadsheet_id: string | null;
   sheet_name: string | null;
@@ -93,6 +94,11 @@ export interface GoogleIntegrationSettings {
   last_error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+function formatSupabaseError(action: string, error: any) {
+  const parts = [error?.message, error?.details, error?.hint, error?.code].filter(Boolean);
+  return `${action}: ${parts.join(" | ") || "Unknown database error"}`;
 }
 
 export interface SyncDiagnostics {
@@ -115,16 +121,19 @@ export function diagnosticsForIntegration(integ?: GoogleIntegrationSettings | nu
   };
 }
 
-export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean } = {}): Promise<GoogleIntegrationSettings | null> {
-  const { data, error } = await (supabaseAdmin as any)
+export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean; userId?: string } = {}): Promise<GoogleIntegrationSettings | null> {
+  let query = (supabaseAdmin as any)
     .from("google_integrations")
     .select("*")
     .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
+    .limit(1);
+  if (opts.userId) query = query.eq("user_id", opts.userId);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(formatSupabaseError("Load Google integration settings failed", error));
   if (data) return data as GoogleIntegrationSettings;
   if (opts.backfillLegacy === false) return null;
+  if (!opts.userId) return null;
 
   const { data: legacy, error: legacyError } = await supabaseAdmin
     .from("integrations")
@@ -136,6 +145,7 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
 
   const spreadsheetId = legacy.spreadsheet_id || (legacy.sheet_url ? extractSpreadsheetId(legacy.sheet_url) : null);
   const payload = {
+    user_id: opts.userId,
     sheet_url: legacy.sheet_url,
     spreadsheet_id: spreadsheetId,
     sheet_name: legacy.sheet_name || "Form Responses 1",
