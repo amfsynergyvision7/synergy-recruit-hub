@@ -280,6 +280,7 @@ export type Database = {
           spreadsheet_id: string | null
           sync_frequency_minutes: number
           updated_at: string
+          user_id: string
         }
         Insert: {
           auto_sync_enabled?: boolean
@@ -297,6 +298,7 @@ export type Database = {
           spreadsheet_id?: string | null
           sync_frequency_minutes?: number
           updated_at?: string
+          user_id: string
         }
         Update: {
           auto_sync_enabled?: boolean
@@ -314,6 +316,7 @@ export type Database = {
           spreadsheet_id?: string | null
           sync_frequency_minutes?: number
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
