@@ -100,10 +100,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       const candidate = relationOptions[name]?.find((r) => r.id === value);
       next.salary = next.salary ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
       next.ctc = next.ctc ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
-      const { data: interview } = await supabase.from("interviews" as any).select("id, client_uuid, client_id, submission_uuid").eq("candidate_uuid", value).eq("status", "selected").order("created_at", { ascending: false }).limit(1).maybeSingle();
-      const { data: submission } = interview?.submission_uuid
-        ? { data: null }
+      const interviewResult = await supabase.from("interviews" as any).select("id, client_uuid, client_id, submission_uuid").eq("candidate_uuid", value).eq("status", "selected").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const interview: any = interviewResult.data;
+      const submissionResult = interview?.submission_uuid
+        ? { data: null as any }
         : await supabase.from("submissions" as any).select("id, client_uuid, client_id").eq("candidate_uuid", value).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const submission: any = submissionResult.data;
       next.interview_uuid = next.interview_uuid ?? interview?.id ?? null;
       next.submission_uuid = next.submission_uuid ?? interview?.submission_uuid ?? submission?.id ?? null;
       next.client_uuid = next.client_uuid ?? interview?.client_uuid ?? interview?.client_id ?? submission?.client_uuid ?? submission?.client_id ?? null;
@@ -127,6 +129,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       if (f.type === "number" && v !== null) v = Number(v);
       payload[f.name] = v;
     });
+    if (form.candidate_uuid) payload.candidate_id = form.candidate_uuid;
+    if (form.client_uuid !== undefined) payload.client_id = form.client_uuid || null;
+    if (form.job_uuid !== undefined) payload.job_id = form.job_uuid || null;
     if (editing) {
       const { error } = await supabase.from(table as any).update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);
