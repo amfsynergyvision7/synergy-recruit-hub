@@ -110,6 +110,14 @@ function coerce(value: any, field: ImportFieldDef): { value: any; error?: string
   return { value: s };
 }
 
+const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function refMap(rows: any[], keys: string[]) {
+  const map = new Map<string, string>();
+  rows.forEach((row) => keys.forEach((key) => row[key] && map.set(String(row[key]).trim().toLowerCase(), row.id)));
+  return map;
+}
+
 function Page() {
   const { role } = useAuth();
   const [moduleKey, setModuleKey] = useState<string>("clients");
@@ -170,6 +178,22 @@ function Page() {
     const keys = new Set<string>((existing ?? []).map((r: any) => String(r[schema.uniqueField] ?? "").toLowerCase()).filter(Boolean));
     setExistingKeys(keys);
 
+    const [{ data: candidateRefs }, { data: clientRefs }, { data: jobRefs }] = await Promise.all([
+      supabase.from("candidates" as any).select("id,candidate_code,email,full_name"),
+      supabase.from("clients" as any).select("id,company_name,email"),
+      supabase.from("job_openings" as any).select("id,job_title"),
+    ]);
+    const candidates = refMap(candidateRefs ?? [], ["id", "candidate_code", "email", "full_name"]);
+    const clients = refMap(clientRefs ?? [], ["id", "company_name", "email"]);
+    const jobs = refMap(jobRefs ?? [], ["id", "job_title"]);
+
+    const resolveRef = (value: any, map: Map<string, string>) => {
+      const raw = String(value ?? "").trim();
+      if (!raw) return null;
+      if (uuidRe.test(raw)) return raw;
+      return map.get(raw.toLowerCase()) ?? null;
+    };
+
     const out: MappedRow[] = rawRows.map((raw, i) => {
       const data: Record<string, any> = {};
       const errors: RowError[] = [];
@@ -180,6 +204,21 @@ function Page() {
         if (error) errors.push({ row: i + 2, field: f.name, message: `${f.label}: ${error}` });
         if (value !== null && value !== undefined && value !== "") data[f.name] = value;
       });
+      if (moduleKey !== "candidates" && data.candidate_id) {
+        const id = resolveRef(data.candidate_id, candidates);
+        if (id) { data.candidate_uuid = id; data.candidate_id = id; }
+        else errors.push({ row: i + 2, field: "candidate_id", message: `Candidate not found: ${data.candidate_id}` });
+      }
+      if (["jobs", "submissions", "interviews", "offers", "billing"].includes(moduleKey) && data.client_id) {
+        const id = resolveRef(data.client_id, clients);
+        if (id) { data.client_uuid = id; data.client_id = id; }
+        else errors.push({ row: i + 2, field: "client_id", message: `Client not found: ${data.client_id}` });
+      }
+      if (moduleKey === "submissions" && data.job_id) {
+        const id = resolveRef(data.job_id, jobs);
+        if (id) { data.job_uuid = id; data.job_id = id; }
+        else errors.push({ row: i + 2, field: "job_id", message: `Job not found: ${data.job_id}` });
+      }
       const keyVal = String(data[schema.uniqueField] ?? "").toLowerCase();
       const isDuplicate = !!keyVal && keys.has(keyVal);
       return { data, errors, isDuplicate, rowIndex: i + 2 };
