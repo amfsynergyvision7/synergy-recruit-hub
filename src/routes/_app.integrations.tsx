@@ -72,7 +72,16 @@ function Page() {
   const status = integQ.data?.last_status;
   const statusVariant: any = status === "success" ? "default" : status === "partial" ? "secondary" : status === "error" ? "destructive" : "outline";
 
-  const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping), [headers, mapping]);
+  const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
+  const logs = Array.isArray(logsQ.data) ? logsQ.data : [];
+
+  if (integQ.isError) {
+    // surface error but don't crash
+    console.error("integration load error", integQ.error);
+  }
+  if (logsQ.isError) {
+    console.error("sync logs load error", logsQ.error);
+  }
 
   return (
     <div className="space-y-6">
