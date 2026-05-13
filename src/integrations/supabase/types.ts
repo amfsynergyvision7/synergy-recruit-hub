@@ -50,7 +50,9 @@ export type Database = {
       billing: {
         Row: {
           candidate_id: string | null
+          candidate_uuid: string | null
           client_id: string | null
+          client_uuid: string | null
           created_at: string
           created_by: string | null
           gst: number | null
@@ -58,6 +60,7 @@ export type Database = {
           invoice_amount: number | null
           invoice_date: string | null
           invoice_number: string | null
+          offer_uuid: string | null
           outstanding_amount: number | null
           payment_status: string | null
           placement_fee: number | null
@@ -66,7 +69,9 @@ export type Database = {
         }
         Insert: {
           candidate_id?: string | null
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           gst?: number | null
@@ -74,6 +79,7 @@ export type Database = {
           invoice_amount?: number | null
           invoice_date?: string | null
           invoice_number?: string | null
+          offer_uuid?: string | null
           outstanding_amount?: number | null
           payment_status?: string | null
           placement_fee?: number | null
@@ -82,7 +88,9 @@ export type Database = {
         }
         Update: {
           candidate_id?: string | null
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           gst?: number | null
@@ -90,6 +98,7 @@ export type Database = {
           invoice_amount?: number | null
           invoice_date?: string | null
           invoice_number?: string | null
+          offer_uuid?: string | null
           outstanding_amount?: number | null
           payment_status?: string | null
           placement_fee?: number | null
@@ -105,10 +114,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "billing_candidate_uuid_fkey"
+            columns: ["candidate_uuid"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "billing_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_client_uuid_fkey"
+            columns: ["client_uuid"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_offer_uuid_fkey"
+            columns: ["offer_uuid"]
+            isOneToOne: false
+            referencedRelation: "offers"
             referencedColumns: ["id"]
           },
         ]
@@ -230,7 +260,9 @@ export type Database = {
       interviews: {
         Row: {
           candidate_id: string
+          candidate_uuid: string | null
           client_id: string | null
+          client_uuid: string | null
           created_at: string
           created_by: string | null
           feedback: string | null
@@ -240,10 +272,13 @@ export type Database = {
           mode: string | null
           round: string | null
           status: string | null
+          submission_uuid: string | null
         }
         Insert: {
           candidate_id: string
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           feedback?: string | null
@@ -253,10 +288,13 @@ export type Database = {
           mode?: string | null
           round?: string | null
           status?: string | null
+          submission_uuid?: string | null
         }
         Update: {
           candidate_id?: string
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           feedback?: string | null
@@ -266,11 +304,19 @@ export type Database = {
           mode?: string | null
           round?: string | null
           status?: string | null
+          submission_uuid?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "interviews_candidate_id_fkey"
             columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_candidate_uuid_fkey"
+            columns: ["candidate_uuid"]
             isOneToOne: false
             referencedRelation: "candidates"
             referencedColumns: ["id"]
@@ -282,12 +328,27 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "interviews_client_uuid_fkey"
+            columns: ["client_uuid"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_submission_uuid_fkey"
+            columns: ["submission_uuid"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       job_openings: {
         Row: {
           assigned_recruiter: string | null
           client_id: string | null
+          client_uuid: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -303,6 +364,7 @@ export type Database = {
         Insert: {
           assigned_recruiter?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -318,6 +380,7 @@ export type Database = {
         Update: {
           assigned_recruiter?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -334,6 +397,13 @@ export type Database = {
           {
             foreignKeyName: "job_openings_client_id_fkey"
             columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_openings_client_uuid_fkey"
+            columns: ["client_uuid"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
@@ -373,44 +443,56 @@ export type Database = {
       offers: {
         Row: {
           candidate_id: string
+          candidate_uuid: string | null
           client_id: string | null
+          client_uuid: string | null
           created_at: string
           created_by: string | null
           ctc: number | null
           id: string
+          interview_uuid: string | null
           joining_date: string | null
           joining_status: string | null
           offer_date: string | null
           offer_status: string | null
           salary: number | null
+          submission_uuid: string | null
           updated_at: string
         }
         Insert: {
           candidate_id: string
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           ctc?: number | null
           id?: string
+          interview_uuid?: string | null
           joining_date?: string | null
           joining_status?: string | null
           offer_date?: string | null
           offer_status?: string | null
           salary?: number | null
+          submission_uuid?: string | null
           updated_at?: string
         }
         Update: {
           candidate_id?: string
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           ctc?: number | null
           id?: string
+          interview_uuid?: string | null
           joining_date?: string | null
           joining_status?: string | null
           offer_date?: string | null
           offer_status?: string | null
           salary?: number | null
+          submission_uuid?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -422,10 +504,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "offers_candidate_uuid_fkey"
+            columns: ["candidate_uuid"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "offers_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_client_uuid_fkey"
+            columns: ["client_uuid"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_interview_uuid_fkey"
+            columns: ["interview_uuid"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_submission_uuid_fkey"
+            columns: ["submission_uuid"]
+            isOneToOne: false
+            referencedRelation: "submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -472,11 +582,14 @@ export type Database = {
       submissions: {
         Row: {
           candidate_id: string
+          candidate_uuid: string | null
           client_id: string | null
+          client_uuid: string | null
           created_at: string
           created_by: string | null
           id: string
           job_id: string | null
+          job_uuid: string | null
           remarks: string | null
           role_title: string | null
           status: string | null
@@ -484,11 +597,14 @@ export type Database = {
         }
         Insert: {
           candidate_id: string
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           job_id?: string | null
+          job_uuid?: string | null
           remarks?: string | null
           role_title?: string | null
           status?: string | null
@@ -496,11 +612,14 @@ export type Database = {
         }
         Update: {
           candidate_id?: string
+          candidate_uuid?: string | null
           client_id?: string | null
+          client_uuid?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           job_id?: string | null
+          job_uuid?: string | null
           remarks?: string | null
           role_title?: string | null
           status?: string | null
@@ -515,6 +634,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "submissions_candidate_uuid_fkey"
+            columns: ["candidate_uuid"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "submissions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -522,8 +648,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "submissions_client_uuid_fkey"
+            columns: ["client_uuid"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "submissions_job_id_fkey"
             columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_openings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_job_uuid_fkey"
+            columns: ["job_uuid"]
             isOneToOne: false
             referencedRelation: "job_openings"
             referencedColumns: ["id"]
@@ -568,6 +708,9 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      resolve_candidate_uuid: { Args: { _value: string }; Returns: string }
+      resolve_client_uuid: { Args: { _value: string }; Returns: string }
+      resolve_job_uuid: { Args: { _value: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "recruiter" | "operations" | "finance" | "viewer"
