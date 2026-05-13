@@ -64,14 +64,16 @@ function Page() {
     onSuccess: (row: any) => {
       if (!row?.integration?.id) {
         toast.error("Save failed: no integration settings were returned by the server");
+        console.error("Google integration save failed", row);
         return;
       }
-      toast.success("Settings saved");
+      console.info("Google integration save success", { id: row.integration.id, sheet_url: row.integration.sheet_url, diagnostics: row.diagnostics });
+      toast.success(`Settings saved — row ${row.integration.id.slice(0, 8)}`);
       setRuntimeDiagnostics(row?.diagnostics ?? null);
       qc.setQueryData(["integration"], row);
       qc.invalidateQueries({ queryKey: ["integration"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Save failed"),
+    onError: (e: any) => { console.error("Google integration save error", e); toast.error(e?.message || "Save failed"); },
   });
 
   const ensureSaved = async () => {
@@ -111,6 +113,11 @@ function Page() {
   const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
   const logs = Array.isArray(logsQ.data) ? logsQ.data : [];
   const diagnosticItems = [
+    ["Logged user id", diagnostics.loggedUserId ?? "—"],
+    ["Settings row found", diagnostics.settingsRowFound ? "YES" : "NO"],
+    ["Settings row id", diagnostics.settingsRowId ? String(diagnostics.settingsRowId).slice(0, 8) : "—"],
+    ["Fetched sheet URL", diagnostics.fetchedSheetUrl || "—"],
+    ["Save success", diagnostics.saveSuccess === undefined ? "—" : diagnostics.saveSuccess ? "YES" : "NO"],
     ["Settings loaded", diagnostics.settingsLoaded ? "YES" : "NO"],
     ["Spreadsheet found", diagnostics.spreadsheetFound ? "YES" : "NO"],
     ["Tab found", diagnostics.tabFound ? "YES" : "NO"],
@@ -181,7 +188,7 @@ function Page() {
             {diagnosticItems.map(([label, value]) => (
               <div key={label} className="space-y-1">
                 <div className="text-xs text-muted-foreground">{label}</div>
-                <div className="text-sm font-semibold">{value}</div>
+                <div className="text-sm font-semibold break-words">{value}</div>
               </div>
             ))}
           </div>
