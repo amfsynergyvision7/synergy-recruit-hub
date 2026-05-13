@@ -257,6 +257,57 @@ export type Database = {
         }
         Relationships: []
       }
+      integrations: {
+        Row: {
+          auto_sync: boolean
+          column_mapping: Json
+          created_at: string
+          header_row: number
+          id: string
+          last_error: string | null
+          last_status: string | null
+          last_sync_at: string | null
+          last_synced_row: number
+          module: string
+          sheet_name: string | null
+          sheet_url: string | null
+          spreadsheet_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_sync?: boolean
+          column_mapping?: Json
+          created_at?: string
+          header_row?: number
+          id?: string
+          last_error?: string | null
+          last_status?: string | null
+          last_sync_at?: string | null
+          last_synced_row?: number
+          module: string
+          sheet_name?: string | null
+          sheet_url?: string | null
+          spreadsheet_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_sync?: boolean
+          column_mapping?: Json
+          created_at?: string
+          header_row?: number
+          id?: string
+          last_error?: string | null
+          last_status?: string | null
+          last_sync_at?: string | null
+          last_synced_row?: number
+          module?: string
+          sheet_name?: string | null
+          sheet_url?: string | null
+          spreadsheet_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interviews: {
         Row: {
           candidate_id: string
@@ -669,6 +720,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sync_logs: {
+        Row: {
+          created_at: string
+          errors: Json
+          id: string
+          message: string | null
+          module: string
+          rows_created: number
+          rows_scanned: number
+          rows_skipped: number
+          rows_updated: number
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          errors?: Json
+          id?: string
+          message?: string | null
+          module: string
+          rows_created?: number
+          rows_scanned?: number
+          rows_skipped?: number
+          rows_updated?: number
+          status?: string
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          errors?: Json
+          id?: string
+          message?: string | null
+          module?: string
+          rows_created?: number
+          rows_scanned?: number
+          rows_skipped?: number
+          rows_updated?: number
+          status?: string
+          triggered_by?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
