@@ -176,6 +176,7 @@ export async function saveGoogleIntegrationSettings(input: {
   auto_sync_enabled: boolean;
   sync_frequency_minutes?: number;
   column_mapping?: Record<string, string>;
+  google_account_email?: string | null;
 }) {
   if (!input.user_id) throw new Error("Missing user_id for Google integration settings");
   const current = await getSavedGoogleIntegration({ backfillLegacy: true, userId: input.user_id });
@@ -195,7 +196,9 @@ export async function saveGoogleIntegrationSettings(input: {
     sync_frequency_minutes: input.sync_frequency_minutes || current?.sync_frequency_minutes || 2,
     connection_status: spreadsheetId ? "configured" : "not_configured",
     column_mapping: input.column_mapping ?? current?.column_mapping ?? {},
+    google_account_email: input.google_account_email ?? current?.google_account_email ?? null,
     last_error: null,
+    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await (supabaseAdmin as any)
