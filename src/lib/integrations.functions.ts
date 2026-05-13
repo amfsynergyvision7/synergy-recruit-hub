@@ -31,18 +31,21 @@ export const saveIntegration = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context.userId);
     const sid = data.sheet_url ? extractSpreadsheetId(data.sheet_url) : null;
-    if (data.sheet_url && !sid) throw new Error("Invalid Google Sheet URL");
-    const upd: any = {
+    if (data.sheet_url && !sid) throw new Error("Invalid Google Sheet URL — must look like https://docs.google.com/spreadsheets/d/<ID>/edit");
+    const payload: any = {
+      module: "candidates",
       sheet_url: data.sheet_url || null,
       spreadsheet_id: sid,
       sheet_name: data.sheet_name,
       header_row: data.header_row,
       auto_sync: data.auto_sync,
     };
-    if (data.column_mapping) upd.column_mapping = data.column_mapping;
+    if (data.column_mapping) payload.column_mapping = data.column_mapping;
     const { data: row, error } = await (supabaseAdmin.from("integrations") as any)
-      .update(upd).eq("module", "candidates").select("*").single();
-    if (error) throw error;
+      .upsert(payload, { onConflict: "module" })
+      .select("*").single();
+    if (error) throw new Error(`Save failed: ${error.message}`);
+    if (!row) throw new Error("Save returned no row");
     return row;
   });
 
