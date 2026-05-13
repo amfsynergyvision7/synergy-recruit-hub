@@ -149,6 +149,7 @@ export type Database = {
           candidate_code: string | null
           created_at: string
           created_by: string | null
+          created_source: string | null
           current_company: string | null
           current_salary: number | null
           email: string | null
@@ -164,6 +165,7 @@ export type Database = {
           resume_url: string | null
           source: string | null
           stage: Database["public"]["Enums"]["candidate_stage"]
+          status: string
           updated_at: string
         }
         Insert: {
@@ -171,6 +173,7 @@ export type Database = {
           candidate_code?: string | null
           created_at?: string
           created_by?: string | null
+          created_source?: string | null
           current_company?: string | null
           current_salary?: number | null
           email?: string | null
@@ -186,6 +189,7 @@ export type Database = {
           resume_url?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["candidate_stage"]
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -193,6 +197,7 @@ export type Database = {
           candidate_code?: string | null
           created_at?: string
           created_by?: string | null
+          created_source?: string | null
           current_company?: string | null
           current_salary?: number | null
           email?: string | null
@@ -208,6 +213,7 @@ export type Database = {
           resume_url?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["candidate_stage"]
+          status?: string
           updated_at?: string
         }
         Relationships: []

@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, RefreshCw, Sparkles, History, AlertCircle, CheckCircle2, Link2 } from "lucide-react";
 import { getIntegration, saveIntegration, detectHeaders, triggerSync, getSyncLogs } from "@/lib/integrations.functions";
-import { CANDIDATE_FIELDS } from "@/lib/candidate-fields";
+import { CANDIDATE_FIELDS, CANDIDATE_FIELD_LABELS } from "@/lib/candidate-fields";
 
 export const Route = createFileRoute("/_app/integrations")({ component: Page });
 
@@ -74,7 +74,11 @@ function Page() {
   const syncMut = useMutation({
     mutationFn: async (full: boolean) => { await ensureSaved(); return sync({ data: { fullHistory: full } }); },
     onSuccess: (r) => {
-      toast.success(`Sync done: ${r.rows_created} created, ${r.rows_updated} updated, ${r.rows_skipped} skipped`);
+      const created = Number(r?.created ?? r?.rows_created ?? 0);
+      const updated = Number(r?.updated ?? r?.rows_updated ?? 0);
+      const skipped = Number(r?.skipped ?? r?.rows_skipped ?? 0);
+      const errors = Number(r?.errors ?? (Array.isArray(r?.error_details) ? r.error_details.length : 0));
+      toast.success(`Sync Complete\nCreated: ${created}\nUpdated: ${updated}\nSkipped: ${skipped}\nErrors: ${errors}`);
       qc.invalidateQueries({ queryKey: ["integration"] }); qc.invalidateQueries({ queryKey: ["sync-logs"] });
     },
     onError: (e: any) => toast.error(e?.message || "Sync failed"),
@@ -161,7 +165,7 @@ function Page() {
                       <SelectTrigger><SelectValue placeholder="Ignore"/></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none">— Ignore —</SelectItem>
-                        {CANDIDATE_FIELDS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        {CANDIDATE_FIELDS.map((f) => <SelectItem key={f} value={f}>{CANDIDATE_FIELD_LABELS[f]}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -193,7 +197,7 @@ function Page() {
           <Table>
             <TableHeader><TableRow>
               <TableHead>When</TableHead><TableHead>Trigger</TableHead><TableHead>Status</TableHead>
-              <TableHead>Created</TableHead><TableHead>Updated</TableHead><TableHead>Skipped</TableHead><TableHead>Errors</TableHead>
+              <TableHead>Created</TableHead><TableHead>Updated</TableHead><TableHead>Skipped</TableHead><TableHead>Errors</TableHead><TableHead>Failure Reason</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {logs.map((l: any) => (
@@ -208,12 +212,13 @@ function Page() {
                   <TableCell>{l.rows_created ?? 0}</TableCell>
                   <TableCell>{l.rows_updated ?? 0}</TableCell>
                   <TableCell>{l.rows_skipped ?? 0}</TableCell>
+                  <TableCell>{Array.isArray(l.errors) ? l.errors.length : 0}</TableCell>
                   <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
                     {Array.isArray(l.errors) && l.errors.length ? l.errors.map((e: any) => `R${e.row ?? "?"}: ${e.message ?? ""}`).join(" | ") : "—"}
                   </TableCell>
                 </TableRow>
               ))}
-              {logs.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No sync runs yet.</TableCell></TableRow>}
+              {logs.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No sync runs yet.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
