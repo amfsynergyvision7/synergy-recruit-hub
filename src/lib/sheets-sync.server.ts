@@ -79,6 +79,7 @@ async function gw(path: string, init?: RequestInit) {
 
 export interface GoogleIntegrationSettings {
   id: string;
+  user_id: string;
   sheet_url: string | null;
   spreadsheet_id: string | null;
   sheet_name: string | null;
@@ -93,6 +94,11 @@ export interface GoogleIntegrationSettings {
   last_error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+function formatSupabaseError(action: string, error: any) {
+  const parts = [error?.message, error?.details, error?.hint, error?.code].filter(Boolean);
+  return `${action}: ${parts.join(" | ") || "Unknown database error"}`;
 }
 
 export interface SyncDiagnostics {
@@ -115,16 +121,19 @@ export function diagnosticsForIntegration(integ?: GoogleIntegrationSettings | nu
   };
 }
 
-export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean } = {}): Promise<GoogleIntegrationSettings | null> {
-  const { data, error } = await (supabaseAdmin as any)
+export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean; userId?: string } = {}): Promise<GoogleIntegrationSettings | null> {
+  let query = (supabaseAdmin as any)
     .from("google_integrations")
     .select("*")
     .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
+    .limit(1);
+  if (opts.userId) query = query.eq("user_id", opts.userId);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(formatSupabaseError("Load Google integration settings failed", error));
   if (data) return data as GoogleIntegrationSettings;
   if (opts.backfillLegacy === false) return null;
+  if (!opts.userId) return null;
 
   const { data: legacy, error: legacyError } = await supabaseAdmin
     .from("integrations")
@@ -136,6 +145,7 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
 
   const spreadsheetId = legacy.spreadsheet_id || (legacy.sheet_url ? extractSpreadsheetId(legacy.sheet_url) : null);
   const payload = {
+    user_id: opts.userId,
     sheet_url: legacy.sheet_url,
     spreadsheet_id: spreadsheetId,
     sheet_name: legacy.sheet_name || "Form Responses 1",
@@ -151,22 +161,25 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
 
   const { data: inserted, error: insertError } = await (supabaseAdmin as any)
     .from("google_integrations")
-    .insert(payload)
+    .upsert(payload, { onConflict: "user_id" })
     .select("*")
     .single();
-  if (insertError) throw insertError;
+  if (insertError) throw new Error(formatSupabaseError("Backfill Google integration settings failed", insertError));
   return inserted as GoogleIntegrationSettings;
 }
 
 export async function saveGoogleIntegrationSettings(input: {
+  user_id: string;
   sheet_url: string;
   sheet_name: string;
   header_row: number;
   auto_sync_enabled: boolean;
   sync_frequency_minutes?: number;
   column_mapping?: Record<string, string>;
+  google_account_email?: string | null;
 }) {
-  const current = await getSavedGoogleIntegration({ backfillLegacy: true });
+  if (!input.user_id) throw new Error("Missing user_id for Google integration settings");
+  const current = await getSavedGoogleIntegration({ backfillLegacy: true, userId: input.user_id });
   const spreadsheetId = input.sheet_url ? extractSpreadsheetId(input.sheet_url) : null;
   if (input.sheet_url && !spreadsheetId) {
     throw new Error("Invalid Google Sheet URL — must look like https://docs.google.com/spreadsheets/d/<ID>/edit");
@@ -174,6 +187,7 @@ export async function saveGoogleIntegrationSettings(input: {
 
   const payload = {
     ...(current?.id ? { id: current.id } : {}),
+    user_id: input.user_id,
     sheet_url: input.sheet_url || null,
     spreadsheet_id: spreadsheetId,
     sheet_name: input.sheet_name || "Form Responses 1",
@@ -182,15 +196,17 @@ export async function saveGoogleIntegrationSettings(input: {
     sync_frequency_minutes: input.sync_frequency_minutes || current?.sync_frequency_minutes || 2,
     connection_status: spreadsheetId ? "configured" : "not_configured",
     column_mapping: input.column_mapping ?? current?.column_mapping ?? {},
+    google_account_email: input.google_account_email ?? current?.google_account_email ?? null,
     last_error: null,
+    updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await (supabaseAdmin as any)
     .from("google_integrations")
-    .upsert(payload, { onConflict: "id" })
+    .upsert(payload, { onConflict: "user_id" })
     .select("*")
     .single();
-  if (error) throw new Error(`Save failed: ${error.message}`);
+  if (error) throw new Error(formatSupabaseError("Save Google integration settings failed", error));
   if (!data) throw new Error("Save returned no integration settings");
   return data as GoogleIntegrationSettings;
 }
@@ -264,8 +280,8 @@ function emptyResult(): SyncResult {
   return { created: 0, updated: 0, skipped: 0, errors: 0, rows_scanned: 0, rows_created: 0, rows_updated: 0, rows_skipped: 0, error_details: [] };
 }
 
-async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
-  const integ = await getSavedGoogleIntegration();
+async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string }): Promise<SyncResult> {
+  const integ = await getSavedGoogleIntegration({ userId: opts.userId });
   if (!integ || !integ.spreadsheet_id) throw new Error("Google Sheet not configured");
 
   const sheetName = integ.sheet_name || "Form Responses 1";
@@ -383,7 +399,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   return result;
 }
 
-export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
+export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string }): Promise<SyncResult> {
   try {
     return await runCandidateSyncUnsafe(opts);
   } catch (e: any) {
@@ -393,7 +409,7 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
     result.error_details = [{ row: 0, message }];
 
     try {
-      const integ = await getSavedGoogleIntegration({ backfillLegacy: false });
+      const integ = await getSavedGoogleIntegration({ backfillLegacy: false, userId: opts.userId });
       if (integ?.id) await (supabaseAdmin as any).from("google_integrations").update({
         last_sync: new Date().toISOString(),
         connection_status: "error",

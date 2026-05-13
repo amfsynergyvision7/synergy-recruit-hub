@@ -18,7 +18,7 @@ export const getIntegration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdminUser(context.userId);
-    const integration = await getSavedGoogleIntegration();
+    const integration = await getSavedGoogleIntegration({ userId: context.userId });
     return { integration, diagnostics: diagnosticsForIntegration(integration, null) };
   });
 
@@ -35,7 +35,7 @@ export const saveIntegration = createServerFn({ method: "POST" })
     }).parse(input))
   .handler(async ({ context, data }) => {
     await assertAdminUser(context.userId);
-    const integration = await saveGoogleIntegrationSettings(data);
+    const integration = await saveGoogleIntegrationSettings({ ...data, user_id: context.userId });
     return { integration, diagnostics: diagnosticsForIntegration(integration, null) };
   });
 
@@ -44,7 +44,7 @@ export const detectHeaders = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({}).optional().parse(input))
   .handler(async ({ context, data }) => {
     await assertAdminUser(context.userId);
-    const integration = await getSavedGoogleIntegration();
+    const integration = await getSavedGoogleIntegration({ userId: context.userId });
     if (!integration?.spreadsheet_id) throw new Error("Google Sheet not configured");
     const sheetName = integration.sheet_name || "Form Responses 1";
     const headerRow = integration.header_row || 1;
@@ -63,11 +63,11 @@ export const triggerSync = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdminUser(context.userId);
     if (data.fullHistory) {
-      const integration = await getSavedGoogleIntegration();
+      const integration = await getSavedGoogleIntegration({ userId: context.userId });
       if (!integration?.spreadsheet_id) throw new Error("Google Sheet not configured");
       await resetGoogleIntegrationSyncCursor(integration.id);
     }
-    const result = await runCandidateSync({ fullHistory: !!data.fullHistory, triggeredBy: data.fullHistory ? "manual_full" : "manual" });
+    const result = await runCandidateSync({ fullHistory: !!data.fullHistory, triggeredBy: data.fullHistory ? "manual_full" : "manual", userId: context.userId });
     return result;
   });
 
