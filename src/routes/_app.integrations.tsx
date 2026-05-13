@@ -106,6 +106,13 @@ function Page() {
 
   const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
   const logs = Array.isArray(logsQ.data) ? logsQ.data : [];
+  const diagnosticItems = [
+    ["Settings loaded", diagnostics.settingsLoaded ? "YES" : "NO"],
+    ["Spreadsheet found", diagnostics.spreadsheetFound ? "YES" : "NO"],
+    ["Tab found", diagnostics.tabFound ? "YES" : "NO"],
+    ["Headers found", diagnostics.headersFound ? "YES" : "NO"],
+    ["Rows fetched", String(diagnostics.rowsFetched ?? 0)],
+  ];
 
   if (integQ.isError) {
     // surface error but don't crash
@@ -164,6 +171,15 @@ function Page() {
             <Button variant="outline" onClick={() => syncMut.mutate(true)} disabled={syncMut.isPending || !canSync}>
               <History className="h-4 w-4"/> Import full history
             </Button>
+          </div>
+
+          <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-5">
+            {diagnosticItems.map(([label, value]) => (
+              <div key={label} className="space-y-1">
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="text-sm font-semibold">{value}</div>
+              </div>
+            ))}
           </div>
 
           {mappedHeaders.length > 0 && (
