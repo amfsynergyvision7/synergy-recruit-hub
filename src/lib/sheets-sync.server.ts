@@ -355,11 +355,12 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
     result.error_details = [{ row: 0, message }];
 
     try {
-      await supabaseAdmin.from("integrations").update({
-        last_sync_at: new Date().toISOString(),
-        last_status: "error",
+      const integ = await getSavedGoogleIntegration({ backfillLegacy: false });
+      if (integ?.id) await (supabaseAdmin as any).from("google_integrations").update({
+        last_sync: new Date().toISOString(),
+        connection_status: "error",
         last_error: message,
-      }).eq("module", "candidates");
+      }).eq("id", integ.id);
 
       await supabaseAdmin.from("sync_logs").insert({
         module: "candidates",
