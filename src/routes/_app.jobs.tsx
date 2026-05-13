@@ -13,6 +13,7 @@ function Page() {
       searchFields={["job_title","location"]}
       fields={[
         { name: "job_title", label: "Title", required: true },
+        { name: "client_uuid", label: "Client", type: "relation", relation: { table: "clients", select: "id, company_name, contact_person, email", label: (r) => r.company_name, description: (r) => r.contact_person ?? r.email ?? "" } },
         { name: "location", label: "Location" },
         { name: "salary_min", label: "Salary Min", type: "number" },
         { name: "salary_max", label: "Salary Max", type: "number" },

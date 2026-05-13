@@ -12,8 +12,9 @@ function Page() {
       module="interviews"
       searchFields={["round","status","mode"]}
       fields={[
-        { name: "candidate_id", label: "Candidate ID", required: true },
-        { name: "client_id", label: "Client ID" },
+        { name: "candidate_uuid", label: "Candidate", required: true, type: "relation", relation: { table: "candidates", select: "id, full_name, candidate_code, email, position_applied", label: (r) => `${r.full_name} (${r.candidate_code ?? "No code"})`, description: (r) => r.email ?? r.position_applied ?? "" } },
+        { name: "client_uuid", label: "Client", type: "relation", relation: { table: "clients", select: "id, company_name, contact_person, email", label: (r) => r.company_name, description: (r) => r.contact_person ?? r.email ?? "" } },
+        { name: "submission_uuid", label: "Submission", hideInTable: true, type: "relation", relation: { table: "submissions", select: "id, role_title, status, submission_date", label: (r) => r.role_title ?? `Submission ${String(r.id).slice(0, 8)}`, description: (r) => [r.status, r.submission_date].filter(Boolean).join(" • ") } },
         { name: "round", label: "Round", type: "select", options: [
           { value:"screening", label:"Screening" },{ value:"technical", label:"Technical" },
           { value:"managerial", label:"Managerial" },{ value:"hr", label:"HR" },{ value:"final", label:"Final" }
