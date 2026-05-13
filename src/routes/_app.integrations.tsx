@@ -62,6 +62,10 @@ function Page() {
   const saveMut = useMutation({
     mutationFn: () => save({ data: { ...form, column_mapping: mapping } }),
     onSuccess: (row: any) => {
+      if (!row?.integration?.id) {
+        toast.error("Save failed: no integration settings were returned by the server");
+        return;
+      }
       toast.success("Settings saved");
       setRuntimeDiagnostics(row?.diagnostics ?? null);
       qc.setQueryData(["integration"], row);
