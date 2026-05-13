@@ -46,6 +46,17 @@ export function extractSpreadsheetId(url: string): string | null {
   return m ? m[1] : null;
 }
 
+export async function assertAdminUser(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Admin only");
+}
+
 async function gw(path: string, init?: RequestInit) {
   const lk = process.env.LOVABLE_API_KEY;
   const sk = process.env.GOOGLE_SHEETS_API_KEY;
@@ -64,6 +75,151 @@ async function gw(path: string, init?: RequestInit) {
   let data: any; try { data = JSON.parse(text); } catch { data = text; }
   if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
   return data;
+}
+
+export interface GoogleIntegrationSettings {
+  id: string;
+  sheet_url: string | null;
+  spreadsheet_id: string | null;
+  sheet_name: string | null;
+  header_row: number;
+  auto_sync_enabled: boolean;
+  sync_frequency_minutes: number;
+  last_sync: string | null;
+  last_synced_row: number;
+  google_account_email: string | null;
+  connection_status: string | null;
+  column_mapping: Record<string, string> | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SyncDiagnostics {
+  settingsLoaded: boolean;
+  spreadsheetFound: boolean;
+  tabFound: boolean;
+  headersFound: boolean;
+  rowsFetched: number;
+}
+
+export function diagnosticsForIntegration(integ?: GoogleIntegrationSettings | null, values?: unknown[][] | null): SyncDiagnostics {
+  const headerRow = integ?.header_row || 1;
+  const headers = Array.isArray(values) ? values[headerRow - 1] : null;
+  return {
+    settingsLoaded: !!integ,
+    spreadsheetFound: !!integ?.spreadsheet_id,
+    tabFound: Array.isArray(values),
+    headersFound: Array.isArray(headers) && headers.length > 0,
+    rowsFetched: Array.isArray(values) ? Math.max(0, values.length - headerRow) : 0,
+  };
+}
+
+export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean } = {}): Promise<GoogleIntegrationSettings | null> {
+  const { data, error } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (data) return data as GoogleIntegrationSettings;
+  if (opts.backfillLegacy === false) return null;
+
+  const { data: legacy, error: legacyError } = await supabaseAdmin
+    .from("integrations")
+    .select("*")
+    .eq("module", "candidates")
+    .maybeSingle();
+  if (legacyError) throw legacyError;
+  if (!legacy?.sheet_url && !legacy?.spreadsheet_id) return null;
+
+  const spreadsheetId = legacy.spreadsheet_id || (legacy.sheet_url ? extractSpreadsheetId(legacy.sheet_url) : null);
+  const payload = {
+    sheet_url: legacy.sheet_url,
+    spreadsheet_id: spreadsheetId,
+    sheet_name: legacy.sheet_name || "Form Responses 1",
+    header_row: legacy.header_row || 1,
+    auto_sync_enabled: !!legacy.auto_sync,
+    sync_frequency_minutes: 2,
+    last_sync: legacy.last_sync_at,
+    last_synced_row: legacy.last_synced_row || 1,
+    connection_status: spreadsheetId ? "configured" : "not_configured",
+    column_mapping: legacy.column_mapping ?? {},
+    last_error: legacy.last_error ?? null,
+  };
+
+  const { data: inserted, error: insertError } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .insert(payload)
+    .select("*")
+    .single();
+  if (insertError) throw insertError;
+  return inserted as GoogleIntegrationSettings;
+}
+
+export async function saveGoogleIntegrationSettings(input: {
+  sheet_url: string;
+  sheet_name: string;
+  header_row: number;
+  auto_sync_enabled: boolean;
+  sync_frequency_minutes?: number;
+  column_mapping?: Record<string, string>;
+}) {
+  const current = await getSavedGoogleIntegration({ backfillLegacy: true });
+  const spreadsheetId = input.sheet_url ? extractSpreadsheetId(input.sheet_url) : null;
+  if (input.sheet_url && !spreadsheetId) {
+    throw new Error("Invalid Google Sheet URL — must look like https://docs.google.com/spreadsheets/d/<ID>/edit");
+  }
+
+  const payload = {
+    ...(current?.id ? { id: current.id } : {}),
+    sheet_url: input.sheet_url || null,
+    spreadsheet_id: spreadsheetId,
+    sheet_name: input.sheet_name || "Form Responses 1",
+    header_row: input.header_row || 1,
+    auto_sync_enabled: !!input.auto_sync_enabled,
+    sync_frequency_minutes: input.sync_frequency_minutes || current?.sync_frequency_minutes || 2,
+    connection_status: spreadsheetId ? "configured" : "not_configured",
+    column_mapping: input.column_mapping ?? current?.column_mapping ?? {},
+    last_error: null,
+  };
+
+  const { data, error } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .upsert(payload, { onConflict: "id" })
+    .select("*")
+    .single();
+  if (error) throw new Error(`Save failed: ${error.message}`);
+  if (!data) throw new Error("Save returned no integration settings");
+  return data as GoogleIntegrationSettings;
+}
+
+export async function saveDetectedHeaders(integration: GoogleIntegrationSettings, suggested: Record<string, string>) {
+  const { error } = await (supabaseAdmin as any).from("google_integrations").update({
+    column_mapping: { ...suggested, ...(integration.column_mapping ?? {}) },
+    connection_status: "headers_detected",
+    last_error: null,
+  }).eq("id", integration.id);
+  if (error) throw error;
+}
+
+export async function resetGoogleIntegrationSyncCursor(integrationId: string) {
+  const { error } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .update({ last_synced_row: 1 })
+    .eq("id", integrationId);
+  if (error) throw error;
+}
+
+export async function getCandidateSyncLogs() {
+  const { data, error } = await supabaseAdmin
+    .from("sync_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function fetchSheetValues(spreadsheetId: string, sheetName: string) {
@@ -101,6 +257,7 @@ export interface SyncResult {
   created: number; updated: number; skipped: number; errors: number;
   rows_scanned: number; rows_created: number; rows_updated: number;
   rows_skipped: number; error_details: { row: number; message: string }[];
+  diagnostics?: SyncDiagnostics;
 }
 
 function emptyResult(): SyncResult {
@@ -108,9 +265,7 @@ function emptyResult(): SyncResult {
 }
 
 async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string }): Promise<SyncResult> {
-  const { data: integ, error: ierr } = await supabaseAdmin
-    .from("integrations").select("*").eq("module", "candidates").maybeSingle();
-  if (ierr) throw ierr;
+  const integ = await getSavedGoogleIntegration();
   if (!integ || !integ.spreadsheet_id) throw new Error("Google Sheet not configured");
 
   const sheetName = integ.sheet_name || "Form Responses 1";
@@ -118,9 +273,10 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   const values = await fetchSheetValues(integ.spreadsheet_id, sheetName);
 
   const result = emptyResult();
+  result.diagnostics = diagnosticsForIntegration(integ, values);
   if (values.length < headerRow) {
-    await supabaseAdmin.from("integrations").update({
-      last_sync_at: new Date().toISOString(), last_status: "success", last_error: null,
+    await (supabaseAdmin as any).from("google_integrations").update({
+      last_sync: new Date().toISOString(), connection_status: "success", last_error: null,
     }).eq("id", integ.id);
     return result;
   }
@@ -133,9 +289,9 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
     if (!normalized || !allowedFields.has(normalized) || header.toLowerCase().trim() === "timestamp") return [];
     return [[header, normalized]];
   }));
-  const mapping: Record<string, string> = { ...normalizedSaved, ...autoMap(headers) };
+  const mapping: Record<string, string> = { ...autoMap(headers), ...normalizedSaved };
   if (JSON.stringify(mapping) !== JSON.stringify(savedMapping)) {
-    await supabaseAdmin.from("integrations").update({ column_mapping: mapping }).eq("id", integ.id);
+    await (supabaseAdmin as any).from("google_integrations").update({ column_mapping: mapping }).eq("id", integ.id);
   }
 
   const startIdx = opts.fullHistory ? headerRow : Math.max(headerRow, integ.last_synced_row || headerRow);
@@ -205,10 +361,10 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   result.errors = result.error_details.length;
 
   const status = result.errors ? (result.created + result.updated > 0 ? "partial" : "error") : "success";
-  await supabaseAdmin.from("integrations").update({
-    last_sync_at: new Date().toISOString(),
+  await (supabaseAdmin as any).from("google_integrations").update({
+    last_sync: new Date().toISOString(),
     last_synced_row: lastSynced,
-    last_status: status,
+    connection_status: status,
     last_error: result.error_details.length ? result.error_details[0].message : null,
   }).eq("id", integ.id);
 
@@ -237,11 +393,12 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
     result.error_details = [{ row: 0, message }];
 
     try {
-      await supabaseAdmin.from("integrations").update({
-        last_sync_at: new Date().toISOString(),
-        last_status: "error",
+      const integ = await getSavedGoogleIntegration({ backfillLegacy: false });
+      if (integ?.id) await (supabaseAdmin as any).from("google_integrations").update({
+        last_sync: new Date().toISOString(),
+        connection_status: "error",
         last_error: message,
-      }).eq("module", "candidates");
+      }).eq("id", integ.id);
 
       await supabaseAdmin.from("sync_logs").insert({
         module: "candidates",

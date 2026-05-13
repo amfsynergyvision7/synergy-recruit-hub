@@ -32,26 +32,38 @@ function Page() {
   const integQ = useQuery({ queryKey: ["integration"], queryFn: () => fetchIntegration() });
   const logsQ = useQuery({ queryKey: ["sync-logs"], queryFn: () => fetchLogs(), refetchInterval: 10000 });
 
-  const [form, setForm] = useState({ sheet_url: "", sheet_name: "Form Responses 1", header_row: 1, auto_sync: false });
+  const [form, setForm] = useState({ sheet_url: "", sheet_name: "Form Responses 1", header_row: 1, auto_sync_enabled: false, sync_frequency_minutes: 2 });
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [runtimeDiagnostics, setRuntimeDiagnostics] = useState<any>(null);
+
+  const integration = integQ.data?.integration ?? null;
+  const diagnostics = runtimeDiagnostics ?? integQ.data?.diagnostics ?? {
+    settingsLoaded: false,
+    spreadsheetFound: false,
+    tabFound: false,
+    headersFound: false,
+    rowsFetched: 0,
+  };
 
   useEffect(() => {
-    if (integQ.data) {
+    if (integration) {
       setForm({
-        sheet_url: integQ.data.sheet_url ?? "",
-        sheet_name: integQ.data.sheet_name ?? "Form Responses 1",
-        header_row: integQ.data.header_row ?? 1,
-        auto_sync: !!integQ.data.auto_sync,
+        sheet_url: integration.sheet_url ?? "",
+        sheet_name: integration.sheet_name ?? "Form Responses 1",
+        header_row: integration.header_row ?? 1,
+        auto_sync_enabled: !!integration.auto_sync_enabled,
+        sync_frequency_minutes: integration.sync_frequency_minutes ?? 2,
       });
-      setMapping((integQ.data.column_mapping as any) ?? {});
+      setMapping((integration.column_mapping as any) ?? {});
     }
-  }, [integQ.data]);
+  }, [integration]);
 
   const saveMut = useMutation({
     mutationFn: () => save({ data: { ...form, column_mapping: mapping } }),
     onSuccess: (row: any) => {
       toast.success("Settings saved");
+      setRuntimeDiagnostics(row?.diagnostics ?? null);
       qc.setQueryData(["integration"], row);
       qc.invalidateQueries({ queryKey: ["integration"] });
     },
@@ -59,15 +71,16 @@ function Page() {
   });
 
   const ensureSaved = async () => {
-    const cur = integQ.data;
+    const cur = integration;
     const dirty = !cur || cur.sheet_url !== (form.sheet_url || null) || cur.sheet_name !== form.sheet_name
-      || cur.header_row !== form.header_row || !!cur.auto_sync !== form.auto_sync;
+      || cur.header_row !== form.header_row || !!cur.auto_sync_enabled !== form.auto_sync_enabled
+      || cur.sync_frequency_minutes !== form.sync_frequency_minutes;
     if (dirty) await saveMut.mutateAsync();
   };
 
   const detectMut = useMutation({
-    mutationFn: async () => { await ensureSaved(); return detect({ data: { sheet_url: form.sheet_url, sheet_name: form.sheet_name, header_row: form.header_row } }); },
-    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); toast.success(`Detected ${hs.length} columns`); },
+    mutationFn: async () => { await ensureSaved(); return detect({ data: {} }); },
+    onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); setRuntimeDiagnostics(r?.diagnostics ?? null); toast.success(`Detected ${hs.length} columns`); },
     onError: (e: any) => toast.error(e?.message || "Detect failed"),
   });
 
@@ -78,6 +91,7 @@ function Page() {
       const updated = Number(r?.updated ?? r?.rows_updated ?? 0);
       const skipped = Number(r?.skipped ?? r?.rows_skipped ?? 0);
       const errors = Number(r?.errors ?? (Array.isArray(r?.error_details) ? r.error_details.length : 0));
+      setRuntimeDiagnostics(r?.diagnostics ?? null);
       toast.success(`Sync Complete\nCreated: ${created}\nUpdated: ${updated}\nSkipped: ${skipped}\nErrors: ${errors}`);
       qc.invalidateQueries({ queryKey: ["integration"] }); qc.invalidateQueries({ queryKey: ["sync-logs"] });
     },
@@ -85,13 +99,20 @@ function Page() {
   });
 
   const hasValidUrl = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.test(form.sheet_url || "");
-  const canSync = hasValidUrl || !!integQ.data?.spreadsheet_id;
+  const canSync = hasValidUrl || !!integration?.spreadsheet_id;
 
-  const status = integQ.data?.last_status;
-  const statusVariant: any = status === "success" ? "default" : status === "partial" ? "secondary" : status === "error" ? "destructive" : "outline";
+  const status = integration?.connection_status;
+  const statusVariant: any = status === "success" ? "default" : status === "partial" || status === "configured" || status === "headers_detected" ? "secondary" : status === "error" ? "destructive" : "outline";
 
   const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
   const logs = Array.isArray(logsQ.data) ? logsQ.data : [];
+  const diagnosticItems = [
+    ["Settings loaded", diagnostics.settingsLoaded ? "YES" : "NO"],
+    ["Spreadsheet found", diagnostics.spreadsheetFound ? "YES" : "NO"],
+    ["Tab found", diagnostics.tabFound ? "YES" : "NO"],
+    ["Headers found", diagnostics.headersFound ? "YES" : "NO"],
+    ["Rows fetched", String(diagnostics.rowsFetched ?? 0)],
+  ];
 
   if (integQ.isError) {
     // surface error but don't crash
@@ -131,14 +152,14 @@ function Page() {
             </div>
             <div className="flex items-end gap-3">
               <div className="flex items-center gap-2">
-                <Switch checked={form.auto_sync} onCheckedChange={(v) => setForm({ ...form, auto_sync: v })}/>
+                <Switch checked={form.auto_sync_enabled} onCheckedChange={(v) => setForm({ ...form, auto_sync_enabled: v })}/>
                 <Label>Auto sync (every 2 min)</Label>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!hasValidUrl || detectMut.isPending}>
+            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!canSync || detectMut.isPending}>
               {detectMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>} Detect columns
             </Button>
             <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
@@ -150,6 +171,15 @@ function Page() {
             <Button variant="outline" onClick={() => syncMut.mutate(true)} disabled={syncMut.isPending || !canSync}>
               <History className="h-4 w-4"/> Import full history
             </Button>
+          </div>
+
+          <div className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-5">
+            {diagnosticItems.map(([label, value]) => (
+              <div key={label} className="space-y-1">
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="text-sm font-semibold">{value}</div>
+              </div>
+            ))}
           </div>
 
           {mappedHeaders.length > 0 && (
@@ -183,11 +213,11 @@ function Page() {
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-sm">Last sync</CardTitle></CardHeader>
-          <CardContent className="text-sm">{integQ.data?.last_sync_at ? new Date(integQ.data.last_sync_at).toLocaleString() : "—"}</CardContent>
+          <CardContent className="text-sm">{integration?.last_sync ? new Date(integration.last_sync).toLocaleString() : "—"}</CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-sm">Last synced row</CardTitle></CardHeader>
-          <CardContent className="text-sm">{integQ.data?.last_synced_row ?? 1}</CardContent>
+          <CardContent className="text-sm">{integration?.last_synced_row ?? 1}</CardContent>
         </Card>
       </div>
 
