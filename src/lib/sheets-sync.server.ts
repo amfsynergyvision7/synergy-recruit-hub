@@ -148,7 +148,7 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
         if (error) throw error;
         result.rows_updated++;
       } else {
-        const { data: ins, error } = await supabaseAdmin.from("candidates").insert(cand).select("id, candidate_code, full_name").single();
+        const { data: ins, error } = await supabaseAdmin.from("candidates").insert(cand as any).select("id, candidate_code, full_name").single();
         if (error) throw error;
         result.rows_created++;
         await supabaseAdmin.from("notifications").insert({
