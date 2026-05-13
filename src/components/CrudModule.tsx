@@ -100,10 +100,10 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       const candidate = relationOptions[name]?.find((r) => r.id === value);
       next.salary = next.salary ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
       next.ctc = next.ctc ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
-      const { data: interview } = await supabase.from("interviews").select("id, client_uuid, client_id, submission_uuid").eq("candidate_uuid", value).eq("status", "selected").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: interview } = await supabase.from("interviews" as any).select("id, client_uuid, client_id, submission_uuid").eq("candidate_uuid", value).eq("status", "selected").order("created_at", { ascending: false }).limit(1).maybeSingle();
       const { data: submission } = interview?.submission_uuid
         ? { data: null }
-        : await supabase.from("submissions").select("id, client_uuid, client_id").eq("candidate_uuid", value).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        : await supabase.from("submissions" as any).select("id, client_uuid, client_id").eq("candidate_uuid", value).order("created_at", { ascending: false }).limit(1).maybeSingle();
       next.interview_uuid = next.interview_uuid ?? interview?.id ?? null;
       next.submission_uuid = next.submission_uuid ?? interview?.submission_uuid ?? submission?.id ?? null;
       next.client_uuid = next.client_uuid ?? interview?.client_uuid ?? interview?.client_id ?? submission?.client_uuid ?? submission?.client_id ?? null;
@@ -247,7 +247,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               {filtered.map((row) => (
                 <TableRow key={row.id}>
                   {tableFields.map((f) => (
-                    <TableCell key={f.name}>{f.render ? f.render(row) : String(row[f.name] ?? "—")}</TableCell>
+                    <TableCell key={f.name}>{f.render ? f.render(row) : f.relation ? (relationOptions[f.name]?.find((r) => r.id === row[f.name]) ? f.relation.label(relationOptions[f.name].find((r) => r.id === row[f.name])) : "—") : String(row[f.name] ?? "—")}</TableCell>
                   ))}
                   <TableCell className="text-right space-x-1">
                     {editable && <Button size="icon" variant="ghost" onClick={()=>openEdit(row)}><Pencil className="h-4 w-4"/></Button>}
