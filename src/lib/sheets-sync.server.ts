@@ -169,6 +169,7 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
 }
 
 export async function saveGoogleIntegrationSettings(input: {
+  user_id: string;
   sheet_url: string;
   sheet_name: string;
   header_row: number;
@@ -176,7 +177,8 @@ export async function saveGoogleIntegrationSettings(input: {
   sync_frequency_minutes?: number;
   column_mapping?: Record<string, string>;
 }) {
-  const current = await getSavedGoogleIntegration({ backfillLegacy: true });
+  if (!input.user_id) throw new Error("Missing user_id for Google integration settings");
+  const current = await getSavedGoogleIntegration({ backfillLegacy: true, userId: input.user_id });
   const spreadsheetId = input.sheet_url ? extractSpreadsheetId(input.sheet_url) : null;
   if (input.sheet_url && !spreadsheetId) {
     throw new Error("Invalid Google Sheet URL — must look like https://docs.google.com/spreadsheets/d/<ID>/edit");
@@ -184,6 +186,7 @@ export async function saveGoogleIntegrationSettings(input: {
 
   const payload = {
     ...(current?.id ? { id: current.id } : {}),
+    user_id: input.user_id,
     sheet_url: input.sheet_url || null,
     spreadsheet_id: spreadsheetId,
     sheet_name: input.sheet_name || "Form Responses 1",
@@ -197,10 +200,10 @@ export async function saveGoogleIntegrationSettings(input: {
 
   const { data, error } = await (supabaseAdmin as any)
     .from("google_integrations")
-    .upsert(payload, { onConflict: "id" })
+    .upsert(payload, { onConflict: "user_id" })
     .select("*")
     .single();
-  if (error) throw new Error(`Save failed: ${error.message}`);
+  if (error) throw new Error(formatSupabaseError("Save Google integration settings failed", error));
   if (!data) throw new Error("Save returned no integration settings");
   return data as GoogleIntegrationSettings;
 }
