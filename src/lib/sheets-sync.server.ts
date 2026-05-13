@@ -143,12 +143,12 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
       }
 
       if (existingId) {
-        const upd = { ...cand }; delete upd.stage;
-        const { error } = await supabaseAdmin.from("candidates").update(upd).eq("id", existingId);
+        const upd: Record<string, any> = { ...cand }; delete upd.stage;
+        const { error } = await (supabaseAdmin.from("candidates") as any).update(upd).eq("id", existingId);
         if (error) throw error;
         result.rows_updated++;
       } else {
-        const { data: ins, error } = await supabaseAdmin.from("candidates").insert(cand as any).select("id, candidate_code, full_name").single();
+        const { data: ins, error } = await (supabaseAdmin.from("candidates") as any).insert(cand).select("id, candidate_code, full_name").single();
         if (error) throw error;
         result.rows_created++;
         await supabaseAdmin.from("notifications").insert({
