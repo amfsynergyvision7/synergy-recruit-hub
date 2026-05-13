@@ -159,7 +159,7 @@ function Page() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!hasValidUrl || detectMut.isPending}>
+            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!canSync || detectMut.isPending}>
               {detectMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>} Detect columns
             </Button>
             <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
