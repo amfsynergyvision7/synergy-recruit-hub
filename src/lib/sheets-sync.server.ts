@@ -46,6 +46,17 @@ export function extractSpreadsheetId(url: string): string | null {
   return m ? m[1] : null;
 }
 
+export async function assertAdminUser(userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Admin only");
+}
+
 async function gw(path: string, init?: RequestInit) {
   const lk = process.env.LOVABLE_API_KEY;
   const sk = process.env.GOOGLE_SHEETS_API_KEY;
@@ -182,6 +193,33 @@ export async function saveGoogleIntegrationSettings(input: {
   if (error) throw new Error(`Save failed: ${error.message}`);
   if (!data) throw new Error("Save returned no integration settings");
   return data as GoogleIntegrationSettings;
+}
+
+export async function saveDetectedHeaders(integration: GoogleIntegrationSettings, suggested: Record<string, string>) {
+  const { error } = await (supabaseAdmin as any).from("google_integrations").update({
+    column_mapping: { ...suggested, ...(integration.column_mapping ?? {}) },
+    connection_status: "headers_detected",
+    last_error: null,
+  }).eq("id", integration.id);
+  if (error) throw error;
+}
+
+export async function resetGoogleIntegrationSyncCursor(integrationId: string) {
+  const { error } = await (supabaseAdmin as any)
+    .from("google_integrations")
+    .update({ last_synced_row: 1 })
+    .eq("id", integrationId);
+  if (error) throw error;
+}
+
+export async function getCandidateSyncLogs() {
+  const { data, error } = await supabaseAdmin
+    .from("sync_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function fetchSheetValues(spreadsheetId: string, sheetName: string) {
