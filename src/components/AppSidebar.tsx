@@ -20,6 +20,7 @@ const items = [
   { title: "Offers & Joining", url: "/offers", icon: FileSignature },
   { title: "Billing & Invoices", url: "/billing", icon: Receipt },
   { title: "Notifications", url: "/notifications", icon: Bell },
+  { title: "Activity Timeline", url: "/activities", icon: Activity },
   { title: "Audit Logs", url: "/audit", icon: ScrollText },
   { title: "User Management", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
