@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Building2, Briefcase, Send, CalendarCheck,
-  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug
+  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug, Activity
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -20,6 +20,7 @@ const items = [
   { title: "Offers & Joining", url: "/offers", icon: FileSignature },
   { title: "Billing & Invoices", url: "/billing", icon: Receipt },
   { title: "Notifications", url: "/notifications", icon: Bell },
+  { title: "Activity Timeline", url: "/activities", icon: Activity },
   { title: "Audit Logs", url: "/audit", icon: ScrollText },
   { title: "User Management", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
