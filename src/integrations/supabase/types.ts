@@ -143,6 +143,45 @@ export type Database = {
           },
         ]
       }
+      candidate_activities: {
+        Row: {
+          action_type: string
+          candidate_id: string
+          candidate_name: string | null
+          created_at: string
+          id: string
+          module_created: string | null
+          notes: string | null
+          recruiter_id: string | null
+          recruiter_name: string | null
+          related_record_id: string | null
+        }
+        Insert: {
+          action_type: string
+          candidate_id: string
+          candidate_name?: string | null
+          created_at?: string
+          id?: string
+          module_created?: string | null
+          notes?: string | null
+          recruiter_id?: string | null
+          recruiter_name?: string | null
+          related_record_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          candidate_id?: string
+          candidate_name?: string | null
+          created_at?: string
+          id?: string
+          module_created?: string | null
+          notes?: string | null
+          recruiter_id?: string | null
+          recruiter_name?: string | null
+          related_record_id?: string | null
+        }
+        Relationships: []
+      }
       candidates: {
         Row: {
           assigned_recruiter: string | null
