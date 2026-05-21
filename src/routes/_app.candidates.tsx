@@ -10,17 +10,9 @@ const stages = [
   "interview_scheduled","interview_completed","selected","offer_released","joined","rejected","dropped"
 ].map(v => ({ value: v, label: v.replace(/_/g," ") }));
 
-// Define the type for recruiter
-interface Recruiter {
-  id: string;
-  full_name: string;
-  email: string;
-}
-
 function Page() {
   const [recruiters, setRecruiters] = useState<{ value: string; label: string }[]>([]);
 
-  // Fetch recruiters from profiles table
   useEffect(() => {
     const fetchRecruiters = async () => {
       const { data, error } = await supabase
@@ -30,7 +22,7 @@ function Page() {
         .order('full_name');
       
       if (!error && data) {
-        setRecruiters(data.map((recruiter: Recruiter) => ({
+        setRecruiters(data.map((recruiter: { id: string; full_name: string; email: string }) => ({
           value: recruiter.id,
           label: recruiter.full_name || recruiter.email
         })));
