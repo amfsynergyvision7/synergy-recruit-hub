@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "./ThemeToggle";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -85,6 +86,9 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-3">
+        <div className="flex justify-center mb-3 group-data-[collapsible=icon]:mb-2">
+          <ThemeToggle />
+        </div>
         <div className="flex flex-col gap-2">
           <div className="text-xs">
             <div className="font-medium truncate">{profile?.full_name}</div>
