@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/candidates")({ component: Page });
 
@@ -8,7 +10,36 @@ const stages = [
   "interview_scheduled","interview_completed","selected","offer_released","joined","rejected","dropped"
 ].map(v => ({ value: v, label: v.replace(/_/g," ") }));
 
+// Define the type for recruiter
+interface Recruiter {
+  id: string;
+  full_name: string;
+  email: string;
+}
+
 function Page() {
+  const [recruiters, setRecruiters] = useState<{ value: string; label: string }[]>([]);
+
+  // Fetch recruiters from profiles table
+  useEffect(() => {
+    const fetchRecruiters = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('status', 'approved')
+        .order('full_name');
+      
+      if (!error && data) {
+        setRecruiters(data.map((recruiter: Recruiter) => ({
+          value: recruiter.id,
+          label: recruiter.full_name || recruiter.email
+        })));
+      }
+    };
+    
+    fetchRecruiters();
+  }, []);
+
   return (
     <CrudModule
       title="Candidates"
@@ -31,6 +62,12 @@ function Page() {
         { name: "resume_url", label: "Resume URL", hideInTable: true },
         { name: "source", label: "Source" },
         { name: "stage", label: "Stage", type: "select", options: stages, default: "lead_received" },
+        { 
+          name: "assigned_recruiter", 
+          label: "Assigned Recruiter", 
+          type: "select", 
+          options: recruiters
+        },
         { name: "notes", label: "Notes", type: "textarea", hideInTable: true },
       ]}
     />
