@@ -108,10 +108,39 @@ function Dashboard() {
     (candAll||[]).forEach((c:any)=>{ const s=c.source||"Unknown"; srcMap[s]=(srcMap[s]||0)+1; });
     setSources(Object.entries(srcMap).map(([name,value])=>({ name, value })));
 
-    // Recruiter perf
-    const rec: Record<string,number> = {};
-    (candAll||[]).forEach((c:any)=>{ const r=c.assigned_recruiter||"Unassigned"; rec[r]=(rec[r]||0)+1; });
-    setRecruiters(Object.entries(rec).slice(0,6).map(([id,count])=>({ name: id.substring(0,6), count })));
+    // Recruiter perf - get names from profiles
+    const rec: Record<string, { count: number; name: string }> = {};
+    (candAll||[]).forEach((c:any) => { 
+      const recruiterId = c.assigned_recruiter;
+      if (!recruiterId) return;
+      if (!rec[recruiterId]) {
+        rec[recruiterId] = { count: 0, name: recruiterId };
+      }
+      rec[recruiterId].count++;
+    });
+
+    // Fetch recruiter names from profiles table
+    const recruiterIds = Object.keys(rec);
+    if (recruiterIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', recruiterIds);
+      
+      if (profiles) {
+        profiles.forEach(profile => {
+          if (rec[profile.id]) {
+            rec[profile.id].name = profile.full_name || profile.id.substring(0,6);
+          }
+        });
+      }
+    }
+
+    // Fixed: Use the name directly, no need to check r.id
+    setRecruiters(Object.values(rec).slice(0,6).map(r => ({ 
+      name: r.name, 
+      count: r.count 
+    })));
   };
 
   useEffect(() => {
