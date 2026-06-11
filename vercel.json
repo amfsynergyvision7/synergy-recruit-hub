@@ -1,12 +1,7 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "outputDirectory": "dist/client",
   "installCommand": "npm install",
-  "functions": {
-    "dist/server/index.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "routes": [
     {
       "src": "/assets/(.*)",
@@ -14,7 +9,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/server"
+      "dest": "/index.html"
     }
   ]
 }
