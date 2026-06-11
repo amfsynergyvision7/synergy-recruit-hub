@@ -40,3 +40,7 @@ dist-ssr
 .env.local
 .env.production
 >>>>>>> ec12a31 (Removed env file from repository)
+.vercel
+.env*
+.env
+.env.local
