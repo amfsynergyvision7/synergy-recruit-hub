@@ -1,15 +1,10 @@
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "framework": null,
-  "functions": {
-    "dist/server/index.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
-  "routes": [
-    { "src": "/assets/(.*)", "dest": "/assets/$1" },
-    { "src": "/(.*)", "dest": "/server" }
-  ]
-}
+echo '{
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist/client",
+    "installCommand": "npm install",
+    "framework": null,
+    "routes": [
+      { "src": "/assets/(.*)", "dest": "/assets/$1" },
+      { "src": "/(.*)", "dest": "/index.html" }
+    ]
+  }' > vercel.json && cat vercel.json
