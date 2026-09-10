@@ -7,8 +7,12 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
-// @cloudflare/vite-plugin builds from this — wrangler.jsonc main alone is insufficient.
+// Cloudflare's build plugin is disabled here because this app deploys to Vercel, not
+// Cloudflare Workers — with it enabled, the build produces a Cloudflare-only artifact
+// (wrangler.json + Workers-format handler) that Vercel cannot run, causing every route
+// to 404. Disabling it makes the build emit a plain, Vercel-compatible handler instead.
 export default defineConfig({
+  cloudflare: false,
   tanstackStart: {
     server: { entry: "server" },
   },
