@@ -4,6 +4,7 @@
 import { execSync } from "node:child_process";
 import { cpSync, mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import path from "node:path";
+import { nodeFileTrace } from "@vercel/nft";
 
 const root = process.cwd();
 const out = path.join(root, ".vercel", "output");
@@ -23,23 +24,31 @@ cpSync(path.join(root, "dist", "client"), path.join(out, "static"), { recursive:
 const funcDir = path.join(out, "functions", "index.func");
 cpSync(path.join(root, "dist", "server"), funcDir, { recursive: true });
 
-// The SSR bundle imports a handful of npm packages at runtime instead of
-// inlining them (e.g. "h3-v2" and its own small dependency tree). Vercel's
-// Build Output API functions get NO node_modules by default, so we copy
-// just the packages that are actually imported by name into the function's
-// own node_modules — Node's module resolution walks up from /var/task and
-// will find them there.
-const runtimeDeps = ["h3-v2", "rou3", "srvx"];
-const funcNodeModules = path.join(funcDir, "node_modules");
-mkdirSync(funcNodeModules, { recursive: true });
-for (const dep of runtimeDeps) {
-  const src = path.join(root, "node_modules", dep);
-  if (existsSync(src)) {
-    cpSync(src, path.join(funcNodeModules, dep), { recursive: true });
-  } else {
-    console.warn(`[vercel-build] warning: expected dependency "${dep}" not found in node_modules`);
-  }
+// The SSR bundle imports a number of npm packages at runtime instead of
+// inlining them (h3-v2, @tanstack/router-core, and others). Vercel's Build
+// Output API functions get NO node_modules by default, so we trace the
+// *actual* runtime dependency graph starting from server.js (the same
+// technique Vercel's own Node.js builder uses under the hood) and copy
+// every file it finds — this avoids guessing package names one at a time.
+console.log("[vercel-build] tracing runtime dependencies...");
+const entry = path.join(root, "dist", "server", "server.js");
+const { fileList, warnings } = await nodeFileTrace([entry], { base: root });
+for (const w of warnings) {
+  console.warn("[vercel-build] trace warning:", w.message);
 }
+
+let copied = 0;
+for (const relPath of fileList) {
+  // dist/server/** is already copied above (flattened into funcDir); only
+  // node_modules/** and root files like package.json still need copying.
+  if (relPath.startsWith("dist/server/")) continue;
+  const src = path.join(root, relPath);
+  const dest = path.join(funcDir, relPath);
+  mkdirSync(path.dirname(dest), { recursive: true });
+  cpSync(src, dest);
+  copied++;
+}
+console.log(`[vercel-build] copied ${copied} traced dependency files into the function.`);
 
 writeFileSync(
   path.join(funcDir, "index.mjs"),
