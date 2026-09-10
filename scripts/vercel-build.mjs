@@ -23,6 +23,24 @@ cpSync(path.join(root, "dist", "client"), path.join(out, "static"), { recursive:
 const funcDir = path.join(out, "functions", "index.func");
 cpSync(path.join(root, "dist", "server"), funcDir, { recursive: true });
 
+// The SSR bundle imports a handful of npm packages at runtime instead of
+// inlining them (e.g. "h3-v2" and its own small dependency tree). Vercel's
+// Build Output API functions get NO node_modules by default, so we copy
+// just the packages that are actually imported by name into the function's
+// own node_modules — Node's module resolution walks up from /var/task and
+// will find them there.
+const runtimeDeps = ["h3-v2", "rou3", "srvx"];
+const funcNodeModules = path.join(funcDir, "node_modules");
+mkdirSync(funcNodeModules, { recursive: true });
+for (const dep of runtimeDeps) {
+  const src = path.join(root, "node_modules", dep);
+  if (existsSync(src)) {
+    cpSync(src, path.join(funcNodeModules, dep), { recursive: true });
+  } else {
+    console.warn(`[vercel-build] warning: expected dependency "${dep}" not found in node_modules`);
+  }
+}
+
 writeFileSync(
   path.join(funcDir, "index.mjs"),
   `import server from "./server.js";
