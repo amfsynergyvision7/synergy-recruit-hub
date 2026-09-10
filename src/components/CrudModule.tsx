@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
 import { Check, ChevronsUpDown, Plus, Pencil, Trash2, Search } from "lucide-react";
@@ -59,6 +60,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
   const [relationOptions, setRelationOptions] = useState<Record<string, any[]>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
@@ -84,6 +87,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   useEffect(() => {
+    setSelected(new Set());
     load();
     loadRelations();
     const ch = supabase.channel(`rt-${table}`)
@@ -160,6 +164,43 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     return sf.some((k) => String(r[k] ?? "").toLowerCase().includes(s));
   });
 
+  const filteredIds = filtered.map((r) => r.id);
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.has(id));
+  const someSelected = !allSelected && filteredIds.some((id) => selected.has(id));
+
+  const toggleAll = (checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      filteredIds.forEach((id) => (checked ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  };
+
+  const toggleRow = (id: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+  };
+
+  const bulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    const warning =
+      module === "candidates"
+        ? `Delete ${ids.length} candidate(s)? This will also permanently delete their linked submissions, interviews, offers, and stage history.`
+        : `Delete ${ids.length} selected record(s)? This cannot be undone.`;
+    if (!confirm(warning)) return;
+    setBulkDeleting(true);
+    const { error } = await supabase.from(table as any).delete().in("id", ids);
+    setBulkDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Deleted ${ids.length} record(s)`);
+    setSelected(new Set());
+    load();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -172,6 +213,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"/>
             <Input className="pl-8 w-64" placeholder="Search…" value={search} onChange={(e)=>setSearch(e.target.value)}/>
           </div>
+          {deletable && selected.size > 0 && (
+            <Button variant="destructive" onClick={bulkDelete} disabled={bulkDeleting}>
+              <Trash2 className="h-4 w-4 mr-2"/>
+              {bulkDeleting ? "Deleting…" : `Delete Selected (${selected.size})`}
+            </Button>
+          )}
           {editable && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -244,13 +291,31 @@ export function CrudModule({ title, description, table, module, fields, searchFi
           <Table>
             <TableHeader>
               <TableRow>
+                {deletable && (
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                      onCheckedChange={(v) => toggleAll(!!v)}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                )}
                 {tableFields.map((f) => <TableHead key={f.name}>{f.label}</TableHead>)}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.id} data-state={selected.has(row.id) ? "selected" : undefined}>
+                  {deletable && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selected.has(row.id)}
+                        onCheckedChange={(v) => toggleRow(row.id, !!v)}
+                        aria-label="Select row"
+                      />
+                    </TableCell>
+                  )}
                   {tableFields.map((f) => (
                     <TableCell key={f.name}>{f.render ? f.render(row) : f.relation ? (relationOptions[f.name]?.find((r) => r.id === row[f.name]) ? f.relation.label(relationOptions[f.name].find((r) => r.id === row[f.name])) : "—") : String(row[f.name] ?? "—")}</TableCell>
                   ))}
@@ -261,7 +326,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                 </TableRow>
               ))}
               {!filtered.length && (
-                <TableRow><TableCell colSpan={tableFields.length+1} className="text-center py-8 text-sm text-muted-foreground">No records</TableCell></TableRow>
+                <TableRow><TableCell colSpan={tableFields.length+1+(deletable?1:0)} className="text-center py-8 text-sm text-muted-foreground">No records</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
