@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Check, ChevronsUpDown, FilterX, Plus, Pencil, Trash2, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,50 @@ interface Props {
   orderBy?: { column: string; ascending?: boolean };
 }
 
+const ALL_FILTER = "__all__";
+const DISCRETE_FILTER_MAX = 20;
+const DISCRETE_FIELD_NAMES = new Set([
+  "stage",
+  "source",
+  "status",
+  "offer_status",
+  "joining_status",
+  "payment_status",
+  "priority",
+  "mode",
+  "round",
+  "agreement_type",
+  "billing_model",
+]);
+
+function cellDisplayValue(row: any, field: FieldDef, relationOptions: Record<string, any[]>) {
+  if (field.relation) {
+    const related = relationOptions[field.name]?.find((r) => r.id === row[field.name]);
+    return related ? String(field.relation.label(related)) : "";
+  }
+  const raw = row[field.name];
+  if (raw == null || raw === "") return "";
+  const option = field.options?.find((o) => o.value === raw);
+  return option ? option.label : String(raw);
+}
+
+function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
+  if (field.type === "select" || (field.options && field.options.length > 0)) return true;
+  if (DISCRETE_FIELD_NAMES.has(field.name)) return true;
+  if (
+    field.type === "relation" ||
+    field.type === "number" ||
+    field.type === "date" ||
+    field.type === "time" ||
+    field.type === "email" ||
+    field.type === "tel" ||
+    field.type === "textarea"
+  ) {
+    return false;
+  }
+  return distinctCount > 0 && distinctCount <= DISCRETE_FILTER_MAX;
+}
+
 export function CrudModule({ title, description, table, module, fields, searchFields, orderBy }: Props) {
   const { role } = useAuth();
   const editable = canEdit(role, module);
@@ -62,6 +106,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [relationOptions, setRelationOptions] = useState<Record<string, any[]>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
@@ -88,6 +133,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   useEffect(() => {
     setSelected(new Set());
+    setColumnFilters({});
     load();
     loadRelations();
     const ch = supabase.channel(`rt-${table}`)
@@ -157,12 +203,53 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     toast.success("Deleted"); load();
   };
 
+  const columnFilterMeta = useMemo(() => {
+    const discrete = new Set<string>();
+    const options: Record<string, string[]> = {};
+    for (const field of tableFields) {
+      const distinct = Array.from(
+        new Set(
+          rows
+            .map((r) => cellDisplayValue(r, field, relationOptions).trim())
+            .filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+      if (isDiscreteFilterField(field, distinct.length)) {
+        discrete.add(field.name);
+        options[field.name] = distinct;
+      }
+    }
+    return { discrete, options };
+  }, [tableFields, rows, relationOptions]);
+
   const filtered = rows.filter((r) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    const sf = searchFields ?? tableFields.map((f) => f.name);
-    return sf.some((k) => String(r[k] ?? "").toLowerCase().includes(s));
+    if (search) {
+      const s = search.toLowerCase();
+      const sf = searchFields ?? tableFields.map((f) => f.name);
+      if (!sf.some((k) => String(r[k] ?? "").toLowerCase().includes(s))) return false;
+    }
+    for (const field of tableFields) {
+      const query = columnFilters[field.name]?.trim();
+      if (!query) continue;
+      const cell = cellDisplayValue(r, field, relationOptions).toLowerCase();
+      if (columnFilterMeta.discrete.has(field.name)) {
+        if (cell !== query.toLowerCase()) return false;
+      } else if (!cell.includes(query.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
   });
+
+  const hasColumnFilters = Object.values(columnFilters).some((v) => v.trim());
+  const setColumnFilter = (name: string, value: string) => {
+    setColumnFilters((prev) => {
+      const next = { ...prev };
+      if (!value) delete next[name];
+      else next[name] = value;
+      return next;
+    });
+  };
 
   const filteredIds = filtered.map((r) => r.id);
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.has(id));
@@ -213,6 +300,14 @@ export function CrudModule({ title, description, table, module, fields, searchFi
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground"/>
             <Input className="pl-8 w-64" placeholder="Search…" value={search} onChange={(e)=>setSearch(e.target.value)}/>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setColumnFilters({})}
+            disabled={!hasColumnFilters}
+          >
+            <FilterX className="h-4 w-4 mr-2"/>
+            Clear filters
+          </Button>
           {deletable && selected.size > 0 && (
             <Button variant="destructive" onClick={bulkDelete} disabled={bulkDeleting}>
               <Trash2 className="h-4 w-4 mr-2"/>
@@ -302,6 +397,41 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                 )}
                 {tableFields.map((f) => <TableHead key={f.name}>{f.label}</TableHead>)}
                 <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+              <TableRow className="hover:bg-transparent">
+                {deletable && <TableHead className="w-10 h-auto py-1.5" />}
+                {tableFields.map((f) => (
+                  <TableHead key={`${f.name}-filter`} className="h-auto py-1.5 font-medium">
+                    {columnFilterMeta.discrete.has(f.name) ? (
+                      <Select
+                        value={columnFilters[f.name] || ALL_FILTER}
+                        onValueChange={(v) => setColumnFilter(f.name, v === ALL_FILTER ? "" : v)}
+                      >
+                        <SelectTrigger
+                          aria-label={`Filter ${f.label}`}
+                          className="h-8 w-full min-w-[6rem] px-2 text-sm font-medium text-muted-foreground shadow-none"
+                        >
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={ALL_FILTER}>All</SelectItem>
+                          {(columnFilterMeta.options[f.name] ?? []).map((value) => (
+                            <SelectItem key={value} value={value}>{value}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        aria-label={`Filter ${f.label}`}
+                        className="h-8 px-2 text-sm font-medium shadow-none"
+                        placeholder="Filter…"
+                        value={columnFilters[f.name] ?? ""}
+                        onChange={(e) => setColumnFilter(f.name, e.target.value)}
+                      />
+                    )}
+                  </TableHead>
+                ))}
+                <TableHead className="h-auto py-1.5" />
               </TableRow>
             </TableHeader>
             <TableBody>
