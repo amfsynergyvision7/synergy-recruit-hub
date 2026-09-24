@@ -10,6 +10,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
+import { BrandMark } from "./BrandMark";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -40,7 +41,9 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-lg gradient-primary text-primary-foreground flex items-center justify-center font-bold shadow-glow">A</div>
+          <div className="h-9 w-9 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/30 text-sidebar-primary flex items-center justify-center shadow-glow">
+            <BrandMark className="h-6 w-6" />
+          </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold tracking-tight">AMF Synergy Vision</span>
             <span className="text-[11px] text-sidebar-foreground/60">Recruitment CRM</span>

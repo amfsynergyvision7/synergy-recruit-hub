@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { BrandMark, BrandMandala } from "@/components/BrandMark";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -30,9 +31,12 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      <div className="hidden lg:flex flex-col justify-between bg-primary text-primary-foreground p-12">
+      <div className="hidden lg:flex flex-col justify-between bg-primary text-primary-foreground p-12 relative overflow-hidden">
+        <BrandMandala className="absolute -right-32 -bottom-32 h-[480px] w-[480px] text-primary-foreground/10 -z-10" />
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-md bg-primary-foreground text-primary flex items-center justify-center font-bold">A</div>
+          <div className="h-10 w-10 rounded-md bg-primary-foreground text-primary flex items-center justify-center">
+            <BrandMark className="h-7 w-7" />
+          </div>
           <div>
             <div className="font-semibold">AMF Synergy Vision</div>
             <div className="text-xs opacity-80">Recruitment & Staffing CRM</div>
