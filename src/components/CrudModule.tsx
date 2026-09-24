@@ -382,12 +382,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">{loading ? "Loading…" : `${filtered.length} record(s)`}</CardTitle></CardHeader>
-        <CardContent className="overflow-auto">
-          <Table>
+        <CardContent className="overflow-x-hidden">
+          <Table className="w-full table-fixed text-xs">
             <TableHeader>
               <TableRow>
                 {deletable && (
-                  <TableHead className="w-10">
+                  <TableHead className="w-8 px-1 py-1.5 text-xs whitespace-nowrap">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
                       onCheckedChange={(v) => toggleAll(!!v)}
@@ -395,13 +395,17 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     />
                   </TableHead>
                 )}
-                {tableFields.map((f) => <TableHead key={f.name}>{f.label}</TableHead>)}
-                <TableHead className="text-right">Actions</TableHead>
+                {tableFields.map((f) => (
+                  <TableHead key={f.name} className="h-auto min-w-0 px-1.5 py-1.5 text-xs font-medium whitespace-normal break-words">
+                    {f.label}
+                  </TableHead>
+                ))}
+                <TableHead className="w-20 px-1 py-1.5 text-right text-xs whitespace-nowrap">Actions</TableHead>
               </TableRow>
               <TableRow className="hover:bg-transparent">
-                {deletable && <TableHead className="w-10 h-auto py-1.5" />}
+                {deletable && <TableHead className="w-8 h-auto px-1 py-1" />}
                 {tableFields.map((f) => (
-                  <TableHead key={`${f.name}-filter`} className="h-auto py-1.5 font-medium">
+                  <TableHead key={`${f.name}-filter`} className="h-auto min-w-0 px-1.5 py-1 font-medium">
                     {columnFilterMeta.discrete.has(f.name) ? (
                       <Select
                         value={columnFilters[f.name] || ALL_FILTER}
@@ -409,7 +413,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                       >
                         <SelectTrigger
                           aria-label={`Filter ${f.label}`}
-                          className="h-8 w-full min-w-[6rem] px-2 text-sm font-medium text-muted-foreground shadow-none"
+                          className="h-7 w-full min-w-0 px-1.5 text-xs font-medium text-muted-foreground shadow-none"
                         >
                           <SelectValue placeholder="All" />
                         </SelectTrigger>
@@ -423,7 +427,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     ) : (
                       <Input
                         aria-label={`Filter ${f.label}`}
-                        className="h-8 px-2 text-sm font-medium shadow-none"
+                        className="h-7 w-full min-w-0 px-1.5 text-xs font-medium shadow-none"
                         placeholder="Filter…"
                         value={columnFilters[f.name] ?? ""}
                         onChange={(e) => setColumnFilter(f.name, e.target.value)}
@@ -431,14 +435,14 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     )}
                   </TableHead>
                 ))}
-                <TableHead className="h-auto py-1.5" />
+                <TableHead className="w-20 h-auto px-1 py-1" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((row) => (
                 <TableRow key={row.id} data-state={selected.has(row.id) ? "selected" : undefined}>
                   {deletable && (
-                    <TableCell>
+                    <TableCell className="w-8 px-1 py-1.5 whitespace-nowrap">
                       <Checkbox
                         checked={selected.has(row.id)}
                         onCheckedChange={(v) => toggleRow(row.id, !!v)}
@@ -447,16 +451,18 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     </TableCell>
                   )}
                   {tableFields.map((f) => (
-                    <TableCell key={f.name}>{f.render ? f.render(row) : f.relation ? (relationOptions[f.name]?.find((r) => r.id === row[f.name]) ? f.relation.label(relationOptions[f.name].find((r) => r.id === row[f.name])) : "—") : String(row[f.name] ?? "—")}</TableCell>
+                    <TableCell key={f.name} className="min-w-0 px-1.5 py-1.5 text-xs whitespace-normal break-words">
+                      {f.render ? f.render(row) : f.relation ? (relationOptions[f.name]?.find((r) => r.id === row[f.name]) ? f.relation.label(relationOptions[f.name].find((r) => r.id === row[f.name])) : "—") : String(row[f.name] ?? "—")}
+                    </TableCell>
                   ))}
-                  <TableCell className="text-right space-x-1">
-                    {editable && <Button size="icon" variant="ghost" onClick={()=>openEdit(row)}><Pencil className="h-4 w-4"/></Button>}
-                    {deletable && <Button size="icon" variant="ghost" onClick={()=>remove(row)}><Trash2 className="h-4 w-4 text-destructive"/></Button>}
+                  <TableCell className="w-20 px-1 py-1.5 text-right whitespace-nowrap space-x-0">
+                    {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
+                    {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </TableCell>
                 </TableRow>
               ))}
               {!filtered.length && (
-                <TableRow><TableCell colSpan={tableFields.length+1+(deletable?1:0)} className="text-center py-8 text-sm text-muted-foreground">No records</TableCell></TableRow>
+                <TableRow><TableCell colSpan={tableFields.length+1+(deletable?1:0)} className="text-center py-8 text-xs text-muted-foreground">No records</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
