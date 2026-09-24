@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { BrandMandala } from "@/components/BrandMark";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Bell } from "lucide-react";
@@ -87,8 +88,16 @@ function AppLayout() {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 overflow-auto">
-            <Outlet />
+          <main className="flex-1 overflow-auto">
+            <div className="relative isolate overflow-hidden min-h-full">
+              <BrandMandala
+                className="absolute -top-16 -right-16 h-[220px] w-[220px] -z-10 pointer-events-none"
+                style={{ opacity: 0.3 }}
+              />
+              <div className="p-6">
+                <Outlet />
+              </div>
+            </div>
           </main>
         </div>
       </div>
