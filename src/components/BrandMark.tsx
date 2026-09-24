@@ -1,78 +1,138 @@
 import * as React from "react";
 
 /**
- * Compact single-ring rosette mark, built from the AMF Synergy Vision logo's mandala motif.
- * Inherits color via `currentColor` — set text color with a className (e.g. text-sidebar-primary)
- * and it themes automatically with the app's light/dark palette.
+ * Shared geometry for the AMF Synergy Vision neon mandala mark: concentric rings of
+ * teardrop "petals" around a core ring, all painted with one cyan → violet → magenta
+ * radial gradient. BrandMark is a simplified single-ring version for small UI chrome
+ * (headers, nav bars); BrandMandala is the full three-ring version meant for hero
+ * sections and low-opacity corner watermarks.
  */
-export function BrandMark({ className }: { className?: string }) {
+
+type RingSpec = { r: number; petals: number; len: number; w: number };
+
+const NEON_GRADIENT: [string, string, string] = ["#2fe6ff", "#9b6bff", "#ff3fd0"];
+
+function petalPath(ring: RingSpec) {
+  const r0 = ring.r - ring.len * 0.35;
+  const r1 = ring.r + ring.len * 0.65;
+  const spread = ((360 / ring.petals) * 0.32 * Math.PI) / 180;
+  const mid = (r0 + r1) / 2;
+  const x0 = 0;
+  const y0 = -r0;
+  const x1 = -Math.sin(spread) * mid;
+  const y1 = -mid * Math.cos(spread);
+  const x2 = Math.sin(spread) * mid;
+  const y2 = y1;
+  const x3 = 0;
+  const y3 = -r1;
+  return `M ${x0} ${y0} Q ${x1} ${y1} ${x3} ${y3} Q ${x2} ${y2} ${x0} ${y0} Z`;
+}
+
+function Mandala({
+  className,
+  style,
+  viewBox,
+  rings,
+  coreR = 10,
+  outerR,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+  viewBox: string;
+  rings: RingSpec[];
+  coreR?: number;
+  outerR: number;
+}) {
   const id = React.useId();
-  const petalId = `${id}-petal`;
+  const gradId = `${id}-grad`;
+
   return (
-    <svg
-      viewBox="-50 -50 100 100"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.6}
-      aria-hidden="true"
-    >
+    <svg viewBox={viewBox} className={className} style={style} aria-hidden="true">
       <defs>
-        <path id={petalId} d="M -7 -24 L 0 -42 L 7 -24" />
+        <radialGradient id={gradId}>
+          <stop offset="0%" stopColor={NEON_GRADIENT[0]} />
+          <stop offset="55%" stopColor={NEON_GRADIENT[1]} />
+          <stop offset="100%" stopColor={NEON_GRADIENT[2]} />
+        </radialGradient>
       </defs>
-      {Array.from({ length: 12 }).map((_, i) => (
-        <use key={i} href={`#${petalId}`} transform={`rotate(${i * 30})`} />
+
+      <circle r={coreR} fill="none" stroke={`url(#${gradId})`} strokeWidth={2} />
+
+      {rings.map((ring, ri) => (
+        <g key={ri}>
+          <circle
+            r={ring.r}
+            fill="none"
+            stroke={`url(#${gradId})`}
+            strokeWidth={0.75}
+            strokeOpacity={0.55}
+          />
+          {Array.from({ length: ring.petals }).map((_, i) => (
+            <g key={i} transform={`rotate(${(360 / ring.petals) * i})`}>
+              <path
+                d={petalPath(ring)}
+                fill={`url(#${gradId})`}
+                fillOpacity={Math.max(0.2, 0.5 - ri * 0.1)}
+                stroke={`url(#${gradId})`}
+                strokeWidth={ring.w * 0.4}
+              />
+            </g>
+          ))}
+        </g>
       ))}
-      <circle r={24} strokeWidth={0.8} opacity={0.6} />
-      <circle r={10} strokeWidth={1.4} />
-      <circle r={46} strokeWidth={0.6} opacity={0.4} strokeDasharray="1 4" />
+
+      <circle
+        r={outerR}
+        fill="none"
+        stroke={`url(#${gradId})`}
+        strokeWidth={0.5}
+        strokeOpacity={0.35}
+        strokeDasharray="1 5"
+      />
     </svg>
   );
 }
 
-/**
- * Larger three-ring mandala for decorative/watermark use — same motif as BrandMark, with more
- * detail so it holds up at large sizes. Meant to sit at low opacity behind other content.
- */
-export function BrandMandala({ className }: { className?: string }) {
-  const rings = [
-    { r: 34, count: 8, len: 16 },
-    { r: 60, count: 12, len: 18 },
-    { r: 86, count: 16, len: 14 },
-  ];
+/** Compact single-ring emblem — for the sidebar header, login badge, and other small chrome. */
+export function BrandMark({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <svg
-      viewBox="-110 -110 220 220"
+    <Mandala
       className={className}
-      fill="none"
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      {rings.map((ring, ri) => (
-        <g key={ri} opacity={0.85 - ri * 0.15}>
-          <circle r={ring.r} strokeWidth={0.6} opacity={0.5} />
-          {Array.from({ length: ring.count }).map((_, i) => {
-            const angle = (360 / ring.count) * i;
-            const inner = ring.r - ring.len * 0.5;
-            const outer = ring.r + ring.len * 0.6;
-            const half = ((360 / ring.count) * 0.28 * Math.PI) / 180;
-            const lx = -Math.sin(half) * inner;
-            const ly = -Math.cos(half) * inner;
-            const rx = Math.sin(half) * inner;
-            const ry = ly;
-            return (
-              <path
-                key={i}
-                d={`M ${lx} ${ly} L 0 ${-outer} L ${rx} ${ry}`}
-                strokeWidth={1.1}
-                transform={`rotate(${angle})`}
-              />
-            );
-          })}
-        </g>
-      ))}
-      <circle r={14} strokeWidth={1.6} />
-      <circle r={102} strokeWidth={0.5} opacity={0.4} strokeDasharray="1 5" />
-    </svg>
+      style={style}
+      viewBox="-62 -62 124 124"
+      coreR={10}
+      outerR={55}
+      rings={[{ r: 34, petals: 8, len: 22, w: 2.4 }]}
+    />
+  );
+}
+
+/** Full three-ring mandala — for hero sections and low-opacity corner watermarks. */
+export function BrandMandala({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <Mandala
+      className={className}
+      style={style}
+      viewBox="-110 -110 220 220"
+      coreR={10}
+      outerR={100}
+      rings={[
+        { r: 30, petals: 8, len: 22, w: 2.4 },
+        { r: 55, petals: 12, len: 26, w: 2 },
+        { r: 82, petals: 16, len: 20, w: 1.6 },
+      ]}
+    />
   );
 }
