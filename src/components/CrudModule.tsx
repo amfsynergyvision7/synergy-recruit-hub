@@ -297,8 +297,17 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-            <Input className="pl-10 w-64" placeholder="Search…" value={search} onChange={(e)=>setSearch(e.target.value)}/>
+            <Search
+              className="pointer-events-none absolute text-muted-foreground"
+              style={{ left: "0.75rem", top: "50%", transform: "translateY(-50%)", width: "1rem", height: "1rem" }}
+            />
+            <Input
+              className="w-64"
+              style={{ paddingLeft: "2.5rem" }}
+              placeholder="Search…"
+              value={search}
+              onChange={(e)=>setSearch(e.target.value)}
+            />
           </div>
           <Button
             variant="outline"
