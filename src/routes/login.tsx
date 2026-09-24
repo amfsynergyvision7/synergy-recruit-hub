@@ -33,7 +33,7 @@ function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       <div className="hidden lg:flex flex-col justify-between bg-sidebar text-sidebar-foreground p-12 relative isolate overflow-hidden">
         <BrandMandala
-          className="absolute -right-32 -bottom-32 h-[480px] w-[480px] -z-10"
+          className="absolute -right-24 -bottom-24 h-[70vh] w-[70vh] -z-10"
           style={{ opacity: 0.55, filter: "drop-shadow(0 0 40px rgba(47,230,255,0.3))" }}
         />
         <div className="flex items-center gap-3">
