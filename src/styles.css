@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -53,89 +54,87 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Light Mode — parchment & gold */
+/* Light Mode — richer periwinkle-lavender content, NOT near-white.
+   Sidebar tokens (--sidebar-*) live ONLY here and are never redeclared in .dark,
+   so the brand rail (sidebar + login panel) stays the same dark neon look in
+   both light and dark mode — only the workspace content switches. */
 :root {
   --radius: 0.75rem;
-  --background: #f7f2e4;
-  --foreground: #1c1a13;
-  --card: #fffdf6;
-  --card-foreground: #1c1a13;
-  --popover: #fffdf6;
-  --popover-foreground: #1c1a13;
-  --primary: #9c7a2e;
-  --primary-foreground: #fffdf6;
-  --secondary: #f0e6cc;
-  --secondary-foreground: #1c1a13;
-  --muted: #f0e6cc;
-  --muted-foreground: #7a7157;
-  --accent: #f0e6cc;
-  --accent-foreground: #1c1a13;
-  --destructive: #b3402f;
-  --destructive-foreground: #fffdf6;
-  --success: #2f8f52;
-  --success-foreground: #fffdf6;
-  --warning: #a06d15;
-  --warning-foreground: #fffdf6;
-  --info: #6752b0;
-  --info-foreground: #fffdf6;
-  --border: #e7dcbd;
-  --input: #e7dcbd;
-  --ring: #9c7a2e;
-  --chart-1: #9c7a2e;
-  --chart-2: #c9a24d;
-  --chart-3: #e8c877;
-  --chart-4: #7a7157;
-  --chart-5: #241f13;
-  --sidebar: #f3ecd6;
-  --sidebar-foreground: #1c1a13;
-  --sidebar-primary: #9c7a2e;
-  --sidebar-primary-foreground: #fffdf6;
-  --sidebar-accent: #f0e6cc;
-  --sidebar-accent-foreground: #1c1a13;
-  --sidebar-border: #e7dcbd;
-  --sidebar-ring: #9c7a2e;
+  --background: #eee9fb;
+  --foreground: #1a1830;
+  --card: #ffffff;
+  --card-foreground: #1a1830;
+  --popover: #ffffff;
+  --popover-foreground: #1a1830;
+  --primary: #7a3fe0;
+  --primary-foreground: #ffffff;
+  --secondary: #f1ecfd;
+  --secondary-foreground: #1a1830;
+  --muted: #f1ecfd;
+  --muted-foreground: #5c5580;
+  --accent: #e6dbff;
+  --accent-foreground: #3d1f8f;
+  --destructive: #d6285f;
+  --destructive-foreground: #ffffff;
+  --success: #1f9d5c;
+  --success-foreground: #ffffff;
+  --warning: #b3791b;
+  --warning-foreground: #ffffff;
+  --info: #6a3fc9;
+  --info-foreground: #ffffff;
+  --border: #dcd0f7;
+  --input: #ffffff;
+  --ring: #7a3fe0;
+  --chart-1: #7a3fe0;
+  --chart-2: #2fb8e6;
+  --chart-3: #d6288f;
+  --chart-4: #1f9d5c;
+  --chart-5: #b3791b;
+
+  /* Brand rail — fixed across both modes */
+  --sidebar: #12142a;
+  --sidebar-foreground: #eef1ff;
+  --sidebar-primary: #2fe6ff;
+  --sidebar-primary-foreground: #06121a;
+  --sidebar-accent: #1c2140;
+  --sidebar-accent-foreground: #eef1ff;
+  --sidebar-border: #262b4a;
+  --sidebar-ring: #2fe6ff;
 }
 
-/* Dark Mode — navy & gold, matching the AMF Synergy Vision mark */
+/* Dark Mode — native neon. Sidebar tokens deliberately NOT redeclared here:
+   they fall through to :root's fixed values above. */
 .dark {
-  --background: #0c1020;
-  --foreground: #f1ecdc;
-  --card: #141a30;
-  --card-foreground: #f1ecdc;
-  --popover: #141a30;
-  --popover-foreground: #f1ecdc;
-  --primary: #c9a24d;
-  --primary-foreground: #1c1406;
-  --secondary: #1c2340;
-  --secondary-foreground: #f1ecdc;
-  --muted: #1c2340;
-  --muted-foreground: #9aa0c2;
-  --accent: #232b4d;
-  --accent-foreground: #f1ecdc;
-  --destructive: #d9584a;
-  --destructive-foreground: #ffffff;
-  --success: #7fce9a;
-  --success-foreground: #0c1020;
-  --warning: #e0b568;
-  --warning-foreground: #1c1406;
-  --info: #b6a6e6;
-  --info-foreground: #1c1406;
-  --border: #2b3157;
-  --input: #2b3157;
-  --ring: #c9a24d;
-  --chart-1: #c9a24d;
-  --chart-2: #e8c877;
-  --chart-3: #9aa0c2;
-  --chart-4: #b6a6e6;
-  --chart-5: #2b3157;
-  --sidebar: #0a0e1c;
-  --sidebar-foreground: #f1ecdc;
-  --sidebar-primary: #c9a24d;
-  --sidebar-primary-foreground: #1c1406;
-  --sidebar-accent: #1c2340;
-  --sidebar-accent-foreground: #f1ecdc;
-  --sidebar-border: #1c2340;
-  --sidebar-ring: #c9a24d;
+  --background: #0a0b14;
+  --foreground: #eaf2ff;
+  --card: #131629;
+  --card-foreground: #eaf2ff;
+  --popover: #131629;
+  --popover-foreground: #eaf2ff;
+  --primary: #2fe6ff;
+  --primary-foreground: #06121a;
+  --secondary: #171b30;
+  --secondary-foreground: #eaf2ff;
+  --muted: #171b30;
+  --muted-foreground: #8590b8;
+  --accent: #1c2140;
+  --accent-foreground: #eaf2ff;
+  --destructive: #ff4d6d;
+  --destructive-foreground: #2b0510;
+  --success: #4dffa0;
+  --success-foreground: #06170d;
+  --warning: #ffcf5c;
+  --warning-foreground: #2b1d02;
+  --info: #c99bff;
+  --info-foreground: #1c0f33;
+  --border: #262b4a;
+  --input: #0e1120;
+  --ring: #2fe6ff;
+  --chart-1: #2fe6ff;
+  --chart-2: #9b6bff;
+  --chart-3: #ff3fd0;
+  --chart-4: #4dffa0;
+  --chart-5: #ffcf5c;
 }
 
 @layer base {
@@ -145,70 +144,88 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+    font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  }
+  h1, h2, h3, h4 {
+    font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  button, .button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    transition: all 0.2s ease;
+  }
+
+  button:hover, .button:hover {
+    background: var(--secondary);
+    border-color: var(--primary);
+  }
+
+  input, textarea, select {
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
+  }
+
+  /* Column headers get a visible accent-tinted band + tinted underline,
+     instead of flat grey. */
+  th {
+    background: color-mix(in srgb, var(--primary) 12%, var(--card));
+    color: var(--foreground);
+    border-bottom: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+    padding: 0.75rem 1rem;
+  }
+
+  td {
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
   }
 }
 
 @layer utilities {
   .gradient-primary {
-    background-image: linear-gradient(135deg, var(--primary), var(--secondary));
+    background-image: linear-gradient(135deg, var(--primary), var(--chart-2));
   }
   .shadow-elegant {
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05), 0 8px 24px -8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25), 0 12px 32px -12px color-mix(in srgb, var(--ring) 45%, transparent);
   }
   .card-hover:hover {
     transform: translateY(-2px);
     transition: transform 0.2s ease;
   }
+  .font-display {
+    font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.01em;
+  }
 }
 
-/* Component Styles */
-button, .button {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--foreground);
-  transition: all 0.2s ease;
-}
-
-button:hover, .button:hover {
-  background: var(--secondary);
-  border-color: var(--primary);
-}
-
-input, textarea, select {
-  background: var(--background);
-  border: 1px solid var(--border);
-  color: var(--foreground);
-  border-radius: var(--radius);
-  padding: 0.5rem 0.75rem;
-}
-
-input:focus, textarea:focus, select:focus {
-  border-color: var(--primary);
-  outline: none;
-}
-
-th {
-  background: var(--muted);
-  color: var(--muted-foreground);
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1rem;
-}
-
-td {
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1rem;
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
+/* Solid primary-colored surfaces (Tailwind's bg-primary utility, which shadcn's
+   default Button variant already uses) get the neon glow. Left un-layered so it
+   always applies as a pure visual add-on regardless of what else targets bg-primary. */
+.bg-primary {
+  box-shadow: 0 0 16px -2px var(--primary);
 }

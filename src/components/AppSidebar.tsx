@@ -41,8 +41,8 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-lg bg-sidebar-primary/10 border border-sidebar-primary/30 text-sidebar-primary flex items-center justify-center shadow-glow">
-            <BrandMark className="h-6 w-6" />
+          <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shadow-glow">
+            <BrandMark className="h-6 w-6" style={{ filter: "drop-shadow(0 0 5px rgba(47,230,255,0.6))" }} />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold tracking-tight">AMF Synergy Vision</span>
