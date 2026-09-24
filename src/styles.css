@@ -165,6 +165,12 @@
     transform: translateY(-2px);
     transition: transform 0.2s ease;
   }
+  /* Neon display type — apply to a page/section title directly when it isn't a
+     semantic <h1>-<h4> tag, e.g. className="font-display text-3xl font-bold" */
+  .font-display {
+    font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.01em;
+  }
 }
 
 /* Component Styles */
@@ -178,6 +184,13 @@ button, .button {
 button:hover, .button:hover {
   background: var(--secondary);
   border-color: var(--primary);
+}
+
+/* Give any solid primary-colored surface (Tailwind's bg-primary utility, which is
+   what the app's primary buttons already render with) the same glowing halo the
+   neon mockup's "+ Add" button has. Purely additive — no component changes needed. */
+.bg-primary {
+  box-shadow: 0 0 16px -2px var(--primary);
 }
 
 input, textarea, select {
