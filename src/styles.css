@@ -54,10 +54,13 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Light Mode — pale violet, the "light variant" of the neon mandala theme */
+/* Light Mode — richer periwinkle-lavender content, NOT near-white.
+   Sidebar tokens (--sidebar-*) live ONLY here and are never redeclared in .dark,
+   so the brand rail (sidebar + login panel) stays the same dark neon look in
+   both light and dark mode — only the workspace content switches. */
 :root {
   --radius: 0.75rem;
-  --background: #f4f3fb;
+  --background: #eee9fb;
   --foreground: #1a1830;
   --card: #ffffff;
   --card-foreground: #1a1830;
@@ -65,12 +68,12 @@
   --popover-foreground: #1a1830;
   --primary: #7a3fe0;
   --primary-foreground: #ffffff;
-  --secondary: #f7f6fd;
+  --secondary: #f1ecfd;
   --secondary-foreground: #1a1830;
-  --muted: #f7f6fd;
-  --muted-foreground: #6b6690;
-  --accent: #f1e9ff;
-  --accent-foreground: #4a2a90;
+  --muted: #f1ecfd;
+  --muted-foreground: #5c5580;
+  --accent: #e6dbff;
+  --accent-foreground: #3d1f8f;
   --destructive: #d6285f;
   --destructive-foreground: #ffffff;
   --success: #1f9d5c;
@@ -79,7 +82,7 @@
   --warning-foreground: #ffffff;
   --info: #6a3fc9;
   --info-foreground: #ffffff;
-  --border: #e2ddf7;
+  --border: #dcd0f7;
   --input: #ffffff;
   --ring: #7a3fe0;
   --chart-1: #7a3fe0;
@@ -87,17 +90,20 @@
   --chart-3: #d6288f;
   --chart-4: #1f9d5c;
   --chart-5: #b3791b;
-  --sidebar: #f7f6fd;
-  --sidebar-foreground: #1a1830;
-  --sidebar-primary: #7a3fe0;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1e9ff;
-  --sidebar-accent-foreground: #4a2a90;
-  --sidebar-border: #e2ddf7;
-  --sidebar-ring: #7a3fe0;
+
+  /* Brand rail — fixed across both modes */
+  --sidebar: #12142a;
+  --sidebar-foreground: #eef1ff;
+  --sidebar-primary: #2fe6ff;
+  --sidebar-primary-foreground: #06121a;
+  --sidebar-accent: #1c2140;
+  --sidebar-accent-foreground: #eef1ff;
+  --sidebar-border: #262b4a;
+  --sidebar-ring: #2fe6ff;
 }
 
-/* Dark Mode — native neon: deep space-navy with cyan / violet / magenta glow */
+/* Dark Mode — native neon. Sidebar tokens deliberately NOT redeclared here:
+   they fall through to :root's fixed values above. */
 .dark {
   --background: #0a0b14;
   --foreground: #eaf2ff;
@@ -129,14 +135,6 @@
   --chart-3: #ff3fd0;
   --chart-4: #4dffa0;
   --chart-5: #ffcf5c;
-  --sidebar: #0d0f1c;
-  --sidebar-foreground: #eaf2ff;
-  --sidebar-primary: #2fe6ff;
-  --sidebar-primary-foreground: #06121a;
-  --sidebar-accent: #171b30;
-  --sidebar-accent-foreground: #eaf2ff;
-  --sidebar-border: #262b4a;
-  --sidebar-ring: #2fe6ff;
 }
 
 @layer base {
@@ -152,6 +150,60 @@
     font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
     letter-spacing: 0.01em;
   }
+
+  button, .button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    transition: all 0.2s ease;
+  }
+
+  button:hover, .button:hover {
+    background: var(--secondary);
+    border-color: var(--primary);
+  }
+
+  input, textarea, select {
+    background: var(--background);
+    border: 1px solid var(--border);
+    color: var(--foreground);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.75rem;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
+  }
+
+  /* Column headers get a visible accent-tinted band + tinted underline,
+     instead of flat grey. */
+  th {
+    background: color-mix(in srgb, var(--primary) 12%, var(--card));
+    color: var(--foreground);
+    border-bottom: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+    padding: 0.75rem 1rem;
+  }
+
+  td {
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
 }
 
 @layer utilities {
@@ -165,70 +217,15 @@
     transform: translateY(-2px);
     transition: transform 0.2s ease;
   }
-  /* Neon display type — apply to a page/section title directly when it isn't a
-     semantic <h1>-<h4> tag, e.g. className="font-display text-3xl font-bold" */
   .font-display {
     font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
     letter-spacing: 0.01em;
   }
 }
 
-/* Component Styles */
-button, .button {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--foreground);
-  transition: all 0.2s ease;
-}
-
-button:hover, .button:hover {
-  background: var(--secondary);
-  border-color: var(--primary);
-}
-
-/* Give any solid primary-colored surface (Tailwind's bg-primary utility, which is
-   what the app's primary buttons already render with) the same glowing halo the
-   neon mockup's "+ Add" button has. Purely additive — no component changes needed. */
+/* Solid primary-colored surfaces (Tailwind's bg-primary utility, which shadcn's
+   default Button variant already uses) get the neon glow. Left un-layered so it
+   always applies as a pure visual add-on regardless of what else targets bg-primary. */
 .bg-primary {
   box-shadow: 0 0 16px -2px var(--primary);
-}
-
-input, textarea, select {
-  background: var(--background);
-  border: 1px solid var(--border);
-  color: var(--foreground);
-  border-radius: var(--radius);
-  padding: 0.5rem 0.75rem;
-}
-
-input:focus, textarea:focus, select:focus {
-  border-color: var(--primary);
-  outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
-}
-
-th {
-  background: var(--muted);
-  color: var(--muted-foreground);
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1rem;
-}
-
-td {
-  border-bottom: 1px solid var(--border);
-  padding: 0.75rem 1rem;
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
 }

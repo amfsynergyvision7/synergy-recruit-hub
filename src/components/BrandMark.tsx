@@ -5,7 +5,8 @@ import * as React from "react";
  * teardrop "petals" around a core ring, all painted with one cyan → violet → magenta
  * radial gradient. BrandMark is a simplified single-ring version for small UI chrome
  * (headers, nav bars); BrandMandala is the full three-ring version meant for hero
- * sections and low-opacity corner watermarks.
+ * sections and corner watermarks. Opacity is tuned to stay clearly visible rather
+ * than fade into a ghost at small sizes or low layering.
  */
 
 type RingSpec = { r: number; petals: number; len: number; w: number };
@@ -65,14 +66,14 @@ function Mandala({
             fill="none"
             stroke={`url(#${gradId})`}
             strokeWidth={0.75}
-            strokeOpacity={0.55}
+            strokeOpacity={0.6}
           />
           {Array.from({ length: ring.petals }).map((_, i) => (
             <g key={i} transform={`rotate(${(360 / ring.petals) * i})`}>
               <path
                 d={petalPath(ring)}
                 fill={`url(#${gradId})`}
-                fillOpacity={Math.max(0.2, 0.5 - ri * 0.1)}
+                fillOpacity={Math.max(0.35, 0.65 - ri * 0.12)}
                 stroke={`url(#${gradId})`}
                 strokeWidth={ring.w * 0.4}
               />
@@ -86,7 +87,7 @@ function Mandala({
         fill="none"
         stroke={`url(#${gradId})`}
         strokeWidth={0.5}
-        strokeOpacity={0.35}
+        strokeOpacity={0.4}
         strokeDasharray="1 5"
       />
     </svg>
@@ -113,7 +114,7 @@ export function BrandMark({
   );
 }
 
-/** Full three-ring mandala — for hero sections and low-opacity corner watermarks. */
+/** Full three-ring mandala — for hero sections and corner watermarks. */
 export function BrandMandala({
   className,
   style,

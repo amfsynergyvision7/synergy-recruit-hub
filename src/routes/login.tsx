@@ -33,12 +33,12 @@ function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       <div className="hidden lg:flex flex-col justify-between bg-sidebar text-sidebar-foreground p-12 relative overflow-hidden">
         <BrandMandala
-          className="absolute -right-32 -bottom-32 h-[480px] w-[480px] opacity-10 -z-10"
-          style={{ filter: "drop-shadow(0 0 40px rgba(47,230,255,0.25))" }}
+          className="absolute -right-32 -bottom-32 h-[480px] w-[480px] -z-10"
+          style={{ opacity: 0.55, filter: "drop-shadow(0 0 40px rgba(47,230,255,0.3))" }}
         />
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">
-            <BrandMark className="h-7 w-7" style={{ filter: "drop-shadow(0 0 6px rgba(47,230,255,0.55))" }} />
+            <BrandMark className="h-7 w-7" style={{ filter: "drop-shadow(0 0 6px rgba(47,230,255,0.6))" }} />
           </div>
           <div>
             <div className="font-semibold">AMF Synergy Vision</div>
