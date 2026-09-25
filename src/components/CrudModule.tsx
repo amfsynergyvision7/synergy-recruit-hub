@@ -114,6 +114,19 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
 
+  // Mobile table strategy: table-fixed normally divides the available width
+  // evenly across every column, which is how a module with 8-11 columns ends
+  // up unreadable on a phone (each cell shrinks to ~30px). Instead we give the
+  // table a per-module minimum width (130px/column is a readable floor) so it
+  // only starts horizontally scrolling once the viewport is actually too
+  // narrow to fit — on desktop widths this is a no-op, min-width just becomes
+  // the floor and the table still fills the card exactly as before. The first
+  // data column and the Actions column stay pinned (position: sticky) on both
+  // sides while the middle columns scroll underneath, so you always know
+  // which row you're on and can still edit/delete it without scrolling back.
+  const stickyLeftOffset = deletable ? "left-8" : "left-0";
+  const minTableWidth = (deletable ? 32 : 0) + tableFields.length * 130 + 80;
+
   const load = async () => {
     setLoading(true);
     const q = supabase.from(table as any).select("*");
@@ -395,11 +408,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">{loading ? "Loading…" : `${filtered.length} record(s)`}</CardTitle></CardHeader>
         <CardContent className="overflow-x-hidden">
-          <Table className="w-full table-fixed text-xs">
+          <Table className="w-full table-fixed text-xs" style={{ minWidth: minTableWidth }}>
             <TableHeader>
               <TableRow>
                 {deletable && (
-                  <TableHead className="w-8 px-1 py-1.5 text-xs whitespace-nowrap">
+                  <TableHead className="w-8 px-1 py-1.5 text-xs whitespace-nowrap sticky left-0 z-10 bg-card">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
                       onCheckedChange={(v) => toggleAll(!!v)}
@@ -407,17 +420,17 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     />
                   </TableHead>
                 )}
-                {tableFields.map((f) => (
-                  <TableHead key={f.name} className="h-auto min-w-0 px-1.5 py-1.5 text-xs font-medium whitespace-normal break-words">
+                {tableFields.map((f, i) => (
+                  <TableHead key={f.name} className={`h-auto min-w-0 px-1.5 py-1.5 text-xs font-medium whitespace-normal break-words ${i === 0 ? `sticky z-10 bg-card border-r border-border ${stickyLeftOffset}` : ""}`}>
                     {f.label}
                   </TableHead>
                 ))}
-                <TableHead className="w-20 px-1 py-1.5 text-right text-xs whitespace-nowrap">Actions</TableHead>
+                <TableHead className="w-20 px-1 py-1.5 text-right text-xs whitespace-nowrap sticky right-0 z-10 bg-card border-l border-border">Actions</TableHead>
               </TableRow>
               <TableRow className="hover:bg-transparent">
-                {deletable && <TableHead className="w-8 h-auto px-1 py-1" />}
-                {tableFields.map((f) => (
-                  <TableHead key={`${f.name}-filter`} className="h-auto min-w-0 px-1.5 py-1 font-medium">
+                {deletable && <TableHead className="w-8 h-auto px-1 py-1 sticky left-0 z-10 bg-card" />}
+                {tableFields.map((f, i) => (
+                  <TableHead key={`${f.name}-filter`} className={`h-auto min-w-0 px-1.5 py-1 font-medium ${i === 0 ? `sticky z-10 bg-card border-r border-border ${stickyLeftOffset}` : ""}`}>
                     {columnFilterMeta.discrete.has(f.name) ? (
                       <Select
                         value={columnFilters[f.name] || ALL_FILTER}
@@ -447,7 +460,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     )}
                   </TableHead>
                 ))}
-                <TableHead className="w-20 h-auto px-1 py-1" />
+                <TableHead className="w-20 h-auto px-1 py-1 sticky right-0 z-10 bg-card border-l border-border" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -468,7 +481,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               ) : filtered.map((row) => (
                 <TableRow key={row.id} data-state={selected.has(row.id) ? "selected" : undefined}>
                   {deletable && (
-                    <TableCell className="w-8 px-1 py-1.5 whitespace-nowrap">
+                    <TableCell className="w-8 px-1 py-1.5 whitespace-nowrap sticky left-0 z-10 bg-card">
                       <Checkbox
                         checked={selected.has(row.id)}
                         onCheckedChange={(v) => toggleRow(row.id, !!v)}
@@ -476,12 +489,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                       />
                     </TableCell>
                   )}
-                  {tableFields.map((f) => (
-                    <TableCell key={f.name} className="min-w-0 px-1.5 py-1.5 text-xs whitespace-normal break-words">
+                  {tableFields.map((f, i) => (
+                    <TableCell key={f.name} className={`min-w-0 px-1.5 py-1.5 text-xs whitespace-normal break-words ${i === 0 ? `sticky z-10 bg-card border-r border-border ${stickyLeftOffset}` : ""}`}>
                       {f.render ? f.render(row) : (cellDisplayValue(row, f, relationOptions) || "—")}
                     </TableCell>
                   ))}
-                  <TableCell className="w-20 px-1 py-1.5 text-right whitespace-nowrap space-x-0">
+                  <TableCell className="w-20 px-1 py-1.5 text-right whitespace-nowrap space-x-0 sticky right-0 z-10 bg-card border-l border-border">
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </TableCell>

@@ -62,8 +62,13 @@ function AppLayout() {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-16 flex items-center gap-3 border-b bg-card/80 backdrop-blur px-4 sticky top-0 z-30">
             <SidebarTrigger />
-            <div className="text-sm font-semibold tracking-tight">AMF Synergy Vision CRM</div>
-            <div className="ml-auto flex items-center gap-2">
+            {/* min-w-0 + truncate: without it, a flex child defaults to
+                min-width:auto and refuses to shrink below its text's natural
+                width, so on a narrow phone this title would push the theme
+                toggle/notification icons off the visible header instead of
+                just ellipsizing. */}
+            <div className="min-w-0 truncate text-sm font-semibold tracking-tight">AMF Synergy Vision CRM</div>
+            <div className="ml-auto flex shrink-0 items-center gap-2">
               <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
