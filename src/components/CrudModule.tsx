@@ -15,7 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+const SKELETON_ROW_WIDTHS = ["100%", "92%", "85%", "95%", "80%", "90%"];
 
 export type FieldType = "text" | "email" | "tel" | "number" | "date" | "time" | "textarea" | "select" | "relation";
 
@@ -448,7 +451,21 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((row) => (
+              {/* Only the true first load (no rows cached yet) gets skeleton rows —
+                  a later background reload (realtime update, save, delete) keeps
+                  showing the existing rows until fresh data replaces them, exactly
+                  as before, so normal edits never flicker. This just replaces the
+                  moment where a fresh page load used to flash "No records" before
+                  the real data arrived. */}
+              {loading && rows.length === 0 ? (
+                SKELETON_ROW_WIDTHS.map((w, i) => (
+                  <TableRow key={`skeleton-${i}`} className="hover:bg-transparent">
+                    <TableCell colSpan={tableFields.length+1+(deletable?1:0)} className="px-1.5 py-1.5">
+                      <Skeleton className="h-4" style={{ width: w }} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : filtered.map((row) => (
                 <TableRow key={row.id} data-state={selected.has(row.id) ? "selected" : undefined}>
                   {deletable && (
                     <TableCell className="w-8 px-1 py-1.5 whitespace-nowrap">
@@ -470,7 +487,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   </TableCell>
                 </TableRow>
               ))}
-              {!filtered.length && (
+              {!loading && !filtered.length && (
                 <TableRow><TableCell colSpan={tableFields.length+1+(deletable?1:0)} className="text-center py-8 text-xs text-muted-foreground">No records</TableCell></TableRow>
               )}
             </TableBody>
