@@ -1,7 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
+import { StatusPill, type PillTone } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_app/interviews")({ component: Page });
+
+// Only Status carries real semantic weight (a good/bad outcome). Round and
+// Mode are pure categories with no inherent good/bad meaning (a "Final" round
+// isn't better or worse than a "Screening" round, just later) — pilling them
+// in the ok/warn/bad palette would imply a judgment that isn't there, so they
+// stay as plain text.
+const STATUS_TONE: Record<string, PillTone> = {
+  scheduled: "warn",
+  completed: "info",
+  selected: "ok",
+  rejected: "bad",
+  no_show: "bad",
+};
 
 function Page() {
   return (
@@ -24,10 +38,22 @@ function Page() {
         { name: "mode", label: "Mode", type: "select", options: [
           { value:"online", label:"Online" },{ value:"f2f", label:"In Person" },{ value:"phone", label:"Phone" }
         ]},
-        { name: "status", label: "Status", type: "select", options: [
-          { value:"scheduled", label:"Scheduled" },{ value:"completed", label:"Completed" },
-          { value:"selected", label:"Selected" },{ value:"rejected", label:"Rejected" },{ value:"no_show", label:"No Show" }
-        ], default: "scheduled" },
+        {
+          name: "status",
+          label: "Status",
+          type: "select",
+          options: [
+            { value:"scheduled", label:"Scheduled" },{ value:"completed", label:"Completed" },
+            { value:"selected", label:"Selected" },{ value:"rejected", label:"Rejected" },{ value:"no_show", label:"No Show" }
+          ],
+          default: "scheduled",
+          render: (row) =>
+            row.status ? (
+              <StatusPill label={String(row.status).replace(/_/g, " ")} tone={STATUS_TONE[row.status] ?? "neutral"} />
+            ) : (
+              "—"
+            ),
+        },
         { name: "feedback", label: "Feedback", type: "textarea", hideInTable: true },
       ]}
     />

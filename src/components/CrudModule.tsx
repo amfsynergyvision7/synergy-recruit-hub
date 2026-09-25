@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, FilterX, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Check, ChevronsUpDown, FilterX, Plus, Pencil, Trash2, Search, Inbox } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -488,7 +488,26 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                 </TableRow>
               ))}
               {!loading && !filtered.length && (
-                <TableRow><TableCell colSpan={tableFields.length+1+(deletable?1:0)} className="text-center py-8 text-xs text-muted-foreground">No records</TableCell></TableRow>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={tableFields.length+1+(deletable?1:0)} className="py-10">
+                    <div className="flex flex-col items-center justify-center gap-1.5 text-center">
+                      <Inbox className="h-7 w-7 text-muted-foreground/40 mb-1" />
+                      <div className="text-sm font-medium">
+                        {hasColumnFilters || search ? "No matching records" : "No records yet"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {hasColumnFilters || search
+                          ? "Try adjusting your search or filters."
+                          : "Get started by adding your first one."}
+                      </div>
+                      {editable && !hasColumnFilters && !search && (
+                        <Button size="sm" className="mt-2" onClick={openCreate}>
+                          <Plus className="h-3.5 w-3.5 mr-1.5" /> Add {title.replace(/s$/, "")}
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>

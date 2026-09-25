@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
+import { StatusPill, type PillTone } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_app/clients")({ component: Page });
+
+const STATUS_TONE: Record<string, PillTone> = {
+  active: "ok",
+  inactive: "neutral",
+};
 
 function Page() {
   return (
@@ -23,9 +29,21 @@ function Page() {
         { name: "billing_model", label: "Billing", type: "select", options: [
           { value:"percentage", label:"% of CTC" },{ value:"flat", label:"Flat Fee" },{ value:"monthly", label:"Monthly" }
         ]},
-        { name: "status", label: "Status", type: "select", options: [
-          { value:"active", label:"Active" },{ value:"inactive", label:"Inactive" }
-        ], default: "active" },
+        {
+          name: "status",
+          label: "Status",
+          type: "select",
+          options: [
+            { value:"active", label:"Active" },{ value:"inactive", label:"Inactive" }
+          ],
+          default: "active",
+          render: (row) =>
+            row.status ? (
+              <StatusPill label={String(row.status)} tone={STATUS_TONE[row.status] ?? "neutral"} />
+            ) : (
+              "—"
+            ),
+        },
       ]}
     />
   );

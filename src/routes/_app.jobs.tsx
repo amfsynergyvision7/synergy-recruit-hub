@@ -10,6 +10,15 @@ const STATUS_TONE: Record<string, PillTone> = {
   closed: "neutral",
 };
 
+// Priority genuinely escalates (low -> urgent), unlike Round/Mode elsewhere,
+// so a color ramp is meaningful here: urgent should visually alarm.
+const PRIORITY_TONE: Record<string, PillTone> = {
+  low: "neutral",
+  medium: "info",
+  high: "warn",
+  urgent: "bad",
+};
+
 function Page() {
   return (
     <CrudModule
@@ -25,9 +34,21 @@ function Page() {
         { name: "salary_min", label: "Salary Min", type: "number" },
         { name: "salary_max", label: "Salary Max", type: "number" },
         { name: "open_positions", label: "Openings", type: "number", default: 1 },
-        { name: "priority", label: "Priority", type: "select", options: [
-          { value:"low", label:"Low" },{ value:"medium", label:"Medium" },{ value:"high", label:"High" },{ value:"urgent", label:"Urgent" }
-        ], default: "medium" },
+        {
+          name: "priority",
+          label: "Priority",
+          type: "select",
+          options: [
+            { value:"low", label:"Low" },{ value:"medium", label:"Medium" },{ value:"high", label:"High" },{ value:"urgent", label:"Urgent" }
+          ],
+          default: "medium",
+          render: (row) =>
+            row.priority ? (
+              <StatusPill label={String(row.priority)} tone={PRIORITY_TONE[row.priority] ?? "neutral"} />
+            ) : (
+              "—"
+            ),
+        },
         {
           name: "status",
           label: "Status",
