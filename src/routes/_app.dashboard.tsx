@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users, UserPlus, CalendarCheck, CheckCircle2, FileSignature, Trophy,
-  Building2, Briefcase, Wallet, Clock, type LucideIcon,
+  Building2, Briefcase, Wallet, Clock, Inbox, type LucideIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line,
@@ -13,21 +13,33 @@ import {
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
-const COLORS = ["#2563EB", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
-const CHART_PRIMARY = "#2563EB";
-const CHART_ACCENT = "#06B6D4";
+// Chart palette pulled straight from the app's own --chart-1..5 tokens (styles.css)
+// instead of a hardcoded, unrelated blue/cyan palette, so every chart on the
+// dashboard automatically matches the Neon Mandala theme in both light and dark
+// mode with zero extra work if the palette is ever retuned.
+const COLORS = [
+  "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)",
+  "color-mix(in srgb, var(--chart-1) 55%, var(--chart-3))",
+];
+const CHART_PRIMARY = "var(--chart-1)";
+const CHART_ACCENT = "var(--chart-2)";
 
-const TONES: Record<string, string> = {
-  primary: "from-[oklch(0.55_0.22_265)] to-[oklch(0.36_0.16_265)]",
-  cyan: "from-[oklch(0.72_0.15_210)] to-[oklch(0.55_0.22_265)]",
-  success: "from-[oklch(0.68_0.16_160)] to-[oklch(0.72_0.15_210)]",
-  warning: "from-[oklch(0.78_0.16_75)] to-[oklch(0.65_0.2_45)]",
-  danger: "from-[oklch(0.65_0.24_27)] to-[oklch(0.55_0.22_355)]",
-  violet: "from-[oklch(0.55_0.22_300)] to-[oklch(0.45_0.2_270)]",
+// KPI icon-badge colors, mapped onto the same theme tokens as everything else
+// (the semantic --success/--warning/--destructive tokens where the meaning is
+// semantic, the --chart-* tokens for the purely-decorative accents) rather than
+// a separate hand-picked oklch palette that happened to clash with the brand.
+const TONE_VAR: Record<string, string> = {
+  primary: "--chart-1",
+  cyan: "--chart-2",
+  success: "--success",
+  warning: "--warning",
+  danger: "--destructive",
+  violet: "--chart-3",
 };
 
 function Kpi({ label, value, hint, icon: Icon, tone = "primary" }:
-  { label: string; value: string | number; hint?: string; icon: LucideIcon; tone?: keyof typeof TONES }) {
+  { label: string; value: string | number; hint?: string; icon: LucideIcon; tone?: keyof typeof TONE_VAR }) {
+  const cssVar = TONE_VAR[tone];
   return (
     <Card className="card-hover overflow-hidden border-border/60">
       <CardContent className="p-5 flex items-start justify-between gap-3">
@@ -36,11 +48,26 @@ function Kpi({ label, value, hint, icon: Icon, tone = "primary" }:
           <div className="text-2xl font-bold mt-1.5 tracking-tight">{value}</div>
           {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
         </div>
-        <div className={`h-11 w-11 shrink-0 rounded-xl bg-gradient-to-br ${TONES[tone]} text-white flex items-center justify-center shadow-elegant`}>
+        <div
+          className="h-11 w-11 shrink-0 rounded-xl text-white flex items-center justify-center"
+          style={{
+            backgroundImage: `linear-gradient(135deg, var(${cssVar}), color-mix(in srgb, var(${cssVar}) 55%, black))`,
+            boxShadow: `0 8px 20px -6px color-mix(in srgb, var(${cssVar}) 55%, transparent)`,
+          }}
+        >
           <Icon className="h-5 w-5" />
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function ChartEmptyState({ label }: { label: string }) {
+  return (
+    <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+      <Inbox className="h-7 w-7 opacity-50" />
+      <div className="text-xs">{label}</div>
+    </div>
   );
 }
 
@@ -110,7 +137,7 @@ function Dashboard() {
 
     // Recruiter perf - get names from profiles
     const rec: Record<string, { count: number; name: string }> = {};
-    (candAll||[]).forEach((c:any) => { 
+    (candAll||[]).forEach((c:any) => {
       const recruiterId = c.assigned_recruiter;
       if (!recruiterId) return;
       if (!rec[recruiterId]) {
@@ -126,7 +153,7 @@ function Dashboard() {
         .from('profiles')
         .select('id, full_name')
         .in('id', recruiterIds);
-      
+
       if (profiles) {
         profiles.forEach(profile => {
           if (rec[profile.id]) {
@@ -137,9 +164,9 @@ function Dashboard() {
     }
 
     // Fixed: Use the name directly, no need to check r.id
-    setRecruiters(Object.values(rec).slice(0,6).map(r => ({ 
-      name: r.name, 
-      count: r.count 
+    setRecruiters(Object.values(rec).slice(0,6).map(r => ({
+      name: r.name,
+      count: r.count
     })));
   };
 
@@ -203,20 +230,28 @@ function Dashboard() {
         <Card className="card-hover">
           <CardHeader><CardTitle>Candidate Sources</CardTitle></CardHeader>
           <CardContent className="h-72">
-            <ResponsiveContainer><PieChart>
-              <Pie data={sources} dataKey="value" nameKey="name" outerRadius={90} innerRadius={45} paddingAngle={2} label>
-                {sources.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-              </Pie><Legend/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
-            </PieChart></ResponsiveContainer>
+            {sources.length ? (
+              <ResponsiveContainer><PieChart>
+                <Pie data={sources} dataKey="value" nameKey="name" outerRadius={90} innerRadius={45} paddingAngle={2} label>
+                  {sources.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
+                </Pie><Legend/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
+              </PieChart></ResponsiveContainer>
+            ) : (
+              <ChartEmptyState label="No candidates yet — sources will appear here once added." />
+            )}
           </CardContent>
         </Card>
         <Card className="card-hover">
           <CardHeader><CardTitle>Recruiter Performance</CardTitle></CardHeader>
           <CardContent className="h-72">
-            <ResponsiveContainer><BarChart data={recruiters}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
-              <Bar dataKey="count" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
-            </BarChart></ResponsiveContainer>
+            {recruiters.length ? (
+              <ResponsiveContainer><BarChart data={recruiters}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
+                <Bar dataKey="count" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
+              </BarChart></ResponsiveContainer>
+            ) : (
+              <ChartEmptyState label="No candidates assigned to recruiters yet." />
+            )}
           </CardContent>
         </Card>
       </div>
