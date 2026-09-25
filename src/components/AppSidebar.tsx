@@ -40,7 +40,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <BrandMandala
-        className="absolute -top-12 -left-14 h-[200px] w-[200px] -z-10 pointer-events-none"
+        className="absolute -top-16 -left-20 h-[60vh] w-[60vh] -z-10 pointer-events-none"
         style={{ opacity: 0.5 }}
       />
       <SidebarHeader className="border-b border-sidebar-border p-4">

@@ -91,7 +91,7 @@ function AppLayout() {
           <main className="flex-1 overflow-auto">
             <div className="relative isolate overflow-hidden min-h-full">
               <BrandMandala
-                className="absolute -top-16 -right-16 h-[220px] w-[220px] -z-10 pointer-events-none"
+                className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
                 style={{ opacity: 0.3 }}
               />
               <div className="p-6">
