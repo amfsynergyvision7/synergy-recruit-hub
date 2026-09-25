@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { StatusPill, type PillTone } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_app/candidates")({ component: Page });
 
@@ -9,6 +10,21 @@ const stages = [
   "lead_received","contacted","interested","resume_collected","submitted_to_client",
   "interview_scheduled","interview_completed","selected","offer_released","joined","rejected","dropped"
 ].map(v => ({ value: v, label: v.replace(/_/g," ") }));
+
+const STAGE_TONE: Record<string, PillTone> = {
+  lead_received: "ok",
+  contacted: "warn",
+  interested: "ok",
+  resume_collected: "warn",
+  submitted_to_client: "info",
+  interview_scheduled: "warn",
+  interview_completed: "info",
+  selected: "ok",
+  offer_released: "ok",
+  joined: "ok",
+  rejected: "bad",
+  dropped: "info",
+};
 
 function Page() {
   const [recruiters, setRecruiters] = useState<{ value: string; label: string }[]>([]);
@@ -53,7 +69,19 @@ function Page() {
         { name: "notice_period", label: "Notice Period", hideInTable: true },
         { name: "resume_url", label: "Resume URL", hideInTable: true },
         { name: "source", label: "Source" },
-        { name: "stage", label: "Stage", type: "select", options: stages, default: "lead_received" },
+        {
+          name: "stage",
+          label: "Stage",
+          type: "select",
+          options: stages,
+          default: "lead_received",
+          render: (row) =>
+            row.stage ? (
+              <StatusPill label={String(row.stage).replace(/_/g, " ")} tone={STAGE_TONE[row.stage] ?? "neutral"} />
+            ) : (
+              "—"
+            ),
+        },
         { 
           name: "assigned_recruiter", 
           label: "Assigned Recruiter", 
