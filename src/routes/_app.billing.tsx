@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
+import { StatusPill, type PillTone } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_app/billing")({ component: Page });
+
+const PAYMENT_STATUS_TONE: Record<string, PillTone> = {
+  unpaid: "warn",
+  partial: "warn",
+  paid: "ok",
+  overdue: "bad",
+};
 
 function Page() {
   return (
@@ -22,9 +30,21 @@ function Page() {
         { name: "gst", label: "GST", type: "number" },
         { name: "invoice_amount", label: "Invoice Amount", type: "number" },
         { name: "outstanding_amount", label: "Outstanding", type: "number" },
-        { name: "payment_status", label: "Status", type: "select", options: [
-          { value:"unpaid", label:"Unpaid" },{ value:"partial", label:"Partial" },{ value:"paid", label:"Paid" },{ value:"overdue", label:"Overdue" }
-        ], default: "unpaid" },
+        {
+          name: "payment_status",
+          label: "Status",
+          type: "select",
+          options: [
+            { value:"unpaid", label:"Unpaid" },{ value:"partial", label:"Partial" },{ value:"paid", label:"Paid" },{ value:"overdue", label:"Overdue" }
+          ],
+          default: "unpaid",
+          render: (row) =>
+            row.payment_status ? (
+              <StatusPill label={String(row.payment_status).replace(/_/g, " ")} tone={PAYMENT_STATUS_TONE[row.payment_status] ?? "neutral"} />
+            ) : (
+              "—"
+            ),
+        },
       ]}
     />
   );

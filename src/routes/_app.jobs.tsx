@@ -1,7 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
+import { StatusPill, type PillTone } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_app/jobs")({ component: Page });
+
+const STATUS_TONE: Record<string, PillTone> = {
+  open: "ok",
+  on_hold: "warn",
+  closed: "neutral",
+};
 
 function Page() {
   return (
@@ -21,9 +28,21 @@ function Page() {
         { name: "priority", label: "Priority", type: "select", options: [
           { value:"low", label:"Low" },{ value:"medium", label:"Medium" },{ value:"high", label:"High" },{ value:"urgent", label:"Urgent" }
         ], default: "medium" },
-        { name: "status", label: "Status", type: "select", options: [
-          { value:"open", label:"Open" },{ value:"on_hold", label:"On Hold" },{ value:"closed", label:"Closed" }
-        ], default: "open" },
+        {
+          name: "status",
+          label: "Status",
+          type: "select",
+          options: [
+            { value:"open", label:"Open" },{ value:"on_hold", label:"On Hold" },{ value:"closed", label:"Closed" }
+          ],
+          default: "open",
+          render: (row) =>
+            row.status ? (
+              <StatusPill label={String(row.status).replace(/_/g, " ")} tone={STATUS_TONE[row.status] ?? "neutral"} />
+            ) : (
+              "—"
+            ),
+        },
       ]}
     />
   );
