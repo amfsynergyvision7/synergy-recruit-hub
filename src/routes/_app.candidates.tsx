@@ -57,7 +57,7 @@ function Page() {
       searchFields={["full_name","email","mobile","candidate_code","position_applied"]}
       fields={[
         { name: "candidate_code", label: "Code", hideInForm: true },
-        { name: "full_name", label: "Full Name", required: true },
+        { name: "full_name", label: "Full Name", required: true, essential: true },
         { name: "mobile", label: "Mobile", type: "tel" },
         { name: "email", label: "Email", type: "email" },
         { name: "location", label: "Location" },
@@ -75,6 +75,7 @@ function Page() {
           type: "select",
           options: stages,
           default: "lead_received",
+          essential: true,
           render: (row) =>
             row.stage ? (
               <StatusPill label={String(row.stage).replace(/_/g, " ")} tone={STAGE_TONE[row.stage] ?? "neutral"} />

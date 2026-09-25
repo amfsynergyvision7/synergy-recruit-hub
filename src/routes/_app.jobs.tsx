@@ -42,6 +42,7 @@ function Page() {
             { value:"low", label:"Low" },{ value:"medium", label:"Medium" },{ value:"high", label:"High" },{ value:"urgent", label:"Urgent" }
           ],
           default: "medium",
+          essential: true,
           render: (row) =>
             row.priority ? (
               <StatusPill label={String(row.priority)} tone={PRIORITY_TONE[row.priority] ?? "neutral"} />
@@ -57,6 +58,7 @@ function Page() {
             { value:"open", label:"Open" },{ value:"on_hold", label:"On Hold" },{ value:"closed", label:"Closed" }
           ],
           default: "open",
+          essential: true,
           render: (row) =>
             row.status ? (
               <StatusPill label={String(row.status).replace(/_/g, " ")} tone={STATUS_TONE[row.status] ?? "neutral"} />

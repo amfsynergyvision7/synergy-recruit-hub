@@ -29,7 +29,7 @@ function Page() {
         { name: "placement_fee", label: "Placement Fee", type: "number" },
         { name: "gst", label: "GST", type: "number" },
         { name: "invoice_amount", label: "Invoice Amount", type: "number" },
-        { name: "outstanding_amount", label: "Outstanding", type: "number" },
+        { name: "outstanding_amount", label: "Outstanding", type: "number", essential: true },
         {
           name: "payment_status",
           label: "Status",
@@ -38,6 +38,7 @@ function Page() {
             { value:"unpaid", label:"Unpaid" },{ value:"partial", label:"Partial" },{ value:"paid", label:"Paid" },{ value:"overdue", label:"Overdue" }
           ],
           default: "unpaid",
+          essential: true,
           render: (row) =>
             row.payment_status ? (
               <StatusPill label={String(row.payment_status).replace(/_/g, " ")} tone={PAYMENT_STATUS_TONE[row.payment_status] ?? "neutral"} />

@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Check, ChevronsUpDown, FilterX, Plus, Pencil, Trash2, Search, Inbox } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +41,13 @@ export interface FieldDef {
   render?: (row: any) => ReactNode;
   default?: any;
   relation?: RelationDef;
+  /** Keep this column visible on phone-width screens. The first table column
+   * is always visible (it's pinned), everything else collapses below `md`
+   * unless marked essential — this is what lets a module choose its own 2-3
+   * most useful mobile columns instead of a table full of columns nobody can
+   * read without endless swiping. Still fully editable via the Add/Edit
+   * dialog regardless of this flag; it only affects the table view. */
+  essential?: boolean;
 }
 
 interface Props {
@@ -124,8 +132,19 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   // data column and the Actions column stay pinned (position: sticky) on both
   // sides while the middle columns scroll underneath, so you always know
   // which row you're on and can still edit/delete it without scrolling back.
-  const stickyLeftOffset = deletable ? "left-8" : "left-0";
-  const minTableWidth = (deletable ? 32 : 0) + tableFields.length * 130 + 80;
+  const stickyLeftOffset = deletable ? "max-md:left-8" : "max-md:left-0";
+  const isMobile = useIsMobile();
+  // On mobile, columns that aren't the pinned first column or marked
+  // `essential` collapse via `max-md:hidden` (see the table below), so the
+  // min-width only needs to fit what's actually still visible there — using
+  // the full column count would force a table 3x wider than it needs to be,
+  // with the few visible columns stretched out and pointless scroll space in
+  // between. useIsMobile() shares the same 768px breakpoint as `max-md:`, so
+  // this always matches what the CSS is actually doing.
+  const visibleFieldCount = isMobile
+    ? 1 + tableFields.filter((f, i) => i > 0 && f.essential).length
+    : tableFields.length;
+  const minTableWidth = (deletable ? 32 : 0) + visibleFieldCount * 130 + 80;
 
   const load = async () => {
     setLoading(true);
@@ -412,7 +431,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
             <TableHeader>
               <TableRow>
                 {deletable && (
-                  <TableHead className="w-8 px-1 py-1.5 text-xs whitespace-nowrap sticky left-0 z-10 bg-card">
+                  <TableHead className="w-8 px-1 py-1.5 text-xs whitespace-nowrap max-md:sticky max-md:left-0 max-md:z-10 max-md:bg-card">
                     <Checkbox
                       checked={allSelected ? true : someSelected ? "indeterminate" : false}
                       onCheckedChange={(v) => toggleAll(!!v)}
@@ -421,16 +440,16 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   </TableHead>
                 )}
                 {tableFields.map((f, i) => (
-                  <TableHead key={f.name} className={`h-auto min-w-0 px-1.5 py-1.5 text-xs font-medium whitespace-normal break-words ${i === 0 ? `sticky z-10 bg-card border-r border-border ${stickyLeftOffset}` : ""}`}>
+                  <TableHead key={f.name} className={`h-auto min-w-0 px-1.5 py-1.5 text-xs font-medium whitespace-normal break-words ${i === 0 ? `max-md:sticky max-md:z-10 max-md:bg-card max-md:border-r max-md:border-border ${stickyLeftOffset}` : !f.essential ? "max-md:hidden" : ""}`}>
                     {f.label}
                   </TableHead>
                 ))}
-                <TableHead className="w-20 px-1 py-1.5 text-right text-xs whitespace-nowrap sticky right-0 z-10 bg-card border-l border-border">Actions</TableHead>
+                <TableHead className="w-20 px-1 py-1.5 text-right text-xs whitespace-nowrap max-md:sticky max-md:right-0 max-md:z-10 max-md:bg-card max-md:border-l max-md:border-border">Actions</TableHead>
               </TableRow>
               <TableRow className="hover:bg-transparent">
-                {deletable && <TableHead className="w-8 h-auto px-1 py-1 sticky left-0 z-10 bg-card" />}
+                {deletable && <TableHead className="w-8 h-auto px-1 py-1 max-md:sticky max-md:left-0 max-md:z-10 max-md:bg-card" />}
                 {tableFields.map((f, i) => (
-                  <TableHead key={`${f.name}-filter`} className={`h-auto min-w-0 px-1.5 py-1 font-medium ${i === 0 ? `sticky z-10 bg-card border-r border-border ${stickyLeftOffset}` : ""}`}>
+                  <TableHead key={`${f.name}-filter`} className={`h-auto min-w-0 px-1.5 py-1 font-medium ${i === 0 ? `max-md:sticky max-md:z-10 max-md:bg-card max-md:border-r max-md:border-border ${stickyLeftOffset}` : !f.essential ? "max-md:hidden" : ""}`}>
                     {columnFilterMeta.discrete.has(f.name) ? (
                       <Select
                         value={columnFilters[f.name] || ALL_FILTER}
@@ -460,7 +479,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     )}
                   </TableHead>
                 ))}
-                <TableHead className="w-20 h-auto px-1 py-1 sticky right-0 z-10 bg-card border-l border-border" />
+                <TableHead className="w-20 h-auto px-1 py-1 max-md:sticky max-md:right-0 max-md:z-10 max-md:bg-card max-md:border-l max-md:border-border" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -481,7 +500,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               ) : filtered.map((row) => (
                 <TableRow key={row.id} data-state={selected.has(row.id) ? "selected" : undefined}>
                   {deletable && (
-                    <TableCell className="w-8 px-1 py-1.5 whitespace-nowrap sticky left-0 z-10 bg-card">
+                    <TableCell className="w-8 px-1 py-1.5 whitespace-nowrap max-md:sticky max-md:left-0 max-md:z-10 max-md:bg-card">
                       <Checkbox
                         checked={selected.has(row.id)}
                         onCheckedChange={(v) => toggleRow(row.id, !!v)}
@@ -490,11 +509,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     </TableCell>
                   )}
                   {tableFields.map((f, i) => (
-                    <TableCell key={f.name} className={`min-w-0 px-1.5 py-1.5 text-xs whitespace-normal break-words ${i === 0 ? `sticky z-10 bg-card border-r border-border ${stickyLeftOffset}` : ""}`}>
+                    <TableCell key={f.name} className={`min-w-0 px-1.5 py-1.5 text-xs whitespace-normal break-words ${i === 0 ? `max-md:sticky max-md:z-10 max-md:bg-card max-md:border-r max-md:border-border ${stickyLeftOffset}` : !f.essential ? "max-md:hidden" : ""}`}>
                       {f.render ? f.render(row) : (cellDisplayValue(row, f, relationOptions) || "—")}
                     </TableCell>
                   ))}
-                  <TableCell className="w-20 px-1 py-1.5 text-right whitespace-nowrap space-x-0 sticky right-0 z-10 bg-card border-l border-border">
+                  <TableCell className="w-20 px-1 py-1.5 text-right whitespace-nowrap space-x-0 max-md:sticky max-md:right-0 max-md:z-10 max-md:bg-card max-md:border-l max-md:border-border">
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </TableCell>

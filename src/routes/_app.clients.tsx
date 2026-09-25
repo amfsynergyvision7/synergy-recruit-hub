@@ -19,7 +19,7 @@ function Page() {
       searchFields={["company_name","contact_person","email"]}
       fields={[
         { name: "company_name", label: "Company", required: true },
-        { name: "contact_person", label: "Contact" },
+        { name: "contact_person", label: "Contact", essential: true },
         { name: "phone", label: "Phone", type: "tel" },
         { name: "email", label: "Email", type: "email" },
         { name: "active_positions", label: "Active Positions", type: "number" },
@@ -37,6 +37,7 @@ function Page() {
             { value:"active", label:"Active" },{ value:"inactive", label:"Inactive" }
           ],
           default: "active",
+          essential: true,
           render: (row) =>
             row.status ? (
               <StatusPill label={String(row.status)} tone={STATUS_TONE[row.status] ?? "neutral"} />

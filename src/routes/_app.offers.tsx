@@ -41,6 +41,7 @@ function Page() {
             { value:"accepted", label:"Accepted" },{ value:"declined", label:"Declined" }
           ],
           default: "pending",
+          essential: true,
           render: (row) =>
             row.offer_status ? (
               <StatusPill label={String(row.offer_status).replace(/_/g, " ")} tone={OFFER_STATUS_TONE[row.offer_status] ?? "neutral"} />
@@ -56,6 +57,7 @@ function Page() {
             { value:"pending", label:"Pending" },{ value:"joined", label:"Joined" },{ value:"no_show", label:"No Show" }
           ],
           default: "pending",
+          essential: true,
           render: (row) =>
             row.joining_status ? (
               <StatusPill label={String(row.joining_status).replace(/_/g, " ")} tone={JOINING_STATUS_TONE[row.joining_status] ?? "neutral"} />

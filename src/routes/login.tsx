@@ -31,9 +31,17 @@ function LoginPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      <div className="hidden lg:flex flex-col justify-between bg-sidebar text-sidebar-foreground p-12 relative isolate overflow-hidden">
+      {/* Previously `hidden lg:flex` — the whole brand panel vanished below
+          1024px, so phones got a plain white/dark card with zero branding.
+          Now it always renders: on mobile it's a short dark strip (logo +
+          name + a small mandala accent, tagline/footer hidden via
+          `hidden lg:block` so a 4xl heading doesn't eat the screen), and at
+          `lg:` every override below restores the exact original desktop
+          classes (flex, justify-between, p-12, full-size mandala), so the
+          desktop layout is pixel-identical to before. */}
+      <div className="flex flex-col justify-center lg:justify-between bg-sidebar text-sidebar-foreground p-6 lg:p-12 relative isolate overflow-hidden">
         <BrandMandala
-          className="absolute -right-24 -bottom-24 h-[70vh] w-[70vh] -z-10"
+          className="absolute -right-10 -bottom-10 h-[220px] w-[220px] lg:-right-24 lg:-bottom-24 lg:h-[70vh] lg:w-[70vh] -z-10"
           style={{ opacity: 0.55, filter: "drop-shadow(0 0 40px rgba(47,230,255,0.3))" }}
         />
         <div className="flex items-center gap-3">
@@ -45,11 +53,11 @@ function LoginPage() {
             <div className="text-xs opacity-80">Recruitment & Staffing CRM</div>
           </div>
         </div>
-        <div>
+        <div className="hidden lg:block">
           <h1 className="text-4xl font-semibold leading-tight">Hire smarter.<br/>Onboard faster.</h1>
           <p className="mt-4 text-sm opacity-80 max-w-md">Manage candidates, clients, interviews, offers and billing — all in one secure cloud workspace.</p>
         </div>
-        <div className="text-xs opacity-70">© AMF Synergy Vision</div>
+        <div className="hidden lg:block text-xs opacity-70">© AMF Synergy Vision</div>
       </div>
       <div className="flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
