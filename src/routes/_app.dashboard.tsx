@@ -10,6 +10,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line,
   PieChart, Pie, Cell, CartesianGrid, Legend,
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
@@ -37,16 +38,20 @@ const TONE_VAR: Record<string, string> = {
   violet: "--chart-3",
 };
 
-function Kpi({ label, value, hint, icon: Icon, tone = "primary" }:
-  { label: string; value: string | number; hint?: string; icon: LucideIcon; tone?: keyof typeof TONE_VAR }) {
+function Kpi({ label, value, hint, icon: Icon, tone = "primary", loading }:
+  { label: string; value: string | number; hint?: string; icon: LucideIcon; tone?: keyof typeof TONE_VAR; loading?: boolean }) {
   const cssVar = TONE_VAR[tone];
   return (
     <Card className="card-hover overflow-hidden border-border/60">
       <CardContent className="p-5 flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 w-full">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{label}</div>
-          <div className="text-2xl font-bold mt-1.5 tracking-tight">{value}</div>
-          {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
+          {loading ? (
+            <Skeleton className="h-7 w-16 mt-1.5" />
+          ) : (
+            <div className="text-2xl font-bold mt-1.5 tracking-tight">{value}</div>
+          )}
+          {hint && !loading && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
         </div>
         <div
           className="h-11 w-11 shrink-0 rounded-xl text-white flex items-center justify-center"
@@ -71,12 +76,23 @@ function ChartEmptyState({ label }: { label: string }) {
   );
 }
 
+function ChartSkeleton() {
+  return (
+    <div className="h-full w-full flex items-end gap-2 px-2 pb-2">
+      {[45, 70, 55, 85, 60, 40].map((h, i) => (
+        <Skeleton key={i} className="flex-1" style={{ height: `${h}%` }} />
+      ))}
+    </div>
+  );
+}
+
 function Dashboard() {
   const [stats, setStats] = useState<any>({});
   const [monthly, setMonthly] = useState<any[]>([]);
   const [funnel, setFunnel] = useState<any[]>([]);
   const [sources, setSources] = useState<any[]>([]);
   const [recruiters, setRecruiters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
     const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0,0,0,0);
@@ -168,6 +184,7 @@ function Dashboard() {
       name: r.name,
       count: r.count
     })));
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -184,22 +201,23 @@ function Dashboard() {
         <p className="text-sm text-muted-foreground">Live overview of recruitment activity.</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Kpi label="Total Candidates" value={stats.totalCand ?? 0} icon={Users} tone="primary"/>
-        <Kpi label="New This Month" value={stats.newCand ?? 0} icon={UserPlus} tone="cyan"/>
-        <Kpi label="Interviews Scheduled" value={stats.intSched ?? 0} icon={CalendarCheck} tone="warning"/>
-        <Kpi label="Interviews Completed" value={stats.intDone ?? 0} icon={CheckCircle2} tone="success"/>
-        <Kpi label="Offers Released" value={stats.offers ?? 0} icon={FileSignature} tone="violet"/>
-        <Kpi label="Joined Candidates" value={stats.joined ?? 0} icon={Trophy} tone="success"/>
-        <Kpi label="Active Clients" value={stats.clients ?? 0} icon={Building2} tone="primary"/>
-        <Kpi label="Open Positions" value={stats.jobs ?? 0} icon={Briefcase} tone="cyan"/>
-        <Kpi label="Revenue" value={`₹${(stats.revenue ?? 0).toLocaleString()}`} icon={Wallet} tone="success"/>
-        <Kpi label="Pending Payments" value={`₹${(stats.pending ?? 0).toLocaleString()}`} icon={Clock} tone="danger"/>
+        <Kpi label="Total Candidates" value={stats.totalCand ?? 0} icon={Users} tone="primary" loading={loading}/>
+        <Kpi label="New This Month" value={stats.newCand ?? 0} icon={UserPlus} tone="cyan" loading={loading}/>
+        <Kpi label="Interviews Scheduled" value={stats.intSched ?? 0} icon={CalendarCheck} tone="warning" loading={loading}/>
+        <Kpi label="Interviews Completed" value={stats.intDone ?? 0} icon={CheckCircle2} tone="success" loading={loading}/>
+        <Kpi label="Offers Released" value={stats.offers ?? 0} icon={FileSignature} tone="violet" loading={loading}/>
+        <Kpi label="Joined Candidates" value={stats.joined ?? 0} icon={Trophy} tone="success" loading={loading}/>
+        <Kpi label="Active Clients" value={stats.clients ?? 0} icon={Building2} tone="primary" loading={loading}/>
+        <Kpi label="Open Positions" value={stats.jobs ?? 0} icon={Briefcase} tone="cyan" loading={loading}/>
+        <Kpi label="Revenue" value={`₹${(stats.revenue ?? 0).toLocaleString()}`} icon={Wallet} tone="success" loading={loading}/>
+        <Kpi label="Pending Payments" value={`₹${(stats.pending ?? 0).toLocaleString()}`} icon={Clock} tone="danger" loading={loading}/>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="card-hover">
           <CardHeader><CardTitle>Monthly Joining Trend</CardTitle></CardHeader>
           <CardContent className="h-72">
+            {loading ? <ChartSkeleton /> : (
             <ResponsiveContainer><LineChart data={monthly}>
               <defs>
                 <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
@@ -210,11 +228,13 @@ function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="month" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
               <Line type="monotone" dataKey="joined" stroke="url(#lineGrad)" strokeWidth={3} dot={{ r: 4, fill: CHART_PRIMARY }}/>
             </LineChart></ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card className="card-hover">
           <CardHeader><CardTitle>Hiring Funnel</CardTitle></CardHeader>
           <CardContent className="h-72">
+            {loading ? <ChartSkeleton /> : (
             <ResponsiveContainer><BarChart data={funnel}>
               <defs>
                 <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
@@ -225,12 +245,13 @@ function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="stage" tick={{fontSize:11}} stroke="currentColor"/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
               <Bar dataKey="count" fill="url(#barGrad)" radius={[6,6,0,0]}/>
             </BarChart></ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
         <Card className="card-hover">
           <CardHeader><CardTitle>Candidate Sources</CardTitle></CardHeader>
           <CardContent className="h-72">
-            {sources.length ? (
+            {loading ? <ChartSkeleton /> : sources.length ? (
               <ResponsiveContainer><PieChart>
                 <Pie data={sources} dataKey="value" nameKey="name" outerRadius={90} innerRadius={45} paddingAngle={2} label>
                   {sources.map((_,i)=><Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
@@ -244,7 +265,7 @@ function Dashboard() {
         <Card className="card-hover">
           <CardHeader><CardTitle>Recruiter Performance</CardTitle></CardHeader>
           <CardContent className="h-72">
-            {recruiters.length ? (
+            {loading ? <ChartSkeleton /> : recruiters.length ? (
               <ResponsiveContainer><BarChart data={recruiters}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
                 <Bar dataKey="count" fill={CHART_ACCENT} radius={[6,6,0,0]}/>

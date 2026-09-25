@@ -138,8 +138,13 @@
 }
 
 @layer base {
+  /* Crossfade colors on the light/dark toggle instead of an instant, jarring
+     cut. Scoped to color-only properties (never transform/width/height) so it
+     can't interfere with layout, card-hover lift, or collapsible animations —
+     those keep their own explicit transitions, which win by specificity. */
   * {
     border-color: var(--border);
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, fill 0.25s ease, stroke 0.25s ease;
   }
   body {
     background-color: var(--background);

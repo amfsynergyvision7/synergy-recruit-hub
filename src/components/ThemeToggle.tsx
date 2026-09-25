@@ -14,15 +14,14 @@ export function ThemeToggle() {
 
   const applyTheme = (dark: boolean) => {
     const root = document.documentElement;
-    if (dark) {
-      root.classList.add("dark");
-      root.style.backgroundColor = "#000000";
-      root.style.color = "#ffffff";
-    } else {
-      root.classList.remove("dark");
-      root.style.backgroundColor = "#ffffff";
-      root.style.color = "#000000";
-    }
+    // Only toggle the class and let styles.css (var(--background)/var(--foreground)
+    // on body, transitioned via the new `*` rule) own the actual colors. The old
+    // code here hardcoded root.style to pure #000/#fff, which didn't match the
+    // real theme (--background is #0a0b14 dark / #eee9fb light, never true
+    // black/white) and, since it was a literal inline override, crossfaded as a
+    // harsh black<->white flash underneath the smooth body transition above.
+    root.classList.toggle("dark", dark);
+    root.style.colorScheme = dark ? "dark" : "light";
     localStorage.setItem("theme", dark ? "dark" : "light");
   };
 
