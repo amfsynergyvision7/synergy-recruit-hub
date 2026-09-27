@@ -5,10 +5,10 @@ import { useBranding } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, ImageOff, Trash2 } from "lucide-react";
+import { Upload, ImageOff, Trash2, FolderSync } from "lucide-react";
 
 export const Route = createFileRoute("/_app/settings")({ component: Page });
 
@@ -26,6 +26,30 @@ function Page() {
   });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [driveFolderUrl, setDriveFolderUrl] = useState("");
+  const [savingFolder, setSavingFolder] = useState(false);
+
+  useEffect(() => {
+    if (role !== "admin") return;
+    supabase
+      .from("app_settings")
+      .select("resume_import_folder_url")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => setDriveFolderUrl(data?.resume_import_folder_url ?? ""));
+  }, [role]);
+
+  const saveDriveFolder = async () => {
+    setSavingFolder(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .update({ resume_import_folder_url: driveFolderUrl.trim() || null, updated_by: profile?.id })
+      .eq("id", 1);
+    setSavingFolder(false);
+    if (error) return toast.error(error.message);
+    toast.success("Resume import folder saved");
+  };
 
   const save = async () => {
     if (!profile) return;
@@ -132,6 +156,29 @@ function Page() {
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+      {role === "admin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Resume Import Folder</CardTitle>
+            <CardDescription>
+              Paste the link to one shared Google Drive folder — set it to "Anyone with the link — Viewer". Drop new resumes into that same folder, then use "Check Google Drive for new resumes" on the Candidates page to pull them in automatically.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <Label>Drive folder URL</Label>
+              <Input
+                value={driveFolderUrl}
+                onChange={(e) => setDriveFolderUrl(e.target.value)}
+                placeholder="https://drive.google.com/drive/folders/..."
+              />
+            </div>
+            <Button disabled={savingFolder} onClick={saveDriveFolder}>
+              <FolderSync className="h-4 w-4 mr-2" />{savingFolder ? "Saving…" : "Save folder"}
+            </Button>
           </CardContent>
         </Card>
       )}

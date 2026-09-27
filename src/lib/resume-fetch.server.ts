@@ -16,7 +16,12 @@ export type ResumeFetchResult =
   | { ok: true; text: string }
   | { ok: false; error: string };
 
-function extractDriveFileId(url: string): string | null {
+// Exported (not just used internally) so the Drive-folder bulk-import
+// feature (drive-import.server.ts) can share the exact same download/parse
+// logic instead of duplicating it — a file downloaded via a folder listing
+// and a file downloaded via a saved resume_url go through identical code
+// from here on.
+export function extractDriveFileId(url: string): string | null {
   // Covers the common Drive link shapes:
   //   https://drive.google.com/file/d/FILE_ID/view?usp=sharing
   //   https://drive.google.com/open?id=FILE_ID
@@ -32,7 +37,7 @@ function extractDriveFileId(url: string): string | null {
   return null;
 }
 
-async function fetchDriveBytes(fileId: string): Promise<{ buffer: Buffer; contentType: string } | { error: string }> {
+export async function fetchDriveBytes(fileId: string): Promise<{ buffer: Buffer; contentType: string } | { error: string }> {
   const baseUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
 
   let res = await fetch(baseUrl, { redirect: "follow" });
@@ -68,7 +73,7 @@ async function fetchDriveBytes(fileId: string): Promise<{ buffer: Buffer; conten
   return { buffer, contentType };
 }
 
-async function extractText(buffer: Buffer, contentType: string): Promise<ResumeFetchResult> {
+export async function extractText(buffer: Buffer, contentType: string): Promise<ResumeFetchResult> {
   try {
     if (contentType === "application/pdf") {
       const data = await pdfParse(buffer);

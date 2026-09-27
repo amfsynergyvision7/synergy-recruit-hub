@@ -359,3 +359,81 @@ export async function generateResumeSummary(supabase: any, candidateId: string) 
 
   return { summary: result.summary, resumeText: resume.text };
 }
+
+// ============ Drive-folder bulk import: structured field extraction ============
+// Used by drive-import.server.ts (the "Check Google Drive for new resumes"
+// feature) to pull the handful of CRM fields it needs out of each resume's
+// raw text. Kept here, alongside every other Gemini prompt/schema in this
+// file, rather than in drive-import.server.ts, which owns the Drive-listing
+// and dedupe/write logic instead.
+const CANDIDATE_EXTRACT_SCHEMA = {
+  type: "object",
+  properties: {
+    full_name: { type: ["string", "null"] },
+    email: { type: ["string", "null"] },
+    mobile: { type: ["string", "null"] },
+    last_role: { type: ["string", "null"] },
+    experience_years: { type: ["number", "null"] },
+  },
+  required: ["full_name", "email", "mobile", "last_role", "experience_years"],
+};
+
+function buildCandidateExtractPrompt(resumeText: string): string {
+  return [
+    "You are a recruiting assistant. Extract the following fields from the resume text below, if present:",
+    "- full_name: the candidate's full name",
+    "- email: their email address",
+    "- mobile: their mobile/phone number",
+    "- last_role: their most recent (current or last) job title / designation — not the job they may be applying for, just their own professional title",
+    "- experience_years: their total years of professional experience, as a plain number (e.g. 4.5), estimated from their work history if not explicitly stated",
+    "",
+    "Rules:",
+    "- Return JSON with exactly these five keys: full_name, email, mobile, last_role, experience_years.",
+    "- If a field genuinely cannot be determined from the text, use null for it — never guess or invent a value.",
+    "- experience_years must be a plain number or null, never a string or a range.",
+    "",
+    "RESUME TEXT:",
+    resumeText,
+  ].join("\n");
+}
+
+export interface ExtractedCandidateFields {
+  fullName: string | null;
+  email: string | null;
+  mobile: string | null;
+  lastRole: string | null;
+  experienceYears: number | null;
+}
+
+function cleanString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function cleanNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = parseFloat(value.replace(/[^0-9.]/g, ""));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+// Defensively re-validates every field regardless of what the schema above
+// asked for — Gemini's own response shape has already proven inconsistent
+// once this session (see extractOutputText), so this never trusts a raw
+// field's type without checking it first.
+export async function extractCandidateFieldsFromResume(resumeText: string): Promise<ExtractedCandidateFields> {
+  const raw = await callGeminiJSON<Record<string, unknown>>(
+    buildCandidateExtractPrompt(resumeText),
+    CANDIDATE_EXTRACT_SCHEMA,
+  );
+  return {
+    fullName: cleanString(raw.full_name),
+    email: cleanString(raw.email),
+    mobile: cleanString(raw.mobile),
+    lastRole: cleanString(raw.last_role),
+    experienceYears: cleanNumber(raw.experience_years),
+  };
+}

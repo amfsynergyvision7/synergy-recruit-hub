@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { matchCandidatesToJob, matchCandidateResume, generateResumeSummary } from "./ai.server";
+import { runResumeDriveImport } from "./drive-import.server";
 
 export const matchCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -34,4 +35,15 @@ export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     return generateResumeSummary(context.supabase, data.candidateId);
+  });
+
+// Bulk "Check Google Drive for new resumes" — scans the one shared folder
+// configured in Settings, skips anything already imported, and creates/
+// updates candidates from the rest. No input: the folder to scan comes from
+// app_settings, not from the caller, so this can't be pointed at an
+// arbitrary folder by manipulating the request.
+export const checkDriveForNewResumes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    return runResumeDriveImport(context.supabase);
   });

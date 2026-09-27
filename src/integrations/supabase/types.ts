@@ -18,18 +18,21 @@ export type Database = {
         Row: {
           id: number
           logo_url: string | null
+          resume_import_folder_url: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           id?: number
           logo_url?: string | null
+          resume_import_folder_url?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           id?: number
           logo_url?: string | null
+          resume_import_folder_url?: string | null
           updated_at?: string
           updated_by?: string | null
         }

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { ResumeSummaryButton } from "@/components/ResumeSummaryButton";
+import { DriveImportButton } from "@/components/DriveImportButton";
 import { Table2, LayoutGrid } from "lucide-react";
 
 export const Route = createFileRoute("/_app/candidates")({ component: Page });
@@ -55,7 +56,8 @@ function Page() {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <DriveImportButton />
         <div className="inline-flex rounded-md border border-border p-0.5">
           <Button variant={view === "table" ? "secondary" : "ghost"} size="sm" onClick={() => setView("table")}>
             <Table2 className="h-3.5 w-3.5 mr-1.5" />Table
