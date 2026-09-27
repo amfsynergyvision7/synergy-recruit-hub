@@ -46,7 +46,7 @@ function LoginPage() {
         />
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">
-            <BrandLogo className="h-7 w-7" style={{ filter: "drop-shadow(0 0 6px rgba(47,230,255,0.6))" }} />
+            <BrandLogo className="h-9 w-9" style={{ filter: "drop-shadow(0 0 6px rgba(47,230,255,0.6))" }} />
           </div>
           <div>
             <div className="font-semibold">AMF Synergy Vision</div>
