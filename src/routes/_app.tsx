@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { BrandMandala } from "@/components/BrandMark";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ function AppLayout() {
                 just ellipsizing. */}
             <div className="min-w-0 truncate text-sm font-semibold tracking-tight">AMF Synergy Vision CRM</div>
             <div className="ml-auto flex shrink-0 items-center gap-2">
+              <GlobalSearch />
               <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
