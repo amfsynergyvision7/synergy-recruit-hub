@@ -4,10 +4,17 @@ import { fetchResumeText } from "./resume-fetch.server";
 // environment variable (Vercel project settings, same place SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY / GOOGLE_SHEETS_API_KEY already live) — it is
 // never read or referenced from client-side code, so it can't end up in the
-// browser bundle. Get a free key at https://aistudio.google.com/apikey and
-// the "gemini-3.8-flash" model used below is free-of-charge on the standard
-// tier for text in/out as of this writing.
-const GEMINI_MODEL = "gemini-3.8-flash";
+// browser bundle. Get a free key at https://aistudio.google.com/apikey.
+//
+// Switched from "gemini-3.8-flash" to "gemini-3.5-flash-lite": both are free
+// on the standard tier, but 3.8-flash's free-tier cap (5 requests/minute, 20/
+// day) got hit almost immediately once Drive bulk import started making one
+// call per resume on top of matching/summary calls. 3.5-flash-lite carries a
+// much larger free-tier allowance (15 requests/minute, 500/day) as of this
+// writing, which is what all the Gemini-backed features below actually need
+// once more than a couple of resumes are involved in a single run. If Google
+// changes these limits again, this is the one line to swap.
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
 // Google's own Interactions API docs are inconsistent about the response

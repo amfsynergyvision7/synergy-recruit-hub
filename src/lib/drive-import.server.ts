@@ -47,15 +47,18 @@ const SUPPORTED_MIME_TYPES = new Set([
 // and Gemini free-tier request volume. If a folder has more new resumes
 // than this, running "Check Google Drive" again picks up right where this
 // run left off, because already-processed files are skipped on the next
-// pass (see "already imported" below).
-const MAX_FILES_PER_RUN = 60;
+// pass (see "already imported" below). Raised from 60 now that the model
+// in ai.server.ts has a 500/day free-tier cap instead of 20/day.
+const MAX_FILES_PER_RUN = 100;
 
-// How many resumes are downloaded + sent to Gemini at once. Kept modest
-// (rather than e.g. 10+) because Gemini's free tier has a real per-minute
-// request cap — if a run reports several "Gemini API 429" failures, that's
-// this limit being hit; just run "Check Google Drive" again afterwards, the
-// files that succeeded won't be reprocessed.
-const CONCURRENCY = 3;
+// How many resumes are downloaded + sent to Gemini at once. This was capped
+// at 3 while the model had only a 5 requests/minute free-tier ceiling; now
+// that it allows 15/minute, 5 concurrent still leaves headroom for whatever
+// else (matching, resume summaries) might be calling Gemini around the same
+// time. If a run ever reports several "Gemini API 429" failures again,
+// that's this limit being hit — just run "Check Google Drive" again
+// afterwards, the files that already succeeded won't be reprocessed.
+const CONCURRENCY = 5;
 
 function extractDriveFolderId(url: string): string | null {
   // Covers the common folder link shapes:
