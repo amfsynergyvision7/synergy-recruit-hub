@@ -222,6 +222,7 @@ export type Database = {
           notes: string | null
           notice_period: string | null
           position_applied: string | null
+          resume_summary: string | null
           resume_url: string | null
           source: string | null
           stage: Database["public"]["Enums"]["candidate_stage"]
@@ -246,6 +247,7 @@ export type Database = {
           notes?: string | null
           notice_period?: string | null
           position_applied?: string | null
+          resume_summary?: string | null
           resume_url?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["candidate_stage"]
@@ -270,6 +272,7 @@ export type Database = {
           notes?: string | null
           notice_period?: string | null
           position_applied?: string | null
+          resume_summary?: string | null
           resume_url?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["candidate_stage"]
@@ -528,6 +531,7 @@ export type Database = {
           client_uuid: string | null
           created_at: string
           created_by: string | null
+          description: string | null
           id: string
           job_title: string
           location: string | null
@@ -545,6 +549,7 @@ export type Database = {
           client_uuid?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           id?: string
           job_title: string
           location?: string | null
@@ -562,6 +567,7 @@ export type Database = {
           client_uuid?: string | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
           id?: string
           job_title?: string
           location?: string | null

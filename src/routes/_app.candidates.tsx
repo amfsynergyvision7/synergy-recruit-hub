@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
+import { ResumeSummaryButton } from "@/components/ResumeSummaryButton";
 import { Table2, LayoutGrid } from "lucide-react";
 
 export const Route = createFileRoute("/_app/candidates")({ component: Page });
@@ -91,7 +92,18 @@ function Page() {
         { name: "current_salary", label: "Current Salary", type: "number", hideInTable: true },
         { name: "expected_salary", label: "Expected Salary", type: "number", hideInTable: true },
         { name: "notice_period", label: "Notice Period", hideInTable: true },
-        { name: "resume_url", label: "Resume URL", hideInTable: true },
+        {
+          name: "resume_url",
+          label: "Resume URL",
+          render: (row) => (
+            <ResumeSummaryButton
+              candidateId={row.id}
+              fullName={row.full_name}
+              resumeUrl={row.resume_url}
+              resumeSummary={row.resume_summary}
+            />
+          ),
+        },
         { name: "source", label: "Source" },
         {
           name: "stage",

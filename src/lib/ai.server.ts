@@ -307,3 +307,55 @@ export async function matchCandidateResume(supabase: any, jobId: string, candida
     } as DeepCandidateMatch,
   };
 }
+
+const RESUME_SUMMARY_SCHEMA = {
+  type: "object",
+  properties: {
+    summary: { type: "string" },
+  },
+  required: ["summary"],
+};
+
+function buildResumeSummaryPrompt(candidateName: string, resumeText: string): string {
+  return [
+    "You are a recruiting assistant. Write a concise, factual professional summary of the candidate below, based only on their resume text — not compared against any specific job.",
+    "Cover their career trajectory, years of experience, key skills/tools, and the most notable achievements. 120-200 words. Do not invent anything not present in the resume text.",
+    "",
+    `CANDIDATE: ${candidateName}`,
+    "",
+    "RESUME TEXT:",
+    resumeText,
+  ].join("\n");
+}
+
+// Generates a standalone summary of a candidate's actual resume (independent
+// of any one job) and saves it to candidates.resume_summary, so it can be
+// read on the candidate's own record and reused as a fast reference without
+// re-downloading and re-parsing the Drive file every time. Explicitly
+// triggered by a "Generate Resume Summary" button — never runs automatically
+// on save, since a resume fetch + Gemini call has a real, visible cost.
+export async function generateResumeSummary(supabase: any, candidateId: string) {
+  const { data: candidate, error } = await supabase
+    .from("candidates")
+    .select("id, full_name, resume_url")
+    .eq("id", candidateId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!candidate) throw new Error("Candidate not found.");
+
+  const resume = await fetchResumeText(candidate.resume_url ?? null);
+  if (!resume.ok) {
+    throw new Error(`Couldn't read this candidate's resume: ${resume.error}`);
+  }
+
+  const prompt = buildResumeSummaryPrompt(candidate.full_name, resume.text);
+  const result = await callGeminiJSON<{ summary: string }>(prompt, RESUME_SUMMARY_SCHEMA);
+
+  const { error: updateError } = await supabase
+    .from("candidates")
+    .update({ resume_summary: result.summary })
+    .eq("id", candidateId);
+  if (updateError) throw updateError;
+
+  return { summary: result.summary, resumeText: resume.text };
+}

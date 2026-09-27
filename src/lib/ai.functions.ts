@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { matchCandidatesToJob, matchCandidateResume } from "./ai.server";
+import { matchCandidatesToJob, matchCandidateResume, generateResumeSummary } from "./ai.server";
 
 export const matchCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -25,4 +25,13 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     return matchCandidateResume(context.supabase, data.jobId, data.candidateId);
+  });
+
+// Standalone resume summary (no job involved) — manually triggered from a
+// button on the Candidates page. Writes candidates.resume_summary.
+export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    return generateResumeSummary(context.supabase, data.candidateId);
   });
