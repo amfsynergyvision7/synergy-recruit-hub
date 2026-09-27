@@ -3,15 +3,15 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { matchCandidates } from "@/lib/ai.functions";
+import { matchCandidates, matchCandidateWithResume } from "@/lib/ai.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Sparkles, Users } from "lucide-react";
-import type { CandidateMatch } from "@/lib/ai.server";
+import { Sparkles, Users, FileSearch, ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
+import type { CandidateMatch, DeepCandidateMatch } from "@/lib/ai.server";
 
 export const Route = createFileRoute("/_app/ai-match")({ component: Page });
 
@@ -25,6 +25,92 @@ function scoreTone(score: number): PillTone {
   if (score >= 75) return "ok";
   if (score >= 50) return "warn";
   return "bad";
+}
+
+function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
+  const [open, setOpen] = useState(false);
+  const runDeepMatch = useServerFn(matchCandidateWithResume);
+  const deepMut = useMutation({
+    mutationFn: () => runDeepMatch({ data: { jobId, candidateId: match.candidateId } }),
+  });
+
+  const handleToggle = () => {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (nextOpen && !deepMut.data && !deepMut.isPending) deepMut.mutate();
+  };
+
+  const deep = deepMut.data as { match: DeepCandidateMatch } | undefined;
+
+  return (
+    <div className="rounded-md border border-border">
+      <div className="flex items-center justify-between gap-3 p-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="truncate font-medium">{match.fullName}</span>
+            {match.candidateCode && <span className="shrink-0 text-xs text-muted-foreground">{match.candidateCode}</span>}
+          </div>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{match.reason}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusPill label={`${match.score}/100`} tone={scoreTone(match.score)} />
+          <Button variant="ghost" size="sm" onClick={handleToggle}>
+            <FileSearch className="h-3.5 w-3.5 mr-1.5" />
+            Deep match
+            {open ? <ChevronUp className="h-3.5 w-3.5 ml-1.5" /> : <ChevronDown className="h-3.5 w-3.5 ml-1.5" />}
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/candidates">View</Link>
+          </Button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="border-t border-border bg-muted/20 p-3">
+          {deepMut.isPending && (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <Skeleton className="h-4 w-3/5" />
+            </div>
+          )}
+
+          {deepMut.isError && !deepMut.isPending && (
+            <div className="flex items-start gap-2 text-sm text-destructive">
+              <TriangleAlert className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{(deepMut.error as any)?.message ?? "Couldn't score this candidate's resume."}</span>
+            </div>
+          )}
+
+          {deep && !deepMut.isPending && (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Resume-based score:</span>
+                <StatusPill label={`${deep.match.score}/100`} tone={scoreTone(deep.match.score)} />
+              </div>
+              <p className="text-muted-foreground">{deep.match.summary}</p>
+              {deep.match.strengths.length > 0 && (
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Strengths</span>
+                  <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+                    {deep.match.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                  </ul>
+                </div>
+              )}
+              {deep.match.gaps.length > 0 && (
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Gaps</span>
+                  <ul className="mt-1 list-disc pl-4 text-muted-foreground">
+                    {deep.match.gaps.map((s, i) => <li key={i}>{s}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Page() {
@@ -53,7 +139,7 @@ function Page() {
     onError: (err: any) => toast.error(err?.message ?? "Matching failed"),
   });
 
-  const result = matchMut.data as { job: JobOption & { requirements: string | null }; matches: CandidateMatch[]; consideredCount: number } | undefined;
+  const result = matchMut.data as { job: JobOption & { description: string | null; requirements: string | null }; matches: CandidateMatch[]; consideredCount: number } | undefined;
 
   return (
     <div className="space-y-4">
@@ -102,7 +188,7 @@ function Page() {
             <CardTitle>Matches for "{result.job.job_title}"</CardTitle>
             <CardDescription>
               Scored against your {result.consideredCount} most recently updated active candidate{result.consideredCount === 1 ? "" : "s"}.
-              {!result.job.requirements && " This job has no Requirements text yet — add some on the Job Openings page for sharper scoring."}
+              {!result.job.description && !result.job.requirements && " This job has no Job Description or Requirements text yet — add some on the Job Openings page for sharper scoring."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -113,21 +199,7 @@ function Page() {
               </div>
             ) : (
               result.matches.map((m) => (
-                <div key={m.candidateId} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{m.fullName}</span>
-                      {m.candidateCode && <span className="shrink-0 text-xs text-muted-foreground">{m.candidateCode}</span>}
-                    </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{m.reason}</p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <StatusPill label={`${m.score}/100`} tone={scoreTone(m.score)} />
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to="/candidates">View</Link>
-                    </Button>
-                  </div>
-                </div>
+                <MatchRow key={m.candidateId} jobId={result.job.id} match={m} />
               ))
             )}
           </CardContent>

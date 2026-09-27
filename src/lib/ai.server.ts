@@ -1,3 +1,5 @@
+import { fetchResumeText } from "./resume-fetch.server";
+
 // Server-only Gemini API access. GEMINI_API_KEY must be set as a server
 // environment variable (Vercel project settings, same place SUPABASE_URL /
 // SUPABASE_SERVICE_ROLE_KEY / GOOGLE_SHEETS_API_KEY already live) — it is
@@ -97,6 +99,7 @@ interface JobRow {
   salary_min: number | null;
   salary_max: number | null;
   priority: string | null;
+  description: string | null;
   requirements: string | null;
 }
 
@@ -110,20 +113,31 @@ interface CandidateRow {
   expected_salary: number | null;
   notice_period: string | null;
   notes: string | null;
+  resume_url?: string | null;
 }
 
-function buildMatchPrompt(job: JobRow, candidates: CandidateRow[]): string {
-  const jobBlock = [
+function buildJobBlock(job: JobRow): string {
+  return [
     `Title: ${job.job_title}`,
     job.location ? `Location: ${job.location}` : null,
     job.salary_min != null || job.salary_max != null
       ? `Salary range: ${job.salary_min ?? "?"} - ${job.salary_max ?? "?"}`
       : null,
     job.priority ? `Priority: ${job.priority}` : null,
+    job.description
+      ? `Job description:\n${job.description}`
+      : null,
     job.requirements
       ? `Requirements / key skills:\n${job.requirements}`
-      : "Requirements: (not specified — judge on role/title/seniority relevance instead)",
+      : null,
+    !job.description && !job.requirements
+      ? "Job description / requirements: (not specified — judge on role/title/seniority relevance instead)"
+      : null,
   ].filter(Boolean).join("\n");
+}
+
+function buildMatchPrompt(job: JobRow, candidates: CandidateRow[]): string {
+  const jobBlock = buildJobBlock(job);
 
   const candidateBlocks = candidates.map((c) =>
     [
@@ -165,7 +179,7 @@ export interface CandidateMatch {
 export async function matchCandidatesToJob(supabase: any, jobId: string) {
   const { data: job, error: jobError } = await supabase
     .from("job_openings")
-    .select("id, job_title, location, salary_min, salary_max, priority, requirements")
+    .select("id, job_title, location, salary_min, salary_max, priority, description, requirements")
     .eq("id", jobId)
     .maybeSingle();
   if (jobError) throw jobError;
@@ -204,4 +218,87 @@ export async function matchCandidatesToJob(supabase: any, jobId: string) {
     .sort((a, b) => b.score - a.score);
 
   return { job, matches, consideredCount: candidates.length };
+}
+
+const DEEP_MATCH_SCHEMA = {
+  type: "object",
+  properties: {
+    score: { type: "integer" },
+    summary: { type: "string" },
+    strengths: { type: "array", items: { type: "string" } },
+    gaps: { type: "array", items: { type: "string" } },
+  },
+  required: ["score", "summary", "strengths", "gaps"],
+};
+
+function buildDeepMatchPrompt(job: JobRow, candidate: CandidateRow, resumeText: string): string {
+  const jobBlock = buildJobBlock(job);
+
+  const candidateBlock = [
+    `Name: ${candidate.full_name}`,
+    candidate.position_applied ? `Applied for: ${candidate.position_applied}` : null,
+    candidate.current_company ? `Current company: ${candidate.current_company}` : null,
+    candidate.experience_years != null ? `Experience: ${candidate.experience_years} years` : null,
+    candidate.expected_salary != null ? `Expected salary: ${candidate.expected_salary}` : null,
+    candidate.notice_period ? `Notice period: ${candidate.notice_period}` : null,
+    candidate.notes ? `CRM notes: ${candidate.notes}` : null,
+  ].filter(Boolean).join("\n");
+
+  return [
+    "You are a recruiting assistant doing an in-depth review of one candidate's actual resume against a job opening.",
+    "Score the fit on a 0-100 scale (100 = excellent fit), write a 2-3 sentence summary explaining the score, and list concrete strengths and gaps as short bullet phrases (3-6 words each) drawn from specifics in the resume text, not generic statements.",
+    "",
+    "JOB OPENING:",
+    jobBlock,
+    "",
+    "CANDIDATE (CRM record):",
+    candidateBlock,
+    "",
+    "CANDIDATE'S RESUME (extracted text):",
+    resumeText,
+  ].join("\n");
+}
+
+export interface DeepCandidateMatch {
+  score: number;
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+}
+
+export async function matchCandidateResume(supabase: any, jobId: string, candidateId: string) {
+  const { data: job, error: jobError } = await supabase
+    .from("job_openings")
+    .select("id, job_title, location, salary_min, salary_max, priority, description, requirements")
+    .eq("id", jobId)
+    .maybeSingle();
+  if (jobError) throw jobError;
+  if (!job) throw new Error("Job not found.");
+
+  const { data: candidate, error: candError } = await supabase
+    .from("candidates")
+    .select("id, full_name, candidate_code, position_applied, current_company, experience_years, expected_salary, notice_period, notes, resume_url")
+    .eq("id", candidateId)
+    .maybeSingle();
+  if (candError) throw candError;
+  if (!candidate) throw new Error("Candidate not found.");
+
+  const resume = await fetchResumeText(candidate.resume_url ?? null);
+  if (!resume.ok) {
+    throw new Error(`Couldn't read this candidate's resume: ${resume.error}`);
+  }
+
+  const prompt = buildDeepMatchPrompt(job as JobRow, candidate as CandidateRow, resume.text);
+  const result = await callGeminiJSON<DeepCandidateMatch>(prompt, DEEP_MATCH_SCHEMA);
+
+  return {
+    job,
+    candidate,
+    match: {
+      score: Math.max(0, Math.min(100, Math.round(result.score))),
+      summary: result.summary,
+      strengths: Array.isArray(result.strengths) ? result.strengths : [],
+      gaps: Array.isArray(result.gaps) ? result.gaps : [],
+    } as DeepCandidateMatch,
+  };
 }
