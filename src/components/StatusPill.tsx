@@ -17,7 +17,7 @@
 
 export type PillTone = "ok" | "warn" | "info" | "bad" | "neutral";
 
-const TONE_VAR: Record<PillTone, string> = {
+export const TONE_VAR: Record<PillTone, string> = {
   ok: "--success",
   warn: "--warning",
   info: "--info",

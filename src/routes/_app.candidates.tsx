@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
+import { CandidateBoard } from "@/components/CandidateBoard";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
+import { Button } from "@/components/ui/button";
+import { Table2, LayoutGrid } from "lucide-react";
 
 export const Route = createFileRoute("/_app/candidates")({ component: Page });
 
@@ -28,6 +31,7 @@ const STAGE_TONE: Record<string, PillTone> = {
 
 function Page() {
   const [recruiters, setRecruiters] = useState<{ value: string; label: string }[]>([]);
+  const [view, setView] = useState<"table" | "board">("table");
 
   useEffect(() => {
     const fetchRecruiters = async () => {
@@ -49,6 +53,26 @@ function Page() {
   }, []);
 
   return (
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <div className="inline-flex rounded-md border border-border p-0.5">
+          <Button variant={view === "table" ? "secondary" : "ghost"} size="sm" onClick={() => setView("table")}>
+            <Table2 className="h-3.5 w-3.5 mr-1.5" />Table
+          </Button>
+          <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" onClick={() => setView("board")}>
+            <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />Board
+          </Button>
+        </div>
+      </div>
+      {view === "board" ? (
+        <div className="space-y-4">
+          <div>
+            <h1 className="text-2xl font-semibold">Candidates</h1>
+            <p className="text-sm text-muted-foreground">Full candidate pipeline with automated stage tracking. Drag a card to move it to a new stage.</p>
+          </div>
+          <CandidateBoard stages={stages} stageTone={STAGE_TONE} recruiters={recruiters} />
+        </div>
+      ) : (
     <CrudModule
       title="Candidates"
       description="Full candidate pipeline with automated stage tracking."
@@ -92,5 +116,7 @@ function Page() {
         { name: "notes", label: "Notes", type: "textarea", hideInTable: true },
       ]}
     />
+      )}
+    </div>
   );
 }
