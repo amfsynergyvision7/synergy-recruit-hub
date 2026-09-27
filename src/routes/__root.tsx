@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/use-auth";
+import { BrandingProvider } from "@/hooks/use-branding";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -73,10 +74,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Outlet />
-        <Toaster richColors position="top-right" />
-      </AuthProvider>
+      <BrandingProvider>
+        <AuthProvider>
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
+      </BrandingProvider>
     </QueryClientProvider>
   );
 }

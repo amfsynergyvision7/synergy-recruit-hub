@@ -10,7 +10,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
-import { BrandMark, BrandMandala } from "./BrandMark";
+import { BrandLogo, BrandMandala } from "./BrandMark";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -46,7 +46,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shadow-glow">
-            <BrandMark className="h-6 w-6" style={{ filter: "drop-shadow(0 0 5px rgba(47,230,255,0.6))" }} />
+            <BrandLogo className="h-6 w-6" style={{ filter: "drop-shadow(0 0 5px rgba(47,230,255,0.6))" }} />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold tracking-tight">AMF Synergy Vision</span>

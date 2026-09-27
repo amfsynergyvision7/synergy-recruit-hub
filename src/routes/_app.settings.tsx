@@ -1,29 +1,82 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { useBranding } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload } from "lucide-react";
+import { Upload, ImageOff, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/settings")({ component: Page });
 
+const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2MB
+const ACCEPTED_LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+const LOGO_STORAGE_PATH = "company-logo";
+
 function Page() {
   const { profile, role, refresh } = useAuth();
+  const { logoUrl, refresh: refreshBranding } = useBranding();
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
     department: profile?.department ?? "",
   });
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const save = async () => {
     if (!profile) return;
     const { error } = await supabase.from("profiles").update(form).eq("id", profile.id);
     if (error) return toast.error(error.message);
     toast.success("Profile updated"); refresh();
   };
+
+  const uploadLogo = async (file: File) => {
+    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
+      return toast.error("Please upload a PNG, JPG, WEBP, or SVG image.");
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      return toast.error("Logo must be smaller than 2MB.");
+    }
+    setUploading(true);
+    // Same object path every time (upsert) so old versions don't pile up in
+    // the bucket; the `?v=` cache-buster on the stored URL is what makes a
+    // replaced logo show up immediately instead of serving a cached image.
+    const { error: uploadError } = await supabase.storage
+      .from("branding")
+      .upload(LOGO_STORAGE_PATH, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      setUploading(false);
+      return toast.error(uploadError.message);
+    }
+    const { data } = supabase.storage.from("branding").getPublicUrl(LOGO_STORAGE_PATH);
+    const versionedUrl = `${data.publicUrl}?v=${Date.now()}`;
+    const { error: dbError } = await supabase
+      .from("app_settings")
+      .update({ logo_url: versionedUrl, updated_by: profile?.id })
+      .eq("id", 1);
+    setUploading(false);
+    if (dbError) return toast.error(dbError.message);
+    toast.success("Logo updated");
+    refreshBranding();
+  };
+
+  const removeLogo = async () => {
+    setUploading(true);
+    await supabase.storage.from("branding").remove([LOGO_STORAGE_PATH]);
+    const { error } = await supabase
+      .from("app_settings")
+      .update({ logo_url: null, updated_by: profile?.id })
+      .eq("id", 1);
+    setUploading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Logo removed — showing the default mark again");
+    refreshBranding();
+  };
+
   return (
     <div className="space-y-4 max-w-2xl">
       <div>
@@ -38,6 +91,50 @@ function Page() {
           <Button onClick={save}>Save</Button>
         </CardContent>
       </Card>
+      {role === "admin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Branding</CardTitle>
+            <CardDescription>Upload your company logo. It appears next to the AMF Synergy Vision mark in the sidebar and on the sign-in page.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40 flex items-center justify-center">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Current logo" className="h-full w-full object-contain" />
+                ) : (
+                  <ImageOff className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm">{logoUrl ? "Custom logo active" : "No logo uploaded yet — showing the default mark"}</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP, or SVG · up to 2MB</p>
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_LOGO_TYPES.join(",")}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadLogo(file);
+                e.target.value = "";
+              }}
+            />
+            <div className="flex gap-2">
+              <Button variant="outline" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" />{uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}
+              </Button>
+              {logoUrl && (
+                <Button variant="ghost" disabled={uploading} onClick={removeLogo}>
+                  <Trash2 className="h-4 w-4 mr-2 text-destructive" />Remove
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
       {role === "admin" && (
         <Card>
           <CardHeader>

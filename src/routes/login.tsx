@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { BrandMark, BrandMandala } from "@/components/BrandMark";
+import { BrandLogo, BrandMandala } from "@/components/BrandMark";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -46,7 +46,7 @@ function LoginPage() {
         />
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">
-            <BrandMark className="h-7 w-7" style={{ filter: "drop-shadow(0 0 6px rgba(47,230,255,0.6))" }} />
+            <BrandLogo className="h-7 w-7" style={{ filter: "drop-shadow(0 0 6px rgba(47,230,255,0.6))" }} />
           </div>
           <div>
             <div className="font-semibold">AMF Synergy Vision</div>

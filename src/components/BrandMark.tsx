@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useBranding } from "@/hooks/use-branding";
 
 /**
  * Shared geometry for the AMF Synergy Vision neon mandala mark: concentric rings of
@@ -136,4 +137,29 @@ export function BrandMandala({
       ]}
     />
   );
+}
+
+/**
+ * Drop-in replacement for BrandMark in the small icon slots (sidebar header,
+ * login badge): shows the company's uploaded logo (Settings → Branding,
+ * admin-only) when one exists, and falls back to the default neon BrandMark
+ * otherwise. The decorative BrandMandala background art is unaffected either
+ * way — uploading a logo adds it alongside the existing neon identity rather
+ * than replacing it.
+ */
+export function BrandLogo({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const { logoUrl } = useBranding();
+  if (logoUrl) {
+    // A raster/SVG logo the user uploaded — sized like the mark it replaces,
+    // but without the neon drop-shadow (that glow is tuned for the mandala's
+    // own thin cyan strokes and looks wrong over an arbitrary flat logo).
+    return <img src={logoUrl} alt="Company logo" className={`${className ?? ""} object-contain`} />;
+  }
+  return <BrandMark className={className} style={style} />;
 }
