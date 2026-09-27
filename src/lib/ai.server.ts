@@ -3,10 +3,32 @@
 // SUPABASE_SERVICE_ROLE_KEY / GOOGLE_SHEETS_API_KEY already live) — it is
 // never read or referenced from client-side code, so it can't end up in the
 // browser bundle. Get a free key at https://aistudio.google.com/apikey and
-// the "gemini-3.5-flash" model used below is free-of-charge on the standard
+// the "gemini-3.8-flash" model used below is free-of-charge on the standard
 // tier for text in/out as of this writing.
-const GEMINI_MODEL = "gemini-3.5-flash";
+const GEMINI_MODEL = "gemini-3.8-flash";
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
+
+// Google's own Interactions API docs are inconsistent about the response
+// shape across pages: some show a top-level "output_text", some show it
+// nested under "interaction.outputText" (SDK convenience wrapper), and the
+// raw curl example shows the real text nested inside a "steps" array
+// (steps[].content[].text), with no top-level "output_text" at all. Rather
+// than trust one page, this checks every documented shape in order, so we
+// keep working even if Google's raw REST response changes slightly again.
+function extractOutputText(data: any): string | undefined {
+  if (typeof data?.output_text === "string" && data.output_text.length > 0) return data.output_text;
+  if (typeof data?.interaction?.outputText === "string" && data.interaction.outputText.length > 0) return data.interaction.outputText;
+  if (typeof data?.interaction?.output_text === "string" && data.interaction.output_text.length > 0) return data.interaction.output_text;
+  if (Array.isArray(data?.steps)) {
+    for (const step of data.steps) {
+      if (!Array.isArray(step?.content)) continue;
+      for (const item of step.content) {
+        if (typeof item?.text === "string" && item.text.length > 0) return item.text;
+      }
+    }
+  }
+  return undefined;
+}
 
 async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>): Promise<T> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -28,12 +50,18 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   if (!res.ok) {
     throw new Error(`Gemini API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
   }
-  const outputText = data?.output_text;
-  if (!outputText) throw new Error("Gemini returned no output.");
+  const outputText = extractOutputText(data);
+  if (!outputText) {
+    // Include a slice of the raw response so this is debuggable in one shot
+    // if Google's response shape ever drifts again, instead of a dead-end
+    // generic message.
+    const preview = typeof data === "string" ? data : JSON.stringify(data);
+    throw new Error(`Gemini returned no recognizable output. Raw response: ${preview.slice(0, 500)}`);
+  }
   try {
     return JSON.parse(outputText) as T;
   } catch {
-    throw new Error("Gemini returned a response that wasn't valid JSON.");
+    throw new Error(`Gemini returned a response that wasn't valid JSON: ${outputText.slice(0, 500)}`);
   }
 }
 
