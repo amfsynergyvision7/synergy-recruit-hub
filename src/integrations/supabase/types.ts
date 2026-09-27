@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: number
+          logo_url: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          logo_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          logo_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -512,6 +533,7 @@ export type Database = {
           location: string | null
           open_positions: number | null
           priority: string | null
+          requirements: string | null
           salary_max: number | null
           salary_min: number | null
           status: string | null
@@ -528,6 +550,7 @@ export type Database = {
           location?: string | null
           open_positions?: number | null
           priority?: string | null
+          requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
           status?: string | null
@@ -544,6 +567,7 @@ export type Database = {
           location?: string | null
           open_positions?: number | null
           priority?: string | null
+          requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
           status?: string | null

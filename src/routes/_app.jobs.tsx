@@ -34,6 +34,7 @@ function Page() {
         { name: "salary_min", label: "Salary Min", type: "number" },
         { name: "salary_max", label: "Salary Max", type: "number" },
         { name: "open_positions", label: "Openings", type: "number", default: 1 },
+        { name: "requirements", label: "Requirements / Key Skills", type: "textarea", hideInTable: true },
         {
           name: "priority",
           label: "Priority",

@@ -29,6 +29,7 @@ import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCandidatesRouteImport } from './routes/_app.candidates'
 import { Route as AppBillingRouteImport } from './routes/_app.billing'
 import { Route as AppAuditRouteImport } from './routes/_app.audit'
+import { Route as AppAiMatchRouteImport } from './routes/_app.ai-match'
 import { Route as AppActivitiesRouteImport } from './routes/_app.activities'
 import { Route as ApiPublicHooksSheetsSyncRouteImport } from './routes/api/public/hooks/sheets-sync'
 
@@ -131,6 +132,11 @@ const AppAuditRoute = AppAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAiMatchRoute = AppAiMatchRouteImport.update({
+  id: '/ai-match',
+  path: '/ai-match',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppActivitiesRoute = AppActivitiesRouteImport.update({
   id: '/activities',
   path: '/activities',
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/activities': typeof AppActivitiesRoute
+  '/ai-match': typeof AppAiMatchRoute
   '/audit': typeof AppAuditRoute
   '/billing': typeof AppBillingRoute
   '/candidates': typeof AppCandidatesRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/activities': typeof AppActivitiesRoute
+  '/ai-match': typeof AppAiMatchRoute
   '/audit': typeof AppAuditRoute
   '/billing': typeof AppBillingRoute
   '/candidates': typeof AppCandidatesRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_app/activities': typeof AppActivitiesRoute
+  '/_app/ai-match': typeof AppAiMatchRoute
   '/_app/audit': typeof AppAuditRoute
   '/_app/billing': typeof AppBillingRoute
   '/_app/candidates': typeof AppCandidatesRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/activities'
+    | '/ai-match'
     | '/audit'
     | '/billing'
     | '/candidates'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/activities'
+    | '/ai-match'
     | '/audit'
     | '/billing'
     | '/candidates'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/_app/activities'
+    | '/_app/ai-match'
     | '/_app/audit'
     | '/_app/billing'
     | '/_app/candidates'
@@ -439,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAuditRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/ai-match': {
+      id: '/_app/ai-match'
+      path: '/ai-match'
+      fullPath: '/ai-match'
+      preLoaderRoute: typeof AppAiMatchRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/activities': {
       id: '/_app/activities'
       path: '/activities'
@@ -458,6 +477,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppActivitiesRoute: typeof AppActivitiesRoute
+  AppAiMatchRoute: typeof AppAiMatchRoute
   AppAuditRoute: typeof AppAuditRoute
   AppBillingRoute: typeof AppBillingRoute
   AppCandidatesRoute: typeof AppCandidatesRoute
@@ -476,6 +496,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppActivitiesRoute: AppActivitiesRoute,
+  AppAiMatchRoute: AppAiMatchRoute,
   AppAuditRoute: AppAuditRoute,
   AppBillingRoute: AppBillingRoute,
   AppCandidatesRoute: AppCandidatesRoute,
