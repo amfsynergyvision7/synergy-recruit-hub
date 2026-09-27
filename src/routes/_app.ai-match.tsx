@@ -29,6 +29,7 @@ function scoreTone(score: number): PillTone {
 
 function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
   const [open, setOpen] = useState(false);
+  const [showResumeText, setShowResumeText] = useState(false);
   const runDeepMatch = useServerFn(matchCandidateWithResume);
   const deepMut = useMutation({
     mutationFn: () => runDeepMatch({ data: { jobId, candidateId: match.candidateId } }),
@@ -40,7 +41,7 @@ function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
     if (nextOpen && !deepMut.data && !deepMut.isPending) deepMut.mutate();
   };
 
-  const deep = deepMut.data as { match: DeepCandidateMatch } | undefined;
+  const deep = deepMut.data as { match: DeepCandidateMatch; resumeText: string } | undefined;
 
   return (
     <div className="rounded-md border border-border">
@@ -105,6 +106,21 @@ function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
                   </ul>
                 </div>
               )}
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary underline underline-offset-2"
+                  onClick={() => setShowResumeText((v) => !v)}
+                >
+                  {showResumeText ? "Hide" : "View"} extracted resume text (proof this read the actual file)
+                </button>
+                {showResumeText && (
+                  <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded border border-border bg-background p-2 text-xs text-muted-foreground">
+                    {deep.resumeText || "(no text extracted)"}
+                  </pre>
+                )}
+              </div>
             </div>
           )}
         </div>

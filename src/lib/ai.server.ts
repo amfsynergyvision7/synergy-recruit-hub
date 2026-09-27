@@ -294,6 +294,11 @@ export async function matchCandidateResume(supabase: any, jobId: string, candida
   return {
     job,
     candidate,
+    // Sent back alongside the score so the UI can show exactly what text was
+    // pulled from the Drive file — the only real proof, for a human looking
+    // at the result, that this actually read the resume rather than just
+    // reusing the CRM fields.
+    resumeText: resume.text,
     match: {
       score: Math.max(0, Math.min(100, Math.round(result.score))),
       summary: result.summary,
