@@ -23,6 +23,19 @@ export function DriveImportButton() {
   const failedOutcomes = summary?.outcomes.filter((o) => o.status === "failed") ?? [];
   const unsupportedOutcomes = summary?.outcomes.filter((o) => o.status === "skipped_unsupported_format") ?? [];
 
+  // A bare "Failed to fetch" (or "NetworkError…" in Firefox) is the browser's
+  // own message for a request that never got a response at all — different
+  // from every other error this feature throws, which are all descriptive
+  // sentences written by our own code. In practice this has meant the
+  // server function got killed mid-run by Vercel's function-duration limit
+  // before it could reply, so the guidance here is specific to that, rather
+  // than the generic fallback message below.
+  const rawErrorMessage = (mut.error as any)?.message as string | undefined;
+  const looksLikeDroppedConnection = !!rawErrorMessage && /failed to fetch|networkerror|load failed/i.test(rawErrorMessage);
+  const errorMessage = looksLikeDroppedConnection
+    ? "The connection was lost before this finished — most likely the run took longer than the server allows in one go. Any files it got through before that are already saved (they won't be reprocessed). Try \"Run again\"; if it keeps happening, the folder may need to be scanned in smaller batches, or the account's Function Max Duration setting may need raising in Vercel."
+    : rawErrorMessage ?? "Couldn't check Drive for new resumes.";
+
   return (
     <>
       <Button
@@ -49,7 +62,7 @@ export function DriveImportButton() {
             {mut.isError && !mut.isPending && (
               <div className="flex items-start gap-2 text-destructive">
                 <TriangleAlert className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>{(mut.error as any)?.message ?? "Couldn't check Drive for new resumes."}</span>
+                <span>{errorMessage}</span>
               </div>
             )}
 

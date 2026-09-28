@@ -47,9 +47,16 @@ const SUPPORTED_MIME_TYPES = new Set([
 // and Gemini free-tier request volume. If a folder has more new resumes
 // than this, running "Check Google Drive" again picks up right where this
 // run left off, because already-processed files are skipped on the next
-// pass (see "already imported" below). Raised from 60 now that the model
-// in ai.server.ts has a 500/day free-tier cap instead of 20/day.
-const MAX_FILES_PER_RUN = 100;
+// pass (see "already imported" below). Lowered from 100 back down to 20
+// after a 29-file run came back as a bare "Failed to fetch" — Vercel killed
+// the connection mid-run, almost certainly because this project's actual
+// deployed function-duration limit is shorter than the platform's current
+// documented default (older projects don't always pick up a raised default
+// automatically). A smaller batch finishes well within a conservative
+// window regardless of exactly what that limit turns out to be; raising
+// "Function Max Duration" in Vercel's project settings is the other half
+// of this fix and lets this number safely go back up later if wanted.
+const MAX_FILES_PER_RUN = 20;
 
 // How many resumes are downloaded + sent to Gemini at once. This was capped
 // at 3 while the model had only a 5 requests/minute free-tier ceiling; now
