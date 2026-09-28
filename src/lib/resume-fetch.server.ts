@@ -5,8 +5,16 @@
 // costs zero Supabase storage. It only works because the Drive link is
 // genuinely "Anyone with the link" — a link restricted to specific people
 // will fail to download here the same way it would in an incognito browser.
-import pdfParse from "pdf-parse";
+import { extractText as extractPdfText } from "unpdf";
 import mammoth from "mammoth";
+
+// A resume that genuinely has no readable text (a scanned photo/image saved
+// as a PDF, with no text layer at all) is a different, harder problem than
+// what this file fixes — OCR isn't implemented. This threshold is how
+// "basically nothing came out" is told apart from "a short but real resume",
+// so the error message points at the right cause instead of just saying
+// nothing came back.
+const MIN_USABLE_CHARS = 40;
 
 // Keeps the Gemini prompt (and free-tier token usage) bounded regardless of
 // how long a resume is — a few thousand characters is plenty of signal.
@@ -76,12 +84,31 @@ export async function fetchDriveBytes(fileId: string): Promise<{ buffer: Buffer;
 export async function extractText(buffer: Buffer, contentType: string): Promise<ResumeFetchResult> {
   try {
     if (contentType === "application/pdf") {
-      const data = await pdfParse(buffer);
-      return { ok: true, text: data.text.trim().slice(0, MAX_RESUME_CHARS) };
+      // unpdf wraps a current, actively-maintained build of Mozilla's own
+      // pdf.js (not the old snapshot bundled inside the previously-used
+      // pdf-parse package), specifically built for serverless/Node use with
+      // no native/canvas dependency required for plain text extraction —
+      // confirmed by testing it standalone before switching. It handles a
+      // meaningfully wider range of PDFs than the old parser, including
+      // several resume-builder templates (Canva, Zety, and similar) whose
+      // custom embedded fonts previously came back as empty text.
+      const { text } = await extractPdfText(new Uint8Array(buffer), { mergePages: true });
+      const trimmed = text.trim().slice(0, MAX_RESUME_CHARS);
+      if (trimmed.length < MIN_USABLE_CHARS) {
+        return {
+          ok: false,
+          error: "This PDF has no readable text (it's likely a scanned image rather than a real text document) — reading scanned/image-only resumes isn't supported yet.",
+        };
+      }
+      return { ok: true, text: trimmed };
     }
     if (contentType.includes("wordprocessingml") || contentType === "application/msword") {
       const { value } = await mammoth.extractRawText({ buffer });
-      return { ok: true, text: value.trim().slice(0, MAX_RESUME_CHARS) };
+      const trimmed = value.trim().slice(0, MAX_RESUME_CHARS);
+      if (trimmed.length < MIN_USABLE_CHARS) {
+        return { ok: false, error: "This Word document appears to have no readable text." };
+      }
+      return { ok: true, text: trimmed };
     }
     return { ok: false, error: "This resume isn't a PDF or Word (.docx) file — only those two formats are supported right now." };
   } catch (err: any) {

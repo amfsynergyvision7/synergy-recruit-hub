@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, ImageOff, Trash2, FolderSync } from "lucide-react";
+import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/settings")({ component: Page });
 
@@ -190,6 +190,17 @@ function Page() {
           </CardHeader>
           <CardContent>
             <Button asChild><Link to="/import"><Upload className="h-4 w-4 mr-2"/>Open Import Tool</Link></Button>
+          </CardContent>
+        </Card>
+      )}
+      {role === "admin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Duplicate Candidates</CardTitle>
+            <CardDescription>Scan every candidate already in the CRM for likely duplicates (same email, phone, or name entered more than once from different sources) and review them side by side to merge or delete.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild><Link to="/duplicates"><Users2 className="h-4 w-4 mr-2"/>Open Duplicate Cleanup</Link></Button>
           </CardContent>
         </Card>
       )}

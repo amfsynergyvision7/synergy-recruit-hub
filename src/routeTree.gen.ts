@@ -24,6 +24,7 @@ import { Route as AppJobsRouteImport } from './routes/_app.jobs'
 import { Route as AppInterviewsRouteImport } from './routes/_app.interviews'
 import { Route as AppIntegrationsRouteImport } from './routes/_app.integrations'
 import { Route as AppImportRouteImport } from './routes/_app.import'
+import { Route as AppDuplicatesRouteImport } from './routes/_app.duplicates'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppClientsRouteImport } from './routes/_app.clients'
 import { Route as AppCandidatesRouteImport } from './routes/_app.candidates'
@@ -107,6 +108,11 @@ const AppImportRoute = AppImportRouteImport.update({
   path: '/import',
   getParentRoute: () => AppRoute,
 } as any)
+const AppDuplicatesRoute = AppDuplicatesRouteImport.update({
+  id: '/duplicates',
+  path: '/duplicates',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/candidates': typeof AppCandidatesRoute
   '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/duplicates': typeof AppDuplicatesRoute
   '/import': typeof AppImportRoute
   '/integrations': typeof AppIntegrationsRoute
   '/interviews': typeof AppInterviewsRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/candidates': typeof AppCandidatesRoute
   '/clients': typeof AppClientsRoute
   '/dashboard': typeof AppDashboardRoute
+  '/duplicates': typeof AppDuplicatesRoute
   '/import': typeof AppImportRoute
   '/integrations': typeof AppIntegrationsRoute
   '/interviews': typeof AppInterviewsRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/_app/candidates': typeof AppCandidatesRoute
   '/_app/clients': typeof AppClientsRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/duplicates': typeof AppDuplicatesRoute
   '/_app/import': typeof AppImportRoute
   '/_app/integrations': typeof AppIntegrationsRoute
   '/_app/interviews': typeof AppInterviewsRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
     | '/candidates'
     | '/clients'
     | '/dashboard'
+    | '/duplicates'
     | '/import'
     | '/integrations'
     | '/interviews'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/candidates'
     | '/clients'
     | '/dashboard'
+    | '/duplicates'
     | '/import'
     | '/integrations'
     | '/interviews'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/_app/candidates'
     | '/_app/clients'
     | '/_app/dashboard'
+    | '/_app/duplicates'
     | '/_app/import'
     | '/_app/integrations'
     | '/_app/interviews'
@@ -416,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppImportRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/duplicates': {
+      id: '/_app/duplicates'
+      path: '/duplicates'
+      fullPath: '/duplicates'
+      preLoaderRoute: typeof AppDuplicatesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/dashboard': {
       id: '/_app/dashboard'
       path: '/dashboard'
@@ -483,6 +502,7 @@ interface AppRouteChildren {
   AppCandidatesRoute: typeof AppCandidatesRoute
   AppClientsRoute: typeof AppClientsRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDuplicatesRoute: typeof AppDuplicatesRoute
   AppImportRoute: typeof AppImportRoute
   AppIntegrationsRoute: typeof AppIntegrationsRoute
   AppInterviewsRoute: typeof AppInterviewsRoute
@@ -502,6 +522,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCandidatesRoute: AppCandidatesRoute,
   AppClientsRoute: AppClientsRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDuplicatesRoute: AppDuplicatesRoute,
   AppImportRoute: AppImportRoute,
   AppIntegrationsRoute: AppIntegrationsRoute,
   AppInterviewsRoute: AppInterviewsRoute,

@@ -32,6 +32,7 @@
 //     and shows as "—" in the table.
 import { extractDriveFileId, fetchDriveBytes, extractText } from "./resume-fetch.server";
 import { extractCandidateFieldsFromResume } from "./ai.server";
+import { normalizeEmail, normalizePhone, normalizeName } from "./dedupe";
 
 const DRIVE_LIST_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
 
@@ -112,27 +113,6 @@ async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveF
   } while (pageToken && files.length < 2000); // hard safety cap regardless of folder size
 
   return files;
-}
-
-function normalizeEmail(value: string | null): string | null {
-  if (!value) return null;
-  const trimmed = value.trim().toLowerCase();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function normalizePhone(value: string | null): string | null {
-  if (!value) return null;
-  const digits = value.replace(/\D/g, "");
-  if (digits.length === 0) return null;
-  // Compare on the last 10 digits so +91-prefixed, 0-prefixed, and bare
-  // 10-digit numbers all match each other.
-  return digits.length > 10 ? digits.slice(-10) : digits;
-}
-
-function normalizeName(value: string | null): string | null {
-  if (!value) return null;
-  const trimmed = value.trim().toLowerCase().replace(/\s+/g, " ");
-  return trimmed.length > 0 ? trimmed : null;
 }
 
 function withNA(value: string | null): string {
