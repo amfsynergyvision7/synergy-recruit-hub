@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, FilterX, Plus, Pencil, Trash2, Search, Inbox } from "lucide-react";
+import { Check, ChevronsUpDown, FilterX, Plus, Pencil, Trash2, Search, Inbox, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,13 @@ interface Props {
   fields: FieldDef[];
   searchFields?: string[];
   orderBy?: { column: string; ascending?: boolean };
+  /** Opt-in, off by default so every other module keeps behaving exactly as
+   * before. When true, an extra "eye" button appears in Actions that opens a
+   * read-only side panel listing every field (including ones hidden from the
+   * table via hideInTable) plus Edit/Delete — meant for a module whose table
+   * has been trimmed down to just a few glanceable columns, with the rest of
+   * the record still one click away instead of crowding the table itself. */
+  detailView?: boolean;
 }
 
 const ALL_FILTER = "__all__";
@@ -103,7 +111,7 @@ function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
   return distinctCount > 0 && distinctCount <= DISCRETE_FILTER_MAX;
 }
 
-export function CrudModule({ title, description, table, module, fields, searchFields, orderBy }: Props) {
+export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView }: Props) {
   const { role } = useAuth();
   const editable = canEdit(role, module);
   const deletable = canDelete(role);
@@ -111,6 +119,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState<any | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
   const [form, setForm] = useState<any>({});
   const [relationOptions, setRelationOptions] = useState<Record<string, any[]>>({});
@@ -194,6 +203,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     setForm(init); setEditing(null); setOpen(true);
   };
   const openEdit = (row: any) => { setForm(row); setEditing(row); setOpen(true); };
+  const openView = (row: any) => setViewing(row);
 
   const save = async () => {
     const payload: any = {};
@@ -433,7 +443,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     {f.label}
                   </TableHead>
                 ))}
-                <TableHead className="w-20 px-1 py-1.5 text-right text-xs whitespace-nowrap">Actions</TableHead>
+                <TableHead className={`${detailView ? "w-28" : "w-20"} px-1 py-1.5 text-right text-xs whitespace-nowrap`}>Actions</TableHead>
               </TableRow>
               <TableRow className="hover:bg-transparent">
                 {deletable && <TableHead className="w-8 h-auto px-1 py-1" />}
@@ -468,7 +478,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     )}
                   </TableHead>
                 ))}
-                <TableHead className="w-20 h-auto px-1 py-1" />
+                <TableHead className={`${detailView ? "w-28" : "w-20"} h-auto px-1 py-1`} />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -502,7 +512,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                       {f.render ? f.render(row) : (cellDisplayValue(row, f, relationOptions) || "—")}
                     </TableCell>
                   ))}
-                  <TableCell className="w-20 px-1 py-1.5 text-right whitespace-nowrap space-x-0">
+                  <TableCell className={`${detailView ? "w-28" : "w-20"} px-1 py-1.5 text-right whitespace-nowrap space-x-0`}>
+                    {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </TableCell>
@@ -534,6 +545,47 @@ export function CrudModule({ title, description, table, module, fields, searchFi
           </Table>
         </CardContent>
       </Card>
+
+      {detailView && (
+        <Sheet open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
+          <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+            {viewing && (
+              <>
+                <SheetHeader>
+                  <SheetTitle>
+                    {(tableFields[0]?.render ? tableFields[0].render(viewing) : cellDisplayValue(viewing, tableFields[0], relationOptions)) || title.replace(/s$/, "")}
+                  </SheetTitle>
+                  <SheetDescription>{title.replace(/s$/, "")} details — everything on record, in one place.</SheetDescription>
+                </SheetHeader>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {fields.map((f) => (
+                    <div key={f.name} className={f.type === "textarea" ? "sm:col-span-2" : ""}>
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{f.label}</div>
+                      <div className="mt-1 break-words text-sm">
+                        {f.render ? f.render(viewing) : (cellDisplayValue(viewing, f, relationOptions) || "—")}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {(editable || deletable) && (
+                  <SheetFooter className="mt-6">
+                    {editable && (
+                      <Button variant="outline" onClick={() => { const row = viewing; setViewing(null); openEdit(row); }}>
+                        <Pencil className="h-3.5 w-3.5 mr-2" />Edit
+                      </Button>
+                    )}
+                    {deletable && (
+                      <Button variant="destructive" onClick={async () => { const row = viewing; setViewing(null); await remove(row); }}>
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />Delete
+                      </Button>
+                    )}
+                  </SheetFooter>
+                )}
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

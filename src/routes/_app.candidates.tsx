@@ -81,22 +81,28 @@ function Page() {
       description="Full candidate pipeline with automated stage tracking."
       table="candidates"
       module="candidates"
+      detailView
       searchFields={["full_name","email","mobile","candidate_code","position_applied"]}
       fields={[
-        { name: "candidate_code", label: "Code", hideInForm: true },
+        // Only Name, Phone, Email, the resume Summary button, and Stage show
+        // in the table itself — everything else below is still fully
+        // editable via Add/Edit and always visible in the "eye" detail panel,
+        // it's just no longer cluttering the list view. Kept in this order
+        // deliberately, since it's also the order fields appear in that panel.
+        { name: "candidate_code", label: "Code", hideInForm: true, hideInTable: true },
         { name: "full_name", label: "Full Name", required: true, essential: true },
-        { name: "mobile", label: "Mobile", type: "tel" },
+        { name: "mobile", label: "Mobile", type: "tel", essential: true },
         { name: "email", label: "Email", type: "email" },
-        { name: "location", label: "Location" },
-        { name: "position_applied", label: "Position" },
+        { name: "location", label: "Location", hideInTable: true },
+        { name: "position_applied", label: "Position", hideInTable: true },
         { name: "current_company", label: "Current Company", hideInTable: true },
-        { name: "experience_years", label: "Experience (yrs)", type: "number" },
+        { name: "experience_years", label: "Experience (yrs)", type: "number", hideInTable: true },
         { name: "current_salary", label: "Current Salary", type: "number", hideInTable: true },
         { name: "expected_salary", label: "Expected Salary", type: "number", hideInTable: true },
         { name: "notice_period", label: "Notice Period", hideInTable: true },
         {
           name: "resume_url",
-          label: "Resume URL",
+          label: "Resume / Summary",
           render: (row) => (
             <ResumeSummaryButton
               candidateId={row.id}
@@ -106,7 +112,7 @@ function Page() {
             />
           ),
         },
-        { name: "source", label: "Source" },
+        { name: "source", label: "Source", hideInTable: true },
         {
           name: "stage",
           label: "Stage",
@@ -121,11 +127,12 @@ function Page() {
               "—"
             ),
         },
-        { 
-          name: "assigned_recruiter", 
-          label: "Assigned Recruiter", 
-          type: "select", 
-          options: recruiters
+        {
+          name: "assigned_recruiter",
+          label: "Assigned Recruiter",
+          type: "select",
+          options: recruiters,
+          hideInTable: true,
         },
         { name: "notes", label: "Notes", type: "textarea", hideInTable: true },
       ]}
