@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Users, UserPlus, CalendarCheck, CheckCircle2, FileSignature, Trophy,
-  Building2, Briefcase, Wallet, Clock, Inbox, type LucideIcon,
+  Building2, Briefcase, Wallet, Clock, Inbox, UserX, type LucideIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line,
@@ -91,6 +91,7 @@ function Dashboard() {
   const [monthly, setMonthly] = useState<any[]>([]);
   const [funnel, setFunnel] = useState<any[]>([]);
   const [sources, setSources] = useState<any[]>([]);
+  const [sourceEffectiveness, setSourceEffectiveness] = useState<any[]>([]);
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -124,7 +125,16 @@ function Dashboard() {
 
     const revenue = (bills||[]).filter(b=>b.payment_status==="paid").reduce((s,b)=>s+Number(b.invoice_amount||0),0);
     const pending = (bills||[]).reduce((s,b)=>s+Number(b.outstanding_amount||0),0);
-    setStats({ totalCand, newCand, intSched, intDone, offers, joined, clients, jobs, revenue, pending });
+
+    // Current-stage snapshot per candidate, reused below for the funnel,
+    // source effectiveness, and recruiter performance calculations — one
+    // query already fetched this (candAll), no extra round-trip needed.
+    const stageCount: Record<string, number> = {};
+    (candAll||[]).forEach((c:any)=>{ stageCount[c.stage]=(stageCount[c.stage]||0)+1; });
+    const exitedCount = (stageCount["rejected"]||0) + (stageCount["dropped"]||0);
+    const exitRate = (candAll||[]).length > 0 ? Math.round((exitedCount / (candAll||[]).length) * 100) : 0;
+
+    setStats({ totalCand, newCand, intSched, intDone, offers, joined, clients, jobs, revenue, pending, exitRate });
 
     // Monthly joining trend
     const months: Record<string, number> = {};
@@ -140,26 +150,69 @@ function Dashboard() {
     });
     setMonthly(Object.entries(months).map(([m,v])=>({ month:m, joined:v })));
 
-    // Funnel
-    const stageOrder = ["lead_received","contacted","submitted_to_client","interview_scheduled","selected","joined"];
-    const stageCount: Record<string, number> = {};
-    (candAll||[]).forEach((c:any)=>{ stageCount[c.stage]=(stageCount[c.stage]||0)+1; });
-    setFunnel(stageOrder.map(s=>({ stage: s.replace(/_/g," "), count: stageCount[s]||0 })));
+    // Funnel — every forward-moving stage (rejected/dropped are "exits" from
+    // the pipeline, reported separately as the Rejected/Dropped KPI above,
+    // not as a funnel step). Each stage shows two things: "current" (how many
+    // candidates are sitting there right now — the original metric) and
+    // "reached" (how many are at that stage or any later one — the classic
+    // funnel view, which is what actually shows where drop-off happens).
+    // "Reached" treats stage as strictly sequential, since there's no logged
+    // history of past stage changes to compute a true cohort-over-time
+    // conversion — a reasonable read given stages only move forward in the
+    // UI, but an approximation worth knowing about rather than hard data.
+    const FUNNEL_STAGES = [
+      "lead_received","contacted","interested","resume_collected","submitted_to_client",
+      "interview_scheduled","interview_completed","selected","offer_released","joined",
+    ];
+    let running = 0;
+    const reachedByStage: Record<string, number> = {};
+    for (let i = FUNNEL_STAGES.length - 1; i >= 0; i--) {
+      running += stageCount[FUNNEL_STAGES[i]] || 0;
+      reachedByStage[FUNNEL_STAGES[i]] = running;
+    }
+    const funnelBaseline = reachedByStage[FUNNEL_STAGES[0]] || 0;
+    setFunnel(FUNNEL_STAGES.map(s => ({
+      stage: s.replace(/_/g," "),
+      current: stageCount[s] || 0,
+      reached: reachedByStage[s],
+      pct: funnelBaseline > 0 ? Math.round((reachedByStage[s] / funnelBaseline) * 100) : 0,
+    })));
 
-    // Sources
-    const srcMap: Record<string,number> = {};
-    (candAll||[]).forEach((c:any)=>{ const s=c.source||"Unknown"; srcMap[s]=(srcMap[s]||0)+1; });
-    setSources(Object.entries(srcMap).map(([name,value])=>({ name, value })));
+    // Sources — raw lead volume (unchanged) plus, new, what fraction of each
+    // source's candidates actually reached "joined". A source can produce a
+    // lot of leads and still be a weak source if few of them ever get hired.
+    const srcMap: Record<string, { total: number; joined: number }> = {};
+    (candAll||[]).forEach((c:any)=>{
+      const s = c.source || "Unknown";
+      if (!srcMap[s]) srcMap[s] = { total: 0, joined: 0 };
+      srcMap[s].total++;
+      if (c.stage === "joined") srcMap[s].joined++;
+    });
+    setSources(Object.entries(srcMap).map(([name, v]) => ({ name, value: v.total })));
+    setSourceEffectiveness(
+      Object.entries(srcMap)
+        .map(([name, v]) => ({
+          name,
+          rate: v.total > 0 ? Math.round((v.joined / v.total) * 100) : 0,
+          joined: v.joined,
+          total: v.total,
+        }))
+        .sort((a, b) => b.rate - a.rate),
+    );
 
-    // Recruiter perf - get names from profiles
-    const rec: Record<string, { count: number; name: string }> = {};
+    // Recruiter perf - get names from profiles. Tracks both how many
+    // candidates are assigned (existing metric — workload/volume) and how
+    // many of those actually reached "joined" (new — actual placements,
+    // the number that matters more than raw assignment count).
+    const rec: Record<string, { count: number; joined: number; name: string }> = {};
     (candAll||[]).forEach((c:any) => {
       const recruiterId = c.assigned_recruiter;
       if (!recruiterId) return;
       if (!rec[recruiterId]) {
-        rec[recruiterId] = { count: 0, name: recruiterId };
+        rec[recruiterId] = { count: 0, joined: 0, name: recruiterId };
       }
       rec[recruiterId].count++;
+      if (c.stage === "joined") rec[recruiterId].joined++;
     });
 
     // Fetch recruiter names from profiles table
@@ -182,7 +235,8 @@ function Dashboard() {
     // Fixed: Use the name directly, no need to check r.id
     setRecruiters(Object.values(rec).slice(0,6).map(r => ({
       name: r.name,
-      count: r.count
+      count: r.count,
+      joined: r.joined,
     })));
     setLoading(false);
   };
@@ -211,6 +265,7 @@ function Dashboard() {
         <Kpi label="Open Positions" value={stats.jobs ?? 0} icon={Briefcase} tone="cyan" loading={loading}/>
         <Kpi label="Revenue" value={`₹${(stats.revenue ?? 0).toLocaleString()}`} icon={Wallet} tone="success" loading={loading}/>
         <Kpi label="Pending Payments" value={`₹${(stats.pending ?? 0).toLocaleString()}`} icon={Clock} tone="danger" loading={loading}/>
+        <Kpi label="Rejected / Dropped" value={`${stats.exitRate ?? 0}%`} hint="of total pipeline" icon={UserX} tone="danger" loading={loading}/>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -232,7 +287,12 @@ function Dashboard() {
           </CardContent>
         </Card>
         <Card className="card-hover">
-          <CardHeader><CardTitle>Hiring Funnel</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Hiring Funnel</CardTitle>
+            <CardDescription>
+              {loading ? "Loading…" : `${funnel.find(f=>f.stage==="joined")?.pct ?? 0}% of the pipeline reaches Joined`}
+            </CardDescription>
+          </CardHeader>
           <CardContent className="h-72">
             {loading ? <ChartSkeleton /> : (
             <ResponsiveContainer><BarChart data={funnel}>
@@ -242,8 +302,16 @@ function Dashboard() {
                   <stop offset="100%" stopColor={CHART_PRIMARY}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="stage" tick={{fontSize:11}} stroke="currentColor"/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
-              <Bar dataKey="count" fill="url(#barGrad)" radius={[6,6,0,0]}/>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="stage" tick={{fontSize:11}} stroke="currentColor"/><YAxis stroke="currentColor" tick={{fontSize:11}}/>
+              <Tooltip
+                contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}
+                formatter={(value:any, name:string, props:any) =>
+                  name === "reached" ? [`${value} (${props.payload.pct}%)`, "Reached this stage+"] : [value, "Currently here"]
+                }
+              />
+              <Legend wrapperStyle={{fontSize: 11}}/>
+              <Bar dataKey="current" name="Currently here" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
+              <Bar dataKey="reached" name="Reached this stage+" fill="url(#barGrad)" radius={[6,6,0,0]}/>
             </BarChart></ResponsiveContainer>
             )}
           </CardContent>
@@ -263,12 +331,40 @@ function Dashboard() {
           </CardContent>
         </Card>
         <Card className="card-hover">
-          <CardHeader><CardTitle>Recruiter Performance</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Source Effectiveness</CardTitle>
+            <CardDescription>% of each source's candidates that reached Joined — not just lead volume</CardDescription>
+          </CardHeader>
+          <CardContent className="h-72">
+            {loading ? <ChartSkeleton /> : sourceEffectiveness.length ? (
+              <ResponsiveContainer><BarChart data={sourceEffectiveness} layout="vertical" margin={{ left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/>
+                <XAxis type="number" stroke="currentColor" tick={{fontSize:11}} unit="%"/>
+                <YAxis type="category" dataKey="name" stroke="currentColor" tick={{fontSize:11}} width={110}/>
+                <Tooltip
+                  contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}
+                  formatter={(_:any, __:string, props:any) => [`${props.payload.joined} of ${props.payload.total} joined (${props.payload.rate}%)`, "Hire rate"]}
+                />
+                <Bar dataKey="rate" fill={CHART_PRIMARY} radius={[0,6,6,0]}/>
+              </BarChart></ResponsiveContainer>
+            ) : (
+              <ChartEmptyState label="No candidates yet — source effectiveness will appear here once added." />
+            )}
+          </CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardHeader>
+            <CardTitle>Recruiter Performance</CardTitle>
+            <CardDescription>Assigned candidates vs. how many actually reached Joined</CardDescription>
+          </CardHeader>
           <CardContent className="h-72">
             {loading ? <ChartSkeleton /> : recruiters.length ? (
               <ResponsiveContainer><BarChart data={recruiters}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/><Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
-                <Bar dataKey="count" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/>
+                <Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
+                <Legend wrapperStyle={{fontSize: 11}}/>
+                <Bar dataKey="count" name="Assigned" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
+                <Bar dataKey="joined" name="Joined" fill={CHART_PRIMARY} radius={[6,6,0,0]}/>
               </BarChart></ResponsiveContainer>
             ) : (
               <ChartEmptyState label="No candidates assigned to recruiters yet." />
