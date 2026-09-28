@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet, Link, createRootRouteWithContext, useRouter,
@@ -49,8 +50,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/sPWNKESV05OSIY3MMKo9eeN60jx2/social-images/social-1778593823629-AMF_SV_New_Logo.webp" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
+      // Lets a phone install this as a home-screen app (see public/manifest.webmanifest
+      // + public/sw.js). theme-color tints the OS status bar/task-switcher to match
+      // the app's own dark chrome instead of leaving it default white.
+      { name: "theme-color", content: "#12142a" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "AMF CRM" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -72,6 +85,22 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Registering the (deliberately no-op) service worker is what actually
+  // makes the manifest's "install as app" behavior available on Android/
+  // Chrome — the manifest alone isn't enough there. iOS Safari doesn't use
+  // this at all (its "Add to Home Screen" only ever reads the manifest/meta
+  // tags), so this quietly does nothing there, which is fine.
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {
+        // Installability is a nice-to-have, not a requirement — a failed
+        // registration (unsupported browser, blocked by an extension, etc.)
+        // should never surface as an error to the user.
+      });
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrandingProvider>

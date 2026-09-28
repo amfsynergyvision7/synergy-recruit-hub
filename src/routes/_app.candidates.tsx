@@ -7,6 +7,7 @@ import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { ResumeSummaryButton } from "@/components/ResumeSummaryButton";
 import { DriveImportButton } from "@/components/DriveImportButton";
+import { PhoneCell } from "@/components/PhoneCell";
 import { Table2, LayoutGrid } from "lucide-react";
 
 export const Route = createFileRoute("/_app/candidates")({ component: Page });
@@ -91,7 +92,13 @@ function Page() {
         // deliberately, since it's also the order fields appear in that panel.
         { name: "candidate_code", label: "Code", hideInForm: true, hideInTable: true },
         { name: "full_name", label: "Full Name", required: true, essential: true },
-        { name: "mobile", label: "Mobile", type: "tel", essential: true },
+        {
+          name: "mobile",
+          label: "Mobile",
+          type: "tel",
+          essential: true,
+          render: (row) => <PhoneCell value={row.mobile} />,
+        },
         { name: "email", label: "Email", type: "email" },
         { name: "location", label: "Location", hideInTable: true },
         { name: "position_applied", label: "Position", hideInTable: true },
