@@ -57,7 +57,7 @@ function Page() {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <DriveImportButton />
         <div className="inline-flex rounded-md border border-border p-0.5">
           <Button variant={view === "table" ? "secondary" : "ghost"} size="sm" onClick={() => setView("table")}>

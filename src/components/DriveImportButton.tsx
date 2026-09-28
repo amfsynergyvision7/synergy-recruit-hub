@@ -45,7 +45,11 @@ export function DriveImportButton() {
         onClick={() => { setOpen(true); mut.mutate(); }}
       >
         <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${mut.isPending ? "animate-spin" : ""}`} />
-        {mut.isPending ? "Checking Drive…" : "Check Google Drive for new resumes"}
+        {/* Full label on a screen wide enough for it; a short one below sm
+            so this button doesn't push the Table/Board toggle off a phone
+            screen (that row wraps now too, but this keeps it from needing to). */}
+        <span className="hidden sm:inline">{mut.isPending ? "Checking Drive…" : "Check Google Drive for new resumes"}</span>
+        <span className="sm:hidden">{mut.isPending ? "Checking…" : "Check Drive"}</span>
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

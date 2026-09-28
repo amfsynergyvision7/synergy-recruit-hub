@@ -130,19 +130,28 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
 
-  // Mobile table strategy: a module with 8-11 columns is unreadable on a
-  // phone if every column tries to show up. Rather than force the table
-  // wider than the screen and make people scroll to reach columns (which
-  // doesn't hold up well in practice — the sticky/min-width version of this
-  // forced a min-width based on the FULL column count, so it also forced
-  // horizontal scrolling on real desktop windows narrower than that, which
-  // is a regression nobody wants), we just hide non-essential columns below
-  // 768px via `max-md:hidden` on each cell (see the table below) and let the
-  // remaining few columns (pinned first field + fields marked `essential` +
-  // Actions) share the actual viewport width with zero forced minimum. No
-  // min-width, no sticky columns, no horizontal scroll — on desktop
-  // (`md:` and up) this file now behaves exactly as it did before any
-  // mobile work: plain `w-full table-fixed`.
+  // Mobile strategy: a real <table> just doesn't work on a phone — squeezing
+  // even 4-5 columns (plus Actions) into ~360px of width forces every cell so
+  // narrow that names wrap one character per line and anything with its own
+  // width (the call/WhatsApp icons on a phone number, a status pill) gets cut
+  // off or overlaps its neighbor. An earlier version tried to fix this by
+  // hiding non-essential columns below 768px and hoping the rest fit — it
+  // didn't hold up once a cell held more than plain text.
+  //
+  // Below `md`, this renders a stacked card per record instead: the table is
+  // wrapped in `hidden md:block` and a separate `md:hidden` card list (below)
+  // takes over. A card has no column-width problem — every field gets its
+  // own full-width row — so it shows ALL of `tableFields`, not just the ones
+  // marked `essential`. `essential` (and the `max-md:hidden` it used to add
+  // to table cells) is now a no-op kept only so existing module configs
+  // don't need to change; the table itself is desktop/tablet-only now, so
+  // nothing below `md` ever reads it.
+  //
+  // One deliberate gap: the per-column filter row (the "Filter…" inputs
+  // under each header) only exists in the desktop table — the mobile card
+  // list relies on the global Search box at the top instead. Column filters
+  // are a power-user feature that's awkward to fit onto a phone screen
+  // anyway; Search covers the common "find this one candidate" case.
 
   const load = async () => {
     setLoading(true);
@@ -329,14 +338,18 @@ export function CrudModule({ title, description, table, module, fields, searchFi
           <h1 className="text-2xl font-semibold">{title}</h1>
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* w-full below sm: this row now wraps (flex-wrap above) instead of
+              being forced onto one line and clipped at the screen edge, and a
+              fixed w-64 search box would still overflow a ~360px phone width
+              on its own — sm:w-64 only kicks in once there's room for it. */}
+          <div className="relative w-full sm:w-64">
             <Search
               className="pointer-events-none absolute text-muted-foreground"
               style={{ left: "0.75rem", top: "50%", transform: "translateY(-50%)", width: "1rem", height: "1rem" }}
             />
             <Input
-              className="w-64"
+              className="w-full"
               style={{ paddingLeft: "2.5rem" }}
               placeholder="Search…"
               value={search}
@@ -426,6 +439,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">{loading ? "Loading…" : `${filtered.length} record(s)`}</CardTitle></CardHeader>
         <CardContent className="overflow-x-hidden">
+          {/* Desktop/tablet only — see the mobile-strategy note above
+              tableFields. The mobile card list is the sibling block below. */}
+          <div className="hidden md:block">
           <Table className="w-full table-fixed text-xs">
             <TableHeader>
               <TableRow>
@@ -438,8 +454,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     />
                   </TableHead>
                 )}
-                {tableFields.map((f, i) => (
-                  <TableHead key={f.name} className={`h-auto min-w-0 px-1.5 py-1.5 text-xs font-medium whitespace-normal break-words ${i > 0 && !f.essential ? "max-md:hidden" : ""}`}>
+                {tableFields.map((f) => (
+                  <TableHead key={f.name} className="h-auto min-w-0 px-1.5 py-1.5 text-xs font-medium whitespace-normal break-words">
                     {f.label}
                   </TableHead>
                 ))}
@@ -447,8 +463,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               </TableRow>
               <TableRow className="hover:bg-transparent">
                 {deletable && <TableHead className="w-8 h-auto px-1 py-1" />}
-                {tableFields.map((f, i) => (
-                  <TableHead key={`${f.name}-filter`} className={`h-auto min-w-0 px-1.5 py-1 font-medium ${i > 0 && !f.essential ? "max-md:hidden" : ""}`}>
+                {tableFields.map((f) => (
+                  <TableHead key={`${f.name}-filter`} className="h-auto min-w-0 px-1.5 py-1 font-medium">
                     {columnFilterMeta.discrete.has(f.name) ? (
                       <Select
                         value={columnFilters[f.name] || ALL_FILTER}
@@ -507,8 +523,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                       />
                     </TableCell>
                   )}
-                  {tableFields.map((f, i) => (
-                    <TableCell key={f.name} className={`min-w-0 px-1.5 py-1.5 text-xs whitespace-normal break-words ${i > 0 && !f.essential ? "max-md:hidden" : ""}`}>
+                  {tableFields.map((f) => (
+                    <TableCell key={f.name} className="min-w-0 px-1.5 py-1.5 text-xs whitespace-normal break-words">
                       {f.render ? f.render(row) : (cellDisplayValue(row, f, relationOptions) || "—")}
                     </TableCell>
                   ))}
@@ -543,6 +559,88 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               )}
             </TableBody>
           </Table>
+          </div>
+
+          {/* Mobile: one card per record instead of a squeezed table row —
+              see the mobile-strategy note above tableFields. Shows every
+              field in tableFields (not just `essential` ones), since a
+              stacked card has no column-width limit to work around. */}
+          <div className="space-y-2 md:hidden">
+            {deletable && filtered.length > 0 && (
+              <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
+                <Checkbox
+                  checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => toggleAll(!!v)}
+                  aria-label="Select all"
+                />
+                <span>Select all ({filtered.length})</span>
+              </div>
+            )}
+
+            {loading && rows.length === 0 ? (
+              SKELETON_ROW_WIDTHS.slice(0, 4).map((w, i) => (
+                <div key={`mskel-${i}`} className="rounded-lg border border-border p-3">
+                  <Skeleton className="h-4" style={{ width: w }} />
+                </div>
+              ))
+            ) : filtered.map((row) => (
+              <div
+                key={row.id}
+                data-state={selected.has(row.id) ? "selected" : undefined}
+                className="rounded-lg border border-border bg-card p-3 data-[state=selected]:border-primary"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-start gap-2">
+                    {deletable && (
+                      <Checkbox
+                        className="mt-0.5 shrink-0"
+                        checked={selected.has(row.id)}
+                        onCheckedChange={(v) => toggleRow(row.id, !!v)}
+                        aria-label="Select row"
+                      />
+                    )}
+                    <div className="min-w-0 break-words font-medium">
+                      {tableFields[0]?.render ? tableFields[0].render(row) : (cellDisplayValue(row, tableFields[0], relationOptions) || "—")}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
+                    {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
+                    {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
+                  </div>
+                </div>
+                {tableFields.length > 1 && (
+                  <div className="mt-2 space-y-2 border-t border-border pt-2 text-sm">
+                    {tableFields.slice(1).map((f) => (
+                      <div key={f.name}>
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{f.label}</div>
+                        <div className="mt-0.5 break-words">{f.render ? f.render(row) : (cellDisplayValue(row, f, relationOptions) || "—")}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {!loading && !filtered.length && (
+              <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border py-10 text-center">
+                <Inbox className="h-7 w-7 text-muted-foreground/40 mb-1" />
+                <div className="text-sm font-medium">
+                  {hasColumnFilters || search ? "No matching records" : "No records yet"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {hasColumnFilters || search
+                    ? "Try adjusting your search or filters."
+                    : "Get started by adding your first one."}
+                </div>
+                {editable && !hasColumnFilters && !search && (
+                  <Button size="sm" className="mt-2" onClick={openCreate}>
+                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Add {title.replace(/s$/, "")}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
