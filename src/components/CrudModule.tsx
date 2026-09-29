@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye } from "lucide-react";
+import { Check, ChevronsUpDown, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail } from "lucide-react";
+import { EmailComposeDialog } from "@/components/EmailComposeDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +66,14 @@ interface Props {
    * has been trimmed down to just a few glanceable columns, with the rest of
    * the record still one click away instead of crowding the table itself. */
   detailView?: boolean;
+  /** Name of the field holding an email address (e.g. "email"). When set, a
+   * Mail icon appears in row actions (desktop table, mobile card, and the
+   * detail-view sheet if that's also on) for any row where that field is
+   * non-empty, opening a compose dialog that sends via Resend and logs the
+   * result to email_log. Only "candidates" and "clients" are wired up to
+   * this today (see EmailComposeDialog's relatedTable allowlist) — passing
+   * it for another table would need that allowlist extended first. */
+  emailField?: string;
 }
 
 const ALL_FILTER = "__all__";
@@ -111,10 +120,11 @@ function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
   return distinctCount > 0 && distinctCount <= DISCRETE_FILTER_MAX;
 }
 
-export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView }: Props) {
+export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField }: Props) {
   const { role } = useAuth();
   const editable = canEdit(role, module);
   const deletable = canDelete(role);
+  const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -143,6 +153,10 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   // likely to be a mistake than something intended.
   const bulkEditableFields = useMemo(() => formFields.filter((f) => f.type !== "textarea"), [formFields]);
   const activeBulkEditField = bulkEditableFields.find((f) => f.name === bulkEditField);
+  // Actions column widens as more icons stack up: Edit+Delete alone (w-20),
+  // one extra (Eye from detailView, or Mail from emailField) needs w-28, and
+  // Candidates today uses both at once (Eye+Mail+Edit+Delete) so it needs w-36.
+  const actionsColWidth = detailView && emailField ? "w-36" : detailView || emailField ? "w-28" : "w-20";
 
   // Mobile strategy: a real <table> just doesn't work on a phone — squeezing
   // even 4-5 columns (plus Actions) into ~360px of width forces every cell so
@@ -639,7 +653,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                     {f.label}
                   </TableHead>
                 ))}
-                <TableHead className={`${detailView ? "w-28" : "w-20"} px-1 py-1.5 text-right text-xs whitespace-nowrap`}>Actions</TableHead>
+                <TableHead className={`${actionsColWidth} px-1 py-1.5 text-right text-xs whitespace-nowrap`}>Actions</TableHead>
               </TableRow>
               {/* The old per-column filter row (a Select or Input squeezed into
                   every visible column's header) lived here. It's gone — it
@@ -681,8 +695,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                       {f.render ? f.render(row) : (cellDisplayValue(row, f, relationOptions) || "—")}
                     </TableCell>
                   ))}
-                  <TableCell className={`${detailView ? "w-28" : "w-20"} px-1 py-1.5 text-right whitespace-nowrap space-x-0`}>
+                  <TableCell className={`${actionsColWidth} px-1 py-1.5 text-right whitespace-nowrap space-x-0`}>
                     {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
+                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </TableCell>
@@ -758,6 +773,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5">
                     {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
+                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </div>
@@ -855,6 +871,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                 </div>
                 {(editable || deletable) && (
                   <SheetFooter className="mt-6">
+                    {emailField && viewing[emailField] && editable && (
+                      <Button variant="outline" onClick={() => { const row = viewing; setViewing(null); setMailingRow(row); }}>
+                        <Mail className="h-3.5 w-3.5 mr-2" />Email
+                      </Button>
+                    )}
                     {editable && (
                       <Button variant="outline" onClick={() => { const row = viewing; setViewing(null); openEdit(row); }}>
                         <Pencil className="h-3.5 w-3.5 mr-2" />Edit
@@ -871,6 +892,17 @@ export function CrudModule({ title, description, table, module, fields, searchFi
             )}
           </SheetContent>
         </Sheet>
+      )}
+
+      {emailField && (
+        <EmailComposeDialog
+          open={!!mailingRow}
+          onOpenChange={(v) => !v && setMailingRow(null)}
+          relatedTable={table as any}
+          relatedId={mailingRow?.id}
+          toEmail={mailingRow?.[emailField] ?? ""}
+          toName={mailingRow ? (String(cellDisplayValue(mailingRow, tableFields[0], relationOptions) || "")) : ""}
+        />
       )}
     </div>
   );

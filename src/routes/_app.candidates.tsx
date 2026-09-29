@@ -83,6 +83,7 @@ function Page() {
       table="candidates"
       module="candidates"
       detailView
+      emailField="email"
       searchFields={["full_name","email","mobile","candidate_code","position_applied"]}
       fields={[
         // Only Name, Phone, Email, the resume Summary button, and Stage show

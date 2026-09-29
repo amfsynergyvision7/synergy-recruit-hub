@@ -16,6 +16,7 @@ function Page() {
       description="Manage client companies and engagement details."
       table="clients"
       module="clients"
+      emailField="email"
       searchFields={["company_name","contact_person","email"]}
       fields={[
         { name: "company_name", label: "Company", required: true },

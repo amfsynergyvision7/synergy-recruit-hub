@@ -74,6 +74,48 @@ export type Database = {
         }
         Relationships: []
       }
+      email_log: {
+        Row: {
+          body: string
+          created_at: string
+          error: string | null
+          id: string
+          provider_id: string | null
+          related_id: string
+          related_table: string
+          sent_by: string | null
+          status: string
+          subject: string
+          to_email: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          provider_id?: string | null
+          related_id: string
+          related_table: string
+          sent_by?: string | null
+          status?: string
+          subject: string
+          to_email: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          provider_id?: string | null
+          related_id?: string
+          related_table?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+        }
+        Relationships: []
+      }
       billing: {
         Row: {
           candidate_id: string | null
