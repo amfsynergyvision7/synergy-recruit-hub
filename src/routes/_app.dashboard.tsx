@@ -288,31 +288,20 @@ function Dashboard() {
         </Card>
         <Card className="card-hover">
           <CardHeader>
-            <CardTitle>Hiring Funnel</CardTitle>
-            <CardDescription>
-              {loading ? "Loading…" : `${funnel.find(f=>f.stage==="joined")?.pct ?? 0}% of the pipeline reaches Joined`}
-            </CardDescription>
+            <CardTitle>Recruiter Performance</CardTitle>
+            <CardDescription>Assigned candidates vs. how many actually reached Joined</CardDescription>
           </CardHeader>
           <CardContent className="h-72">
-            {loading ? <ChartSkeleton /> : (
-            <ResponsiveContainer><BarChart data={funnel}>
-              <defs>
-                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={CHART_ACCENT}/>
-                  <stop offset="100%" stopColor={CHART_PRIMARY}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="stage" tick={{fontSize:11}} stroke="currentColor"/><YAxis stroke="currentColor" tick={{fontSize:11}}/>
-              <Tooltip
-                contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}
-                formatter={(value:any, name:string, props:any) =>
-                  name === "reached" ? [`${value} (${props.payload.pct}%)`, "Reached this stage+"] : [value, "Currently here"]
-                }
-              />
-              <Legend wrapperStyle={{fontSize: 11}}/>
-              <Bar dataKey="current" name="Currently here" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
-              <Bar dataKey="reached" name="Reached this stage+" fill="url(#barGrad)" radius={[6,6,0,0]}/>
-            </BarChart></ResponsiveContainer>
+            {loading ? <ChartSkeleton /> : recruiters.length ? (
+              <ResponsiveContainer><BarChart data={recruiters}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/>
+                <Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
+                <Legend wrapperStyle={{fontSize: 11}}/>
+                <Bar dataKey="count" name="Assigned" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
+                <Bar dataKey="joined" name="Joined" fill={CHART_PRIMARY} radius={[6,6,0,0]}/>
+              </BarChart></ResponsiveContainer>
+            ) : (
+              <ChartEmptyState label="No candidates assigned to recruiters yet." />
             )}
           </CardContent>
         </Card>
@@ -352,22 +341,37 @@ function Dashboard() {
             )}
           </CardContent>
         </Card>
-        <Card className="card-hover">
+        {/* Full-width (lg:col-span-2) instead of sharing a row — doubling its
+            display width — and a taller h-96 instead of h-72, so all 10
+            pipeline stages get room to breathe instead of cramming their
+            labels into a half-width card. */}
+        <Card className="card-hover lg:col-span-2">
           <CardHeader>
-            <CardTitle>Recruiter Performance</CardTitle>
-            <CardDescription>Assigned candidates vs. how many actually reached Joined</CardDescription>
+            <CardTitle>Hiring Funnel</CardTitle>
+            <CardDescription>
+              {loading ? "Loading…" : `${funnel.find(f=>f.stage==="joined")?.pct ?? 0}% of the pipeline reaches Joined`}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="h-72">
-            {loading ? <ChartSkeleton /> : recruiters.length ? (
-              <ResponsiveContainer><BarChart data={recruiters}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="name" stroke="currentColor" tick={{fontSize:11}}/><YAxis stroke="currentColor" tick={{fontSize:11}}/>
-                <Tooltip contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}/>
-                <Legend wrapperStyle={{fontSize: 11}}/>
-                <Bar dataKey="count" name="Assigned" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
-                <Bar dataKey="joined" name="Joined" fill={CHART_PRIMARY} radius={[6,6,0,0]}/>
-              </BarChart></ResponsiveContainer>
-            ) : (
-              <ChartEmptyState label="No candidates assigned to recruiters yet." />
+          <CardContent className="h-96">
+            {loading ? <ChartSkeleton /> : (
+            <ResponsiveContainer><BarChart data={funnel}>
+              <defs>
+                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_ACCENT}/>
+                  <stop offset="100%" stopColor={CHART_PRIMARY}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.25)"/><XAxis dataKey="stage" tick={{fontSize:11}} stroke="currentColor"/><YAxis stroke="currentColor" tick={{fontSize:11}}/>
+              <Tooltip
+                contentStyle={{borderRadius:8, border:"1px solid var(--border)", background:"var(--card)"}}
+                formatter={(value:any, name:string, props:any) =>
+                  name === "reached" ? [`${value} (${props.payload.pct}%)`, "Reached this stage+"] : [value, "Currently here"]
+                }
+              />
+              <Legend wrapperStyle={{fontSize: 11}}/>
+              <Bar dataKey="current" name="Currently here" fill={CHART_ACCENT} radius={[6,6,0,0]}/>
+              <Bar dataKey="reached" name="Reached this stage+" fill="url(#barGrad)" radius={[6,6,0,0]}/>
+            </BarChart></ResponsiveContainer>
             )}
           </CardContent>
         </Card>
