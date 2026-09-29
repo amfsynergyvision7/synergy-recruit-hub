@@ -3,11 +3,21 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Check } from "lucide-react";
+import { Bell, Calendar, Check, Clock, IndianRupee, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_app/notifications")({ component: Page });
+
+// Real reminders are generated hourly by a Postgres/pg_cron job (see the
+// 20260929060000_reminder_automation.sql migration) — this just picks the right
+// icon per reminder type so the feed is scannable at a glance.
+const TYPE_ICON: Record<string, typeof Bell> = {
+  interview_reminder: Calendar,
+  payment_overdue: IndianRupee,
+  joining_followup: UserCheck,
+  stalled_followup: Clock,
+};
 
 function Page() {
   const { user } = useAuth();
@@ -45,9 +55,11 @@ function Page() {
       </div>
       <Card><CardHeader><CardTitle className="text-base">{items.length} notification(s)</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {items.map(n => (
+          {items.map(n => {
+            const Icon = TYPE_ICON[n.type ?? ""] ?? Bell;
+            return (
             <div key={n.id} className={`flex items-start gap-3 p-3 rounded-md border ${n.is_read ? "bg-muted/30" : "bg-background"}`}>
-              <Bell className="h-4 w-4 mt-1 text-primary"/>
+              <Icon className="h-4 w-4 mt-1 text-primary"/>
               <div className="flex-1">
                 <div className="font-medium text-sm">{n.title}</div>
                 {n.message && <div className="text-xs text-muted-foreground">{n.message}</div>}
@@ -55,7 +67,8 @@ function Page() {
               </div>
               {!n.is_read && <Button size="icon" variant="ghost" onClick={()=>markRead(n.id)}><Check className="h-4 w-4"/></Button>}
             </div>
-          ))}
+            );
+          })}
           {!items.length && <div className="text-sm text-muted-foreground text-center py-8">No notifications</div>}
         </CardContent>
       </Card>

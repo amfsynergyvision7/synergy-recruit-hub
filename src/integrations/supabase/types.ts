@@ -608,6 +608,8 @@ export type Database = {
           id: string
           is_read: boolean | null
           message: string | null
+          related_id: string | null
+          related_table: string | null
           title: string
           type: string | null
           user_id: string | null
@@ -617,6 +619,8 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message?: string | null
+          related_id?: string | null
+          related_table?: string | null
           title: string
           type?: string | null
           user_id?: string | null
@@ -626,6 +630,8 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message?: string | null
+          related_id?: string | null
+          related_table?: string | null
           title?: string
           type?: string | null
           user_id?: string | null
