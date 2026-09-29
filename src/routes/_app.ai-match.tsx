@@ -45,16 +45,35 @@ function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
 
   return (
     <div className="rounded-md border border-border">
-      <div className="flex items-center justify-between gap-3 p-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="truncate font-medium">{match.fullName}</span>
-            {match.candidateCode && <span className="shrink-0 text-xs text-muted-foreground">{match.candidateCode}</span>}
+      <div className="p-3">
+        {/* Name/code/reason get the full-width row to themselves — wrapping,
+            not shrink-0 — so they never have to fight the action buttons for
+            space on a narrow phone (that's what let "CAND-1081" render on top
+            of the score pill before). The score pill sits alone at top-right,
+            small and shrink-0 with nothing else in its row to be squeezed by.
+            The buttons move to their own flex-wrap row below a divider,
+            mirroring the divider-plus-stacked-content pattern already used
+            in CrudModule's mobile cards. */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            {/* Deliberately NOT a flex row: a flex item's min-content width is
+                computed from its longest unbreakable word regardless of
+                break-words/overflow-wrap, so a name with no spaces (e.g. a
+                long single-word surname) would still push past the
+                container and back under the score pill. Plain block/inline
+                flow has no such floor — it wraps to whatever width the
+                min-w-0 parent above already resolved to. */}
+            <div className="break-words font-medium">
+              {match.fullName}
+              {match.candidateCode && <span className="ml-2 text-xs font-normal text-muted-foreground">{match.candidateCode}</span>}
+            </div>
+            <p className="mt-0.5 break-words text-xs text-muted-foreground">{match.reason}</p>
           </div>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">{match.reason}</p>
+          <div className="shrink-0">
+            <StatusPill label={`${match.score}/100`} tone={scoreTone(match.score)} />
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <StatusPill label={`${match.score}/100`} tone={scoreTone(match.score)} />
+        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2">
           <Button variant="ghost" size="sm" onClick={handleToggle}>
             <FileSearch className="h-3.5 w-3.5 mr-1.5" />
             Deep match

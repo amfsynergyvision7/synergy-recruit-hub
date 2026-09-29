@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, FilterX, Plus, Pencil, Trash2, Search, Inbox, Eye } from "lucide-react";
+import { Check, ChevronsUpDown, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -126,6 +126,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
@@ -215,6 +216,20 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const openView = (row: any) => setViewing(row);
 
   const save = async () => {
+    // Catch an empty required field here, with a message naming the actual
+    // field, instead of letting it reach Supabase and come back as a raw
+    // Postgres "null value in column ... violates not-null constraint" —
+    // technically correct, but meaningless to whoever's filling out the form.
+    const missing = formFields.filter((f) => {
+      if (!f.required) return false;
+      const v = form[f.name];
+      return v === undefined || v === null || String(v).trim() === "";
+    });
+    if (missing.length > 0) {
+      toast.error(`${missing.map((f) => f.label).join(", ")} ${missing.length > 1 ? "are" : "is"} required.`);
+      return;
+    }
+
     const payload: any = {};
     formFields.forEach((f) => {
       let v = form[f.name];
@@ -356,6 +371,21 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               onChange={(e)=>setSearch(e.target.value)}
             />
           </div>
+          {/* The desktop table has a per-column filter row (Stage, Source,
+              Assigned Recruiter, etc. as dropdowns) built into its header —
+              but that row lives inside the `hidden md:block` table, so on
+              mobile there was previously no way to filter by anything beyond
+              free-text Search. This opens the same filters in a bottom sheet
+              instead, md:hidden since the desktop table already shows them
+              inline. */}
+          <Button
+            variant="outline"
+            className="md:hidden"
+            onClick={() => setMobileFiltersOpen(true)}
+          >
+            <ListFilter className="h-4 w-4 mr-2"/>
+            Filters{hasColumnFilters ? ` (${Object.keys(columnFilters).length})` : ""}
+          </Button>
           <Button
             variant="outline"
             onClick={() => setColumnFilters({})}
@@ -643,6 +673,41 @@ export function CrudModule({ title, description, table, module, fields, searchFi
           </div>
         </CardContent>
       </Card>
+
+      <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle>Filter {title}</SheetTitle>
+            <SheetDescription>Narrow the list down — same filters as the desktop table's column headers.</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-4">
+            {tableFields.filter((f) => columnFilterMeta.discrete.has(f.name)).map((f) => (
+              <div key={f.name} className="space-y-1.5">
+                <Label>{f.label}</Label>
+                <Select
+                  value={columnFilters[f.name] || ALL_FILTER}
+                  onValueChange={(v) => setColumnFilter(f.name, v === ALL_FILTER ? "" : v)}
+                >
+                  <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_FILTER}>All</SelectItem>
+                    {(columnFilterMeta.options[f.name] ?? []).map((value) => (
+                      <SelectItem key={value} value={value}>{value}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            {tableFields.filter((f) => columnFilterMeta.discrete.has(f.name)).length === 0 && (
+              <p className="text-sm text-muted-foreground">Nothing filterable on this list beyond Search.</p>
+            )}
+          </div>
+          <SheetFooter className="mt-6">
+            <Button variant="outline" onClick={() => setColumnFilters({})} disabled={!hasColumnFilters}>Clear all</Button>
+            <Button onClick={() => setMobileFiltersOpen(false)}>Done</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {detailView && (
         <Sheet open={!!viewing} onOpenChange={(v) => !v && setViewing(null)}>
