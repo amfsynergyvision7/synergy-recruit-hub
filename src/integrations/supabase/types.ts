@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           id: number
           logo_url: string | null
+          default_color_theme: string
           resume_import_folder_url: string | null
           updated_at: string
           updated_by: string | null
@@ -25,6 +26,7 @@ export type Database = {
         Insert: {
           id?: number
           logo_url?: string | null
+          default_color_theme?: string
           resume_import_folder_url?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -32,6 +34,7 @@ export type Database = {
         Update: {
           id?: number
           logo_url?: string | null
+          default_color_theme?: string
           resume_import_folder_url?: string | null
           updated_at?: string
           updated_by?: string | null

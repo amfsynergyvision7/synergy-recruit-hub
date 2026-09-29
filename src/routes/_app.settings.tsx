@@ -9,6 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
+import { ThemePicker } from "@/components/ThemePicker";
+import type { ColorThemeId } from "@/lib/color-themes";
 
 export const Route = createFileRoute("/_app/settings")({ component: Page });
 
@@ -18,7 +20,7 @@ const LOGO_STORAGE_PATH = "company-logo";
 
 function Page() {
   const { profile, role, refresh } = useAuth();
-  const { logoUrl, refresh: refreshBranding } = useBranding();
+  const { logoUrl, defaultColorTheme, refresh: refreshBranding } = useBranding();
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
@@ -88,6 +90,16 @@ function Page() {
     refreshBranding();
   };
 
+  const setOrgDefaultTheme = async (id: ColorThemeId) => {
+    const { error } = await supabase
+      .from("app_settings")
+      .update({ default_color_theme: id, updated_by: profile?.id })
+      .eq("id", 1);
+    if (error) return toast.error(error.message);
+    toast.success("Organization default theme updated");
+    refreshBranding();
+  };
+
   const removeLogo = async () => {
     setUploading(true);
     await supabase.storage.from("branding").remove([LOGO_STORAGE_PATH]);
@@ -113,6 +125,22 @@ function Page() {
           <div className="space-y-2"><Label>Phone</Label><Input value={form.phone ?? ""} onChange={(e)=>setForm({...form,phone:e.target.value})}/></div>
           <div className="space-y-2"><Label>Department</Label><Input value={form.department ?? ""} onChange={(e)=>setForm({...form,department:e.target.value})}/></div>
           <Button onClick={save}>Save</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Theme</CardTitle>
+          <CardDescription>
+            Pick a color theme for your own view — it also changes the mandala mark in the sidebar, the top-right watermark, and the sign-in screen.
+            {role === "admin" && " As an admin, you can also set which one new/signed-out visitors see by default."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemePicker
+            isAdmin={role === "admin"}
+            orgDefault={defaultColorTheme}
+            onSetOrgDefault={role === "admin" ? setOrgDefaultTheme : undefined}
+          />
         </CardContent>
       </Card>
       {role === "admin" && (

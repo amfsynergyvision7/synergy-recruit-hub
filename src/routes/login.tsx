@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { BrandLogo, BrandMandala } from "@/components/BrandMark";
+import { useColorTheme } from "@/hooks/use-color-theme";
+import { hexToRgba } from "@/lib/color-themes";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -17,6 +19,12 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  // Same theme-driven glow as the sidebar's logo badge (see AppSidebar.tsx)
+  // so the login screen matches whichever color theme is active — including
+  // for a visitor who hasn't signed in yet, since useColorTheme falls back
+  // to the org-wide default from app_settings until a browser picks its own.
+  const { theme: colorTheme } = useColorTheme();
+  const glow = hexToRgba(colorTheme.mandala[0], 0.6);
 
   useEffect(() => { if (session) navigate({ to: "/dashboard" }); }, [session, navigate]);
 
@@ -42,11 +50,11 @@ function LoginPage() {
       <div className="flex flex-col justify-center lg:justify-between bg-sidebar text-sidebar-foreground p-6 lg:p-12 relative isolate overflow-hidden">
         <BrandMandala
           className="absolute -right-10 -bottom-10 h-[220px] w-[220px] lg:-right-24 lg:-bottom-24 lg:h-[70vh] lg:w-[70vh] -z-10"
-          style={{ opacity: 0.55, filter: "drop-shadow(0 0 40px rgba(47,230,255,0.3))" }}
+          style={{ opacity: 0.55, filter: `drop-shadow(0 0 40px ${hexToRgba(colorTheme.mandala[0], 0.3)})` }}
         />
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">
-            <BrandLogo className="h-9 w-9" style={{ filter: "drop-shadow(0 0 6px rgba(47,230,255,0.6))" }} />
+            <BrandLogo className="h-9 w-9" style={{ filter: `drop-shadow(0 0 6px ${glow})` }} />
           </div>
           <div>
             <div className="font-semibold">AMF Synergy Vision</div>

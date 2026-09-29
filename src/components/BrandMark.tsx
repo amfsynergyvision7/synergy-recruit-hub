@@ -1,18 +1,22 @@
 import * as React from "react";
 import { useBranding } from "@/hooks/use-branding";
+import { useColorTheme } from "@/hooks/use-color-theme";
 
 /**
- * Shared geometry for the AMF Synergy Vision neon mandala mark: concentric rings of
- * teardrop "petals" around a core ring, all painted with one cyan → violet → magenta
- * radial gradient. BrandMark is a simplified single-ring version for small UI chrome
- * (headers, nav bars); BrandMandala is the full three-ring version meant for hero
- * sections and corner watermarks. Opacity is tuned to stay clearly visible rather
- * than fade into a ghost at small sizes or low layering.
+ * Shared geometry for the AMF Synergy Vision mandala mark: concentric rings of
+ * teardrop "petals" around a core ring, all painted with one radial gradient.
+ * The three gradient stops come from whichever color theme is active (see
+ * src/lib/color-themes.ts) — this is the piece that makes switching themes
+ * in Settings re-skin the mandala everywhere it's drawn (sidebar, login
+ * panel, the corner watermark on every app page), not just the rest of the
+ * UI's flat colors. BrandMark is a simplified single-ring version for small
+ * UI chrome (headers, nav bars); BrandMandala is the full three-ring version
+ * meant for hero sections and corner watermarks. Opacity is tuned to stay
+ * clearly visible rather than fade into a ghost at small sizes or low
+ * layering.
  */
 
 type RingSpec = { r: number; petals: number; len: number; w: number };
-
-const NEON_GRADIENT: [string, string, string] = ["#2fe6ff", "#9b6bff", "#ff3fd0"];
 
 function petalPath(ring: RingSpec) {
   const r0 = ring.r - ring.len * 0.35;
@@ -47,14 +51,16 @@ function Mandala({
 }) {
   const id = React.useId();
   const gradId = `${id}-grad`;
+  const { theme } = useColorTheme();
+  const gradient = theme.mandala;
 
   return (
     <svg viewBox={viewBox} className={className} style={style} aria-hidden="true">
       <defs>
         <radialGradient id={gradId}>
-          <stop offset="0%" stopColor={NEON_GRADIENT[0]} />
-          <stop offset="55%" stopColor={NEON_GRADIENT[1]} />
-          <stop offset="100%" stopColor={NEON_GRADIENT[2]} />
+          <stop offset="0%" stopColor={gradient[0]} />
+          <stop offset="55%" stopColor={gradient[1]} />
+          <stop offset="100%" stopColor={gradient[2]} />
         </radialGradient>
       </defs>
 

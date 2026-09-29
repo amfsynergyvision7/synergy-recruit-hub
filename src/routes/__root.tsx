@@ -6,8 +6,22 @@ import {
 } from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/use-auth";
-import { BrandingProvider } from "@/hooks/use-branding";
+import { BrandingProvider, useBranding } from "@/hooks/use-branding";
+import { useColorTheme } from "@/hooks/use-color-theme";
 import { Toaster } from "@/components/ui/sonner";
+
+// Applies the org-wide default color theme (from app_settings, via
+// BrandingProvider) as early as possible on every route, including /login,
+// which has no session yet. Renders nothing — useColorTheme's own effect is
+// what writes the CSS custom properties onto <html>. Individual components
+// (BrandMark, the sidebar/login glow, the Settings picker) each call
+// useColorTheme() again themselves to read or change the active theme; all
+// mounted calls stay in sync via the hook's own broadcast event.
+function ColorThemeBootstrap() {
+  const { defaultColorTheme } = useBranding();
+  useColorTheme(defaultColorTheme);
+  return null;
+}
 
 function NotFoundComponent() {
   return (
@@ -104,6 +118,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrandingProvider>
+        <ColorThemeBootstrap />
         <AuthProvider>
           <Outlet />
           <Toaster richColors position="top-right" />

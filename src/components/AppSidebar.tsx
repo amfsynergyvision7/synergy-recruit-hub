@@ -11,6 +11,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { BrandLogo, BrandMandala } from "./BrandMark";
+import { useColorTheme } from "@/hooks/use-color-theme";
+import { hexToRgba } from "@/lib/color-themes";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -38,6 +40,11 @@ const adminItems = [
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { profile, role, signOut } = useAuth();
+  // The glow around the brand logo badge is tuned to each color theme's own
+  // mandala hue (see src/lib/color-themes.ts) instead of a fixed cyan, so it
+  // never clashes once a theme like Navy & Gold or Warm Coral is active.
+  const { theme: colorTheme } = useColorTheme();
+  const glow = hexToRgba(colorTheme.mandala[0], 0.6);
 
   return (
     <Sidebar collapsible="icon">
@@ -48,7 +55,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shadow-glow">
-            <BrandLogo className="h-8 w-8" style={{ filter: "drop-shadow(0 0 5px rgba(47,230,255,0.6))" }} />
+            <BrandLogo className="h-8 w-8" style={{ filter: `drop-shadow(0 0 5px ${glow})` }} />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold tracking-tight">AMF Synergy Vision</span>

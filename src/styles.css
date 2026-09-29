@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Cinzel:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -60,6 +60,10 @@
    both light and dark mode — only the workspace content switches. */
 :root {
   --radius: 0.75rem;
+  /* Overridden per color theme (see src/lib/color-themes.ts + use-color-theme.ts)
+     — Navy & Gold swaps this to a serif display face; this is what every
+     other theme (including this default Neon look) falls back to. */
+  --font-display: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
   --background: #eee9fb;
   --foreground: #1a1830;
   --card: #ffffff;
@@ -152,7 +156,7 @@
     font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
   }
   h1, h2, h3, h4 {
-    font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-display);
     letter-spacing: 0.01em;
   }
 
@@ -223,7 +227,7 @@
     transition: transform 0.2s ease;
   }
   .font-display {
-    font-family: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-display);
     letter-spacing: 0.01em;
   }
 }
