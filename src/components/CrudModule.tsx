@@ -127,9 +127,22 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkEditField, setBulkEditField] = useState("");
+  const [bulkEditValue, setBulkEditValue] = useState<any>("");
+  const [bulkEditSaving, setBulkEditSaving] = useState(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
+  // What "select some rows, then change one field on all of them at once"
+  // (e.g. filter Candidates down to one recruiter's list, select the batch,
+  // reassign every one to a different recruiter in a single action) is
+  // allowed to touch. Free-text fields work here too (a Select or an Input,
+  // same as the Add/Edit form), but a textarea is excluded — overwriting
+  // Notes with identical text across many records in one click is much more
+  // likely to be a mistake than something intended.
+  const bulkEditableFields = useMemo(() => formFields.filter((f) => f.type !== "textarea"), [formFields]);
+  const activeBulkEditField = bulkEditableFields.find((f) => f.name === bulkEditField);
 
   // Mobile strategy: a real <table> just doesn't work on a phone — squeezing
   // even 4-5 columns (plus Actions) into ~360px of width forces every cell so
@@ -354,6 +367,29 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     load();
   };
 
+  const closeBulkEdit = () => {
+    setBulkEditOpen(false);
+    setBulkEditField("");
+    setBulkEditValue("");
+  };
+
+  const applyBulkEdit = async () => {
+    const field = activeBulkEditField;
+    const ids = Array.from(selected);
+    if (!field || !ids.length) return;
+    let v = bulkEditValue;
+    if (v === "" || v === undefined) v = null;
+    if (field.type === "number" && v !== null) v = Number(v);
+    setBulkEditSaving(true);
+    const { error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids);
+    setBulkEditSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Updated ${field.label} for ${ids.length} record(s)`);
+    setSelected(new Set());
+    closeBulkEdit();
+    load();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -405,6 +441,109 @@ export function CrudModule({ title, description, table, module, fields, searchFi
             <FilterX className="h-4 w-4 mr-2"/>
             Clear filters
           </Button>
+          {editable && selected.size > 0 && bulkEditableFields.length > 0 && (
+            <Dialog open={bulkEditOpen} onOpenChange={(v) => (v ? setBulkEditOpen(true) : closeBulkEdit())}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Pencil className="h-4 w-4 mr-2"/>
+                  Bulk edit ({selected.size})
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Bulk edit {selected.size} {title.toLowerCase()}</DialogTitle>
+                </DialogHeader>
+                {/* Two steps: which field, then what to set it to — the second
+                    control reuses the exact same per-type renderer as the
+                    Add/Edit form (Select for a field with options, the
+                    search-and-select combobox for a relation, a plain input
+                    otherwise) so this behaves the way editing already does,
+                    just applied to every selected record in one write. */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Field to update</Label>
+                    <Select
+                      value={bulkEditField}
+                      onValueChange={(v) => { setBulkEditField(v); setBulkEditValue(""); }}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Choose a field…" /></SelectTrigger>
+                      <SelectContent>
+                        {bulkEditableFields.map((f) => (
+                          <SelectItem key={f.name} value={f.name}>{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {activeBulkEditField && (
+                    <div className="space-y-2">
+                      <Label>New {activeBulkEditField.label}</Label>
+                      {activeBulkEditField.type === "select" ? (
+                        <Select value={bulkEditValue ?? ""} onValueChange={(v) => setBulkEditValue(v)}>
+                          <SelectTrigger><SelectValue placeholder="Select…"/></SelectTrigger>
+                          <SelectContent>
+                            {activeBulkEditField.options?.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : activeBulkEditField.type === "relation" && activeBulkEditField.relation ? (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                              <span className="truncate">
+                                {relationOptions[activeBulkEditField.name]?.find((r) => r.id === bulkEditValue)
+                                  ? activeBulkEditField.relation.label(relationOptions[activeBulkEditField.name].find((r) => r.id === bulkEditValue))
+                                  : "Search and select…"}
+                              </span>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder={`Search ${activeBulkEditField.label.toLowerCase()}…`} />
+                              <CommandList>
+                                <CommandEmpty>No match found.</CommandEmpty>
+                                <CommandGroup>
+                                  {(relationOptions[activeBulkEditField.name] ?? []).map((option) => (
+                                    <CommandItem
+                                      key={option.id}
+                                      value={`${activeBulkEditField.relation!.label(option)} ${activeBulkEditField.relation!.description?.(option) ?? ""}`}
+                                      onSelect={() => setBulkEditValue(option.id)}
+                                    >
+                                      <Check className={cn("mr-2 h-4 w-4", bulkEditValue === option.id ? "opacity-100" : "opacity-0")} />
+                                      <div className="min-w-0">
+                                        <div className="truncate">{activeBulkEditField.relation!.label(option)}</div>
+                                        {activeBulkEditField.relation!.description && <div className="truncate text-xs text-muted-foreground">{activeBulkEditField.relation!.description(option)}</div>}
+                                      </div>
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      ) : (
+                        <Input
+                          type={activeBulkEditField.type ?? "text"}
+                          value={bulkEditValue ?? ""}
+                          onChange={(e) => setBulkEditValue(e.target.value)}
+                        />
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Leaving this blank will clear {activeBulkEditField.label.toLowerCase()} on all {selected.size} selected record(s).
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={closeBulkEdit}>Cancel</Button>
+                  <Button onClick={applyBulkEdit} disabled={!bulkEditField || bulkEditSaving}>
+                    {bulkEditSaving ? "Updating…" : `Update ${selected.size} record(s)`}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
           {deletable && selected.size > 0 && (
             <Button variant="destructive" onClick={bulkDelete} disabled={bulkDeleting}>
               <Trash2 className="h-4 w-4 mr-2"/>
