@@ -126,7 +126,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
@@ -261,10 +261,18 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     toast.success("Deleted"); load();
   };
 
+  // Filtering used to be scoped to `tableFields` — whatever columns the
+  // table happened to show — so a field hidden from the table to declutter
+  // it (like Assigned Recruiter here) had no filter at all, on desktop or
+  // mobile, even though it was still a perfectly normal field on every
+  // record. `formFields` is the right superset: every field the user can
+  // see and edit via Add/Edit, table-visible or not. Only `hideInForm`
+  // fields (e.g. the read-only candidate_code) stay out of this — nothing
+  // truly hidden from the user is filterable.
   const columnFilterMeta = useMemo(() => {
     const discrete = new Set<string>();
     const options: Record<string, string[]> = {};
-    for (const field of tableFields) {
+    for (const field of formFields) {
       const distinct = Array.from(
         new Set(
           rows
@@ -278,7 +286,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       }
     }
     return { discrete, options };
-  }, [tableFields, rows, relationOptions]);
+  }, [formFields, rows, relationOptions]);
 
   const filtered = rows.filter((r) => {
     if (search) {
@@ -286,7 +294,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       const sf = searchFields ?? tableFields.map((f) => f.name);
       if (!sf.some((k) => String(r[k] ?? "").toLowerCase().includes(s))) return false;
     }
-    for (const field of tableFields) {
+    for (const field of formFields) {
       const query = columnFilters[field.name]?.trim();
       if (!query) continue;
       const cell = cellDisplayValue(r, field, relationOptions).toLowerCase();
@@ -358,6 +366,24 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               being forced onto one line and clipped at the screen edge, and a
               fixed w-64 search box would still overflow a ~360px phone width
               on its own — sm:w-64 only kicks in once there's room for it. */}
+          {/* One "Filters" button now covers every field the record has —
+              not just whichever columns the table happens to show — and
+              opens the same panel at every screen width. It's placed before
+              Search in source order so that when this row wraps on a narrow
+              screen (flex-wrap above), it lands on its own line above the
+              search box rather than being buried after it. This replaces
+              both the old desktop per-column filter row baked into the
+              table header (which only covered visible columns, so a field
+              like Assigned Recruiter — hidden from the table to declutter
+              it — had no filter at all) and the mobile-only version of this
+              same button. */}
+          <Button
+            variant="outline"
+            onClick={() => setFiltersOpen(true)}
+          >
+            <ListFilter className="h-4 w-4 mr-2"/>
+            Filters{hasColumnFilters ? ` (${Object.keys(columnFilters).length})` : ""}
+          </Button>
           <div className="relative w-full sm:w-64">
             <Search
               className="pointer-events-none absolute text-muted-foreground"
@@ -371,21 +397,6 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               onChange={(e)=>setSearch(e.target.value)}
             />
           </div>
-          {/* The desktop table has a per-column filter row (Stage, Source,
-              Assigned Recruiter, etc. as dropdowns) built into its header —
-              but that row lives inside the `hidden md:block` table, so on
-              mobile there was previously no way to filter by anything beyond
-              free-text Search. This opens the same filters in a bottom sheet
-              instead, md:hidden since the desktop table already shows them
-              inline. */}
-          <Button
-            variant="outline"
-            className="md:hidden"
-            onClick={() => setMobileFiltersOpen(true)}
-          >
-            <ListFilter className="h-4 w-4 mr-2"/>
-            Filters{hasColumnFilters ? ` (${Object.keys(columnFilters).length})` : ""}
-          </Button>
           <Button
             variant="outline"
             onClick={() => setColumnFilters({})}
@@ -491,41 +502,14 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                 ))}
                 <TableHead className={`${detailView ? "w-28" : "w-20"} px-1 py-1.5 text-right text-xs whitespace-nowrap`}>Actions</TableHead>
               </TableRow>
-              <TableRow className="hover:bg-transparent">
-                {deletable && <TableHead className="w-8 h-auto px-1 py-1" />}
-                {tableFields.map((f) => (
-                  <TableHead key={`${f.name}-filter`} className="h-auto min-w-0 px-1.5 py-1 font-medium">
-                    {columnFilterMeta.discrete.has(f.name) ? (
-                      <Select
-                        value={columnFilters[f.name] || ALL_FILTER}
-                        onValueChange={(v) => setColumnFilter(f.name, v === ALL_FILTER ? "" : v)}
-                      >
-                        <SelectTrigger
-                          aria-label={`Filter ${f.label}`}
-                          className="h-7 w-full min-w-0 px-1.5 text-xs font-medium text-muted-foreground shadow-none"
-                        >
-                          <SelectValue placeholder="All" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={ALL_FILTER}>All</SelectItem>
-                          {(columnFilterMeta.options[f.name] ?? []).map((value) => (
-                            <SelectItem key={value} value={value}>{value}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input
-                        aria-label={`Filter ${f.label}`}
-                        className="h-7 w-full min-w-0 px-1.5 text-xs font-medium shadow-none"
-                        placeholder="Filter…"
-                        value={columnFilters[f.name] ?? ""}
-                        onChange={(e) => setColumnFilter(f.name, e.target.value)}
-                      />
-                    )}
-                  </TableHead>
-                ))}
-                <TableHead className={`${detailView ? "w-28" : "w-20"} h-auto px-1 py-1`} />
-              </TableRow>
+              {/* The old per-column filter row (a Select or Input squeezed into
+                  every visible column's header) lived here. It's gone — it
+                  only ever covered whatever fields happened to be shown in
+                  the table, which is exactly why filtering by Assigned
+                  Recruiter had no control at all once that column was hidden
+                  from the table to declutter it. The single "Filters" button
+                  in the toolbar above now opens a panel covering every
+                  field, table-visible or not. */}
             </TableHeader>
             <TableBody>
               {/* Only the true first load (no rows cached yet) gets skeleton rows —
@@ -674,14 +658,14 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         </CardContent>
       </Card>
 
-      <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+      <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto rounded-t-2xl">
           <SheetHeader>
             <SheetTitle>Filter {title}</SheetTitle>
-            <SheetDescription>Narrow the list down — same filters as the desktop table's column headers.</SheetDescription>
+            <SheetDescription>Narrow the list down by any field — not just the ones shown in the table. Combine with Search for free text.</SheetDescription>
           </SheetHeader>
           <div className="mt-4 space-y-4">
-            {tableFields.filter((f) => columnFilterMeta.discrete.has(f.name)).map((f) => (
+            {formFields.filter((f) => columnFilterMeta.discrete.has(f.name)).map((f) => (
               <div key={f.name} className="space-y-1.5">
                 <Label>{f.label}</Label>
                 <Select
@@ -698,13 +682,13 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                 </Select>
               </div>
             ))}
-            {tableFields.filter((f) => columnFilterMeta.discrete.has(f.name)).length === 0 && (
+            {formFields.filter((f) => columnFilterMeta.discrete.has(f.name)).length === 0 && (
               <p className="text-sm text-muted-foreground">Nothing filterable on this list beyond Search.</p>
             )}
           </div>
           <SheetFooter className="mt-6">
             <Button variant="outline" onClick={() => setColumnFilters({})} disabled={!hasColumnFilters}>Clear all</Button>
-            <Button onClick={() => setMobileFiltersOpen(false)}>Done</Button>
+            <Button onClick={() => setFiltersOpen(false)}>Done</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
