@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { sendViaResend, textToHtml } from "./email.server";
+import { sendEmail, textToHtml } from "./email.server";
 
 // Which CrudModule tables can currently send email from their row actions
 // (Candidates, Clients — see emailField on those two route configs). Kept as
@@ -38,7 +38,7 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       throw new Error("Only an admin or recruiter can send email from the CRM.");
     }
 
-    const result = await sendViaResend({
+    const result = await sendEmail({
       to: data.toEmail,
       subject: data.subject,
       html: textToHtml(data.body),

@@ -70,7 +70,7 @@ interface Props {
   /** Name of the field holding an email address (e.g. "email"). When set, a
    * Mail icon appears in row actions (desktop table, mobile card, and the
    * detail-view sheet if that's also on) for any row where that field is
-   * non-empty, opening a compose dialog that sends via Resend and logs the
+   * non-empty, opening a compose dialog that sends via SMTP and logs the
    * result to email_log. Only "candidates" and "clients" are wired up to
    * this today (see EmailComposeDialog's relatedTable allowlist) — passing
    * it for another table would need that allowlist extended first. */
