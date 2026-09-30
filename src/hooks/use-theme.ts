@@ -59,3 +59,32 @@ export function useTheme() {
 
   return { theme, setTheme, toggle };
 }
+
+// Used only by the public, unauthenticated pages (/careers and
+// /careers/$jobId) that sit outside the _app layout — the ONLY place
+// useTheme()'s light/dark toggle ever runs (see _app.tsx's header button).
+// Without this, those pages never get a .dark class at all, so they render
+// whatever color theme the org picked (via ColorThemeBootstrap in
+// __root.tsx, which does run everywhere) in its LIGHT variant — which is
+// why the careers page looked like a mismatched pale teal instead of the
+// dark look every recruiter actually sees throughout the rest of the CRM.
+//
+// Deliberately independent of useTheme(): it never reads or writes the
+// 'theme' localStorage key (that's a per-recruiter CRM preference, not
+// something an anonymous candidate visiting a job posting has ever set),
+// and it restores whatever was on <html> before it mounted, so it can't
+// leak dark mode into some other route a visitor might somehow reach from
+// here.
+export function useForceDarkTheme() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const hadDark = root.classList.contains("dark");
+    const prevColorScheme = root.style.colorScheme;
+    root.classList.add("dark");
+    root.style.colorScheme = "dark";
+    return () => {
+      root.classList.toggle("dark", hadDark);
+      root.style.colorScheme = prevColorScheme;
+    };
+  }, []);
+}

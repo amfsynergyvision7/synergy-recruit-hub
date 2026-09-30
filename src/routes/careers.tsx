@@ -12,8 +12,9 @@ import { listOpenJobs } from "@/lib/careers.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BrandLogo } from "@/components/BrandMark";
+import { BrandLogo, BrandMandala } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
+import { useForceDarkTheme } from "@/hooks/use-theme";
 import { hexToRgba } from "@/lib/color-themes";
 import { Briefcase, Inbox, MapPin, TriangleAlert, Users } from "lucide-react";
 
@@ -22,6 +23,11 @@ export const Route = createFileRoute("/careers")({ component: CareersPage });
 const PRIORITY_LABEL: Record<string, string> = { low: "Low", medium: "Medium", high: "High", urgent: "Urgent" };
 
 function CareersPage() {
+  // This page (and /careers/$jobId) sits outside the authenticated _app
+  // layout — the only place that ever applies the CRM's dark mode class —
+  // so without this it rendered the org's color theme in its light variant
+  // instead of the dark one the rest of the CRM uses. See use-theme.ts.
+  useForceDarkTheme();
   const { theme } = useColorTheme();
   const glow = hexToRgba(theme.mandala[0], 0.6);
 
@@ -33,7 +39,15 @@ function CareersPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative isolate overflow-hidden min-h-screen bg-background">
+      {/* Same corner watermark treatment as the authenticated app shell
+          (_app.tsx) — purely decorative, so it's safe to duplicate here
+          rather than share, given the two layouts otherwise have nothing
+          else in common. */}
+      <BrandMandala
+        className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
+        style={{ opacity: 0.3 }}
+      />
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">

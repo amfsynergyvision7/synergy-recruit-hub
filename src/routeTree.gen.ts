@@ -17,7 +17,7 @@ import { Route as CareersRouteImport } from './routes/careers'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ScheduleTokenRouteImport } from './routes/schedule.$token'
-import { Route as CareersJobIdRouteImport } from './routes/careers.$jobId'
+import { Route as CareersJobIdRouteImport } from './routes/careers_.$jobId'
 import { Route as AppWorkflowRulesRouteImport } from './routes/_app.workflow-rules'
 import { Route as AppUsersRouteImport } from './routes/_app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/_app.submissions'
@@ -79,9 +79,9 @@ const ScheduleTokenRoute = ScheduleTokenRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const CareersJobIdRoute = CareersJobIdRouteImport.update({
-  id: '/$jobId',
-  path: '/$jobId',
-  getParentRoute: () => CareersRoute,
+  id: '/careers_/$jobId',
+  path: '/careers/$jobId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppWorkflowRulesRoute = AppWorkflowRulesRouteImport.update({
   id: '/workflow-rules',
@@ -187,7 +187,7 @@ const ApiPublicHooksSheetsSyncRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/careers': typeof CareersRouteWithChildren
+  '/careers': typeof CareersRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -217,7 +217,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/careers': typeof CareersRouteWithChildren
+  '/careers': typeof CareersRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -249,7 +249,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
-  '/careers': typeof CareersRouteWithChildren
+  '/careers': typeof CareersRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -273,7 +273,7 @@ export interface FileRoutesById {
   '/_app/submissions': typeof AppSubmissionsRoute
   '/_app/users': typeof AppUsersRoute
   '/_app/workflow-rules': typeof AppWorkflowRulesRoute
-  '/careers/$jobId': typeof CareersJobIdRoute
+  '/careers_/$jobId': typeof CareersJobIdRoute
   '/schedule/$token': typeof ScheduleTokenRoute
   '/api/public/hooks/sheets-sync': typeof ApiPublicHooksSheetsSyncRoute
 }
@@ -366,7 +366,7 @@ export interface FileRouteTypes {
     | '/_app/submissions'
     | '/_app/users'
     | '/_app/workflow-rules'
-    | '/careers/$jobId'
+    | '/careers_/$jobId'
     | '/schedule/$token'
     | '/api/public/hooks/sheets-sync'
   fileRoutesById: FileRoutesById
@@ -374,11 +374,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
-  CareersRoute: typeof CareersRouteWithChildren
+  CareersRoute: typeof CareersRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  CareersJobIdRoute: typeof CareersJobIdRoute
   ScheduleTokenRoute: typeof ScheduleTokenRoute
   ApiPublicHooksSheetsSyncRoute: typeof ApiPublicHooksSheetsSyncRoute
 }
@@ -441,12 +442,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ScheduleTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/careers/$jobId': {
-      id: '/careers/$jobId'
-      path: '/$jobId'
+    '/careers_/$jobId': {
+      id: '/careers_/$jobId'
+      path: '/careers/$jobId'
       fullPath: '/careers/$jobId'
       preLoaderRoute: typeof CareersJobIdRouteImport
-      parentRoute: typeof CareersRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_app/workflow-rules': {
       id: '/_app/workflow-rules'
@@ -637,25 +638,15 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
-interface CareersRouteChildren {
-  CareersJobIdRoute: typeof CareersJobIdRoute
-}
-
-const CareersRouteChildren: CareersRouteChildren = {
-  CareersJobIdRoute: CareersJobIdRoute,
-}
-
-const CareersRouteWithChildren =
-  CareersRoute._addFileChildren(CareersRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
-  CareersRoute: CareersRouteWithChildren,
+  CareersRoute: CareersRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  CareersJobIdRoute: CareersJobIdRoute,
   ScheduleTokenRoute: ScheduleTokenRoute,
   ApiPublicHooksSheetsSyncRoute: ApiPublicHooksSheetsSyncRoute,
 }
