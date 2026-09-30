@@ -7,7 +7,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { sendCrmEmail, listEmailHistory } from "@/lib/email.functions";
+import { sendCrmEmail, listEmailHistory, getEmailMergeContext, type EmailMergeContext } from "@/lib/email.functions";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -26,34 +26,39 @@ interface Template {
   body: string;
 }
 
-// {{name}} is replaced with the record's own display name below (candidate's
-// full name, or the client's contact/company name) when a template is
-// picked — kept intentionally generic so the same templates work for both
-// candidates and client contacts rather than needing separate sets.
+// {{name}}, {{company}}, {{position}}, and {{signature}} are all replaced
+// below when a template is picked. {{name}} comes straight from the record
+// (toName). The other three come from getEmailMergeContext — a small
+// server lookup that, for a candidate, walks candidate -> most recent
+// submission -> job opening/client to find the actual role and company
+// this email is about, and resolves the record's assigned recruiter (or,
+// if none is set, whoever is currently composing the email) to a display
+// name for the signature. {{signature}} expands to a full sign-off block
+// (name, designation, org), not just a name, so neither template needs to
+// hardcode "Senior HR Associate" / "AMF Synergy Vision" twice.
 //
-// Bracketed placeholders like [Client Company] and [Your Phone Number] are
-// deliberately NOT auto-filled the way {{name}} is — they vary per send (a
-// different client each time, a different recruiter's callback number), so
-// they're left for whoever is sending to fill in by hand before hitting
+// [Your Phone Number] is the one placeholder deliberately NOT auto-filled —
+// it varies per send (a different recruiter's callback number each time),
+// so it's left for whoever is sending to fill in by hand before hitting
 // Send, same as they'd edit a subject line.
 const TEMPLATES: Template[] = [
   { key: "custom", label: "Custom (blank)", subject: "", body: "" },
   {
     key: "selection_confirmation",
-    label: "Selection confirmed — agreement acknowledgment",
-    subject: "Congratulations! You've Been Selected — Next Steps & Agreement",
+    label: "Selection confirmed — acknowledge terms",
+    subject: "Congratulations! You've Been Selected — Next Steps",
     body:
       "Hi {{name}},\n\n" +
-      "Congratulations! We're delighted to let you know that you've been selected following your recent interview.\n\n" +
-      "As discussed, this opportunity was shared directly through our network at [Client Company], with your profile personally routed through our reference on their senior leadership team — which is part of why it was given the priority and consideration it deserved.\n\n" +
-      "To move forward, we're attaching our Candidate Placement & Recruitment Service Agreement. Please take a moment to review it — in summary, it covers:\n\n" +
+      "Congratulations! Your interview for the {{position}} role at {{company}} went really well, and you delivered exactly what was expected of you — that alone speaks to how well suited you are for this role.\n\n" +
+      "We're also glad to have helped bring you this opportunity through our own network. Since your profile was routed through our reference on {{company}}'s senior leadership team, it was given the priority and seriousness it deserved throughout the process.\n\n" +
+      "Before we move ahead, here's a quick summary of our placement terms with you:\n\n" +
       "- A Placement Service Fee of 25% of your first month's gross salary, payable to us within 7 days of receiving that salary\n" +
       "- A commitment to continue in the role for a minimum of 45 days from your date of joining\n" +
       "- Providing us at least 7 days' written notice if you need to resign before receiving your first salary\n" +
       "- Keeping us promptly informed if your joining or continued employment is affected in any way\n\n" +
-      "Please sign the agreement (physically or digitally), and email the scanned copy back to info@amfsynergyvision.com within 24 hours of receiving this email. You can also simply reply \"I Agree\" to this email to confirm you've read and accepted the terms, alongside sending the signed copy.\n\n" +
+      "Could you please reply to this email within 24 hours with \"Agree\" or \"I Acknowledge\" to confirm you've read and accepted these terms? That's all we need from you at this stage.\n\n" +
       "Once again, congratulations — we're genuinely glad to have supported you through this process, and we look forward to seeing you succeed in this new role.\n\n" +
-      "Best regards,",
+      "{{signature}}",
   },
   {
     key: "missed_contact",
@@ -65,9 +70,16 @@ const TEMPLATES: Template[] = [
       "Could you give us a call back at [Your Phone Number] at your earliest convenience? There's an update on your application we'd like to share with you directly.\n\n" +
       "If it's easier, feel free to reply to this email with a good time to reach you instead.\n\n" +
       "Looking forward to connecting soon.\n\n" +
-      "Best regards,",
+      "{{signature}}",
   },
 ];
+
+// {{signature}} expands to this whole block. Designation and org are fixed
+// per your instructions; only the name varies, and even that always has a
+// value — see getEmailMergeContext's fallback to the current user.
+function buildSignature(ownerName: string | null | undefined): string {
+  return `Warm regards,\n${ownerName || "The AMF Synergy Vision Team"}\nSenior HR Associate\nAMF Synergy Vision`;
+}
 
 interface Props {
   open: boolean;
@@ -91,13 +103,32 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
     }
   }, [open, relatedId]);
 
+  const runMergeContext = useServerFn(getEmailMergeContext);
+  const mergeQuery = useQuery({
+    queryKey: ["email-merge-context", relatedTable, relatedId],
+    queryFn: () => runMergeContext({ data: { relatedTable, relatedId } }),
+    enabled: open,
+  });
+
   const applyTemplate = (key: string) => {
     setTemplateKey(key);
     const t = TEMPLATES.find((t) => t.key === key);
     if (!t) return;
     const name = toName || "there";
+    // Falls back to the bracketed placeholder form on company/position if
+    // the lookup genuinely found nothing (e.g. a candidate with no
+    // submission yet) — the Select is disabled while this is still
+    // loading (below), so in the normal case this data is already here by
+    // the time a template gets picked.
+    const ctx: Partial<EmailMergeContext> = mergeQuery.data ?? {};
     setSubject(t.subject);
-    setBody(t.body.replace(/\{\{name\}\}/g, name));
+    setBody(
+      t.body
+        .replace(/\{\{name\}\}/g, name)
+        .replace(/\{\{company\}\}/g, ctx.company || "[Client Company]")
+        .replace(/\{\{position\}\}/g, ctx.position || "[Position]")
+        .replace(/\{\{signature\}\}/g, buildSignature(ctx.ownerName)),
+    );
   };
 
   const runSend = useServerFn(sendCrmEmail);
@@ -132,8 +163,11 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
             <Input value={toEmail} disabled />
           </div>
           <div className="space-y-1.5">
-            <Label>Template</Label>
-            <Select value={templateKey} onValueChange={applyTemplate}>
+            <Label className="flex items-center gap-2">
+              Template
+              {mergeQuery.isLoading && <span className="text-xs font-normal text-muted-foreground">Loading details…</span>}
+            </Label>
+            <Select value={templateKey} onValueChange={applyTemplate} disabled={mergeQuery.isLoading}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TEMPLATES.map((t) => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}

@@ -87,3 +87,84 @@ export const listEmailHistory = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+export interface EmailMergeContext {
+  company: string | null;
+  position: string | null;
+  ownerName: string | null;
+}
+
+// Feeds the {{company}}/{{position}}/{{signature}} placeholders in
+// EmailComposeDialog's templates — {{name}} alone was enough for a generic
+// "Hi {{name}}," but the selection-confirmation template needs to name the
+// actual client and role, and sign off with whoever actually owns this
+// lead, not a placeholder the recruiter has to remember to edit by hand.
+export const getEmailMergeContext = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ relatedTable: z.enum(EMAIL_RELATED_TABLES), relatedId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ context, data }): Promise<EmailMergeContext> => {
+    // Resolves a profile id to a human name, falling back to whoever is
+    // actually composing this email when the record itself has no owner
+    // set — so the signature is never blank just because a candidate or
+    // client was never explicitly assigned to a recruiter.
+    async function resolveOwnerName(profileId: string | null): Promise<string | null> {
+      const id = profileId || context.userId;
+      const { data: profile } = await context.supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", id)
+        .maybeSingle();
+      return profile?.full_name || profile?.email || null;
+    }
+
+    if (data.relatedTable === "candidates") {
+      const { data: candidate } = await context.supabase
+        .from("candidates")
+        .select("position_applied, assigned_recruiter")
+        .eq("id", data.relatedId)
+        .maybeSingle();
+
+      // A candidate's most recent submission is the job/client this email
+      // is actually about. The disambiguated embed names
+      // (submissions_job_uuid_fkey / submissions_client_uuid_fkey) are
+      // required the same way careers.functions.ts and
+      // scheduling.functions.ts already need them — submissions carries
+      // both a legacy and a live FK to job_openings/clients, so a plain
+      // `job_openings(...)`/`clients(...)` embed is ambiguous to PostgREST.
+      const { data: submission } = await context.supabase
+        .from("submissions")
+        .select(
+          "role_title, job_openings!submissions_job_uuid_fkey(job_title), clients!submissions_client_uuid_fkey(company_name)",
+        )
+        .eq("candidate_uuid", data.relatedId)
+        .order("submission_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const sub = submission as any;
+      return {
+        company: sub?.clients?.company_name ?? null,
+        // Prefers the job opening's current title, then the title snapshot
+        // taken at submission time, then the candidate's own free-text
+        // position_applied — in that order of "most likely still accurate".
+        position: sub?.job_openings?.job_title || sub?.role_title || candidate?.position_applied || null,
+        ownerName: await resolveOwnerName(candidate?.assigned_recruiter ?? null),
+      };
+    }
+
+    // Clients: the record itself IS the company, and clients has no
+    // assigned-recruiter column of its own — only created_by.
+    const { data: client } = await context.supabase
+      .from("clients")
+      .select("company_name, created_by")
+      .eq("id", data.relatedId)
+      .maybeSingle();
+
+    return {
+      company: client?.company_name ?? null,
+      position: null,
+      ownerName: await resolveOwnerName(client?.created_by ?? null),
+    };
+  });
