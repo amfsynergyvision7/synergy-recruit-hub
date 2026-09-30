@@ -75,6 +75,14 @@ interface Props {
    * this today (see EmailComposeDialog's relatedTable allowlist) — passing
    * it for another table would need that allowlist extended first. */
   emailField?: string;
+  /** Extra buttons/links rendered at the start of the toolbar, before
+   * Filters — for a module-level action that isn't a per-row thing and
+   * doesn't fit any of the props above. Introduced for Job Openings' "View
+   * Careers Page" link: the public /careers page has no other entry point
+   * from inside the authenticated app (by design — it's meant for outside
+   * candidates, not recruiters), so without this a recruiter has no way to
+   * find their own public page short of knowing the URL. */
+  headerActions?: ReactNode;
 }
 
 const ALL_FILTER = "__all__";
@@ -126,7 +134,7 @@ function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
   return distinctCount > 0 && distinctCount <= DISCRETE_FILTER_MAX;
 }
 
-export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField }: Props) {
+export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
   const { role } = useAuth();
   const editable = canEdit(role, module);
   const deletable = canDelete(role);
@@ -432,6 +440,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {headerActions}
           {/* w-full below sm: this row now wraps (flex-wrap above) instead of
               being forced onto one line and clipped at the screen edge, and a
               fixed w-64 search box would still overflow a ~360px phone width

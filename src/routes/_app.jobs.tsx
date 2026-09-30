@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { CareersLinkButton } from "@/components/CareersLinkButton";
+import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_app/jobs")({ component: Page });
 
@@ -28,6 +30,21 @@ function Page() {
       table="job_openings"
       module="jobs"
       searchFields={["job_title","location"]}
+      // Step 6 added a public /careers page, but by design it has no sidebar
+      // or nav entry (it's external-facing, not meant to be browsed from
+      // inside the authenticated app) — the only way to it was the per-row
+      // "Copy Link" button, which only appears once a job exists. This
+      // header-level button gives a direct, always-visible way to open the
+      // page itself and see what candidates see, without needing to know
+      // the URL or already have an open job row to copy a link from.
+      headerActions={
+        <Button variant="outline" size="sm" asChild>
+          <a href="/careers" target="_blank" rel="noreferrer">
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            View Careers Page
+          </a>
+        </Button>
+      }
       fields={[
         { name: "job_title", label: "Title", required: true },
         { name: "client_uuid", label: "Client", type: "relation", relation: { table: "clients", select: "id, company_name, contact_person, email", label: (r) => r.company_name, description: (r) => r.contact_person ?? r.email ?? "" } },
