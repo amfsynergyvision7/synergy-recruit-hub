@@ -28,27 +28,44 @@ interface Template {
 
 // {{name}} is replaced with the record's own display name below (candidate's
 // full name, or the client's contact/company name) when a template is
-// picked — kept intentionally generic so the same four templates work for
-// both candidates and client contacts rather than needing separate sets.
+// picked — kept intentionally generic so the same templates work for both
+// candidates and client contacts rather than needing separate sets.
+//
+// Bracketed placeholders like [Client Company] and [Your Phone Number] are
+// deliberately NOT auto-filled the way {{name}} is — they vary per send (a
+// different client each time, a different recruiter's callback number), so
+// they're left for whoever is sending to fill in by hand before hitting
+// Send, same as they'd edit a subject line.
 const TEMPLATES: Template[] = [
   { key: "custom", label: "Custom (blank)", subject: "", body: "" },
   {
-    key: "interview_invite",
-    label: "Interview invitation",
-    subject: "Interview invitation",
-    body: "Hi {{name}},\n\nWe'd like to invite you for an interview. Could you share a couple of time slots that work for you over the next few days?\n\nLooking forward to hearing from you.\n\nBest regards,",
+    key: "selection_confirmation",
+    label: "Selection confirmed — agreement acknowledgment",
+    subject: "Congratulations! You've Been Selected — Next Steps & Agreement",
+    body:
+      "Hi {{name}},\n\n" +
+      "Congratulations! We're delighted to let you know that you've been selected following your recent interview.\n\n" +
+      "As discussed, this opportunity was shared directly through our network at [Client Company], with your profile personally routed through our reference on their senior leadership team — which is part of why it was given the priority and consideration it deserved.\n\n" +
+      "To move forward, we're attaching our Candidate Placement & Recruitment Service Agreement. Please take a moment to review it — in summary, it covers:\n\n" +
+      "- A Placement Service Fee of 25% of your first month's gross salary, payable to us within 7 days of receiving that salary\n" +
+      "- A commitment to continue in the role for a minimum of 45 days from your date of joining\n" +
+      "- Providing us at least 7 days' written notice if you need to resign before receiving your first salary\n" +
+      "- Keeping us promptly informed if your joining or continued employment is affected in any way\n\n" +
+      "Please sign the agreement (physically or digitally), and email the scanned copy back to info@amfsynergyvision.com within 24 hours of receiving this email. You can also simply reply \"I Agree\" to this email to confirm you've read and accepted the terms, alongside sending the signed copy.\n\n" +
+      "Once again, congratulations — we're genuinely glad to have supported you through this process, and we look forward to seeing you succeed in this new role.\n\n" +
+      "Best regards,",
   },
   {
-    key: "status_update",
-    label: "Application status update",
-    subject: "An update on your application",
-    body: "Hi {{name}},\n\nWanted to give you a quick update on where things stand with your application — we're actively reviewing and will be in touch shortly with next steps.\n\nBest regards,",
-  },
-  {
-    key: "offer_followup",
-    label: "Offer follow-up",
-    subject: "Following up on your offer",
-    body: "Hi {{name}},\n\nJust checking in on the offer we shared. Please let us know if you have any questions, or if you need a little more time to decide.\n\nBest regards,",
+    key: "missed_contact",
+    label: "We've been trying to reach you",
+    subject: "We've Been Trying to Reach You",
+    body:
+      "Hi {{name}},\n\n" +
+      "We've been trying to reach you a few times regarding your application, but haven't been able to connect.\n\n" +
+      "Could you give us a call back at [Your Phone Number] at your earliest convenience? There's an update on your application we'd like to share with you directly.\n\n" +
+      "If it's easier, feel free to reply to this email with a good time to reach you instead.\n\n" +
+      "Looking forward to connecting soon.\n\n" +
+      "Best regards,",
   },
 ];
 
