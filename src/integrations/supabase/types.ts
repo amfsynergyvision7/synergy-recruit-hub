@@ -587,6 +587,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           id: string
+          is_confidential: boolean
           job_title: string
           location: string | null
           open_positions: number | null
@@ -605,6 +606,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          is_confidential?: boolean
           job_title: string
           location?: string | null
           open_positions?: number | null
@@ -623,6 +625,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           id?: string
+          is_confidential?: boolean
           job_title?: string
           location?: string | null
           open_positions?: number | null

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
+import { CareersLinkButton } from "@/components/CareersLinkButton";
 
 export const Route = createFileRoute("/_app/jobs")({ component: Page });
 
@@ -34,6 +35,7 @@ function Page() {
         { name: "salary_min", label: "Salary Min", type: "number" },
         { name: "salary_max", label: "Salary Max", type: "number" },
         { name: "open_positions", label: "Openings", type: "number", default: 1 },
+        { name: "description", label: "Job Description", type: "textarea", hideInTable: true },
         { name: "requirements", label: "Requirements / Key Skills", type: "textarea", hideInTable: true },
         {
           name: "priority",
@@ -66,6 +68,22 @@ function Page() {
             ) : (
               "—"
             ),
+        },
+        {
+          name: "is_confidential",
+          label: "Confidential Client",
+          type: "boolean",
+          default: false,
+          hideInTable: true,
+        },
+        {
+          // Pure UI widget, no matching form field (hideInForm) — the link
+          // itself needs nothing stored beyond the job's own id, unlike
+          // Interviews' scheduling link which has to mint a token first.
+          name: "careers_link",
+          label: "Careers Link",
+          hideInForm: true,
+          render: (row) => <CareersLinkButton job={row} />,
         },
       ]}
     />

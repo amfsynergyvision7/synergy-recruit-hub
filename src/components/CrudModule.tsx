@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 const SKELETON_ROW_WIDTHS = ["100%", "92%", "85%", "95%", "80%", "90%"];
 
-export type FieldType = "text" | "email" | "tel" | "number" | "date" | "time" | "textarea" | "select" | "relation";
+export type FieldType = "text" | "email" | "tel" | "number" | "date" | "time" | "textarea" | "select" | "relation" | "boolean";
 
 interface RelationDef {
   table: string;
@@ -99,12 +99,17 @@ function cellDisplayValue(row: any, field: FieldDef, relationOptions: Record<str
     return related ? String(field.relation.label(related)) : "";
   }
   const raw = row[field.name];
+  // Checked separately from the general null/empty check below: `false` is
+  // a perfectly meaningful value here (unlike "" or null, which mean "no
+  // value entered"), so it must never fall through to the blank-cell path.
+  if (field.type === "boolean") return raw ? "Yes" : "No";
   if (raw == null || raw === "") return "";
   const option = field.options?.find((o) => o.value === raw);
   return option ? option.label : String(raw);
 }
 
 function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
+  if (field.type === "boolean") return true;
   if (field.type === "select" || (field.options && field.options.length > 0)) return true;
   if (DISCRETE_FIELD_NAMES.has(field.name)) return true;
   if (
@@ -559,6 +564,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                             </Command>
                           </PopoverContent>
                         </Popover>
+                      ) : activeBulkEditField.type === "boolean" ? (
+                        <div className="flex items-center h-9 gap-2">
+                          <Checkbox checked={!!bulkEditValue} onCheckedChange={(v) => setBulkEditValue(!!v)} />
+                          <span className="text-sm text-muted-foreground">{bulkEditValue ? "Yes" : "No"}</span>
+                        </div>
                       ) : (
                         <Input
                           type={activeBulkEditField.type ?? "text"}
@@ -633,6 +643,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                             </Command>
                           </PopoverContent>
                         </Popover>
+                      ) : f.type === "boolean" ? (
+                        <div className="flex items-center h-9 gap-2">
+                          <Checkbox checked={!!form[f.name]} onCheckedChange={(v) => handleFieldChange(f.name, !!v)} />
+                          <span className="text-sm text-muted-foreground">{form[f.name] ? "Yes" : "No"}</span>
+                        </div>
                       ) : (
                         <Input type={f.type ?? "text"} value={form[f.name] ?? ""} onChange={(e)=>handleFieldChange(f.name, e.target.value)}/>
                       )}
