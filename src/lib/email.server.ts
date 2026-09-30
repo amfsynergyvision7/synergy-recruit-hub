@@ -1,36 +1,46 @@
-// Server-only SMTP email sending, via a real mailbox you own rather than a
-// dedicated transactional-email product — no separate account to sign up
-// for, no DNS domain-verification step. Defaults to Gmail's SMTP relay
-// (smtp.gmail.com), but every setting is a plain environment variable, so
-// switching providers later (a paid Zoho Workspace plan, Outlook, your own
-// mail server) never needs another code change — only different env var
-// VALUES on Vercel. (This one file has now been Resend, then Zoho, then
-// Gmail, across the same project — that churn is exactly why the provider
-// name doesn't appear anywhere in the code this time.)
+// Server-only SMTP email sending. Provider-agnostic by design — this file
+// has now been Resend's REST API, then Zoho SMTP, then Gmail SMTP, and is
+// now back to Resend, this time over its SMTP relay instead of its REST API
+// — so nothing provider-specific lives in the code; only environment
+// variable VALUES change on Vercel. That churn is exactly why this file is
+// written the way it is: switching again later needs no further edits here.
 //
-// SMTP_USER / SMTP_PASSWORD must be set as server environment variables
-// (Vercel project settings, same place SUPABASE_URL / GEMINI_API_KEY
-// already live); they're never read or referenced from client-side code, so
-// they can't end up in the browser bundle.
+// SMTP_USER / SMTP_PASSWORD (the connection's AUTH credentials) must be set
+// as server environment variables (Vercel project settings, same place
+// SUPABASE_URL / GEMINI_API_KEY already live); they're never read or
+// referenced from client-side code, so they can't end up in the browser
+// bundle. SMTP_FROM_EMAIL is a SEPARATE setting for the address recipients
+// actually see mail arrive from — for a real mailbox (Gmail, Zoho) the auth
+// user and the from address are the same thing and SMTP_FROM_EMAIL can be
+// left unset (it defaults to SMTP_USER below); for Resend's SMTP relay
+// they're different (the auth username is the literal string "resend", not
+// an email address), so SMTP_FROM_EMAIL is required there.
 //
-// Three things only you can do, since they require your own account:
-//   1. Turn on 2-Step Verification on the Gmail account you'll send from
-//      (myaccount.google.com/security) — Google requires this before it
-//      will let you create an App Password at all; the account's normal
-//      login password will not work here.
-//   2. Under the same Security settings, search "App Passwords" → create
-//      one (any label, e.g. "AMF CRM") → copy the 16-character password it
-//      shows (spaces don't matter, paste it with or without them).
-//   3. Set SMTP_USER (the full Gmail address) and SMTP_PASSWORD (the App
-//      Password from step 2) as environment variables on Vercel and
-//      redeploy. Optional: SMTP_FROM_NAME controls the display name
-//      recipients see (defaults to "AMF Synergy Vision" below).
+// Current provider: Resend, via SMTP rather than its REST API — chosen
+// specifically for deliverability: a verified domain gets you real SPF/DKIM
+// alignment for that domain, which a personal Gmail or Zoho mailbox cannot
+// offer for a company name, and is why Gmail-sent mail from this CRM was
+// landing in spam. Two things only you can do, since they require your own
+// domain/account:
+//   1. Sign up at https://resend.com, go to Domains → Add Domain, and
+//      verify amfsynergyvision.com (or a subdomain like mail.
+//      amfsynergyvision.com) by adding the DNS records Resend gives you.
+//      Until verified, Resend only delivers to your own Resend account
+//      email — fine for one personal test, not for real candidates/clients.
+//      Then go to API Keys → Create API Key and copy it.
+//   2. Set these on Vercel and redeploy:
+//        SMTP_HOST      = smtp.resend.com
+//        SMTP_PORT      = 465
+//        SMTP_USER      = resend            (literally this word, not your email)
+//        SMTP_PASSWORD  = <the API key from step 1>
+//        SMTP_FROM_EMAIL = no-reply@amfsynergyvision.com   (must be on the verified domain)
+//      Optional: SMTP_FROM_NAME controls the display name recipients see
+//      (defaults to "AMF Synergy Vision" below).
 //
-// Using a DIFFERENT provider later: set SMTP_HOST (default
-// "smtp.gmail.com"), SMTP_PORT (default 465) and, if that provider's port
-// isn't a plain SSL port, SMTP_SECURE=false — everything else is unchanged.
-// Free personal Gmail caps at 500 emails/day (2,000/day on Workspace) —
-// comfortably above what a recruiting CRM like this sends.
+// Switching to a DIFFERENT provider later: change the values above (a real
+// mailbox's own SMTP host/port, its address as both SMTP_USER and — by
+// leaving SMTP_FROM_EMAIL unset — its from address too) — nothing in this
+// file needs to change.
 import nodemailer from "nodemailer";
 
 export interface SendEmailResult {
@@ -66,29 +76,48 @@ export async function sendEmail(opts: {
   subject: string;
   html: string;
 }): Promise<SendEmailResult> {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD;
+  // .trim() on every value read here: a stray trailing space or line break
+  // (easy to introduce when copy-pasting into Vercel's env var UI) is
+  // invisible in the dashboard but turns an otherwise-correct address into
+  // something the SMTP server's strict parser rejects.
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASSWORD?.trim();
   if (!user || !pass) {
     const missing = [!user && "SMTP_USER", !pass && "SMTP_PASSWORD"].filter(Boolean).join(", ");
     return { success: false, error: `${missing} not configured. Add it as an environment variable and redeploy.` };
   }
-  const fromName = process.env.SMTP_FROM_NAME || "AMF Synergy Vision";
+  // Falls back to SMTP_USER for a real-mailbox provider (Gmail, Zoho) where
+  // the authenticated address IS the from address. Resend's SMTP relay
+  // needs SMTP_FROM_EMAIL set explicitly, since its auth username
+  // ("resend") isn't a mailbox at all — if SMTP_FROM_EMAIL isn't actually
+  // reaching this function (unset, a typo'd key name on Vercel, or a
+  // deploy that predates adding it), this would otherwise silently fall
+  // back to sending as "resend", which the SMTP server rejects at the
+  // envelope stage with a "Bad sender address syntax" error. Caught
+  // explicitly below instead, with a message that names the real cause.
+  const fromEmail = process.env.SMTP_FROM_EMAIL?.trim() || user;
+  const fromName = (process.env.SMTP_FROM_NAME || "AMF Synergy Vision").trim();
+
+  if (!fromEmail.includes("@")) {
+    return {
+      success: false,
+      error: `SMTP_FROM_EMAIL is missing or invalid (it currently resolves to "${fromEmail}", which isn't a real email address). Set SMTP_FROM_EMAIL on Vercel to a real address on your verified domain (e.g. yourname@amfsynergyvision.com) and redeploy.`,
+    };
+  }
 
   try {
     const info = await getTransporter(user, pass).sendMail({
-      from: `"${fromName}" <${user}>`,
+      from: `"${fromName}" <${fromEmail}>`,
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
     });
     return { success: true, providerId: info.messageId };
   } catch (err: any) {
-    // A bad/expired App Password, 2-Step Verification not actually turned
-    // on, or the account's daily sending cap all surface here as a thrown
-    // error from nodemailer rather than an HTTP status — message text is
-    // whatever the SMTP server replied with (e.g. Gmail's own "535-5.7.8
-    // Username and Password not accepted"), which is usually specific
-    // enough to act on directly.
+    // A bad/expired credential, a from address not on a verified domain, or
+    // a sending cap all surface here as a thrown error from nodemailer
+    // rather than an HTTP status — message text is whatever the SMTP server
+    // replied with, which is usually specific enough to act on directly.
     return { success: false, error: err?.message ?? "SMTP send failed for an unknown reason." };
   }
 }
