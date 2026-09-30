@@ -45,7 +45,13 @@ export const getJobDetail = createServerFn({ method: "POST" })
       .select("id, job_title, location, description, requirements, salary_min, salary_max, open_positions, priority, status, is_confidential, clients!job_openings_client_uuid_fkey(company_name)")
       .eq("id", data.jobId)
       .maybeSingle();
-    if (error || !job) throw new Error("This posting isn't available.");
+    // Keep the "not found" case generic (a stale/guessed link shouldn't leak
+    // anything), but surface the real Postgrest message when the query
+    // itself failed (missing column, broken embed, bad env var) — those
+    // used to render identically, which made a genuine outage on this page
+    // indistinguishable from someone just following an old link.
+    if (error) throw new Error(`This posting isn't available. (${error.message})`);
+    if (!job) throw new Error("This posting isn't available.");
 
     return {
       id: job.id,

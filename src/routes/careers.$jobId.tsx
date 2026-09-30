@@ -50,6 +50,7 @@ function JobApplyPage() {
     queryFn: () => runDetail({ data: { jobId } }),
     retry: false,
   });
+  const detailErrorMessage = (detailQuery.error as any)?.message as string | undefined;
 
   const runApply = useServerFn(submitJobApplication);
   const applyMut = useMutation({
@@ -103,6 +104,14 @@ function JobApplyPage() {
               <div>
                 <div className="font-medium">This posting isn't available</div>
                 <p className="text-sm text-muted-foreground mt-1">It may have closed or the link may be out of date.</p>
+                {/* Same reasoning as careers.tsx's isError branch: surfaces
+                    the real fetch error (env var, schema, RLS) instead of
+                    only ever showing this generic "not found" copy, which
+                    used to make a genuine outage indistinguishable from a
+                    stale link. */}
+                {detailErrorMessage && (
+                  <p className="text-xs text-muted-foreground/70 mt-2">{detailErrorMessage}</p>
+                )}
               </div>
             </div>
           </CardContent></Card>

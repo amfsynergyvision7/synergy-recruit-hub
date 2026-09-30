@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BrandLogo } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { hexToRgba } from "@/lib/color-themes";
-import { Briefcase, Inbox, MapPin, Users } from "lucide-react";
+import { Briefcase, Inbox, MapPin, TriangleAlert, Users } from "lucide-react";
 
 export const Route = createFileRoute("/careers")({ component: CareersPage });
 
@@ -26,9 +26,10 @@ function CareersPage() {
   const glow = hexToRgba(theme.mandala[0], 0.6);
 
   const runList = useServerFn(listOpenJobs);
-  const { data: jobs, isLoading } = useQuery({
+  const { data: jobs, isLoading, isError, error } = useQuery({
     queryKey: ["careers-open-jobs"],
     queryFn: () => runList(),
+    retry: false,
   });
 
   return (
@@ -53,6 +54,21 @@ function CareersPage() {
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}
           </div>
+        ) : isError ? (
+          // Distinct from the genuine "zero open jobs" state below — this
+          // path means the fetch itself failed (bad env var, a schema
+          // mismatch, an RLS/embed issue), which used to render identically
+          // to "no open positions" and made real outages invisible. The raw
+          // message is shown because this is a low-stakes prototype and the
+          // fastest way for whoever's watching this page to see exactly
+          // what broke, without needing devtools.
+          <Card>
+            <CardContent className="pt-6 flex flex-col items-center gap-2 text-destructive py-10 text-center">
+              <TriangleAlert className="h-6 w-6" />
+              <div className="text-sm font-medium">Couldn't load open positions</div>
+              <div className="text-xs text-muted-foreground max-w-md">{(error as any)?.message ?? "Unknown error."}</div>
+            </CardContent>
+          </Card>
         ) : !jobs || jobs.length === 0 ? (
           <Card>
             <CardContent className="pt-6 flex flex-col items-center justify-center gap-2 text-muted-foreground py-10">
