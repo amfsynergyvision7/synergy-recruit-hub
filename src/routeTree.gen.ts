@@ -16,6 +16,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ScheduleTokenRouteImport } from './routes/schedule.$token'
+import { Route as AppWorkflowRulesRouteImport } from './routes/_app.workflow-rules'
 import { Route as AppUsersRouteImport } from './routes/_app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/_app.submissions'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
@@ -69,6 +70,11 @@ const ScheduleTokenRoute = ScheduleTokenRouteImport.update({
   id: '/schedule/$token',
   path: '/schedule/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWorkflowRulesRoute = AppWorkflowRulesRouteImport.update({
+  id: '/workflow-rules',
+  path: '/workflow-rules',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
   id: '/users',
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/submissions': typeof AppSubmissionsRoute
   '/users': typeof AppUsersRoute
+  '/workflow-rules': typeof AppWorkflowRulesRoute
   '/schedule/$token': typeof ScheduleTokenRoute
   '/api/public/hooks/sheets-sync': typeof ApiPublicHooksSheetsSyncRoute
 }
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/submissions': typeof AppSubmissionsRoute
   '/users': typeof AppUsersRoute
+  '/workflow-rules': typeof AppWorkflowRulesRoute
   '/schedule/$token': typeof ScheduleTokenRoute
   '/api/public/hooks/sheets-sync': typeof ApiPublicHooksSheetsSyncRoute
 }
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/submissions': typeof AppSubmissionsRoute
   '/_app/users': typeof AppUsersRoute
+  '/_app/workflow-rules': typeof AppWorkflowRulesRoute
   '/schedule/$token': typeof ScheduleTokenRoute
   '/api/public/hooks/sheets-sync': typeof ApiPublicHooksSheetsSyncRoute
 }
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submissions'
     | '/users'
+    | '/workflow-rules'
     | '/schedule/$token'
     | '/api/public/hooks/sheets-sync'
   fileRoutesByTo: FileRoutesByTo
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submissions'
     | '/users'
+    | '/workflow-rules'
     | '/schedule/$token'
     | '/api/public/hooks/sheets-sync'
   id:
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/submissions'
     | '/_app/users'
+    | '/_app/workflow-rules'
     | '/schedule/$token'
     | '/api/public/hooks/sheets-sync'
   fileRoutesById: FileRoutesById
@@ -396,6 +408,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/schedule/$token'
       preLoaderRoute: typeof ScheduleTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/workflow-rules': {
+      id: '/_app/workflow-rules'
+      path: '/workflow-rules'
+      fullPath: '/workflow-rules'
+      preLoaderRoute: typeof AppWorkflowRulesRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/users': {
       id: '/_app/users'
@@ -552,6 +571,7 @@ interface AppRouteChildren {
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubmissionsRoute: typeof AppSubmissionsRoute
   AppUsersRoute: typeof AppUsersRoute
+  AppWorkflowRulesRoute: typeof AppWorkflowRulesRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -573,6 +593,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSettingsRoute: AppSettingsRoute,
   AppSubmissionsRoute: AppSubmissionsRoute,
   AppUsersRoute: AppUsersRoute,
+  AppWorkflowRulesRoute: AppWorkflowRulesRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

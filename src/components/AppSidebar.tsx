@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Building2, Briefcase, Send, CalendarCheck,
-  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug, Activity, Sparkles, Users2, FileSpreadsheet
+  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug, Activity, Sparkles, Users2, FileSpreadsheet, Workflow
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -33,6 +33,7 @@ const items = [
 ];
 
 const adminItems = [
+  { title: "Workflow Rules", url: "/workflow-rules", icon: Workflow },
   { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Import Data", url: "/import", icon: Upload },
   { title: "Duplicate Candidates", url: "/duplicates", icon: Users2 },

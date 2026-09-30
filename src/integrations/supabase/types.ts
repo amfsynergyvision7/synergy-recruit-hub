@@ -979,6 +979,60 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_rules: {
+        Row: {
+          action_type: string
+          created_at: string
+          created_by: string | null
+          field_name: string
+          field_value: string
+          id: string
+          is_active: boolean
+          name: string
+          notify_message: string | null
+          notify_target: string | null
+          notify_title: string | null
+          table_name: string
+          update_field_name: string | null
+          update_field_value: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          created_by?: string | null
+          field_name: string
+          field_value: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notify_message?: string | null
+          notify_target?: string | null
+          notify_title?: string | null
+          table_name: string
+          update_field_name?: string | null
+          update_field_value?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          created_by?: string | null
+          field_name?: string
+          field_value?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notify_message?: string | null
+          notify_target?: string | null
+          notify_title?: string | null
+          table_name?: string
+          update_field_name?: string | null
+          update_field_value?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
