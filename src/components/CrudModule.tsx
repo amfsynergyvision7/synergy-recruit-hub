@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail } from "lucide-react";
+import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
+import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -334,6 +335,20 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     return true;
   });
 
+  // Exports exactly what's on screen: whatever survived Search + the column
+  // Filters panel (`filtered`), using the same column set and value
+  // formatting the table itself uses (tableFields + cellDisplayValue) so a
+  // relation shows its label, a select shows its option label, etc. rather
+  // than a raw UUID or DB code. This means the export is scoped by
+  // construction — filter Candidates down to one recruiter's "joined" stage
+  // before exporting, and only those rows come out — with zero extra UI.
+  const exportCsv = () => {
+    const headers = tableFields.map((f) => f.label);
+    const dataRows = filtered.map((r) => tableFields.map((f) => cellDisplayValue(r, f, relationOptions)));
+    const csv = rowsToCsv(headers, dataRows);
+    downloadCsv(`${module}-${todayStamp()}.csv`, csv);
+  };
+
   const hasColumnFilters = Object.values(columnFilters).some((v) => v.trim());
   const setColumnFilter = (name: string, value: string) => {
     setColumnFilters((prev) => {
@@ -454,6 +469,14 @@ export function CrudModule({ title, description, table, module, fields, searchFi
           >
             <FilterX className="h-4 w-4 mr-2"/>
             Clear filters
+          </Button>
+          <Button
+            variant="outline"
+            onClick={exportCsv}
+            disabled={filtered.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2"/>
+            Export CSV
           </Button>
           {editable && selected.size > 0 && bulkEditableFields.length > 0 && (
             <Dialog open={bulkEditOpen} onOpenChange={(v) => (v ? setBulkEditOpen(true) : closeBulkEdit())}>

@@ -19,6 +19,7 @@ import { Route as ScheduleTokenRouteImport } from './routes/schedule.$token'
 import { Route as AppUsersRouteImport } from './routes/_app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/_app.submissions'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
+import { Route as AppReportsRouteImport } from './routes/_app.reports'
 import { Route as AppOffersRouteImport } from './routes/_app.offers'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppJobsRouteImport } from './routes/_app.jobs'
@@ -82,6 +83,11 @@ const AppSubmissionsRoute = AppSubmissionsRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOffersRoute = AppOffersRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/jobs': typeof AppJobsRoute
   '/notifications': typeof AppNotificationsRoute
   '/offers': typeof AppOffersRoute
+  '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/submissions': typeof AppSubmissionsRoute
   '/users': typeof AppUsersRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/jobs': typeof AppJobsRoute
   '/notifications': typeof AppNotificationsRoute
   '/offers': typeof AppOffersRoute
+  '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/submissions': typeof AppSubmissionsRoute
   '/users': typeof AppUsersRoute
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/_app/jobs': typeof AppJobsRoute
   '/_app/notifications': typeof AppNotificationsRoute
   '/_app/offers': typeof AppOffersRoute
+  '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/submissions': typeof AppSubmissionsRoute
   '/_app/users': typeof AppUsersRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/notifications'
     | '/offers'
+    | '/reports'
     | '/settings'
     | '/submissions'
     | '/users'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/jobs'
     | '/notifications'
     | '/offers'
+    | '/reports'
     | '/settings'
     | '/submissions'
     | '/users'
@@ -316,6 +327,7 @@ export interface FileRouteTypes {
     | '/_app/jobs'
     | '/_app/notifications'
     | '/_app/offers'
+    | '/_app/reports'
     | '/_app/settings'
     | '/_app/submissions'
     | '/_app/users'
@@ -404,6 +416,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/offers': {
@@ -529,6 +548,7 @@ interface AppRouteChildren {
   AppJobsRoute: typeof AppJobsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppOffersRoute: typeof AppOffersRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubmissionsRoute: typeof AppSubmissionsRoute
   AppUsersRoute: typeof AppUsersRoute
@@ -549,6 +569,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppJobsRoute: AppJobsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppOffersRoute: AppOffersRoute,
+  AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubmissionsRoute: AppSubmissionsRoute,
   AppUsersRoute: AppUsersRoute,
