@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
+import { ScheduleLinkButton } from "@/components/ScheduleLinkButton";
 
 export const Route = createFileRoute("/_app/interviews")({ component: Page });
 
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/_app/interviews")({ component: Page });
 // in the ok/warn/bad palette would imply a judgment that isn't there, so they
 // stay as plain text.
 const STATUS_TONE: Record<string, PillTone> = {
+  awaiting_candidate: "warn",
   scheduled: "warn",
   completed: "info",
   selected: "ok",
@@ -43,6 +45,7 @@ function Page() {
           label: "Status",
           type: "select",
           options: [
+            { value:"awaiting_candidate", label:"Awaiting Candidate" },
             { value:"scheduled", label:"Scheduled" },{ value:"completed", label:"Completed" },
             { value:"selected", label:"Selected" },{ value:"rejected", label:"Rejected" },{ value:"no_show", label:"No Show" }
           ],
@@ -54,6 +57,18 @@ function Page() {
             ) : (
               "—"
             ),
+        },
+        {
+          // Not a real form field — hideInForm keeps it out of the Add/Edit
+          // dialog, bulk edit and the filter panel entirely. render fully
+          // replaces the cell (see cellDisplayValue's render-first check in
+          // CrudModule), so no matching DB column is needed here; the button
+          // itself reads/writes interviews.scheduling_token/proposed_slots
+          // directly via scheduling.functions.ts.
+          name: "scheduling_link",
+          label: "Scheduling Link",
+          hideInForm: true,
+          render: (row) => <ScheduleLinkButton interview={row} />,
         },
         { name: "feedback", label: "Feedback", type: "textarea", hideInTable: true },
       ]}

@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ScheduleTokenRouteImport } from './routes/schedule.$token'
 import { Route as AppUsersRouteImport } from './routes/_app.users'
 import { Route as AppSubmissionsRouteImport } from './routes/_app.submissions'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
@@ -61,6 +62,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleTokenRoute = ScheduleTokenRouteImport.update({
+  id: '/schedule/$token',
+  path: '/schedule/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/submissions': typeof AppSubmissionsRoute
   '/users': typeof AppUsersRoute
+  '/schedule/$token': typeof ScheduleTokenRoute
   '/api/public/hooks/sheets-sync': typeof ApiPublicHooksSheetsSyncRoute
 }
 export interface FileRoutesByTo {
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/submissions': typeof AppSubmissionsRoute
   '/users': typeof AppUsersRoute
+  '/schedule/$token': typeof ScheduleTokenRoute
   '/api/public/hooks/sheets-sync': typeof ApiPublicHooksSheetsSyncRoute
 }
 export interface FileRoutesById {
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/_app/submissions': typeof AppSubmissionsRoute
   '/_app/users': typeof AppUsersRoute
+  '/schedule/$token': typeof ScheduleTokenRoute
   '/api/public/hooks/sheets-sync': typeof ApiPublicHooksSheetsSyncRoute
 }
 export interface FileRouteTypes {
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submissions'
     | '/users'
+    | '/schedule/$token'
     | '/api/public/hooks/sheets-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/submissions'
     | '/users'
+    | '/schedule/$token'
     | '/api/public/hooks/sheets-sync'
   id:
     | '__root__'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/_app/submissions'
     | '/_app/users'
+    | '/schedule/$token'
     | '/api/public/hooks/sheets-sync'
   fileRoutesById: FileRoutesById
 }
@@ -318,6 +330,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ScheduleTokenRoute: typeof ScheduleTokenRoute
   ApiPublicHooksSheetsSyncRoute: typeof ApiPublicHooksSheetsSyncRoute
 }
 
@@ -363,6 +376,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule/$token': {
+      id: '/schedule/$token'
+      path: '/schedule/$token'
+      fullPath: '/schedule/$token'
+      preLoaderRoute: typeof ScheduleTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/users': {
@@ -543,6 +563,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ScheduleTokenRoute: ScheduleTokenRoute,
   ApiPublicHooksSheetsSyncRoute: ApiPublicHooksSheetsSyncRoute,
 }
 export const routeTree = rootRouteImport

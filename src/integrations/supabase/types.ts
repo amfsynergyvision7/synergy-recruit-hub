@@ -498,7 +498,9 @@ export type Database = {
           interview_date: string | null
           interview_time: string | null
           mode: string | null
+          proposed_slots: Json | null
           round: string | null
+          scheduling_token: string | null
           status: string | null
           submission_uuid: string | null
         }
@@ -514,7 +516,9 @@ export type Database = {
           interview_date?: string | null
           interview_time?: string | null
           mode?: string | null
+          proposed_slots?: Json | null
           round?: string | null
+          scheduling_token?: string | null
           status?: string | null
           submission_uuid?: string | null
         }
@@ -530,7 +534,9 @@ export type Database = {
           interview_date?: string | null
           interview_time?: string | null
           mode?: string | null
+          proposed_slots?: Json | null
           round?: string | null
+          scheduling_token?: string | null
           status?: string | null
           submission_uuid?: string | null
         }
