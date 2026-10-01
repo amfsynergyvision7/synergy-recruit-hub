@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BrandLogo, BrandMandala } from "@/components/BrandMark";
+import { BrandLogo, BrandCircuit } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { useForceDarkTheme } from "@/hooks/use-theme";
 import { hexToRgba } from "@/lib/color-themes";
@@ -86,7 +86,7 @@ function JobApplyPage() {
 
   return (
     <div className="relative isolate overflow-hidden min-h-screen bg-background">
-      <BrandMandala
+      <BrandCircuit
         className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
         style={{ opacity: 0.3 }}
       />

@@ -12,7 +12,7 @@ import { listOpenJobs } from "@/lib/careers.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BrandLogo, BrandMandala } from "@/components/BrandMark";
+import { BrandLogo, BrandCircuit } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { useForceDarkTheme } from "@/hooks/use-theme";
 import { hexToRgba } from "@/lib/color-themes";
@@ -40,11 +40,11 @@ function CareersPage() {
 
   return (
     <div className="relative isolate overflow-hidden min-h-screen bg-background">
-      {/* Same corner watermark treatment as the authenticated app shell
-          (_app.tsx) — purely decorative, so it's safe to duplicate here
-          rather than share, given the two layouts otherwise have nothing
-          else in common. */}
-      <BrandMandala
+      {/* Circuit-trace watermark, not the authenticated app shell's mandala
+          — a calmer, more technical motif chosen specifically for the
+          public-facing pages candidates see (see BrandCircuit's own
+          comment in BrandMark.tsx for why). */}
+      <BrandCircuit
         className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
         style={{ opacity: 0.3 }}
       />
