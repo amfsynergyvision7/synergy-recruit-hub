@@ -99,7 +99,7 @@ function AppLayout() {
             <div className="relative isolate overflow-hidden min-h-full">
               <BrandCircuit
                 className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
-                style={{ opacity: 0.3 }}
+                style={{ opacity: 0.42 }}
               />
               <div className="p-6">
                 <Outlet />

@@ -50,7 +50,7 @@ function LoginPage() {
       <div className="flex flex-col justify-center lg:justify-between bg-sidebar text-sidebar-foreground p-6 lg:p-12 relative isolate overflow-hidden">
         <BrandCircuit
           className="absolute -right-10 -bottom-10 h-[220px] w-[220px] lg:-right-24 lg:-bottom-24 lg:h-[70vh] lg:w-[70vh] -z-10"
-          style={{ opacity: 0.55, filter: `drop-shadow(0 0 40px ${hexToRgba(colorTheme.mandala[0], 0.3)})` }}
+          style={{ opacity: 0.65, filter: `drop-shadow(0 0 40px ${hexToRgba(colorTheme.mandala[0], 0.3)})` }}
         />
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">

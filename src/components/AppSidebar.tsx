@@ -52,7 +52,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <BrandCircuit
         className="absolute -top-20 -left-24 h-[95vh] w-[95vh] -z-10 pointer-events-none"
-        style={{ opacity: 0.5 }}
+        style={{ opacity: 0.6 }}
       />
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2.5">

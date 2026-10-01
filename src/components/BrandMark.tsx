@@ -152,12 +152,23 @@ export function BrandMandala({
  * authenticated app page, and the public Careers pages). Still re-skins
  * itself from the active color theme (same three gradient stops as the
  * mandala), so it stays consistent with the brand even though the motif
- * itself is unrelated: a small repeating tile of right-angled "traces" with
- * dot "vias" at the bends, filled into a square and faded out radially at
- * the edges so it reads as a soft corner watermark rather than a hard-edged
- * tiled rectangle — the same visual role the mandala played, just a calmer,
- * more technical motif. BrandMandala's definition is kept below (unused) in
- * case the design is ever reverted, but nothing currently renders it.
+ * itself is unrelated.
+ *
+ * v2 (upgraded from the original flat-dot/thin-line version after it read
+ * as too faint in production): real PCB boards chamfer trace corners to 45°
+ * instead of turning them at a sharp right angle, so the traces below do
+ * too — it's a small detail but it's the difference between "line art" and
+ * "circuit board." Vias are drawn as plated rings (an outer stroked circle
+ * plus a filled core) rather than flat dots, there's a small IC footprint
+ * with pin ticks and a pin-1 marker for texture, strokes are heavier and
+ * more opaque, and the whole pattern is rendered twice — once blurred and
+ * dimmer underneath, once crisp on top — for a soft neon glow instead of
+ * flat linework. The radial fade mask is also wider/brighter than before so
+ * more of the pattern actually survives before it fades out; it's still
+ * biased toward the top-right of its own box (this art is always anchored
+ * in a corner by its callers) so it reads as a corner watermark rather than
+ * floor-to-ceiling wallpaper. BrandMandala's definition is kept below
+ * (unused) in case the design is ever reverted.
  */
 export function BrandCircuit({
   className,
@@ -169,41 +180,72 @@ export function BrandCircuit({
   const id = React.useId();
   const patternId = `${id}-circuit`;
   const fadeId = `${id}-fade`;
+  const glowId = `${id}-glow`;
   const { theme } = useColorTheme();
   const [c0, c1, c2] = theme.mandala;
 
   return (
     <svg viewBox="0 0 400 400" className={className} style={style} aria-hidden="true">
       <defs>
-        {/* 72px (not 50px) tile: sparser traces read as architecture rather
-            than wallpaper at the sizes this renders at. */}
-        <pattern id={patternId} width="72" height="72" patternUnits="userSpaceOnUse">
-          <path d="M0 44 H26 V0" fill="none" stroke={c1} strokeWidth="0.75" strokeOpacity={0.8} />
-          <path d="M50 72 V52 H72" fill="none" stroke={c0} strokeWidth="0.75" strokeOpacity={0.8} />
-          <circle cx="26" cy="0" r="1.6" fill={c1} />
-          <circle cx="0" cy="44" r="1.6" fill={c0} />
-          <circle cx="50" cy="72" r="1.6" fill={c1} />
-          <circle cx="72" cy="52" r="1.6" fill={c2} />
-          <rect x="34" y="24" width="8" height="8" rx="1" fill="none" stroke={c2} strokeWidth="0.75" strokeOpacity={0.8} />
+        {/* 100px tile: three chamfered traces (each touching two tile edges
+            so they connect seamlessly between repeats), five plated vias,
+            and one IC footprint with pin ticks + a pin-1 dot. */}
+        <pattern id={patternId} width="100" height="100" patternUnits="userSpaceOnUse">
+          <path d="M0 64 H18 L30 52 V20 L38 12 H58" fill="none" stroke={c1} strokeWidth="1.3" strokeOpacity={0.95} strokeLinecap="round" />
+          <path d="M100 32 H78 L66 44 V72 L58 80 V100" fill="none" stroke={c0} strokeWidth="1.15" strokeOpacity={0.9} strokeLinecap="round" />
+          <path d="M18 100 V86 L26 78 H46" fill="none" stroke={c2} strokeWidth="1.05" strokeOpacity={0.85} strokeLinecap="round" />
+
+          <circle cx="30" cy="52" r="2.9" fill="none" stroke={c1} strokeWidth="1.1" />
+          <circle cx="30" cy="52" r="1" fill={c1} />
+          <circle cx="0" cy="64" r="2.6" fill="none" stroke={c1} strokeWidth="1" />
+          <circle cx="0" cy="64" r="0.9" fill={c1} />
+          <circle cx="66" cy="44" r="2.9" fill="none" stroke={c0} strokeWidth="1.1" />
+          <circle cx="66" cy="44" r="1" fill={c0} />
+          <circle cx="100" cy="32" r="2.6" fill="none" stroke={c0} strokeWidth="1" />
+          <circle cx="100" cy="32" r="0.9" fill={c0} />
+          <circle cx="26" cy="78" r="2.4" fill="none" stroke={c2} strokeWidth="1" />
+          <circle cx="26" cy="78" r="0.85" fill={c2} />
+
+          <rect x="42" y="38" width="13" height="18" rx="1.5" fill="none" stroke={c2} strokeWidth="1.1" strokeOpacity={0.9} />
+          <path
+            d="M42 42 H37 M42 48 H37 M42 54 H37 M55 42 H60 M55 48 H60 M55 54 H60"
+            stroke={c2}
+            strokeWidth="1.1"
+            strokeOpacity={0.9}
+            strokeLinecap="round"
+          />
+          <circle cx="45" cy="41" r="0.9" fill={c2} />
         </pattern>
+
+        {/* Soft glow: the crisp pattern above is rendered a second time,
+            blurred and slightly dimmer, underneath itself (see the two
+            <rect>s below) rather than blurring individual trace paths
+            inside the <pattern> — blurring the whole composited/masked
+            rect avoids any risk of the blur bleeding across tile seams. */}
+        <filter id={glowId} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.6" />
+        </filter>
+
         {/* Biased toward the top-right corner (75%/25%) rather than centered
-            — this art is always placed in a top-right corner (see its
-            callers), so the densest part of the pattern should sit where
-            the shape itself is anchored, fading smoothly outward from
-            there rather than from the middle of its own bounding box. More
-            gradient stops than BrandMandala's own fade needs, since a tiled
-            pattern shows banding with only two. */}
-        <radialGradient id={fadeId} cx="75%" cy="25%" r="75%">
+            — this art is always placed in a corner (see its callers), so
+            the densest part of the pattern should sit where the shape
+            itself is anchored, fading smoothly outward from there rather
+            than from the middle of its own bounding box. Wider/brighter
+            stops than v1 so more of the pattern survives before fading
+            out — more gradient stops than BrandMandala's own fade needs,
+            since a tiled pattern shows banding with only two. */}
+        <radialGradient id={fadeId} cx="75%" cy="25%" r="85%">
           <stop offset="0%" stopColor="white" stopOpacity="1" />
-          <stop offset="30%" stopColor="white" stopOpacity="0.85" />
-          <stop offset="55%" stopColor="white" stopOpacity="0.5" />
-          <stop offset="80%" stopColor="white" stopOpacity="0.15" />
+          <stop offset="40%" stopColor="white" stopOpacity="0.92" />
+          <stop offset="65%" stopColor="white" stopOpacity="0.62" />
+          <stop offset="85%" stopColor="white" stopOpacity="0.26" />
           <stop offset="100%" stopColor="white" stopOpacity="0" />
         </radialGradient>
         <mask id={`${fadeId}-mask`}>
           <rect width="400" height="400" fill={`url(#${fadeId})`} />
         </mask>
       </defs>
+      <rect width="400" height="400" fill={`url(#${patternId})`} mask={`url(#${fadeId}-mask)`} filter={`url(#${glowId})`} opacity={0.85} />
       <rect width="400" height="400" fill={`url(#${patternId})`} mask={`url(#${fadeId}-mask)`} />
     </svg>
   );

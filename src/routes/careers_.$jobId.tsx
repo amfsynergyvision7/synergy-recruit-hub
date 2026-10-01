@@ -88,7 +88,7 @@ function JobApplyPage() {
     <div className="relative isolate overflow-hidden min-h-screen bg-background">
       <BrandCircuit
         className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
-        style={{ opacity: 0.3 }}
+        style={{ opacity: 0.42 }}
       />
       <div className="max-w-2xl mx-auto px-6 py-10 space-y-4">
         <div className="flex items-center gap-2.5">
