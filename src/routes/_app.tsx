@@ -5,7 +5,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { GlobalSearch } from "@/components/GlobalSearch";
-import { BrandCircuit } from "@/components/BrandMark";
+import { PageBackdrop } from "@/components/BrandMark";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Bell } from "lucide-react";
@@ -97,10 +97,7 @@ function AppLayout() {
           </header>
           <main className="flex-1 overflow-auto">
             <div className="relative isolate overflow-hidden min-h-full">
-              <BrandCircuit
-                className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
-                style={{ opacity: 0.42 }}
-              />
+              <PageBackdrop className="absolute inset-0 -z-10 pointer-events-none" />
               <div className="p-6">
                 <Outlet />
               </div>

@@ -147,12 +147,11 @@ export function BrandMandala({
 }
 
 /**
- * Circuit-board-trace watermark — the CRM-wide replacement for BrandMandala
- * as the background/corner-watermark motif (sidebar, login panel, every
- * authenticated app page, and the public Careers pages). Still re-skins
- * itself from the active color theme (same three gradient stops as the
- * mandala), so it stays consistent with the brand even though the motif
- * itself is unrelated.
+ * Circuit-board-trace watermark — formerly the CRM-wide background motif,
+ * now superseded by PageBackdrop (below) after it read as too "bright neon
+ * tech startup" rather than the restrained, enterprise-grade look wanted for
+ * a staffing/recruitment firm. Kept defined (unused) in case the design is
+ * ever reverted, same as BrandMandala above it.
  *
  * v2 (upgraded from the original flat-dot/thin-line version after it read
  * as too faint in production): real PCB boards chamfer trace corners to 45°
@@ -167,8 +166,7 @@ export function BrandMandala({
  * more of the pattern actually survives before it fades out; it's still
  * biased toward the top-right of its own box (this art is always anchored
  * in a corner by its callers) so it reads as a corner watermark rather than
- * floor-to-ceiling wallpaper. BrandMandala's definition is kept below
- * (unused) in case the design is ever reverted.
+ * floor-to-ceiling wallpaper.
  */
 export function BrandCircuit({
   className,
@@ -248,6 +246,70 @@ export function BrandCircuit({
       <rect width="400" height="400" fill={`url(#${patternId})`} mask={`url(#${fadeId}-mask)`} filter={`url(#${glowId})`} opacity={0.85} />
       <rect width="400" height="400" fill={`url(#${patternId})`} mask={`url(#${fadeId}-mask)`} />
     </svg>
+  );
+}
+
+/**
+ * Hairline Architecture — the current CRM-wide background treatment,
+ * replacing BrandCircuit after it (and three earlier rounds of full-page
+ * concepts — aurora blooms, dot-grids, hex fields) all read as some flavor
+ * of "bright tech startup" rather than the restrained, enterprise-grade
+ * look wanted for a staffing/recruitment firm. This one is deliberately the
+ * opposite: a barely-visible single-tone diagonal hairline grid, one quiet
+ * warm-gold glow tucked in a top-right corner, and a faint vignette for
+ * depth — no neon, no glow-on-every-line, no dense texture.
+ *
+ * Two things make this component different from BrandMark/BrandMandala/
+ * BrandCircuit above:
+ *
+ * 1. It does NOT re-skin itself from the active color theme (Settings →
+ *    Branding). That's deliberate — the whole point of this treatment is to
+ *    stay quiet and consistent no matter which bright accent color an org
+ *    has picked for its buttons/links, rather than reintroducing a loud
+ *    palette into the backdrop. If a future request wants the gold glow to
+ *    instead track the org's theme (desaturated), that's a one-line change
+ *    to swap the hardcoded color for a muted derivative of theme.mandala[0].
+ *
+ * 2. It's built from plain CSS gradients on a <div>, not an SVG pattern/
+ *    viewBox. The earlier SVG components could assume a perfectly square
+ *    container (their callers always sized them to equal height/width), so
+ *    a single `viewBox="0 0 400 400"` always mapped 1:1 with no distortion.
+ *    This one is meant to fill its entire parent via `inset-0` — the
+ *    sidebar's narrow tall strip, the login panel, a wide dashboard page —
+ *    and none of those are square. An SVG viewBox stretched with
+ *    `preserveAspectRatio="none"` to fit a non-square box would skew the
+ *    45° grid lines into parallelograms. CSS `repeating-linear-gradient`
+ *    tiles in real pixels regardless of the element's aspect ratio, so the
+ *    diagonals stay true 45° angles in a 260px-wide sidebar strip and a
+ *    1400px-wide dashboard alike.
+ */
+export function PageBackdrop({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      aria-hidden="true"
+      className={className}
+      style={{
+        backgroundImage: [
+          // Warm-gold glow, anchored top-right (same corner convention the
+          // earlier BrandMandala/BrandCircuit callers used).
+          "radial-gradient(ellipse 640px 480px at 88% 8%, rgba(201,160,82,0.16), transparent 70%)",
+          // Vignette: a very soft darkening toward the edges for quiet depth.
+          "radial-gradient(ellipse 140% 110% at 50% 38%, transparent 55%, rgba(0,0,0,0.3) 100%)",
+          // Single-tone hairline grid — two diagonal hairline sets forming
+          // a diamond lattice, one slightly dimmer than the other so it
+          // doesn't read as a flat X pattern.
+          "repeating-linear-gradient(45deg, rgba(170,178,197,0.14) 0px, rgba(170,178,197,0.14) 1px, transparent 1px, transparent 64px)",
+          "repeating-linear-gradient(-45deg, rgba(170,178,197,0.11) 0px, rgba(170,178,197,0.11) 1px, transparent 1px, transparent 64px)",
+        ].join(", "),
+        ...style,
+      }}
+    />
   );
 }
 

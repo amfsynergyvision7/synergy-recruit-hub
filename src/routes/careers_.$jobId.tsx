@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BrandLogo, BrandCircuit } from "@/components/BrandMark";
+import { BrandLogo, PageBackdrop } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { useForceDarkTheme } from "@/hooks/use-theme";
 import { hexToRgba } from "@/lib/color-themes";
@@ -86,10 +86,7 @@ function JobApplyPage() {
 
   return (
     <div className="relative isolate overflow-hidden min-h-screen bg-background">
-      <BrandCircuit
-        className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
-        style={{ opacity: 0.42 }}
-      />
+      <PageBackdrop className="absolute inset-0 -z-10 pointer-events-none" />
       <div className="max-w-2xl mx-auto px-6 py-10 space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">

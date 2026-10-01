@@ -12,7 +12,7 @@ import { listOpenJobs } from "@/lib/careers.functions";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BrandLogo, BrandCircuit } from "@/components/BrandMark";
+import { BrandLogo, PageBackdrop } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { useForceDarkTheme } from "@/hooks/use-theme";
 import { hexToRgba } from "@/lib/color-themes";
@@ -40,13 +40,10 @@ function CareersPage() {
 
   return (
     <div className="relative isolate overflow-hidden min-h-screen bg-background">
-      {/* Circuit-trace watermark — the same background motif used across the
+      {/* Hairline Architecture backdrop — the same treatment used across the
           authenticated app shell (sidebar, login, every app page); see
-          BrandCircuit's own comment in BrandMark.tsx. */}
-      <BrandCircuit
-        className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
-        style={{ opacity: 0.42 }}
-      />
+          PageBackdrop's own comment in BrandMark.tsx. */}
+      <PageBackdrop className="absolute inset-0 -z-10 pointer-events-none" />
       <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">
