@@ -10,7 +10,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
-import { BrandLogo, BrandMandala } from "./BrandMark";
+import { BrandLogo, BrandCircuit } from "./BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { hexToRgba } from "@/lib/color-themes";
 
@@ -50,7 +50,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <BrandMandala
+      <BrandCircuit
         className="absolute -top-20 -left-24 h-[95vh] w-[95vh] -z-10 pointer-events-none"
         style={{ opacity: 0.5 }}
       />

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { BrandLogo, BrandMandala } from "@/components/BrandMark";
+import { BrandLogo, BrandCircuit } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { hexToRgba } from "@/lib/color-themes";
 
@@ -48,7 +48,7 @@ function LoginPage() {
           classes (flex, justify-between, p-12, full-size mandala), so the
           desktop layout is pixel-identical to before. */}
       <div className="flex flex-col justify-center lg:justify-between bg-sidebar text-sidebar-foreground p-6 lg:p-12 relative isolate overflow-hidden">
-        <BrandMandala
+        <BrandCircuit
           className="absolute -right-10 -bottom-10 h-[220px] w-[220px] lg:-right-24 lg:-bottom-24 lg:h-[70vh] lg:w-[70vh] -z-10"
           style={{ opacity: 0.55, filter: `drop-shadow(0 0 40px ${hexToRgba(colorTheme.mandala[0], 0.3)})` }}
         />

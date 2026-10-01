@@ -40,10 +40,9 @@ function CareersPage() {
 
   return (
     <div className="relative isolate overflow-hidden min-h-screen bg-background">
-      {/* Circuit-trace watermark, not the authenticated app shell's mandala
-          — a calmer, more technical motif chosen specifically for the
-          public-facing pages candidates see (see BrandCircuit's own
-          comment in BrandMark.tsx for why). */}
+      {/* Circuit-trace watermark — the same background motif used across the
+          authenticated app shell (sidebar, login, every app page); see
+          BrandCircuit's own comment in BrandMark.tsx. */}
       <BrandCircuit
         className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
         style={{ opacity: 0.3 }}

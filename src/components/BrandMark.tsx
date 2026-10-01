@@ -6,14 +6,15 @@ import { useColorTheme } from "@/hooks/use-color-theme";
  * Shared geometry for the AMF Synergy Vision mandala mark: concentric rings of
  * teardrop "petals" around a core ring, all painted with one radial gradient.
  * The three gradient stops come from whichever color theme is active (see
- * src/lib/color-themes.ts) — this is the piece that makes switching themes
- * in Settings re-skin the mandala everywhere it's drawn (sidebar, login
- * panel, the corner watermark on every app page), not just the rest of the
- * UI's flat colors. BrandMark is a simplified single-ring version for small
- * UI chrome (headers, nav bars); BrandMandala is the full three-ring version
- * meant for hero sections and corner watermarks. Opacity is tuned to stay
- * clearly visible rather than fade into a ghost at small sizes or low
- * layering.
+ * src/lib/color-themes.ts) — the same three stops also drive BrandCircuit's
+ * trace/via colors below, which is what makes switching themes in Settings
+ * re-skin the watermark everywhere it's drawn, not just the rest of the UI's
+ * flat colors. BrandMark is a simplified single-ring version for small UI
+ * chrome (headers, nav bars) and is still used there; BrandMandala was the
+ * full three-ring version used for hero sections/corner watermarks, now
+ * superseded everywhere by BrandCircuit (see its own comment below). Opacity
+ * is tuned to stay clearly visible rather than fade into a ghost at small
+ * sizes or low layering.
  */
 
 type RingSpec = { r: number; petals: number; len: number; w: number };
@@ -146,17 +147,17 @@ export function BrandMandala({
 }
 
 /**
- * Circuit-board-trace watermark — an alternative to BrandMandala for the
- * public Careers pages specifically. Still re-skins itself from the active
- * color theme (same three gradient stops as the mandala), so it stays
- * consistent with the brand even though the motif itself is unrelated: a
- * small repeating tile of right-angled "traces" with dot "vias" at the
- * bends, filled into a square and faded out radially at the edges so it
- * reads as a soft corner watermark rather than a hard-edged tiled
- * rectangle — the same visual role the mandala played, just a calmer,
- * more technical motif for a page candidates (not just recruiters) see.
- * BrandMandala itself is untouched and still used everywhere else (sidebar,
- * login) — this only replaces its use as careers-page background art.
+ * Circuit-board-trace watermark — the CRM-wide replacement for BrandMandala
+ * as the background/corner-watermark motif (sidebar, login panel, every
+ * authenticated app page, and the public Careers pages). Still re-skins
+ * itself from the active color theme (same three gradient stops as the
+ * mandala), so it stays consistent with the brand even though the motif
+ * itself is unrelated: a small repeating tile of right-angled "traces" with
+ * dot "vias" at the bends, filled into a square and faded out radially at
+ * the edges so it reads as a soft corner watermark rather than a hard-edged
+ * tiled rectangle — the same visual role the mandala played, just a calmer,
+ * more technical motif. BrandMandala's definition is kept below (unused) in
+ * case the design is ever reverted, but nothing currently renders it.
  */
 export function BrandCircuit({
   className,
@@ -212,7 +213,7 @@ export function BrandCircuit({
  * Drop-in replacement for BrandMark in the small icon slots (sidebar header,
  * login badge): shows the company's uploaded logo (Settings → Branding,
  * admin-only) when one exists, and falls back to the default neon BrandMark
- * otherwise. The decorative BrandMandala background art is unaffected either
+ * otherwise. The decorative BrandCircuit background art is unaffected either
  * way — uploading a logo adds it alongside the existing neon identity rather
  * than replacing it.
  */
