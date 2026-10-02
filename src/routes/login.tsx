@@ -53,7 +53,7 @@ function LoginPage() {
           style={{ opacity: 0.55, filter: "drop-shadow(0 0 40px rgba(47,230,255,0.3))" }}
         />
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">
+          <div className="h-10 w-10 rounded-md bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shadow-glow">
             <BrandLogo className="h-9 w-9" style={{ filter: `drop-shadow(0 0 6px ${glow})` }} />
           </div>
           <div>

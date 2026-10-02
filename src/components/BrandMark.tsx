@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useBranding } from "@/hooks/use-branding";
 import { useColorTheme } from "@/hooks/use-color-theme";
+import { hexToRgba } from "@/lib/color-themes";
 
 /**
  * Shared geometry for the AMF Synergy Vision mandala mark: concentric rings of
@@ -403,9 +404,25 @@ export function PageBackdrop({
  * Drop-in replacement for BrandMark in the small icon slots (sidebar header,
  * login badge): shows the company's uploaded logo (Settings → Branding,
  * admin-only) when one exists, and falls back to the default neon BrandMark
- * otherwise. The decorative BrandCircuit background art is unaffected either
- * way — uploading a logo adds it alongside the existing neon identity rather
- * than replacing it.
+ * otherwise. The decorative background watermark is unaffected either way —
+ * uploading a logo adds it alongside the existing identity rather than
+ * replacing it.
+ *
+ * The uploaded image gets its own glow, computed here rather than reusing
+ * whatever `style.filter` a caller passes: every call site already renders
+ * this inside a small rounded badge with the `shadow-glow` utility behind
+ * it, so the image's own glow only needs to pick up where that leaves off.
+ * Two layered `drop-shadow`s — a tight bright core plus a wider soft
+ * falloff — read clearly against the dark sidebar/login rail whether the
+ * uploaded asset has real alpha transparency or (as most logo exports do)
+ * its own opaque square background: drop-shadow follows the image's actual
+ * silhouette either way, unlike a box-shadow on the wrapper, which only
+ * ever draws a rectangle. This used to deliberately skip the glow — tuned
+ * for the mandala's thin SVG strokes, a flat raster logo looked wrong under
+ * it — but an unglowed logo instead read as flat and dark against the rest
+ * of the CRM's neon-accented chrome. So the glow is back, now computed
+ * fresh here from the active theme's own accent color rather than reused
+ * from the SVG mark's tuning.
  */
 export function BrandLogo({
   className,
@@ -415,11 +432,22 @@ export function BrandLogo({
   style?: React.CSSProperties;
 }) {
   const { logoUrl } = useBranding();
+  const { theme } = useColorTheme();
+
   if (logoUrl) {
-    // A raster/SVG logo the user uploaded — sized like the mark it replaces,
-    // but without the neon drop-shadow (that glow is tuned for the mandala's
-    // own thin cyan strokes and looks wrong over an arbitrary flat logo).
-    return <img src={logoUrl} alt="Company logo" className={`${className ?? ""} object-contain`} />;
+    const glow = theme.mandala[0];
+    const glowFilter = [
+      `drop-shadow(0 0 4px ${hexToRgba(glow, 0.85)})`,
+      `drop-shadow(0 0 14px ${hexToRgba(glow, 0.55)})`,
+    ].join(" ");
+    return (
+      <img
+        src={logoUrl}
+        alt="Company logo"
+        className={`${className ?? ""} object-contain`}
+        style={{ ...style, filter: glowFilter }}
+      />
+    );
   }
   return <BrandMark className={className} style={style} />;
 }

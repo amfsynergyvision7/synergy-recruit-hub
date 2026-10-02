@@ -96,7 +96,7 @@ function JobApplyPage() {
       />
       <div className="max-w-2xl mx-auto px-6 py-10 space-y-4">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">
+          <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shadow-glow">
             <BrandLogo className="h-8 w-8" style={{ filter: `drop-shadow(0 0 5px ${glow})` }} />
           </div>
           <div>
