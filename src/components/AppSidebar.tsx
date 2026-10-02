@@ -10,7 +10,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
-import { BrandLogo, PageBackdrop } from "./BrandMark";
+import { BrandLogo, BrandFacetBloom } from "./BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { hexToRgba } from "@/lib/color-themes";
 
@@ -50,7 +50,10 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <PageBackdrop className="absolute inset-0 -z-10 pointer-events-none" />
+      <BrandFacetBloom
+        className="absolute -top-20 -left-24 h-[95vh] w-[95vh] -z-10 pointer-events-none"
+        style={{ opacity: 0.5 }}
+      />
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center shadow-glow">

@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BrandLogo, PageBackdrop } from "@/components/BrandMark";
+import { BrandLogo, BrandFacetBloom } from "@/components/BrandMark";
 import { useColorTheme } from "@/hooks/use-color-theme";
 import { useForceDarkTheme } from "@/hooks/use-theme";
 import { hexToRgba } from "@/lib/color-themes";
@@ -86,7 +86,14 @@ function JobApplyPage() {
 
   return (
     <div className="relative isolate overflow-hidden min-h-screen bg-background">
-      <PageBackdrop className="absolute inset-0 -z-10 pointer-events-none" />
+      {/* Same mandala watermark used across the authenticated app shell
+          (sidebar, login, every app page) — see BrandFacetBloom's own comment
+          in BrandMark.tsx. Matches _app.tsx's positioning/opacity so the
+          public careers pages read as part of the same product. */}
+      <BrandFacetBloom
+        className="absolute -top-24 -right-24 h-[75vh] w-[75vh] -z-10 pointer-events-none"
+        style={{ opacity: 0.3 }}
+      />
       <div className="max-w-2xl mx-auto px-6 py-10 space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-lg bg-sidebar-accent/60 border border-sidebar-border flex items-center justify-center">

@@ -7,13 +7,15 @@ import { useColorTheme } from "@/hooks/use-color-theme";
  * teardrop "petals" around a core ring, all painted with one radial gradient.
  * The three gradient stops come from whichever color theme is active (see
  * src/lib/color-themes.ts) — the same three stops also drive BrandCircuit's
- * trace/via colors below, which is what makes switching themes in Settings
- * re-skin the watermark everywhere it's drawn, not just the rest of the UI's
- * flat colors. BrandMark is a simplified single-ring version for small UI
- * chrome (headers, nav bars) and is still used there; BrandMandala was the
- * full three-ring version used for hero sections/corner watermarks, now
- * superseded everywhere by BrandCircuit (see its own comment below). Opacity
- * is tuned to stay clearly visible rather than fade into a ghost at small
+ * trace/via colors below (unused, kept for reference), which is what makes
+ * switching themes in Settings re-skin the watermark everywhere it's drawn,
+ * not just the rest of the UI's flat colors. BrandMark is a simplified
+ * single-ring version for small UI chrome (headers, nav bars) and is still
+ * used there; BrandMandala is the full three-ring version used for hero
+ * sections/corner watermarks — the CRM-wide background motif again after a
+ * detour through BrandCircuit and PageBackdrop (both below, unused, kept for
+ * reference) read as too far from the brand's own identity. Opacity is
+ * tuned to stay clearly visible rather than fade into a ghost at small
  * sizes or low layering.
  */
 
@@ -122,7 +124,12 @@ export function BrandMark({
   );
 }
 
-/** Full three-ring mandala — for hero sections and corner watermarks. */
+/**
+ * Full three-ring mandala — for hero sections and corner watermarks. Live
+ * CRM-wide background treatment for one round (after BrandCircuit and then
+ * PageBackdrop were tried and set aside), now itself superseded by
+ * BrandFacetBloom below. Kept defined (unused) in case it's wanted again.
+ */
 export function BrandMandala({
   className,
   style,
@@ -147,11 +154,88 @@ export function BrandMandala({
 }
 
 /**
- * Circuit-board-trace watermark — formerly the CRM-wide background motif,
- * now superseded by PageBackdrop (below) after it read as too "bright neon
- * tech startup" rather than the restrained, enterprise-grade look wanted for
- * a staffing/recruitment firm. Kept defined (unused) in case the design is
- * ever reverted, same as BrandMandala above it.
+ * Facet Bloom — the current CRM-wide background treatment, replacing
+ * BrandMandala above. Picked after comparing it side-by-side against two
+ * sibling designs (a two-ring "Luminous Bloom" reusing BrandMandala's own
+ * teardrop petals with a glow double-render, and an "Aurora Rings" design
+ * that drops petals entirely for blurred color bands) across this CRM's
+ * five color themes — including Navy & Gold, which swaps in a serif
+ * heading font for a deliberately executive register. Facet Bloom read well
+ * in both the brighter Neon Mandala theme and the more restrained executive
+ * ones, which is what settled it.
+ *
+ * Two things carry over from the rest of this file: each ring is still
+ * drawn with the active color theme's three-stop gradient (theme.mandala,
+ * same as BrandMark/BrandMandala above), and the blurred-glow technique is
+ * the same one BrandCircuit used — rendering shapes through an SVG
+ * <feGaussianBlur> rather than a crisp outline — which is also the same
+ * visual language as the app's own `.bg-primary` neon box-shadow glow in
+ * styles.css. What's different from BrandMandala is the petal shape itself:
+ * instead of a crisp quadratic teardrop, each "petal" here is a soft blob
+ * built from two mirrored cubic Bezier curves, then blurred — closer to a
+ * bloom of soft light than a flower's linework. Each ring gets its own
+ * <filter>/blur radius (sized to that ring's own petal size) rather than
+ * one shared filter, since a single blur radius looks right on one ring's
+ * petal size and wrong on another's.
+ */
+export function BrandFacetBloom({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const id = React.useId();
+  const gradId = `${id}-grad`;
+  const { theme } = useColorTheme();
+  const [c0, c1, c2] = theme.mandala;
+
+  const rings = [
+    { r: 30, n: 6, size: 20, color: c0, blur: 2.2 },
+    { r: 62, n: 10, size: 22, color: c1, blur: 2.6 },
+    { r: 92, n: 14, size: 16, color: c2, blur: 2 },
+  ];
+
+  function blobPetal(r: number, size: number) {
+    return `M 0 ${-r + size} C ${size * 0.8} ${-r + size * 0.3}, ${size * 0.8} ${-r - size * 0.3}, 0 ${-r - size} C ${-size * 0.8} ${-r - size * 0.3}, ${-size * 0.8} ${-r + size * 0.3}, 0 ${-r + size} Z`;
+  }
+
+  return (
+    <svg viewBox="-125 -125 250 250" className={className} style={style} aria-hidden="true">
+      <defs>
+        <radialGradient id={gradId}>
+          <stop offset="0%" stopColor={c0} />
+          <stop offset="55%" stopColor={c1} />
+          <stop offset="100%" stopColor={c2} />
+        </radialGradient>
+        {rings.map((ring, ri) => (
+          <filter key={ri} id={`${id}-blur-${ri}`} x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur stdDeviation={ring.blur} />
+          </filter>
+        ))}
+      </defs>
+
+      {rings.map((ring, ri) => (
+        <g key={ri} filter={`url(#${id}-blur-${ri})`}>
+          {Array.from({ length: ring.n }).map((_, i) => (
+            <g key={i} transform={`rotate(${(360 / ring.n) * i})`}>
+              <path d={blobPetal(ring.r, ring.size)} fill={ring.color} fillOpacity={0.6} />
+            </g>
+          ))}
+        </g>
+      ))}
+
+      <circle r={12} fill="none" stroke={`url(#${gradId})`} strokeWidth={2} />
+      <circle r={110} fill="none" stroke={`url(#${gradId})`} strokeWidth={0.5} strokeOpacity={0.3} strokeDasharray="1 6" />
+    </svg>
+  );
+}
+
+/**
+ * Circuit-board-trace watermark — briefly the CRM-wide background motif,
+ * then superseded by PageBackdrop (below), and now both have been set aside
+ * in favor of reverting to BrandMandala above. Kept defined (unused) in case
+ * either design is wanted again.
  *
  * v2 (upgraded from the original flat-dot/thin-line version after it read
  * as too faint in production): real PCB boards chamfer trace corners to 45°
@@ -250,14 +334,16 @@ export function BrandCircuit({
 }
 
 /**
- * Hairline Architecture — the current CRM-wide background treatment,
- * replacing BrandCircuit after it (and three earlier rounds of full-page
- * concepts — aurora blooms, dot-grids, hex fields) all read as some flavor
- * of "bright tech startup" rather than the restrained, enterprise-grade
- * look wanted for a staffing/recruitment firm. This one is deliberately the
- * opposite: a barely-visible single-tone diagonal hairline grid, one quiet
- * warm-gold glow tucked in a top-right corner, and a faint vignette for
- * depth — no neon, no glow-on-every-line, no dense texture.
+ * Hairline Architecture — a CRM-wide background treatment tried after
+ * BrandCircuit (and three earlier rounds of full-page concepts — aurora
+ * blooms, dot-grids, hex fields) all read as some flavor of "bright tech
+ * startup" rather than the restrained, enterprise-grade look wanted for a
+ * staffing/recruitment firm. This one went the opposite direction: a
+ * barely-visible single-tone diagonal hairline grid, one quiet warm-gold
+ * glow tucked in a top-right corner, and a faint vignette for depth — no
+ * neon, no glow-on-every-line, no dense texture. Set aside in favor of
+ * reverting to BrandMandala (above); kept defined (unused) in case it's
+ * wanted again.
  *
  * Two things make this component different from BrandMark/BrandMandala/
  * BrandCircuit above:
