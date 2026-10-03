@@ -126,9 +126,16 @@ function Page() {
           // Real column (candidates.ats_score/ats_issues/ats_checked_at —
           // see the ATS Resume Maker migration) — persisted per the user's
           // choice to save the check rather than regenerate it every time.
+          // hideInTable: the table row was getting too cramped with every
+          // action button inline — this (and client_resume below) now only
+          // shows in the "eye" detail panel, same as every other
+          // hideInTable field above. The detail view always renders the
+          // full `fields` list regardless of hideInTable, so nothing is
+          // actually lost — it's one click away instead of in the row.
           name: "ats_score",
           label: "ATS Score",
           hideInForm: true,
+          hideInTable: true,
           render: (row) => (
             <AtsScoreButton
               candidateId={row.id}
@@ -147,6 +154,7 @@ function Page() {
           name: "client_resume",
           label: "Client Resume",
           hideInForm: true,
+          hideInTable: true,
           render: (row) => <ClientResumePdfButton candidateId={row.id} resumeUrl={row.resume_url} />,
         },
         { name: "source", label: "Source", hideInTable: true },
