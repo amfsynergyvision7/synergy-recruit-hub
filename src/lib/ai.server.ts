@@ -444,3 +444,219 @@ export async function extractCandidateFieldsFromResume(resumeText: string): Prom
     experienceYears: cleanNumber(raw.experience_years),
   };
 }
+
+// ============ ATS Resume Maker ============
+// Two independent sub-features sharing the same resume-fetch pipeline:
+//  1. ATS compatibility checker (below) — scores the candidate's *existing*
+//     resume file against general ATS-readability best practices and saves
+//     the result on the candidate record (candidates.ats_score/ats_issues/
+//     ats_checked_at — see supabase/migrations/20260930100000_candidate_ats_score.sql).
+//  2. Client-resume PDF reformatter (further below) — asks Gemini to
+//     restructure the same extracted resume text into a clean, single-column,
+//     agency-branded shape; the actual PDF bytes are built by
+//     resume-pdf.server.ts from the structured JSON this returns.
+
+const ATS_SCORE_SCHEMA = {
+  type: "object",
+  properties: {
+    score: { type: "integer" },
+    issues: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string" },
+          detail: { type: "string" },
+        },
+        required: ["label", "detail"],
+      },
+    },
+    strengths: { type: "array", items: { type: "string" } },
+  },
+  required: ["score", "issues", "strengths"],
+};
+
+function buildAtsScorePrompt(candidateName: string, resumeText: string): string {
+  return [
+    "You are an ATS (Applicant Tracking System) compatibility reviewer. Evaluate how well the resume text below would survive being parsed by an automated ATS, and how well-optimized it is for a recruiter skimming it afterward.",
+    "The text was machine-extracted from the candidate's actual PDF/Word file, so judge the underlying resume through it — note that a garbled reading order, run-together words, or content appearing out of logical sequence is itself a strong signal of an ATS-unfriendly layout (multi-column design, text boxes, tables, or graphics the extractor couldn't read correctly), even though you can't see the original visual layout.",
+    "Score on a 0-100 scale (100 = excellent ATS compatibility) based on things like: standard, clearly-labeled section headings (Experience, Education, Skills, etc.), a clean reverse-chronological work history with real dates, a findable skills/keywords section, consistent and parseable formatting (no evidence of tables/columns/graphics breaking the text), presence of contact details, appropriate resume length, use of concrete action verbs, and quantified achievements.",
+    "List concrete issues (max 8) as short label + one-sentence detail pairs, and list concrete strengths (max 6) as short phrases. Be specific to this resume's actual content — never generic filler.",
+    "",
+    `CANDIDATE: ${candidateName}`,
+    "",
+    "RESUME TEXT (machine-extracted):",
+    resumeText,
+  ].join("\n");
+}
+
+export interface AtsIssue {
+  label: string;
+  detail: string;
+}
+
+export interface AtsScoreResult {
+  score: number;
+  issues: AtsIssue[];
+  strengths: string[];
+}
+
+// Explicitly triggered (never automatic) — same cost reasoning as
+// generateResumeSummary above: a resume fetch + Gemini call has a real,
+// visible cost, so this only runs from a "Check ATS Score" button.
+export async function generateCandidateAtsScore(supabase: any, candidateId: string): Promise<{ result: AtsScoreResult; resumeText: string }> {
+  const { data: candidate, error } = await supabase
+    .from("candidates")
+    .select("id, full_name, resume_url")
+    .eq("id", candidateId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!candidate) throw new Error("Candidate not found.");
+
+  const resume = await fetchResumeText(candidate.resume_url ?? null);
+  if (!resume.ok) {
+    throw new Error(`Couldn't read this candidate's resume: ${resume.error}`);
+  }
+
+  const raw = await callGeminiJSON<{ score: number; issues: AtsIssue[]; strengths: string[] }>(
+    buildAtsScorePrompt(candidate.full_name, resume.text),
+    ATS_SCORE_SCHEMA,
+  );
+
+  const result: AtsScoreResult = {
+    score: Math.max(0, Math.min(100, Math.round(raw.score))),
+    issues: Array.isArray(raw.issues) ? raw.issues : [],
+    strengths: Array.isArray(raw.strengths) ? raw.strengths : [],
+  };
+
+  const { error: updateError } = await supabase
+    .from("candidates")
+    .update({
+      ats_score: result.score,
+      ats_issues: { issues: result.issues, strengths: result.strengths },
+      ats_checked_at: new Date().toISOString(),
+    })
+    .eq("id", candidateId);
+  if (updateError) throw updateError;
+
+  return { result, resumeText: resume.text };
+}
+
+const CLIENT_RESUME_SCHEMA = {
+  type: "object",
+  properties: {
+    headline: { type: ["string", "null"] },
+    summary: { type: "string" },
+    skills: { type: "array", items: { type: "string" } },
+    experience: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          company: { type: ["string", "null"] },
+          duration: { type: ["string", "null"] },
+          bullets: { type: "array", items: { type: "string" } },
+        },
+        required: ["title", "company", "duration", "bullets"],
+      },
+    },
+    education: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          degree: { type: "string" },
+          institution: { type: ["string", "null"] },
+          year: { type: ["string", "null"] },
+        },
+        required: ["degree", "institution", "year"],
+      },
+    },
+    certifications: { type: "array", items: { type: "string" } },
+  },
+  required: ["headline", "summary", "skills", "experience", "education", "certifications"],
+};
+
+function buildClientResumeRestructurePrompt(candidate: CandidateRow, resumeText: string): string {
+  const crmBlock = [
+    candidate.position_applied ? `Position applied for: ${candidate.position_applied}` : null,
+    candidate.current_company ? `Current/most recent company (per CRM): ${candidate.current_company}` : null,
+    candidate.experience_years != null ? `Total experience (per CRM): ${candidate.experience_years} years` : null,
+  ].filter(Boolean).join("\n");
+
+  return [
+    "You are a recruiting assistant preparing a candidate's resume to submit to a client company. Restructure the resume text below into a clean, single-column, ATS-safe shape — do not invent, embellish, or add any fact not present in the resume text.",
+    "Rewrite (don't just copy) the summary and experience bullets into concise, professional, client-ready language, correcting obvious typos/grammar, but keep every fact (employers, titles, dates, numbers) exactly as stated in the source.",
+    "- headline: a short professional title line (e.g. \"Senior Backend Engineer, 6+ years\"), or null if nothing sensible can be inferred.",
+    "- summary: 3-5 sentence professional summary.",
+    "- skills: a flat list of concrete skills/tools/technologies mentioned in the resume.",
+    "- experience: reverse-chronological; each entry needs a title, and company/duration if stated in the resume (null if genuinely absent), plus 2-5 achievement-focused bullets.",
+    "- education: degree required; institution/year null if genuinely absent.",
+    "- certifications: flat list, empty array if none mentioned.",
+    "",
+    "CRM RECORD (context only — the resume text is the source of truth for all content below):",
+    crmBlock || "(no additional CRM context)",
+    "",
+    "RESUME TEXT (machine-extracted):",
+    resumeText,
+  ].join("\n");
+}
+
+export interface ClientResumeStructured {
+  headline: string | null;
+  summary: string;
+  skills: string[];
+  experience: { title: string; company: string | null; duration: string | null; bullets: string[] }[];
+  education: { degree: string; institution: string | null; year: string | null }[];
+  certifications: string[];
+}
+
+// Restructures a candidate's resume into the structured shape
+// resume-pdf.server.ts renders into the actual client-submission PDF. Kept
+// here (not in resume-pdf.server.ts) alongside every other Gemini prompt/
+// schema in this file; resume-pdf.server.ts owns only the PDF-drawing code,
+// same split as drive-import.server.ts/ai.server.ts for the bulk-import flow.
+export async function restructureResumeForClient(supabase: any, candidateId: string): Promise<{ candidate: any; resumeText: string; resume: ClientResumeStructured }> {
+  const { data: candidate, error } = await supabase
+    .from("candidates")
+    .select("id, full_name, email, mobile, location, position_applied, current_company, experience_years, resume_url")
+    .eq("id", candidateId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!candidate) throw new Error("Candidate not found.");
+
+  const resume = await fetchResumeText(candidate.resume_url ?? null);
+  if (!resume.ok) {
+    throw new Error(`Couldn't read this candidate's resume: ${resume.error}`);
+  }
+
+  const raw = await callGeminiJSON<ClientResumeStructured>(
+    buildClientResumeRestructurePrompt(candidate as CandidateRow, resume.text),
+    CLIENT_RESUME_SCHEMA,
+  );
+
+  const resumeStructured: ClientResumeStructured = {
+    headline: cleanString(raw.headline),
+    summary: typeof raw.summary === "string" ? raw.summary : "",
+    skills: Array.isArray(raw.skills) ? raw.skills.filter((s) => typeof s === "string") : [],
+    experience: Array.isArray(raw.experience)
+      ? raw.experience.map((e) => ({
+          title: typeof e?.title === "string" ? e.title : "",
+          company: cleanString(e?.company),
+          duration: cleanString(e?.duration),
+          bullets: Array.isArray(e?.bullets) ? e.bullets.filter((b) => typeof b === "string") : [],
+        }))
+      : [],
+    education: Array.isArray(raw.education)
+      ? raw.education.map((e) => ({
+          degree: typeof e?.degree === "string" ? e.degree : "",
+          institution: cleanString(e?.institution),
+          year: cleanString(e?.year),
+        }))
+      : [],
+    certifications: Array.isArray(raw.certifications) ? raw.certifications.filter((c) => typeof c === "string") : [],
+  };
+
+  return { candidate, resumeText: resume.text, resume: resumeStructured };
+}

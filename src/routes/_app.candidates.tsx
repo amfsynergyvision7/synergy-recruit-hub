@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { ResumeSummaryButton } from "@/components/ResumeSummaryButton";
+import { AtsScoreButton } from "@/components/AtsScoreButton";
+import { ClientResumePdfButton } from "@/components/ClientResumePdfButton";
 import { DriveImportButton } from "@/components/DriveImportButton";
 import { PhoneCell } from "@/components/PhoneCell";
 import { Table2, LayoutGrid } from "lucide-react";
@@ -119,6 +121,33 @@ function Page() {
               resumeSummary={row.resume_summary}
             />
           ),
+        },
+        {
+          // Real column (candidates.ats_score/ats_issues/ats_checked_at —
+          // see the ATS Resume Maker migration) — persisted per the user's
+          // choice to save the check rather than regenerate it every time.
+          name: "ats_score",
+          label: "ATS Score",
+          hideInForm: true,
+          render: (row) => (
+            <AtsScoreButton
+              candidateId={row.id}
+              fullName={row.full_name}
+              resumeUrl={row.resume_url}
+              atsScore={row.ats_score}
+              atsIssues={row.ats_issues}
+            />
+          ),
+        },
+        {
+          // Pseudo-field: no backing column, purely an extension point for
+          // the client-resume PDF download button (cellDisplayValue safely
+          // renders an empty cell for it outside this render — e.g. in CSV
+          // export — since row.client_resume is simply undefined).
+          name: "client_resume",
+          label: "Client Resume",
+          hideInForm: true,
+          render: (row) => <ClientResumePdfButton candidateId={row.id} resumeUrl={row.resume_url} />,
         },
         { name: "source", label: "Source", hideInTable: true },
         {

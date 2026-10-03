@@ -254,6 +254,9 @@ export type Database = {
       candidates: {
         Row: {
           assigned_recruiter: string | null
+          ats_checked_at: string | null
+          ats_issues: Json | null
+          ats_score: number | null
           candidate_code: string | null
           created_at: string
           created_by: string | null
@@ -279,6 +282,9 @@ export type Database = {
         }
         Insert: {
           assigned_recruiter?: string | null
+          ats_checked_at?: string | null
+          ats_issues?: Json | null
+          ats_score?: number | null
           candidate_code?: string | null
           created_at?: string
           created_by?: string | null
@@ -304,6 +310,9 @@ export type Database = {
         }
         Update: {
           assigned_recruiter?: string | null
+          ats_checked_at?: string | null
+          ats_issues?: Json | null
+          ats_score?: number | null
           candidate_code?: string | null
           created_at?: string
           created_by?: string | null
