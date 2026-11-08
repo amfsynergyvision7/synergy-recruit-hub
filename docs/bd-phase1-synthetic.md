@@ -11,7 +11,7 @@ Status: code committed for review; not deployed or connected to live CRM.
 - Filterable seven-stage pipeline, manual stage change
 - Follow-up tasks with due dates and completion toggle
 - Reset synthetic data
-- Synthetic-only model and fourteen authored regression tests
+- Synthetic-only model and seventeen authored regression tests
 
 ## Privacy and runtime
 No Supabase import in BD route or model. No network, email sending, real candidate/customer data, browser persistence, localStorage or service role. All entries exist in React state and reset on reload. Do not enter real personal or confidential information.
@@ -40,3 +40,10 @@ The new tests are authored but not yet run against the actual GitHub branch in a
 - Added npm run test:bd to package scripts.
 - Added admin-only prototype gate while BD authorization is not implemented; the sidebar link itself remains visible, and the page explains restricted access to non-admins.
 - GitHub clone is blocked in the current local container because github.com DNS resolution is unavailable; repository test/build execution is still unverified. No CI run was triggered and no production deployment occurred.
+
+## Additional controlled fixes — 2026-11-09
+- Added case-insensitive duplicate work-email check for synthetic contacts (17 authored tests total).
+- Reject toggling nonexistent follow-up task IDs instead of reporting success.
+- Moved prototype navigation entry into existing Admin menu, matching route-level admin gate.
+- Added tests for duplicate email, missing task and valid task creation.
+- Full npm test/build/lint/browser verification still pending; no production changes.
