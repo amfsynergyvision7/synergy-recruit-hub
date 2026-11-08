@@ -50,3 +50,8 @@ The new tests are authored but not yet run against the actual GitHub branch in a
 
 ## Explicit demo feature flag (2026-11-09)
 The /bd route now requires VITE_ENABLE_BD_DEMO=true and admin role. Sidebar entry is hidden unless the same flag is enabled; this prevents accidental demonstration exposure if a later merge occurs. In a local development shell, set VITE_ENABLE_BD_DEMO=true before npm run dev. This is a UI safety switch, not production-grade authorization or a substitute for RLS. No flag was set in production. Eight source-readback static checks passed, including flag/role guards, no Supabase imports in the BD route/model, 17 authored test declarations and test script presence. Full npm build, lint, tests and browser verification remain pending.
+
+## Form and calendar hardening — 2026-11-09
+- Validation failures now preserve all four form inputs; mutate reports success/failure and clears inputs only on success.
+- Today's date for task creation and overdue KPI uses local calendar components rather than UTC ISO date to prevent off-by-one dates in non-UTC time zones.
+- Seven source-readback checks passed for these changes. This is not equivalent to running build/tests/browser checks.
