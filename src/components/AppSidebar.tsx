@@ -17,7 +17,6 @@ import { hexToRgba } from "@/lib/color-themes";
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Reports", url: "/reports", icon: FileSpreadsheet },
-  { title: "Business Development · Demo", url: "/bd", icon: Handshake },
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Job Openings", url: "/jobs", icon: Briefcase },
@@ -34,6 +33,7 @@ const items = [
 ];
 
 const adminItems = [
+  { title: "Business Development · Demo", url: "/bd", icon: Handshake },
   { title: "Workflow Rules", url: "/workflow-rules", icon: Workflow },
   { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Import Data", url: "/import", icon: Upload },
