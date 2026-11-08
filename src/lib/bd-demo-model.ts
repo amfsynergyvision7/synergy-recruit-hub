@@ -27,6 +27,7 @@ export function validateContact(c:Contact,s:BDState):string|null{
  if(!c.name.trim())return "Contact name is required";
  if(!s.organizations.some(x=>x.id===c.organizationId))return "Choose a valid organization";
  if(c.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email))return "Invalid email";
+ if(c.email && s.contacts.some(x=>x.email.trim().toLowerCase()===c.email.trim().toLowerCase()))return "Contact email already exists";
  return null;
 }
 export function addOrganization(s:BDState,o:Organization):BDState{
@@ -46,5 +47,5 @@ export function addTask(s:BDState,t:FollowUp):BDState{
  if(!s.opportunities.some(o=>o.id===t.opportunityId))throw Error("Unknown opportunity");
  return {...s,tasks:[...s.tasks,t]};
 }
-export function toggleTask(s:BDState,id:string):BDState{return {...s,tasks:s.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)};}
+export function toggleTask(s:BDState,id:string):BDState{if(!s.tasks.some(t=>t.id===id))throw Error("Unknown task");return {...s,tasks:s.tasks.map(t=>t.id===id?{...t,done:!t.done}:t)};}
 export function summarize(s:BDState,today:string){return {organizations:s.organizations.length,contacts:s.contacts.length,open:s.opportunities.filter(o=>!["won","lost"].includes(o.stage)).length,won:s.opportunities.filter(o=>o.stage==="won").length,overdue:s.tasks.filter(t=>!t.done&&t.due<today).length,pending:s.tasks.filter(t=>!t.done).length};}
