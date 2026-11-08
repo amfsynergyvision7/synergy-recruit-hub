@@ -47,3 +47,6 @@ The new tests are authored but not yet run against the actual GitHub branch in a
 - Moved prototype navigation entry into existing Admin menu, matching route-level admin gate.
 - Added tests for duplicate email, missing task and valid task creation.
 - Full npm test/build/lint/browser verification still pending; no production changes.
+
+## Explicit demo feature flag (2026-11-09)
+The /bd route now requires VITE_ENABLE_BD_DEMO=true and admin role. Sidebar entry is hidden unless the same flag is enabled; this prevents accidental demonstration exposure if a later merge occurs. In a local development shell, set VITE_ENABLE_BD_DEMO=true before npm run dev. This is a UI safety switch, not production-grade authorization or a substitute for RLS. No flag was set in production. Eight source-readback static checks passed, including flag/role guards, no Supabase imports in the BD route/model, 17 authored test declarations and test script presence. Full npm build, lint, tests and browser verification remain pending.
