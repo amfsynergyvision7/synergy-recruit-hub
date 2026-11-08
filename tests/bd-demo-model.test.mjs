@@ -23,3 +23,7 @@ test("overdue summary calculated",()=>assert.equal(summarize(seed,"2026-11-14").
 
 test("invalid calendar dates rejected",()=>assert.throws(()=>addTask(seed,{id:"x",opportunityId:"opp-1",title:"Follow up",due:"2026-99-99",done:false,owner:"Demo"}),/Valid task/));
 test("task missing owner rejected",()=>assert.throws(()=>addTask(seed,{id:"x",opportunityId:"opp-1",title:"Follow up",due:"2026-11-10",done:false,owner:""}),/Valid task/));
+
+test("duplicate contact emails rejected case-insensitively",()=>assert.throws(()=>addContact(seed,{id:"new",organizationId:"org-3",name:"Demo",title:"",email:"DEMO-A@EXAMPLE.INVALID"}),/already exists/));
+test("unknown task cannot be toggled",()=>assert.throws(()=>toggleTask(seed,"missing"),/Unknown task/));
+test("valid follow-up task can be added",()=>assert.equal(addTask(seed,{id:"new",opportunityId:"opp-1",title:"Call",due:"2026-11-15",done:false,owner:"Demo"}).tasks.length,3));
