@@ -27,3 +27,8 @@ test("task missing owner rejected",()=>assert.throws(()=>addTask(seed,{id:"x",op
 test("duplicate contact emails rejected case-insensitively",()=>assert.throws(()=>addContact(seed,{id:"new",organizationId:"org-3",name:"Demo",title:"",email:"DEMO-A@EXAMPLE.INVALID"}),/already exists/));
 test("unknown task cannot be toggled",()=>assert.throws(()=>toggleTask(seed,"missing"),/Unknown task/));
 test("valid follow-up task can be added",()=>assert.equal(addTask(seed,{id:"new",opportunityId:"opp-1",title:"Call",due:"2026-11-15",done:false,owner:"Demo"}).tasks.length,3));
+
+test("organization ID collision rejected",()=>assert.throws(()=>addOrganization(seed,{...seed.organizations[0],name:"Another Organization"}),/ID must be unique/));
+test("contact ID collision rejected",()=>assert.throws(()=>addContact(seed,{...seed.contacts[0],email:"different@example.invalid"}),/ID must be unique/));
+test("opportunity ID collision rejected",()=>assert.throws(()=>addOpportunity(seed,{...seed.opportunities[0],title:"Another Opportunity"}),/ID must be unique/));
+test("task ID collision rejected",()=>assert.throws(()=>addTask(seed,{...seed.tasks[0],title:"Another task"}),/ID must be unique/));
