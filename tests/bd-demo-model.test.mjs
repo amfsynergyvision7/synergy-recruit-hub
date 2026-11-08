@@ -20,3 +20,6 @@ test("invalid stage rejected",()=>assert.throws(()=>moveOpportunity(seed,"opp-1"
 test("task requires related opportunity",()=>assert.throws(()=>addTask(seed,{id:"x",opportunityId:"missing",title:"Follow up",due:"2026-11-10",done:false,owner:"Demo"}),/Unknown opportunity/));
 test("task toggle immutable",()=>{const x=toggleTask(seed,"task-1");assert.equal(x.tasks[0].done,true);assert.equal(seed.tasks[0].done,false)});
 test("overdue summary calculated",()=>assert.equal(summarize(seed,"2026-11-14").overdue,2));
+
+test("invalid calendar dates rejected",()=>assert.throws(()=>addTask(seed,{id:"x",opportunityId:"opp-1",title:"Follow up",due:"2026-99-99",done:false,owner:"Demo"}),/Valid task/));
+test("task missing owner rejected",()=>assert.throws(()=>addTask(seed,{id:"x",opportunityId:"opp-1",title:"Follow up",due:"2026-11-10",done:false,owner:""}),/Valid task/));
