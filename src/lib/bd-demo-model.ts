@@ -42,7 +42,7 @@ export function moveOpportunity(s:BDState,id:string,stage:Stage):BDState{
  return {...s,opportunities:s.opportunities.map(o=>o.id===id?{...o,stage}:o)};
 }
 export function addTask(s:BDState,t:FollowUp):BDState{
- if(!t.title.trim()||!t.owner.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(t.due))throw Error("Task title, owner and date required");
+ if(!t.title.trim()||!t.owner.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(t.due)||!Number.isFinite(Date.parse(t.due))||new Date(t.due).toISOString().slice(0,10)!==t.due)throw Error("Valid task title, owner and date required");
  if(!s.opportunities.some(o=>o.id===t.opportunityId))throw Error("Unknown opportunity");
  return {...s,tasks:[...s.tasks,t]};
 }
