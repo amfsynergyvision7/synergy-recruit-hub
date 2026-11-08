@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Building2, Briefcase, Send, CalendarCheck,
-  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug, Activity, Sparkles, Users2, FileSpreadsheet, Workflow
+  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug, Activity, Sparkles, Users2, FileSpreadsheet, Workflow, Handshake
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -17,6 +17,7 @@ import { hexToRgba } from "@/lib/color-themes";
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Reports", url: "/reports", icon: FileSpreadsheet },
+  { title: "Business Development · Demo", url: "/bd", icon: Handshake },
   { title: "Candidates", url: "/candidates", icon: Users },
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Job Openings", url: "/jobs", icon: Briefcase },
