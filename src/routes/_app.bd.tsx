@@ -13,7 +13,7 @@ import {addOrganization,addContact,addOpportunity,addTask,moveOpportunity,toggle
 
 export const Route=createFileRoute("/_app/bd")({component:BusinessDevelopment});
 const newId=()=>`demo-${Math.random().toString(36).slice(2,11)}`;
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;};
 function BusinessDevelopment(){
  const {role}=useAuth();
  if(import.meta.env.VITE_ENABLE_BD_DEMO!=="true")return <div className="rounded-lg border p-6"><h1 className="text-xl font-semibold">Business Development prototype disabled</h1><p className="mt-2 text-sm text-muted-foreground">This synthetic demonstration requires explicit enablement in a development environment.</p></div>;
@@ -30,11 +30,11 @@ function BusinessDevelopmentDemo(){
  const [taskTitle,setTaskTitle]=useState("");const [taskDue,setTaskDue]=useState(today());const [taskOpp,setTaskOpp]=useState("opp-1");
  const metrics=useMemo(()=>summarize(state,today()),[state]);
  const company=(id:string)=>state.organizations.find(o=>o.id===id)?.name??"Unknown";
- const mutate=(fn:(s:BDState)=>BDState)=>{try{const next=fn(state);setState(next);toast.success("Updated in this demo session only");}catch(e){toast.error(e instanceof Error?e.message:"Invalid input");}};
- const addOrg=()=>{if(!orgName.trim())return toast.error("Enter an organization name");if(state.organizations.some(o=>o.name.trim().toLowerCase()===orgName.trim().toLowerCase()))return toast.error("Organization already exists");mutate(s=>addOrganization(s,{id:newId(),name:orgName.trim(),city:orgCity.trim(),industry:"",owner:"Demo User"}));setOrgName("");setOrgCity("");};
- const addCon=()=>{if(!contactName.trim())return toast.error("Enter contact name");if(contactEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))return toast.error("Enter a valid email");mutate(s=>addContact(s,{id:newId(),organizationId:contactOrg,name:contactName.trim(),title:"",email:contactEmail.trim()}));setContactName("");setContactEmail("");};
- const addOpp=()=>{if(!oppTitle.trim())return toast.error("Enter opportunity title");mutate(s=>addOpportunity(s,{id:newId(),organizationId:oppOrg,title:oppTitle.trim(),type,stage:"identified",owner:"Demo User",value:0,nextAction:"Plan next step"}));setOppTitle("");};
- const addFollowUp=()=>{if(!taskTitle.trim()||!taskDue)return toast.error("Enter task title and date");mutate(s=>addTask(s,{id:newId(),opportunityId:taskOpp,title:taskTitle.trim(),due:taskDue,done:false,owner:"Demo User"}));setTaskTitle("");};
+ const mutate=(fn:(s:BDState)=>BDState):boolean=>{try{const next=fn(state);setState(next);toast.success("Updated in this demo session only");return true;}catch(e){toast.error(e instanceof Error?e.message:"Invalid input");return false;}};
+ const addOrg=()=>{if(!orgName.trim())return toast.error("Enter an organization name");if(state.organizations.some(o=>o.name.trim().toLowerCase()===orgName.trim().toLowerCase()))return toast.error("Organization already exists");if(mutate(s=>addOrganization(s,{id:newId(),name:orgName.trim(),city:orgCity.trim(),industry:"",owner:"Demo User"}))){setOrgName("");setOrgCity("");}};
+ const addCon=()=>{if(!contactName.trim())return toast.error("Enter contact name");if(contactEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))return toast.error("Enter a valid email");if(mutate(s=>addContact(s,{id:newId(),organizationId:contactOrg,name:contactName.trim(),title:"",email:contactEmail.trim()}))){setContactName("");setContactEmail("");}};
+ const addOpp=()=>{if(!oppTitle.trim())return toast.error("Enter opportunity title");if(mutate(s=>addOpportunity(s,{id:newId(),organizationId:oppOrg,title:oppTitle.trim(),type,stage:"identified",owner:"Demo User",value:0,nextAction:"Plan next step"})))setOppTitle("");};
+ const addFollowUp=()=>{if(!taskTitle.trim()||!taskDue)return toast.error("Enter task title and date");if(mutate(s=>addTask(s,{id:newId(),opportunityId:taskOpp,title:taskTitle.trim(),due:taskDue,done:false,owner:"Demo User"})))setTaskTitle("");};
  const visible=state.opportunities.filter(o=>o.type===type&&(`${o.title} ${company(o.organizationId)}`).toLowerCase().includes(filter.toLowerCase()));
  return <div className="space-y-5">
   <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Business Development</h1><p className="text-sm text-muted-foreground">Recruitment leads, partnerships and future CRM customers</p></div><Badge variant="secondary">SYNTHETIC DEMO · SESSION ONLY</Badge></div>
