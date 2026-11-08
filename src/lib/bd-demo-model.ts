@@ -16,6 +16,7 @@ export const seed:BDState={
 };
 export function validateOpportunity(o:Opportunity,s:BDState):string|null{
  if(!o.title.trim())return "Opportunity title is required";
+ if(!o.id.trim()||s.opportunities.some(x=>x.id===o.id))return "Opportunity ID must be unique";
  if(!s.organizations.some(x=>x.id===o.organizationId))return "Choose a valid organization";
  if(!typeLabels[o.type])return "Invalid opportunity type";
  if(!stages.includes(o.stage))return "Invalid pipeline stage";
@@ -25,6 +26,7 @@ export function validateOpportunity(o:Opportunity,s:BDState):string|null{
 }
 export function validateContact(c:Contact,s:BDState):string|null{
  if(!c.name.trim())return "Contact name is required";
+ if(!c.id.trim()||s.contacts.some(x=>x.id===c.id))return "Contact ID must be unique";
  if(!s.organizations.some(x=>x.id===c.organizationId))return "Choose a valid organization";
  if(c.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email))return "Invalid email";
  if(c.email && s.contacts.some(x=>x.email.trim().toLowerCase()===c.email.trim().toLowerCase()))return "Contact email already exists";
@@ -32,6 +34,7 @@ export function validateContact(c:Contact,s:BDState):string|null{
 }
 export function addOrganization(s:BDState,o:Organization):BDState{
  if(!o.name.trim())throw Error("Organization name is required");
+ if(!o.id.trim()||s.organizations.some(x=>x.id===o.id))throw Error("Organization ID must be unique");
  if(s.organizations.some(x=>x.name.trim().toLowerCase()===o.name.trim().toLowerCase()))throw Error("Organization already exists");
  return {...s,organizations:[...s.organizations,o]};
 }
@@ -43,6 +46,7 @@ export function moveOpportunity(s:BDState,id:string,stage:Stage):BDState{
  return {...s,opportunities:s.opportunities.map(o=>o.id===id?{...o,stage}:o)};
 }
 export function addTask(s:BDState,t:FollowUp):BDState{
+ if(!t.id.trim()||s.tasks.some(x=>x.id===t.id))throw Error("Task ID must be unique");
  if(!t.title.trim()||!t.owner.trim()||!/^\d{4}-\d{2}-\d{2}$/.test(t.due)||!Number.isFinite(Date.parse(t.due))||new Date(t.due).toISOString().slice(0,10)!==t.due)throw Error("Valid task title, owner and date required");
  if(!s.opportunities.some(o=>o.id===t.opportunityId))throw Error("Unknown opportunity");
  return {...s,tasks:[...s.tasks,t]};
