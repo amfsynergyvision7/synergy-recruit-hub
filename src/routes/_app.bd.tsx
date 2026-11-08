@@ -16,6 +16,7 @@ const newId=()=>`demo-${Math.random().toString(36).slice(2,11)}`;
 const today=()=>new Date().toISOString().slice(0,10);
 function BusinessDevelopment(){
  const {role}=useAuth();
+ if(import.meta.env.VITE_ENABLE_BD_DEMO!=="true")return <div className="rounded-lg border p-6"><h1 className="text-xl font-semibold">Business Development prototype disabled</h1><p className="mt-2 text-sm text-muted-foreground">This synthetic demonstration requires explicit enablement in a development environment.</p></div>;
  if(role!=="admin")return <div className="rounded-lg border p-6"><h1 className="text-xl font-semibold">Business Development prototype</h1><p className="mt-2 text-sm text-muted-foreground">This synthetic demonstration is currently restricted to administrators. Production BD permissions have not been implemented.</p></div>;
  return <BusinessDevelopmentDemo/>;
 }
