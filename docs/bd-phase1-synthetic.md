@@ -11,7 +11,7 @@ Status: code committed for review; not deployed or connected to live CRM.
 - Filterable seven-stage pipeline, manual stage change
 - Follow-up tasks with due dates and completion toggle
 - Reset synthetic data
-- Synthetic-only model and seventeen authored regression tests
+- Synthetic-only model and twenty-one authored regression tests
 
 ## Privacy and runtime
 No Supabase import in BD route or model. No network, email sending, real candidate/customer data, browser persistence, localStorage or service role. All entries exist in React state and reset on reload. Do not enter real personal or confidential information.
@@ -55,3 +55,8 @@ The /bd route now requires VITE_ENABLE_BD_DEMO=true and admin role. Sidebar entr
 - Validation failures now preserve all four form inputs; mutate reports success/failure and clears inputs only on success.
 - Today's date for task creation and overdue KPI uses local calendar components rather than UTC ISO date to prevent off-by-one dates in non-UTC time zones.
 - Seven source-readback checks passed for these changes. This is not equivalent to running build/tests/browser checks.
+
+## Record identity hardening — 2026-11-09
+- Reject blank or duplicate synthetic IDs for organizations, contacts, opportunities and tasks.
+- Added four collision tests; total authored model tests: 21.
+- Source readback verified all four guards and test declaration count. Full test suite, lint, build and browser review still not executed.
