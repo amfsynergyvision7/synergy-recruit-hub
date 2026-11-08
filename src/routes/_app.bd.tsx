@@ -23,7 +23,7 @@ function BusinessDevelopment(){
  const [taskTitle,setTaskTitle]=useState("");const [taskDue,setTaskDue]=useState(today());const [taskOpp,setTaskOpp]=useState("opp-1");
  const metrics=useMemo(()=>summarize(state,today()),[state]);
  const company=(id:string)=>state.organizations.find(o=>o.id===id)?.name??"Unknown";
- const mutate=(fn:(s:BDState)=>BDState)=>{try{setState(s=>fn(s));toast.success("Updated in this demo session only");}catch(e){toast.error(e instanceof Error?e.message:"Invalid input");}};
+ const mutate=(fn:(s:BDState)=>BDState)=>{try{const next=fn(state);setState(next);toast.success("Updated in this demo session only");}catch(e){toast.error(e instanceof Error?e.message:"Invalid input");}};
  const addOrg=()=>{if(!orgName.trim())return toast.error("Enter an organization name");if(state.organizations.some(o=>o.name.trim().toLowerCase()===orgName.trim().toLowerCase()))return toast.error("Organization already exists");mutate(s=>addOrganization(s,{id:newId(),name:orgName.trim(),city:orgCity.trim(),industry:"",owner:"Demo User"}));setOrgName("");setOrgCity("");};
  const addCon=()=>{if(!contactName.trim())return toast.error("Enter contact name");if(contactEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))return toast.error("Enter a valid email");mutate(s=>addContact(s,{id:newId(),organizationId:contactOrg,name:contactName.trim(),title:"",email:contactEmail.trim()}));setContactName("");setContactEmail("");};
  const addOpp=()=>{if(!oppTitle.trim())return toast.error("Enter opportunity title");mutate(s=>addOpportunity(s,{id:newId(),organizationId:oppOrg,title:oppTitle.trim(),type,stage:"identified",owner:"Demo User",value:0,nextAction:"Plan next step"}));setOppTitle("");};
