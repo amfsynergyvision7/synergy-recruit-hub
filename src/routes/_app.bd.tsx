@@ -8,12 +8,18 @@ import {Badge} from "@/components/ui/badge";
 import {Tabs,TabsContent,TabsList,TabsTrigger} from "@/components/ui/tabs";
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from "@/components/ui/select";
 import {toast} from "sonner";
+import {useAuth} from "@/hooks/use-auth";
 import {addOrganization,addContact,addOpportunity,addTask,moveOpportunity,toggleTask,seed,stages,summarize,typeLabels,type BDState,type OpportunityType,type Stage} from "@/lib/bd-demo-model";
 
 export const Route=createFileRoute("/_app/bd")({component:BusinessDevelopment});
 const newId=()=>`demo-${Math.random().toString(36).slice(2,11)}`;
 const today=()=>new Date().toISOString().slice(0,10);
 function BusinessDevelopment(){
+ const {role}=useAuth();
+ if(role!=="admin")return <div className="rounded-lg border p-6"><h1 className="text-xl font-semibold">Business Development prototype</h1><p className="mt-2 text-sm text-muted-foreground">This synthetic demonstration is currently restricted to administrators. Production BD permissions have not been implemented.</p></div>;
+ return <BusinessDevelopmentDemo/>;
+}
+function BusinessDevelopmentDemo(){
  const [state,setState]=useState<BDState>(()=>structuredClone(seed));
  const [type,setType]=useState<OpportunityType>("recruitment_services");
  const [filter,setFilter]=useState("");
