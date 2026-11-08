@@ -32,8 +32,11 @@ const items = [
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
+const bdDemoItems = import.meta.env.VITE_ENABLE_BD_DEMO === "true"
+  ? [{ title: "Business Development · Demo", url: "/bd", icon: Handshake }]
+  : [];
+
 const adminItems = [
-  { title: "Business Development · Demo", url: "/bd", icon: Handshake },
   { title: "Workflow Rules", url: "/workflow-rules", icon: Workflow },
   { title: "Integrations", url: "/integrations", icon: Plug },
   { title: "Import Data", url: "/import", icon: Upload },
@@ -89,7 +92,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminItems.map((item) => (
+                {[...bdDemoItems, ...adminItems].map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={path === item.url}>
                       <Link to={item.url}>
