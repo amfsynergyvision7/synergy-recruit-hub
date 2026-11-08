@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {auditPolicies,sensitiveTables} from './rls-policy-audit.mjs';
+const p=(tablename,overrides={})=>({schemaname:'public',tablename,policyname:'Allow all for authenticated',permissive:'PERMISSIVE',roles:['public'],cmd:'ALL',qual:'true',...overrides});
+test('flags public ALL true policy even with misleading name',()=>{const x=auditPolicies([p('candidates')]);assert.deepEqual(x.critical,['candidates']);assert.equal(x.safe,false)});
+test('flags authenticated SELECT true policy',()=>assert.equal(auditPolicies([p('billing',{cmd:'SELECT',roles:['authenticated']})]).safe,false));
+test('ignores restrictive policy',()=>assert.equal(auditPolicies([p('candidates',{permissive:'RESTRICTIVE'})]).safe,true));
+test('ignores scoped owner policy',()=>assert.equal(auditPolicies([p('candidates',{qual:'auth.uid() = assigned_recruiter'})]).safe,true));
+test('ignores other schema',()=>assert.equal(auditPolicies([p('candidates',{schemaname:'internal'})]).safe,true));
+test('rejects nonarray',()=>assert.throws(()=>auditPolicies(null),TypeError));
+test('detects all 15 audited table names',()=>{const x=auditPolicies(sensitiveTables.map(t=>p(t)));assert.equal(x.critical.length,15)});
+test('deduplicates table names',()=>assert.equal(auditPolicies([p('candidates'),p('candidates',{policyname:'other'})]).affected.length,1));
