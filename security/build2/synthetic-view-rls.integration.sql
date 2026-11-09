@@ -63,16 +63,16 @@ BEGIN
  THEN RAISE EXCEPTION 'permitted recruiter update failed'; END IF;
 END $$;
 -- A recruiter must not modify a candidate assigned to another recruiter.
-DO $
+DO $$
 DECLARE changed integer;
 BEGIN
  UPDATE public.build2_synthetic_candidates SET full_name='Forbidden B edit'
  WHERE id='00000000-0000-0000-0000-000000000002';
  GET DIAGNOSTICS changed = ROW_COUNT;
  IF changed<>0 THEN RAISE EXCEPTION 'cross-recruiter update unexpectedly succeeded'; END IF;
-END $;
+END $$;
 -- Ownership reassignment is denied by column privileges, not only by RLS.
-DO $
+DO $$
 BEGIN
  BEGIN
   EXECUTE 'UPDATE public.build2_synthetic_candidates SET assigned_recruiter = ''22222222-2222-2222-2222-222222222222'' WHERE id = ''00000000-0000-0000-0000-000000000001''';
@@ -80,15 +80,15 @@ BEGIN
  EXCEPTION WHEN insufficient_privilege THEN
   NULL; -- expected denial
  END;
-END $;
+END $$;
 -- Missing authentication identity must not reveal rows.
 RESET test.uid;
-DO $
+DO $$
 DECLARE n integer;
 BEGIN
  SELECT count(*) INTO n FROM public.build2_synthetic_view;
  IF n<>0 THEN RAISE EXCEPTION 'missing auth identity revealed % rows',n; END IF;
-END $;
+END $$;
 SET test.uid='22222222-2222-2222-2222-222222222222';
 DO $$
 DECLARE n integer;
