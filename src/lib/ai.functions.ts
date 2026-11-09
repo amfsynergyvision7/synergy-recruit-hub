@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireCrmRecordAccess } from "./security/record-access";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -19,6 +20,7 @@ export const matchCandidates = createServerFn({ method: "POST" })
     // by requireSupabaseAuth + the candidates/job_openings RLS policies
     // context.supabase reads through) — this is a read-only insight, not a
     // write, so anyone who can already see the pipeline can ask for a match.
+    await requireCrmRecordAccess(context.supabase, context.userId, "job_openings", data.jobId);
     return matchCandidatesToJob(context.supabase, data.jobId);
   });
 
@@ -32,6 +34,8 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
     z.object({ jobId: z.string().uuid(), candidateId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    await requireCrmRecordAccess(context.supabase, context.userId, "job_openings", data.jobId);
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return matchCandidateResume(context.supabase, data.jobId, data.candidateId);
   });
 
@@ -41,6 +45,7 @@ export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return generateResumeSummary(context.supabase, data.candidateId);
   });
 
@@ -52,6 +57,7 @@ export const generateCandidateAtsScoreFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return generateCandidateAtsScore(context.supabase, data.candidateId);
   });
 
@@ -64,6 +70,7 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     const { candidate, resume } = await restructureResumeForClient(context.supabase, data.candidateId);
 
     const { data: settings } = await context.supabase
@@ -95,5 +102,5 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
 export const checkDriveForNewResumes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    return runResumeDriveImport(context.supabase);
+    throw new Error("SEC-12: bulk Drive import is disabled until scoped authorization and audit verification are complete.");
   });
