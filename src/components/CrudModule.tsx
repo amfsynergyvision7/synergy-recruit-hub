@@ -777,7 +777,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
             </Button>
           )}
           {editable && (
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) offerLookupSequence.current++; setOpen(nextOpen); }}>
               <DialogTrigger asChild>
                 <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2"/>Add</Button>
               </DialogTrigger>
