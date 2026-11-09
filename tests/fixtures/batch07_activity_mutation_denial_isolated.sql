@@ -1,0 +1,31 @@
+-- Batch 07 synthetic UPDATE/DELETE denial regression; rollback.
+begin;
+create table security_lab.b08_activities(id uuid primary key,candidate_id uuid,author_id uuid,notes text);
+insert into security_lab.b08_activities values
+('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','22222222-2222-4222-8222-222222222222','original');
+alter table security_lab.b08_activities enable row level security;
+create policy b08_read on security_lab.b08_activities for select to authenticated using(author_id=(select auth.uid()));
+grant usage on schema security_lab to authenticated,anon;
+grant select,update,delete on security_lab.b08_activities to authenticated,anon;
+revoke update,delete on security_lab.b08_activities from authenticated,anon;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
+do $$declare denied bool:=false;begin begin update security_lab.b08_activities set notes='tampered';
+exception when insufficient_privilege then denied:=true;end;
+if not denied then raise exception 'UPDATE allowed';end if;end$$;
+do $$declare denied bool:=false;begin begin delete from security_lab.b08_activities;
+exception when insufficient_privilege then denied:=true;end;
+if not denied then raise exception 'DELETE allowed';end if;end$$;
+select set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
+do $$declare n int;begin select count(*) into n from security_lab.b08_activities;
+if n<>0 then raise exception 'cross-user SELECT allowed';end if;end$$;
+reset role;set local role anon;
+do $$declare denied bool:=false;begin begin update security_lab.b08_activities set notes='tampered';
+exception when insufficient_privilege then denied:=true;end;
+if not denied then raise exception 'anon UPDATE allowed';end if;end$$;
+do $$declare denied bool:=false;begin begin delete from security_lab.b08_activities;
+exception when insufficient_privilege then denied:=true;end;
+if not denied then raise exception 'anon DELETE allowed';end if;end$$;
+reset role;
+select 'PASS activity UPDATE/DELETE revoked for anon and authenticated; cross-user read denied' result;
+rollback;
