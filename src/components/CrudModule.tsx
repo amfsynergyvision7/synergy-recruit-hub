@@ -143,6 +143,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [loading, setLoading] = useState(false);
   // Ignore superseded refreshes so slow responses cannot overwrite newer data.
   const refreshSequence = useRef(0);
+  // Guard against duplicate submissions while a single-record mutation is pending.
+  const singleMutationPending = useRef(false);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -317,6 +319,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (form.candidate_uuid && (!editing || form.candidate_uuid !== editing.candidate_uuid)) payload.candidate_id = form.candidate_uuid;
     if (form.client_uuid !== undefined && (!editing || (form.client_uuid || null) !== (editing.client_uuid ?? null))) payload.client_id = form.client_uuid || null;
     if (form.job_uuid !== undefined && (!editing || (form.job_uuid || null) !== (editing.job_uuid ?? null))) payload.job_id = form.job_uuid || null;
+    if (singleMutationPending.current) return;
+    singleMutationPending.current = true;
     try {
     if (editing) {
       if (Object.keys(payload).length === 0) { setOpen(false); return; }
@@ -341,11 +345,15 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       // A rejected response is not proof that the database rejected the write.
       toast.error(`Write outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}`);
       await load();
+    } finally {
+      singleMutationPending.current = false;
     }
   };
 
   const remove = async (row: any) => {
+    if (singleMutationPending.current) return;
     if (!confirm("Delete this record?")) return;
+    singleMutationPending.current = true;
     try {
       const { data, error } = await supabase.from(table as any).delete().eq("id", row.id).select("id").maybeSingle();
       if (error || !data || (data as unknown as { id: string }).id !== row.id) {
@@ -356,6 +364,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     } catch (cause) {
       toast.error(`Deletion outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}`);
       await load();
+    } finally {
+      singleMutationPending.current = false;
     }
   };
 
