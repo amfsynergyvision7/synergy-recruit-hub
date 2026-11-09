@@ -209,7 +209,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       if (error) {
         toast.error(`Could not refresh records: ${error.message}`);
       } else {
-        const freshRows = data || [];
+        const freshRows = (data || []) as any[];
         setRows(freshRows);
         // Never retain selected IDs that are no longer present in the refreshed list.
         const visibleIds = new Set(freshRows.map((row) => row.id));
