@@ -11,7 +11,7 @@ test('CRM refresh sequence rejects superseded responses and cleanup invalidates 
  assert.match(source,/return \(\) => \{ refreshSequence\.current\+\+; supabase\.removeChannel\(ch\); \}/);
 });
 test('successful CRM refresh removes selected IDs absent from returned records',()=>{
- assert.match(load,/const freshRows = data \|\| \[\]/);
+ assert.match(load,/const freshRows = \(data \|\| \[\]\) as any\[\]/);
  assert.match(load,/const visibleIds = new Set\(freshRows\.map\(\(row\) => row\.id\)\)/);
  assert.match(load,/setSelected\(\(previous\) => new Set\(\[\.\.\.previous\]\.filter\(\(id\) => visibleIds\.has\(id\)\)\)\)/);
  assert.ok(load.indexOf('if (sequence !== refreshSequence.current) return')<load.indexOf('setRows(freshRows)'));
