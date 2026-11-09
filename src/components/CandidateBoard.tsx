@@ -95,7 +95,8 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
       .eq("id", candidateId)
       .select("id, stage")
       .maybeSingle();
-    if (error || !data || data.stage !== newStage) {
+    const confirmed = data as unknown as { id: string; stage: string } | null;
+    if (error || !confirmed || confirmed.id !== candidateId || confirmed.stage !== newStage) {
       toast.error(error?.message ?? "Stage change was not confirmed. Your access or the candidate may have changed.");
       await load(); // restore the authoritative state
       return;
