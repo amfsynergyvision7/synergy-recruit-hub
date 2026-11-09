@@ -1,3 +1,4 @@
+import { assertExternalAiApproved } from "./security/release-gates.mjs";
 import { fetchResumeText } from "./resume-fetch.server";
 
 // Server-only Gemini API access. GEMINI_API_KEY must be set as a server
@@ -43,9 +44,7 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   // SEC-12 privacy gate: never transmit candidate/job information to an
   // external AI processor unless explicitly enabled after legal review.
   // Disabled by default in every environment, including production.
-  if (process.env.CRM_EXTERNAL_AI_APPROVED !== "true") {
-    throw new Error("SEC-12: external AI processing is disabled pending privacy and processor approval.");
-  }
+  assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured. Add it as an environment variable and redeploy.");
