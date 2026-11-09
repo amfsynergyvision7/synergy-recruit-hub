@@ -6,11 +6,13 @@ import {readFileSync,writeFileSync} from 'node:fs';
 const sql=readFileSync(new URL('./full-rls-replacement-review-only.sql',import.meta.url),'utf8');
 const tables=['audit_logs','billing','candidate_activities','candidates','clients','google_integrations','integrations','interviews','job_openings','notifications','offers','profiles','submissions','sync_logs','user_roles'];
 const fixture=`\\set ON_ERROR_STOP on
-CREATE ROLE authenticated NOLOGIN;
-CREATE ROLE anon NOLOGIN;
-CREATE SCHEMA auth;
+DO $role$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated NOLOGIN; END IF;
+ IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF;
+END $role$;
+CREATE SCHEMA IF NOT EXISTS auth;
 GRANT USAGE ON SCHEMA auth TO authenticated;
-CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $fn$
+CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $fn$
  SELECT NULLIF(current_setting('build2.uid',true),'')::uuid
 $fn$;
 CREATE FUNCTION public.is_approved(uuid) RETURNS boolean LANGUAGE sql STABLE AS $fn$
