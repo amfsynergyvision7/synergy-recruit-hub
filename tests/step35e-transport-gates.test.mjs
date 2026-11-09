@@ -24,3 +24,12 @@ test('Server and browser deny missing expected project identity',()=>{
  assert.match(browser,/if \(!expectedProject\)/);
  assert.match(browser,/Missing expected project ID; refusing connection/);
 });
+
+test('Outbound transports remain disabled even when environment flags are true',()=>{
+ const ai=read('src/lib/ai.server.ts');
+ const email=read('src/lib/email.server.ts');
+ assert.match(ai,/throw new Error\('SEC-12: external AI transport remains disabled/);
+ assert.match(email,/throw new Error\('SEC-11: SMTP transport remains disabled/);
+ assert.ok(ai.indexOf('external AI transport remains disabled') < ai.indexOf('assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED)'));
+ assert.ok(email.indexOf('SMTP transport remains disabled') < email.indexOf('assertSmtpApproved(process.env.CRM_SMTP_DISPATCH_APPROVED)'));
+});
