@@ -536,9 +536,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     bulkMutationPending.current = true;
     setBulkDeleting(true);
     let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
+    let confirmationCountKnown = true;
     try {
       result = await confirmBulkBatches(ids, "delete");
     } catch (cause) {
+      confirmationCountKnown = false;
       result = { confirmed: new Set<string>(), error: `Unexpected bulk delete failure; outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Request failed"}` };
     } finally {
       bulkMutationPending.current = false;
@@ -550,7 +552,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       // Operators must inspect the refreshed records and explicitly reselect targets.
       setSelected(new Set());
       await load();
-      return toast.error(`Deletion explicitly confirmed for ${confirmed.size} of ${ids.length} records. Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
+      return toast.error(`${confirmationCountKnown ? `Deletion explicitly confirmed for ${confirmed.size} of ${ids.length} records.` : `Deletion confirmation count unavailable for ${ids.length} requested records.`} Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
     }
     toast.success(`Deleted ${confirmed.size} record(s)`);
     setSelected(new Set());
@@ -580,9 +582,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     bulkMutationPending.current = true;
     setBulkEditSaving(true);
     let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
+    let confirmationCountKnown = true;
     try {
       result = await confirmBulkBatches(ids, "update", { [field.name]: v });
     } catch (cause) {
+      confirmationCountKnown = false;
       result = { confirmed: new Set<string>(), error: `Unexpected bulk update failure; outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Request failed"}` };
     } finally {
       bulkMutationPending.current = false;
@@ -594,7 +598,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       // Operators must inspect the refreshed records and explicitly reselect targets.
       setSelected(new Set());
       await load();
-      return toast.error(`Update explicitly confirmed for ${confirmed.size} of ${ids.length} records. Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
+      return toast.error(`${confirmationCountKnown ? `Update explicitly confirmed for ${confirmed.size} of ${ids.length} records.` : `Update confirmation count unavailable for ${ids.length} requested records.`} Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
     }
     toast.success(`Updated ${field.label} for ${confirmed.size} record(s)`);
     setSelected(new Set());
