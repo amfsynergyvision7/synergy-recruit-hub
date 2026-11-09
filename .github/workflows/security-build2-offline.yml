@@ -66,3 +66,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-aggregate-view.integration.sql
       - name: Verify live-column-shaped candidate RLS and inactive-account denial
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/live-column-shaped-rls.integration.sql
+      - name: Verify approval helpers and self-scoped RPC privilege boundary
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-authorization-helpers.integration.sql
