@@ -283,7 +283,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (form.job_uuid !== undefined) payload.job_id = form.job_uuid || null;
     if (editing) {
       const { data, error } = await supabase.from(table as any).update(payload).eq("id", editing.id).select("id").maybeSingle();
-      if (error || !data || data.id !== editing.id) {
+      if (error || !data || (data as unknown as { id: string }).id !== editing.id) {
         if (!error) await load();
         return toast.error(error?.message ?? "Update was not confirmed. Check permissions and refresh.");
       }
@@ -292,7 +292,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       const { data: u } = await supabase.auth.getUser();
       if (u.user) payload.created_by = u.user.id;
       const { data, error } = await supabase.from(table as any).insert(payload).select("id").maybeSingle();
-      if (error || !data?.id) {
+      if (error || !(data as unknown as { id?: string } | null)?.id) {
         if (!error) await load();
         return toast.error(error?.message ?? "Creation was not confirmed. Refresh before retrying.");
       }
@@ -304,7 +304,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const remove = async (row: any) => {
     if (!confirm("Delete this record?")) return;
     const { data, error } = await supabase.from(table as any).delete().eq("id", row.id).select("id").maybeSingle();
-    if (error || !data || data.id !== row.id) {
+    if (error || !data || (data as unknown as { id: string }).id !== row.id) {
       await load();
       return toast.error(error?.message ?? "Deletion was not confirmed. Check permissions.");
     }
@@ -413,7 +413,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     const { data, error } = await supabase.from(table as any).delete().in("id", ids).select("id");
     setBulkDeleting(false);
     if (error) { await load(); return toast.error(error.message); }
-    const confirmed = new Set((data ?? []).map((row: { id: string }) => row.id));
+    const confirmed = new Set(((data ?? []) as unknown as { id: string }[]).map((row) => row.id));
     if (confirmed.size !== ids.length || ids.some((id) => !confirmed.has(id))) {
       await load();
       return toast.error(`Deletion confirmed for ${confirmed.size} of ${ids.length} selected records. Review remaining records.`);
@@ -440,7 +440,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     const { data, error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids).select("id");
     setBulkEditSaving(false);
     if (error) { await load(); return toast.error(error.message); }
-    const confirmed = new Set((data ?? []).map((row: { id: string }) => row.id));
+    const confirmed = new Set(((data ?? []) as unknown as { id: string }[]).map((row) => row.id));
     if (confirmed.size !== ids.length || ids.some((id) => !confirmed.has(id))) {
       await load();
       return toast.error(`Update confirmed for ${confirmed.size} of ${ids.length} selected records. Review remaining records.`);
