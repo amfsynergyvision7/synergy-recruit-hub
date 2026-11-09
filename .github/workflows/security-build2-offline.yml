@@ -120,3 +120,5 @@ jobs:
 
       - name: Verify synthetic recruiter ownership and silent RLS zero-row updates
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-recruiter-ownership-rls.integration.sql
+      - name: Verify recruiter column UPDATE grants prevent ownership reassignment
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-column-grant-ownership.integration.sql
