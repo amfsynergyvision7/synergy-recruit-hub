@@ -271,6 +271,16 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       return;
     }
 
+    // Reject malformed numeric inputs before constructing any write payload.
+    // Number("invalid") becomes NaN and must never reach the database.
+    const invalidNumber = formFields.find((f) => f.type === "number" &&
+      form[f.name] !== "" && form[f.name] !== undefined && form[f.name] !== null &&
+      !Number.isFinite(Number(form[f.name])));
+    if (invalidNumber) {
+      toast.error(`${invalidNumber.label} must be a valid number.`);
+      return;
+    }
+
     const payload: any = {};
     formFields.forEach((f) => {
       let v = form[f.name];
@@ -466,7 +476,13 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (!field || !ids.length) return;
     let v = bulkEditValue;
     if (v === "" || v === undefined) v = null;
-    if (field.type === "number" && v !== null) v = Number(v);
+    if (field.type === "number" && v !== null) {
+      v = Number(v);
+      if (!Number.isFinite(v)) {
+        toast.error(`${field.label} must be a valid number.`);
+        return;
+      }
+    }
     setBulkEditSaving(true);
     const { confirmed, error } = await confirmBulkBatches(ids, "update", { [field.name]: v });
     setBulkEditSaving(false);
