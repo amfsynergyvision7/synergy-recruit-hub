@@ -1,0 +1,38 @@
+{
+  "isolated_postgresql_rls_tests_passed": {
+    "passed": false,
+    "evidence": ""
+  },
+  "all_19_tables_reviewed": {
+    "passed": false,
+    "evidence": ""
+  },
+  "all_13_views_hardened_and_tested": {
+    "passed": false,
+    "evidence": ""
+  },
+  "all_16_definer_functions_reviewed": {
+    "passed": false,
+    "evidence": ""
+  },
+  "admin_approval_and_role_workflows_tested": {
+    "passed": false,
+    "evidence": ""
+  },
+  "recruiter_ownership_and_column_grants_tested": {
+    "passed": false,
+    "evidence": ""
+  },
+  "notifications_and_email_log_permissions_tested": {
+    "passed": false,
+    "evidence": ""
+  },
+  "rollback_rehearsed": {
+    "passed": false,
+    "evidence": ""
+  },
+  "release_approved": {
+    "passed": false,
+    "evidence": ""
+  }
+}
