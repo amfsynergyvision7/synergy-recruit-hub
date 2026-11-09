@@ -24,6 +24,13 @@ const checks=[
   'rollback_rehearsed',
   'release_approved'
 ];
+// Reject unrecognised evidence keys: typos or extra approval fields must not
+// silently alter the documented nine-condition release contract.
+const unexpected=Object.keys(evidence).filter(name=>!checks.includes(name));
+if(unexpected.length) {
+  console.error('PRODUCTION RELEASE BLOCKED: unrecognised release evidence keys:', unexpected.join(', '));
+  process.exit(1);
+}
 let blocked=false;
 console.log('BUILD 2 SECURITY RELEASE GATE');
 for(const name of checks) {
