@@ -37,7 +37,7 @@ BEGIN
  BEGIN
  UPDATE build2_owner.candidates SET assigned_recruiter='recruiter-B' WHERE id=1;
  RAISE EXCEPTION 'owner reassignment was accepted';
- EXCEPTION WHEN check_violation THEN NULL;
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
  END;
 END $check$;
 UPDATE build2_owner.candidates SET stage='screening' WHERE id=1 RETURNING id;
