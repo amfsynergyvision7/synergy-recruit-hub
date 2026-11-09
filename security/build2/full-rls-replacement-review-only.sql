@@ -43,6 +43,12 @@ REVOKE INSERT,UPDATE,DELETE ON public.profiles FROM authenticated;
 -- Admin profile approval / role management workflows must be migrated to a
 -- reviewed server-side privileged RPC BEFORE enabling this migration.
 -- These revocations intentionally fail closed; current UI admin flows may break.
+-- Column privileges and audited server-side workflows are prerequisites:
+-- RLS cannot stop a recruiter changing assigned_recruiter while still
+-- satisfying WITH CHECK on the new row. Existing UPDATE table grants must
+-- be narrowed to explicitly permitted non-ownership columns.
+-- Likewise notification UPDATE needs a narrowly granted is_read-only path.
+-- These controls are not implemented here. This SQL MUST remain inactive.
 -- No Operations AI access is granted by these table policies.
 CREATE POLICY candidates_read ON public.candidates FOR SELECT TO authenticated
  USING (public.is_approved(auth.uid()) AND
