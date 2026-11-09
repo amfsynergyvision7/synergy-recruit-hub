@@ -145,6 +145,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const refreshSequence = useRef(0);
   // Guard against duplicate submissions while a single-record mutation is pending.
   const singleMutationPending = useRef(false);
+  const bulkMutationPending = useRef(false);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -489,6 +490,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const bulkDelete = async () => {
+    if (bulkMutationPending.current) return;
     const ids = Array.from(selected);
     if (!ids.length) return;
     const warning =
@@ -496,9 +498,16 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         ? `Delete ${ids.length} candidate(s)? This will also permanently delete their linked submissions, interviews, offers, and stage history.`
         : `Delete ${ids.length} selected record(s)? This cannot be undone.`;
     if (!confirm(warning)) return;
+    bulkMutationPending.current = true;
     setBulkDeleting(true);
-    const { confirmed, error } = await confirmBulkBatches(ids, "delete");
-    setBulkDeleting(false);
+    let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
+    try {
+      result = await confirmBulkBatches(ids, "delete");
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkDeleting(false);
+    }
+    const { confirmed, error } = result;
     if (error || confirmed.size !== ids.length) {
       setSelected(new Set(ids.filter((id) => !confirmed.has(id))));
       await load();
@@ -516,6 +525,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const applyBulkEdit = async () => {
+    if (bulkMutationPending.current) return;
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
@@ -528,9 +538,16 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         return;
       }
     }
+    bulkMutationPending.current = true;
     setBulkEditSaving(true);
-    const { confirmed, error } = await confirmBulkBatches(ids, "update", { [field.name]: v });
-    setBulkEditSaving(false);
+    let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
+    try {
+      result = await confirmBulkBatches(ids, "update", { [field.name]: v });
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkEditSaving(false);
+    }
+    const { confirmed, error } = result;
     if (error || confirmed.size !== ids.length) {
       setSelected(new Set(ids.filter((id) => !confirmed.has(id))));
       await load();
