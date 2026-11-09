@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const source = readFileSync(new URL('../../src/routes/_app.workflow-rules.tsx',import.meta.url),'utf8');
 const fixture = readFileSync(new URL('./synthetic-workflow-field-allowlist.integration.sql',import.meta.url),'utf8');
+const allowlistDefinition = fixture.split(');')[0];
 const expected = {
  candidates:['stage'],
  submissions:['status'],
@@ -24,7 +25,7 @@ test('workflow UI field choices are inventoried and uncovered pairs remain expli
   const found=[...body.matchAll(/value: "([a-z_]+)", label: "[^"]+", options:/g)].map(x=>x[1]);
   assert.deepEqual(found,expected[table],table+' UI field inventory changed: review security policy');
   for(const field of found){
-   const inAllowlist=fixture.includes("('"+table+"','"+field+"')");
+   const inAllowlist=allowlistDefinition.includes("('"+table+"','"+field+"')");
    assert.equal(inAllowlist,(approvedForSynthetic[table]??[]).includes(field),
      table+'.'+field+' allowlist changed without compatibility review');
   }
