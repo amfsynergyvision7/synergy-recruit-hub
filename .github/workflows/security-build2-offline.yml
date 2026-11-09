@@ -24,8 +24,12 @@ jobs:
       - name: Verify production release is blocked
         shell: bash
         run: |
-          if node security/build2/release-gate.mjs; then
-            echo 'ERROR: Release gate unexpectedly passed; requires independent manual verification.'
-            exit 1
-          fi
-          echo 'PASS: Unapproved production release is blocked.'
+          set +e
+          node security/build2/release-gate.mjs > gate-output.txt 2>&1
+          code=$?
+          set -e
+          cat gate-output.txt
+          test "$code" -eq 1
+          grep -q 'PRODUCTION RELEASE BLOCKED' gate-output.txt
+          test "$(grep -c '^BLOCK |' gate-output.txt)" -eq 9
+          echo 'PASS: All nine release conditions remain blocked.'
