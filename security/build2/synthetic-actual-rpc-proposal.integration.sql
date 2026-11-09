@@ -10,7 +10,7 @@ CREATE TYPE public.build2_rpc_role AS ENUM ('admin','recruiter');
 CREATE FUNCTION public.generate_reminders() RETURNS integer LANGUAGE sql AS $fn$ SELECT 0 $fn$;
 CREATE FUNCTION public.get_user_role(uuid) RETURNS text LANGUAGE sql AS $fn$ SELECT 'recruiter'::text $fn$;
 CREATE FUNCTION public.has_role(uuid,public.build2_rpc_role) RETURNS boolean LANGUAGE sql AS $fn$ SELECT false $fn$;
-CREATE FUNCTION public.is_approved(uuid) RETURNS boolean LANGUAGE sql AS $fn$ SELECT false $fn$;
+CREATE OR REPLACE FUNCTION public.is_approved(uuid) RETURNS boolean LANGUAGE sql AS $fn$ SELECT false $fn$;
 CREATE FUNCTION public.resolve_candidate_uuid(text) RETURNS uuid LANGUAGE sql AS $fn$ SELECT NULL::uuid $fn$;
 CREATE FUNCTION public.resolve_client_uuid(text) RETURNS uuid LANGUAGE sql AS $fn$ SELECT NULL::uuid $fn$;
 CREATE FUNCTION public.resolve_job_uuid(text) RETURNS uuid LANGUAGE sql AS $fn$ SELECT NULL::uuid $fn$;
