@@ -8,7 +8,7 @@ test('CRM refresh sequence rejects superseded responses and cleanup invalidates 
  assert.match(load,/const sequence = \+\+refreshSequence\.current/);
  assert.match(load,/if \(sequence !== refreshSequence\.current\) return/);
  assert.match(load,/if \(sequence === refreshSequence\.current\) setLoading\(false\)/);
- assert.match(source,/return \(\) => \{ refreshSequence\.current\+\+; relationSequence\.current\+\+; supabase\.removeChannel\(ch\); \}/);
+ assert.match(source,/return \(\) => \{ refreshSequence\.current\+\+; relationSequence\.current\+\+; offerLookupSequence\.current\+\+; supabase\.removeChannel\(ch\); \}/);
 });
 test('successful CRM refresh removes selected IDs absent from returned records',()=>{
  assert.match(load,/const freshRows = \(data \|\| \[\]\) as any\[\]/);
