@@ -40,6 +40,12 @@ function extractOutputText(data: any): string | undefined {
 }
 
 async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>): Promise<T> {
+  // SEC-12 privacy gate: never transmit candidate/job information to an
+  // external AI processor unless explicitly enabled after legal review.
+  // Disabled by default in every environment, including production.
+  if (process.env.CRM_EXTERNAL_AI_APPROVED !== "true") {
+    throw new Error("SEC-12: external AI processing is disabled pending privacy and processor approval.");
+  }
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured. Add it as an environment variable and redeploy.");
@@ -57,7 +63,7 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   let data: any;
   try { data = JSON.parse(text); } catch { data = text; }
   if (!res.ok) {
-    throw new Error(`Gemini API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+    throw new Error(`Gemini API request failed (${res.status}); response suppressed to protect candidate data.`);
   }
   const outputText = extractOutputText(data);
   if (!outputText) {
@@ -65,7 +71,7 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
     // if Google's response shape ever drifts again, instead of a dead-end
     // generic message.
     const preview = typeof data === "string" ? data : JSON.stringify(data);
-    throw new Error(`Gemini returned no recognizable output. Raw response: ${preview.slice(0, 500)}`);
+    throw new Error("Gemini returned no recognizable output; raw response suppressed.");
   }
   try {
     return JSON.parse(outputText) as T;
