@@ -70,7 +70,6 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
     // Include a slice of the raw response so this is debuggable in one shot
     // if Google's response shape ever drifts again, instead of a dead-end
     // generic message.
-    const preview = typeof data === "string" ? data : JSON.stringify(data);
     throw new Error("Gemini returned no recognizable output; raw response suppressed.");
   }
   try {
