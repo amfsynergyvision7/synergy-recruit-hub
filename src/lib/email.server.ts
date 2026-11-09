@@ -1,3 +1,4 @@
+import { assertSmtpApproved } from "./security/release-gates.mjs";
 // Server-only SMTP email sending. Provider-agnostic by design — this file
 // has now been Resend's REST API, then Zoho SMTP, then Gmail SMTP, and is
 // now back to Resend, this time over its SMTP relay instead of its REST API
@@ -80,6 +81,7 @@ export async function sendEmail(opts: {
   // (easy to introduce when copy-pasting into Vercel's env var UI) is
   // invisible in the dashboard but turns an otherwise-correct address into
   // something the SMTP server's strict parser rejects.
+  assertSmtpApproved(process.env.CRM_SMTP_DISPATCH_APPROVED);
   const user = process.env.SMTP_USER?.trim();
   const pass = process.env.SMTP_PASSWORD?.trim();
   if (!user || !pass) {
