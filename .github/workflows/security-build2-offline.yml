@@ -88,3 +88,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-workflow-field-allowlist.integration.sql
       - name: Test candidate stage-history row isolation and direct write denial
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-history-isolation.integration.sql
+      - name: Verify privileged history trigger remains compatible with direct-write denial
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-history-trigger.integration.sql
