@@ -32,3 +32,19 @@ Status: design and synthetic tests only, 2026-11-09. Branch: `security/build2-rl
 - `ai-access-policy.test.mjs`: Node built-in test runner; run `node --test security/build2/ai-access-policy.test.mjs`.
 
 No production SQL executed or production configuration changed in preparing this branch.
+
+## Security review continuation — 2026-11-09
+- Fresh live **metadata-only** inspection confirmed the 15 `PUBLIC ALL true` policies still exist. No business records read or live SQL modified.
+- The security advisor still reports 13 privileged views, 16 anonymous-executable SECURITY DEFINER functions, four mutable function search paths and an RLS-enabled table without policies; each issue needs compatibility review.
+- Offline audit now checks open `WITH CHECK` INSERT/UPDATE as well as open `USING` SELECT/UPDATE/DELETE; 18 synthetic RLS tests.
+- AI example is restricted to authorized interview records and nonblank IDs; 29 synthetic AI tests.
+- **47/47** combined tests passed on an isolated Node 22 mirror of this branch's source. No SQL engine, complete repo build, browser or live authorization test was performed.
+- `metadata-snapshot-readonly.sql`: review-only metadata queries, no schema/data modification.
+- `release-readiness-and-rollback.md`: outstanding blockers, role/row/field policy requirements, test gates and release conditions.
+- Current security branch has diverged from `main` and must be reconciled before any PR or production consideration.
+- Existing `proposed_rls_restrictions.sql` is still **NOT a complete fix** and MUST NOT be deployed.
+
+Local checks from a complete checkout:
+```sh
+node --test security/build2/rls-policy-audit.test.mjs security/build2/ai-access-policy.test.mjs
+```
