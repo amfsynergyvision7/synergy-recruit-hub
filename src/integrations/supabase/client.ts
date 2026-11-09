@@ -20,7 +20,10 @@ function createSupabaseClient() {
 
   // Fail closed if the declared build-time project does not match the effective endpoint.
   const expectedProject = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  if (expectedProject) {
+  if (!expectedProject) {
+    throw new Error('[Supabase] Missing expected project ID; refusing connection.');
+  }
+  {
     const actualHost = new URL(SUPABASE_URL).hostname;
     if (actualHost !== `${expectedProject}.supabase.co`) {
       throw new Error('[Supabase] Project ID and URL mismatch; refusing connection.');
