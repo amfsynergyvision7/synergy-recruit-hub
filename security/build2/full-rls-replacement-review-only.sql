@@ -49,6 +49,12 @@ REVOKE INSERT,UPDATE,DELETE ON public.profiles FROM authenticated;
 -- be narrowed to explicitly permitted non-ownership columns.
 -- Likewise notification UPDATE needs a narrowly granted is_read-only path.
 -- These controls are not implemented here. This SQL MUST remain inactive.
+-- IMPORTANT: broad table-level UPDATE grants and policy OR-composition can
+-- permit owner/recipient reassignment. No release until a verified
+-- column-grant strategy and trigger-level immutable ownership check exists.
+-- Verify has_role/is_approved SECURITY DEFINER search_path and EXECUTE grants.
+-- The draft currently deliberately denies recruiter submission/interview
+-- writes and admin UI profile/role writes: these are release blockers.
 -- No Operations AI access is granted by these table policies.
 CREATE POLICY candidates_read ON public.candidates FOR SELECT TO authenticated
  USING (public.is_approved(auth.uid()) AND
