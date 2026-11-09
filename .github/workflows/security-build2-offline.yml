@@ -33,3 +33,30 @@ jobs:
           grep -q 'PRODUCTION RELEASE BLOCKED' gate-output.txt
           test "$(grep -c '^BLOCK |' gate-output.txt)" -eq 9
           echo 'PASS: All nine release conditions remain blocked.'
+
+  isolated-postgres-view-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic_test_only
+          POSTGRES_DB: build2_synthetic
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: synthetic_test_only
+      PGDATABASE: build2_synthetic
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify synthetic security-invoker view obeys recruiter RLS
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-view-rls.integration.sql
