@@ -405,6 +405,28 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     });
   };
 
+  // Keep returned IDs below common PostgREST max-rows limits. Stop on the first
+  // unconfirmed batch; earlier batches may already have committed.
+  const confirmBulkBatches = async (ids: string[], action: "delete" | "update", patch?: Record<string, any>) => {
+    const confirmed = new Set<string>();
+    for (let start = 0; start < ids.length; start += 100) {
+      const batch = ids.slice(start, start + 100);
+      const query = action === "delete"
+        ? supabase.from(table as any).delete().in("id", batch)
+        : supabase.from(table as any).update(patch!).in("id", batch);
+      const { data, error } = await query.select("id");
+      if (error) return { confirmed, error: error.message };
+      const returned = ((data ?? []) as unknown as { id: string }[]).map((row) => row.id);
+      const returnedSet = new Set(returned);
+      if (returnedSet.size !== batch.length || batch.some((id) => !returnedSet.has(id))) {
+        returnedSet.forEach((id) => { if (batch.includes(id)) confirmed.add(id); });
+        return { confirmed, error: "Some records were not confirmed. Review the refreshed list before retrying." };
+      }
+      returnedSet.forEach((id) => confirmed.add(id));
+    }
+    return { confirmed, error: null };
+  };
+
   const bulkDelete = async () => {
     const ids = Array.from(selected);
     if (!ids.length) return;
@@ -414,13 +436,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         : `Delete ${ids.length} selected record(s)? This cannot be undone.`;
     if (!confirm(warning)) return;
     setBulkDeleting(true);
-    const { data, error } = await supabase.from(table as any).delete().in("id", ids).select("id");
+    const { confirmed, error } = await confirmBulkBatches(ids, "delete");
     setBulkDeleting(false);
-    if (error) { await load(); return toast.error(error.message); }
-    const confirmed = new Set(((data ?? []) as unknown as { id: string }[]).map((row) => row.id));
-    if (confirmed.size !== ids.length || ids.some((id) => !confirmed.has(id))) {
+    if (error || confirmed.size !== ids.length) {
       await load();
-      return toast.error(`Deletion confirmed for ${confirmed.size} of ${ids.length} selected records. Review remaining records.`);
+      return toast.error(`Deletion confirmed for ${confirmed.size} of ${ids.length} records. ${error ?? "Review remaining records."}`);
     }
     toast.success(`Deleted ${confirmed.size} record(s)`);
     setSelected(new Set());
@@ -441,13 +461,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (v === "" || v === undefined) v = null;
     if (field.type === "number" && v !== null) v = Number(v);
     setBulkEditSaving(true);
-    const { data, error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids).select("id");
+    const { confirmed, error } = await confirmBulkBatches(ids, "update", { [field.name]: v });
     setBulkEditSaving(false);
-    if (error) { await load(); return toast.error(error.message); }
-    const confirmed = new Set(((data ?? []) as unknown as { id: string }[]).map((row) => row.id));
-    if (confirmed.size !== ids.length || ids.some((id) => !confirmed.has(id))) {
+    if (error || confirmed.size !== ids.length) {
       await load();
-      return toast.error(`Update confirmed for ${confirmed.size} of ${ids.length} selected records. Review remaining records.`);
+      return toast.error(`Update confirmed for ${confirmed.size} of ${ids.length} records. ${error ?? "Review remaining records."}`);
     }
     toast.success(`Updated ${field.label} for ${confirmed.size} record(s)`);
     setSelected(new Set());
