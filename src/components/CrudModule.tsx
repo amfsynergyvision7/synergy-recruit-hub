@@ -288,8 +288,15 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       if (f.type === "number" && v !== null) v = Number(v);
       // UPDATE only fields that changed; full-row writes can require restricted
       // column privileges (e.g. assigned_recruiter) even when unchanged.
-      const oldValue = editing?.[f.name] ?? null;
-      if (!editing || String(oldValue) !== String(v)) payload[f.name] = v;
+      const oldValue = editing?.[f.name];
+      const normalizedOld = oldValue === "" || oldValue === undefined ? null : oldValue;
+      // Treat an empty stored value and a cleared form input consistently.
+      // Numeric values may be returned as strings by the API.
+      const sameValue = f.type === "number"
+        ? (normalizedOld === null && v === null) ||
+          (normalizedOld !== null && v !== null && Number(normalizedOld) === v)
+        : normalizedOld === v;
+      if (!editing || !sameValue) payload[f.name] = v;
     });
     if (form.candidate_uuid && (!editing || form.candidate_uuid !== editing.candidate_uuid)) payload.candidate_id = form.candidate_uuid;
     if (form.client_uuid !== undefined && (!editing || (form.client_uuid || null) !== (editing.client_uuid ?? null))) payload.client_id = form.client_uuid || null;
