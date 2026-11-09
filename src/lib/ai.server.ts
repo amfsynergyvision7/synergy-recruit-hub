@@ -44,6 +44,7 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   // SEC-12 privacy gate: never transmit candidate/job information to an
   // external AI processor unless explicitly enabled after legal review.
   // Disabled by default in every environment, including production.
+  throw new Error('SEC-12: external AI transport remains disabled pending separate management authorization and privacy verification.');
   assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
