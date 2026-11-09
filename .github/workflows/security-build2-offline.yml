@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - 'security/build2/**'
+      - 'src/components/CrudModule.tsx'
+      - 'src/components/CandidateBoard.tsx'
       - '.github/workflows/security-build2-offline.yml'
   pull_request:
     paths:
@@ -11,6 +13,19 @@ on:
 permissions:
   contents: read
 jobs:
+  application-typescript-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck application
+        run: npx tsc --noEmit
   offline-security-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 5
