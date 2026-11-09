@@ -13,7 +13,7 @@ test("duplicate organization rejected",()=>assert.throws(()=>addOrganization(see
 test("new organization accepted",()=>assert.equal(addOrganization(seed,{id:"new",name:"Example New",city:"",industry:"",owner:"Demo"}).organizations.length,4));
 test("contact requires valid organization",()=>assert.throws(()=>addContact(seed,{id:"x",organizationId:"unknown",name:"A",title:"",email:""}),/valid organization/));
 test("contact email validated",()=>assert.throws(()=>addContact(seed,{id:"x",organizationId:"org-1",name:"A",title:"",email:"bad"}),/Invalid email/));
-test("opportunity requires owner",()=>assert.equal(validateOpportunity({...seed.opportunities[0],owner:""},seed),"Owner is required"));
+test("opportunity requires owner",()=>assert.equal(validateOpportunity({...seed.opportunities[0],id:"new-owner-validation",owner:""},seed),"Owner is required"));
 test("opportunity requires valid organization",()=>assert.throws(()=>addOpportunity(seed,{...seed.opportunities[0],id:"new",organizationId:"missing"}),/valid organization/));
 test("opportunity stage moves immutably",()=>{const next=moveOpportunity(seed,"opp-1","won");assert.equal(next.opportunities[0].stage,"won");assert.equal(seed.opportunities[0].stage,"qualified")});
 test("invalid stage rejected",()=>assert.throws(()=>moveOpportunity(seed,"opp-1","hacked"),/Invalid stage/));
