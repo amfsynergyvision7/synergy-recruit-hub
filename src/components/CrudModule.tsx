@@ -410,6 +410,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const hasColumnFilters = Object.values(columnFilters).some((v) => v.trim());
   const setColumnFilter = (name: string, value: string) => {
+    setSelected(new Set());
     setColumnFilters((prev) => {
       const next = { ...prev };
       if (!value) delete next[name];
@@ -561,12 +562,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               style={{ paddingLeft: "2.5rem" }}
               placeholder="Search…"
               value={search}
-              onChange={(e)=>setSearch(e.target.value)}
+              onChange={(e)=>{ setSelected(new Set()); setSearch(e.target.value); }}
             />
           </div>
           <Button
             variant="outline"
-            onClick={() => setColumnFilters({})}
+            onClick={() => { setSelected(new Set()); setColumnFilters({}); }}
             disabled={!hasColumnFilters}
           >
             <FilterX className="h-4 w-4 mr-2"/>
