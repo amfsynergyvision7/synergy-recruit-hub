@@ -82,3 +82,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/recruiter-aggregate-shaped.integration.sql
       - name: Verify actual privileged RPC grant draft and internal scheduler principal
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-actual-rpc-proposal.integration.sql
+      - name: Rehearse transactional security rollback on disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-rollback-rehearsal.integration.sql
