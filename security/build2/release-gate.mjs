@@ -5,7 +5,14 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname,join} from 'node:path';
 const dir=dirname(fileURLToPath(import.meta.url));
-const evidence=JSON.parse(readFileSync(join(dir,'release-evidence.json'),'utf8'));
+let evidence;
+try {
+  evidence=JSON.parse(readFileSync(join(dir,'release-evidence.json'),'utf8'));
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) throw new Error('Expected a release-evidence object');
+} catch (cause) {
+  console.error('PRODUCTION RELEASE BLOCKED: release evidence is missing or invalid.', cause instanceof Error ? cause.message : '');
+  process.exit(1);
+}
 const checks=[
   'isolated_postgresql_rls_tests_passed',
   'all_19_tables_reviewed',
