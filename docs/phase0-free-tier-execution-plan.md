@@ -45,3 +45,11 @@ The merged BD Phase 1 is a synthetic in-memory demo behind `VITE_ENABLE_BD_DEMO`
 4. Separately verify the existing Supabase backup/export and restoration capabilities for the current free plan. Never assume point-in-time recovery, automated backups or isolated staging are available.
 5. Draft an incident rollback procedure covering code, environment variables and database migrations; do not run production rollback or test destructive SQL on live data.
 6. If a safe no-cost database restore rehearsal cannot be completed, record G0 as blocked and avoid production schema changes.
+
+## Free-plan backup decision (2026-11-09)
+- User confirmed Supabase Free Plan does not include project backups and requested that paid backup setup be skipped.
+- No paid upgrade, backup purchase, or production restore will be attempted.
+- G0 is **partially satisfied for code-only changes**: automated CI and user-observed CRM smoke test passed. The database-recovery portion remains **BLOCKED / explicitly waived for planning**, not verified.
+- Continue with read-only security inventory, policy analysis, synthetic tests, documentation and preview-only code changes.
+- **Do not deploy production SQL, destructive data operations or persistent BD schema changes** without a separately verified free recovery strategy and explicit approval.
+- Repository lint backlog remains non-blocking but open; record the exception in each code-only release.
