@@ -72,3 +72,7 @@ jobs:
         run: |
           node security/build2/generate-policy-proposal-disposable.mjs
           psql -X -v ON_ERROR_STOP=1 -f /tmp/build2-policy-proposal-disposable.sql
+      - name: Batch-check 19 table grants, 13 view hardening settings and three additional policies
+        run: |
+          node security/build2/generate-extra-proposals-disposable.mjs
+          psql -X -v ON_ERROR_STOP=1 -f /tmp/build2-extra-proposals-disposable.sql
