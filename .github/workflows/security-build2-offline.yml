@@ -60,3 +60,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify synthetic security-invoker view obeys recruiter RLS
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-view-rls.integration.sql
+      - name: Verify synthetic RPC PUBLIC privilege revocation
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-rpc-grants.integration.sql
