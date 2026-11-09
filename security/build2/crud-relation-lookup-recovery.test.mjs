@@ -7,7 +7,7 @@ test('relation lookup responses cannot overwrite newer responses',()=>{
  assert.match(src,/const relationSequence = useRef\(0\)/);
  assert.match(relations,/const sequence = \+\+relationSequence\.current/);
  assert.match(relations,/if \(sequence === relationSequence\.current\) setRelationOptions/);
- assert.match(src,/relationSequence\.current\+\+; supabase\.removeChannel/);
+ assert.match(src,/relationSequence\.current\+\+; offerLookupSequence\.current\+\+; supabase\.removeChannel/);
 });
 test('relation query errors are not silently replaced with empty options',()=>{
  assert.match(relations,/if \(error\) throw error/);
