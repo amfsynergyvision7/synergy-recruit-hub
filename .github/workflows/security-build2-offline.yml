@@ -80,3 +80,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-view-definitions-shaped.integration.sql
       - name: Verify recruiter aggregate isolation across active and inactive identities
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/recruiter-aggregate-shaped.integration.sql
+      - name: Verify actual privileged RPC grant draft and internal scheduler principal
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-actual-rpc-proposal.integration.sql
