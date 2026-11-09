@@ -250,38 +250,62 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     loadRelations();
     const ch = supabase.channel(`rt-${table}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, load).subscribe();
-    return () => { refreshSequence.current++; relationSequence.current++; supabase.removeChannel(ch); };
+    return () => { refreshSequence.current++; relationSequence.current++; offerLookupSequence.current++; supabase.removeChannel(ch); };
   }, [table]);
 
+  // Invalidate pending offer lookups when a different candidate is selected or a form is reopened.
+  const offerLookupSequence = useRef(0);
   const handleFieldChange = async (name: string, value: any) => {
-    const next = { ...form, [name]: value };
-    if (name === "candidate_uuid") next.candidate_id = value;
-    if (name === "client_uuid") next.client_id = value;
-    if (name === "job_uuid") next.job_id = value;
-    if (module === "offers" && name === "candidate_uuid" && value) {
-      const candidate = relationOptions[name]?.find((r) => r.id === value);
-      next.salary = next.salary ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
-      next.ctc = next.ctc ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
+    if (name === "candidate_uuid") offerLookupSequence.current++;
+    const sequence = offerLookupSequence.current;
+    // Apply the direct edit immediately; never replace intervening user edits
+    // with a form snapshot captured before an asynchronous lookup.
+    setForm((previous: any) => ({
+      ...previous,
+      [name]: value,
+      ...(name === "candidate_uuid" ? { candidate_id: value } : {}),
+      ...(name === "client_uuid" ? { client_id: value } : {}),
+      ...(name === "job_uuid" ? { job_id: value } : {}),
+    }));
+    if (module !== "offers" || name !== "candidate_uuid" || !value) return;
+    const candidate = relationOptions[name]?.find((r) => r.id === value);
+    try {
       const interviewResult = await supabase.from("interviews" as any).select("id, client_uuid, client_id, submission_uuid").eq("candidate_uuid", value).eq("status", "selected").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (interviewResult.error) throw interviewResult.error;
       const interview: any = interviewResult.data;
       const submissionResult = interview?.submission_uuid
-        ? { data: null as any }
+        ? { data: null as any, error: null }
         : await supabase.from("submissions" as any).select("id, client_uuid, client_id").eq("candidate_uuid", value).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (submissionResult.error) throw submissionResult.error;
+      if (sequence !== offerLookupSequence.current) return;
       const submission: any = submissionResult.data;
-      next.interview_uuid = next.interview_uuid ?? interview?.id ?? null;
-      next.submission_uuid = next.submission_uuid ?? interview?.submission_uuid ?? submission?.id ?? null;
-      next.client_uuid = next.client_uuid ?? interview?.client_uuid ?? interview?.client_id ?? submission?.client_uuid ?? submission?.client_id ?? null;
-      next.client_id = next.client_uuid;
+      setForm((previous: any) => {
+        if (previous.candidate_uuid !== value) return previous;
+        const clientUuid = previous.client_uuid ?? interview?.client_uuid ?? interview?.client_id ?? submission?.client_uuid ?? submission?.client_id ?? null;
+        return {
+          ...previous,
+          salary: previous.salary ?? candidate?.expected_salary ?? candidate?.current_salary ?? null,
+          ctc: previous.ctc ?? candidate?.expected_salary ?? candidate?.current_salary ?? null,
+          interview_uuid: previous.interview_uuid ?? interview?.id ?? null,
+          submission_uuid: previous.submission_uuid ?? interview?.submission_uuid ?? submission?.id ?? null,
+          client_uuid: clientUuid,
+          client_id: clientUuid,
+        };
+      });
+    } catch (cause) {
+      if (sequence === offerLookupSequence.current) {
+        toast.error(`Could not load related offer details. Check permissions and connection. ${cause instanceof Error ? cause.message : ""}`);
+      }
     }
-    setForm(next);
   };
 
   const openCreate = () => {
+    offerLookupSequence.current++;
     const init: any = {};
     fields.forEach((f) => { if (f.default !== undefined) init[f.name] = f.default; });
     setForm(init); setEditing(null); setOpen(true);
   };
-  const openEdit = (row: any) => { setForm(row); setEditing(row); setOpen(true); };
+  const openEdit = (row: any) => { offerLookupSequence.current++; setForm(row); setEditing(row); setOpen(true); };
   const openView = (row: any) => setViewing(row);
 
   const save = async () => {
