@@ -29,3 +29,10 @@ test('SEC-12 all five AI endpoints hard-deny before CRM reads even with approval
   assert.ok(block.indexOf('AI CRM operations remain disabled') < block.indexOf('requireCrmRecordAccess('));
  }
 });
+
+test('SEC-11 email endpoint denies before recipient or CRM record lookup',()=>{
+ const endpoint=email.split('export const sendCrmEmail =')[1].split('export const listEmailHistory =')[0];
+ const denial=endpoint.indexOf("throw new Error('SEC-11: CRM email sending is disabled");
+ const lookup=endpoint.indexOf('await requireCrmRecordAccess(');
+ assert.ok(denial >= 0 && lookup >= 0 && denial < lookup);
+});
