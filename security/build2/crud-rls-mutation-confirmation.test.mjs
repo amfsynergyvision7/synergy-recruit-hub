@@ -37,7 +37,7 @@ test('bulk CRUD verifies each bounded batch and stops on partial results',()=>{
   assert.match(part,/confirmBulkBatches\(ids,/,name+' must use verified batches');
   assert.match(part,/error \|\| confirmed\.size !== ids\.length/);
   assert.match(part,/await load\(\)/);
-  assert.match(part,/setSelected\(new Set\(ids\.filter\(\(id\) => !confirmed\.has\(id\)\)\)\)/);
+  assert.match(part,/setSelected\(new Set\(\)\);\s*await load\(\)/);
   assert.ok(part.indexOf('if (error || confirmed.size !== ids.length')<part.indexOf('toast.success('));
  }
 });
