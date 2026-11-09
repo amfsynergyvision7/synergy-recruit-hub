@@ -120,7 +120,8 @@ export async function sendEmail(opts: {
     // a sending cap all surface here as a thrown error from nodemailer
     // rather than an HTTP status — message text is whatever the SMTP server
     // replied with, which is usually specific enough to act on directly.
-    return { success: false, error: err?.message ?? "SMTP send failed for an unknown reason." };
+    console.error("[CRM email] SMTP delivery failed; provider details suppressed.");
+    return { success: false, error: "SMTP delivery failed. Contact an administrator to investigate provider configuration." };
   }
 }
 
