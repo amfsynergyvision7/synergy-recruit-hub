@@ -38,6 +38,11 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       throw new Error("Only an admin or recruiter can send email from the CRM.");
     }
 
+    // SEC-11 release gate: do not dispatch before a durable, idempotent
+    // authorization-checked outbox has been committed. This deliberately
+    // disables live CRM email until that integration is implemented and tested.
+    throw new Error("CRM email sending is temporarily disabled pending SEC-11 durable outbox verification.");
+
     const result = await sendEmail({
       to: data.toEmail,
       subject: data.subject,
