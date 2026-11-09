@@ -18,14 +18,20 @@ test('single CRUD mutations verify returned IDs and reject zero-row success',()=
  assert.match(remove,/\.delete\(\)\.eq\("id", row\.id\)\.select\("id"\)\.maybeSingle\(\)/);
  assert.match(remove,/!data \|\| \(data as unknown as \{ id: string \}\)\.id !== row\.id/);
 });
-test('bulk CRUD confirms exact affected ID set, flags partial outcomes and reloads',()=>{
+test('bulk CRUD verifies each bounded batch and stops on partial results',()=>{
+ const helper=segment('const confirmBulkBatches = async','const bulkDelete = async');
  const del=segment('const bulkDelete = async','const closeBulkEdit');
  const edit=segment('const applyBulkEdit = async','return (');
+ assert.match(helper,/start \+= 100/);
+ assert.match(helper,/ids\.slice\(start, start \+ 100\)/);
+ assert.match(helper,/\.in\("id", batch\)/);
+ assert.match(helper,/query\.select\("id"\)/);
+ assert.match(helper,/returnedSet\.size !== batch\.length/);
+ assert.match(helper,/batch\.some\(\(id\) => !returnedSet\.has\(id\)\)/);
  for(const [name,part] of [['delete',del],['edit',edit]]){
-  assert.match(part,/\.in\("id", ids\)\.select\("id"\)/,name+' must return affected IDs');
-  assert.match(part,/const confirmed = new Set/);
-  assert.match(part,/confirmed\.size !== ids\.length \|\| ids\.some\(\(id\) => !confirmed\.has\(id\)\)/);
+  assert.match(part,/confirmBulkBatches\(ids,/,name+' must use verified batches');
+  assert.match(part,/error \|\| confirmed\.size !== ids\.length/);
   assert.match(part,/await load\(\)/);
-  assert.ok(part.indexOf('if (confirmed.size !== ids.length')<part.indexOf('toast.success('));
+  assert.ok(part.indexOf('if (error || confirmed.size !== ids.length')<part.indexOf('toast.success('));
  }
 });
