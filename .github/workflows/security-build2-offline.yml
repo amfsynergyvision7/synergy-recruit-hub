@@ -117,3 +117,6 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-definer-search-path.integration.sql
       - name: Exercise privileged workflow trigger with in-function field allowlist
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-workflow-trigger-guard.integration.sql
+
+      - name: Verify synthetic recruiter ownership and silent RLS zero-row updates
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-recruiter-ownership-rls.integration.sql
