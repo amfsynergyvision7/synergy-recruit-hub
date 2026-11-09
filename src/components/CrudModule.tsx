@@ -197,13 +197,21 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const load = async () => {
     setLoading(true);
-    const q = supabase.from(table as any).select("*");
-    const { data, error } = await (orderBy
-      ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
-      : q.order("created_at", { ascending: false }));
-    setLoading(false);
-    if (error) toast.error(error.message);
-    else setRows(data || []);
+    try {
+      const q = supabase.from(table as any).select("*");
+      const { data, error } = await (orderBy
+        ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
+        : q.order("created_at", { ascending: false }));
+      if (error) {
+        toast.error(`Could not refresh records: ${error.message}`);
+      } else {
+        setRows(data || []);
+      }
+    } catch (cause) {
+      toast.error(`Could not refresh records. Check your connection before retrying. ${cause instanceof Error ? cause.message : ""}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const loadRelations = async () => {
