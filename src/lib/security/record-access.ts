@@ -11,8 +11,10 @@ export async function requireCrmRecordAccess(
   recordId: string,
 ): Promise<void> {
   const { data: profile, error: profileError } = await supabase
-    .from("profiles").select("id").eq("id", userId).maybeSingle();
-  if (profileError || !profile) throw new Error("Access denied: active profile required.");
+    .from("profiles").select("id, is_active, status").eq("id", userId).maybeSingle();
+  if (profileError || !profile || profile.is_active !== true || profile.status !== "approved") {
+    throw new Error("Access denied: active approved profile required.");
+  }
 
   const { data: roles, error: roleError } = await supabase
     .from("user_roles").select("role").eq("user_id", userId);
