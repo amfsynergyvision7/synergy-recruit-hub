@@ -1,0 +1,31 @@
+name: Security Build 2 offline checks
+on:
+  push:
+    paths:
+      - 'security/build2/**'
+      - '.github/workflows/security-build2-offline.yml'
+  pull_request:
+    paths:
+      - 'security/build2/**'
+      - '.github/workflows/security-build2-offline.yml'
+permissions:
+  contents: read
+jobs:
+  offline-security-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run all offline security contract tests
+        run: node --test security/build2/*.test.mjs
+      - name: Verify production release is blocked
+        shell: bash
+        run: |
+          if node security/build2/release-gate.mjs; then
+            echo 'ERROR: Release gate unexpectedly passed; requires independent manual verification.'
+            exit 1
+          fi
+          echo 'PASS: Unapproved production release is blocked.'
