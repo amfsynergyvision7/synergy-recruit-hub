@@ -15,3 +15,12 @@ test('Browser Supabase client rejects project mismatch',()=>{
  assert.match(source,/expectedProject/);
  assert.match(source,/actualHost !== \x60\$\{expectedProject\}\.supabase\.co\x60/);
 });
+
+test('Server and browser deny missing expected project identity',()=>{
+ const server=read('src/integrations/supabase/auth-middleware.ts');
+ const browser=read('src/integrations/supabase/client.ts');
+ assert.match(server,/if \(!expectedProject\)/);
+ assert.match(server,/Missing expected Supabase project ID/);
+ assert.match(browser,/if \(!expectedProject\)/);
+ assert.match(browser,/Missing expected project ID; refusing connection/);
+});
