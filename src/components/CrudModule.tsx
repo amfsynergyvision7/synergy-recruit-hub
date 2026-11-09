@@ -414,8 +414,14 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       const query = action === "delete"
         ? supabase.from(table as any).delete().in("id", batch)
         : supabase.from(table as any).update(patch!).in("id", batch);
-      const { data, error } = await query.select("id");
-      if (error) return { confirmed, error: error.message };
+      let data: { id: string }[] | null;
+      try {
+        const response = await query.select("id");
+        if (response.error) return { confirmed, error: response.error.message };
+        data = response.data as unknown as { id: string }[] | null;
+      } catch (cause) {
+        return { confirmed, error: cause instanceof Error ? cause.message : "Network request failed" };
+      }
       const returned = ((data ?? []) as unknown as { id: string }[]).map((row) => row.id);
       const returnedSet = new Set(returned);
       if (returnedSet.size !== batch.length || batch.some((id) => !returnedSet.has(id))) {
@@ -439,6 +445,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     const { confirmed, error } = await confirmBulkBatches(ids, "delete");
     setBulkDeleting(false);
     if (error || confirmed.size !== ids.length) {
+      setSelected(new Set(ids.filter((id) => !confirmed.has(id))));
       await load();
       return toast.error(`Deletion confirmed for ${confirmed.size} of ${ids.length} records. ${error ?? "Review remaining records."}`);
     }
@@ -464,6 +471,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     const { confirmed, error } = await confirmBulkBatches(ids, "update", { [field.name]: v });
     setBulkEditSaving(false);
     if (error || confirmed.size !== ids.length) {
+      setSelected(new Set(ids.filter((id) => !confirmed.has(id))));
       await load();
       return toast.error(`Update confirmed for ${confirmed.size} of ${ids.length} records. ${error ?? "Review remaining records."}`);
     }
