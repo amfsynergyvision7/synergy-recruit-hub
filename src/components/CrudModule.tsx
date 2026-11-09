@@ -546,9 +546,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     }
     const { confirmed, error } = result;
     if (error || confirmed.size !== ids.length) {
-      setSelected(new Set(ids.filter((id) => !confirmed.has(id))));
+      // Unknown or incomplete outcomes must not leave a one-click replay selection.
+      // Operators must inspect the refreshed records and explicitly reselect targets.
+      setSelected(new Set());
       await load();
-      return toast.error(`Deletion confirmed for ${confirmed.size} of ${ids.length} records. ${error ?? "Review remaining records."}`);
+      return toast.error(`Deletion explicitly confirmed for ${confirmed.size} of ${ids.length} records. Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
     }
     toast.success(`Deleted ${confirmed.size} record(s)`);
     setSelected(new Set());
@@ -588,9 +590,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     }
     const { confirmed, error } = result;
     if (error || confirmed.size !== ids.length) {
-      setSelected(new Set(ids.filter((id) => !confirmed.has(id))));
+      // Unknown or incomplete outcomes must not leave a one-click replay selection.
+      // Operators must inspect the refreshed records and explicitly reselect targets.
+      setSelected(new Set());
       await load();
-      return toast.error(`Update confirmed for ${confirmed.size} of ${ids.length} records. ${error ?? "Review remaining records."}`);
+      return toast.error(`Update explicitly confirmed for ${confirmed.size} of ${ids.length} records. Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
     }
     toast.success(`Updated ${field.label} for ${confirmed.size} record(s)`);
     setSelected(new Set());
