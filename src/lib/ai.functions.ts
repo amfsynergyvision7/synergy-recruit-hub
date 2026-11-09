@@ -9,7 +9,6 @@ import {
   generateCandidateAtsScore,
   restructureResumeForClient,
 } from "./ai.server";
-import { runResumeDriveImport } from "./drive-import.server";
 import { buildClientResumePdf, fetchLogoBuffer } from "./resume-pdf.server";
 
 export const matchCandidates = createServerFn({ method: "POST" })
