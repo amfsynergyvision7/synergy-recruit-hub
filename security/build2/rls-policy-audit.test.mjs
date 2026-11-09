@@ -10,3 +10,14 @@ test('ignores other schema',()=>assert.equal(auditPolicies([p('candidates',{sche
 test('rejects nonarray',()=>assert.throws(()=>auditPolicies(null),TypeError));
 test('detects all 15 audited table names',()=>{const x=auditPolicies(sensitiveTables.map(t=>p(t)));assert.equal(x.critical.length,15)});
 test('deduplicates table names',()=>assert.equal(auditPolicies([p('candidates'),p('candidates',{policyname:'other'})]).affected.length,1));
+
+test('flags unconditional INSERT WITH CHECK true even when qual is null',()=>{const x=auditPolicies([p('sync_logs',{cmd:'INSERT',qual:null,with_check:'true'})]);assert.equal(x.safe,false);assert.equal(x.findings[0].unconditional_with_check,true)});
+test('flags unconditional UPDATE WITH CHECK even when USING is restricted',()=>{const x=auditPolicies([p('candidates',{cmd:'UPDATE',qual:'assigned_recruiter = auth.uid()',with_check:'(true)'})]);assert.equal(x.safe,false)});
+test('flags public DELETE with unconditional USING',()=>assert.equal(auditPolicies([p('candidates',{cmd:'DELETE',with_check:null})]).safe,false));
+test('flags ALL when only WITH CHECK is true',()=>assert.equal(auditPolicies([p('billing',{qual:'false',with_check:'true'})]).safe,false));
+test('detects pg_roles string syntax',()=>assert.equal(auditPolicies([p('candidates',{roles:'{authenticated}',qual:'((true))'})]).safe,false));
+test('handles parenthesized cast boolean predicates',()=>assert.equal(auditPolicies([p('candidates',{qual:'true::boolean'})]).safe,false));
+test('does not flag restricted INSERT with false check',()=>assert.equal(auditPolicies([p('candidates',{cmd:'INSERT',qual:null,with_check:'auth.uid() = created_by'})]).safe,true));
+test('does not flag policy with legitimate composite expression containing true',()=>assert.equal(auditPolicies([p('candidates',{qual:'true AND auth.uid()=created_by'})]).safe,true));
+test('ignores null metadata entries',()=>assert.equal(auditPolicies([null]).safe,true));
+test('recognizes case-insensitive PERMISSIVE and role',()=>assert.equal(auditPolicies([p('candidates',{permissive:'permissive',roles:['AUTHENTICATED'],qual:'TRUE'})]).safe,false));
