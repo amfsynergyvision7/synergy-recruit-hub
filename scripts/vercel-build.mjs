@@ -9,6 +9,8 @@ import { nodeFileTrace } from "@vercel/nft";
 const root = process.cwd();
 const out = path.join(root, ".vercel", "output");
 
+console.log("[vercel-build] running mandatory security regression suite...");
+execSync("npm run test:security", { stdio: "inherit", cwd: root });
 console.log("[vercel-build] running vite build...");
 execSync("npx vite build", { stdio: "inherit", cwd: root });
 
