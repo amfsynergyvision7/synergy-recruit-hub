@@ -90,3 +90,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-history-isolation.integration.sql
       - name: Verify privileged history trigger remains compatible with direct-write denial
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-history-trigger.integration.sql
+      - name: Exercise candidate stage transition chain and unauthorized side-effect denial
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-transition-chain.integration.sql
