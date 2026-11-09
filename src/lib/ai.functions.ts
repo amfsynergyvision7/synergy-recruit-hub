@@ -17,8 +17,9 @@ export const matchCandidates = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    throw new Error('SEC-12: AI CRM operations remain disabled pending separate privacy and processing authorization.');
     assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
-    // No extra role gate beyond "signed in and approved" (already enforced
+    // An approved admin/recruiter role is also required by requireCrmRecordAccess (already enforced
     // by requireSupabaseAuth + the candidates/job_openings RLS policies
     // context.supabase reads through) — this is a read-only insight, not a
     // write, so anyone who can already see the pipeline can ask for a match.
@@ -37,6 +38,7 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    throw new Error('SEC-12: AI CRM operations remain disabled pending separate privacy and processing authorization.');
     assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
     await requireCrmRecordAccess(context.supabase, context.userId, "job_openings", data.jobId);
     await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
@@ -50,6 +52,7 @@ export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    throw new Error('SEC-12: AI CRM operations remain disabled pending separate privacy and processing authorization.');
     assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
     await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return generateResumeSummary(context.supabase, data.candidateId);
@@ -64,6 +67,7 @@ export const generateCandidateAtsScoreFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    throw new Error('SEC-12: AI CRM operations remain disabled pending separate privacy and processing authorization.');
     assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
     await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return generateCandidateAtsScore(context.supabase, data.candidateId);
@@ -79,6 +83,7 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
     // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    throw new Error('SEC-12: AI CRM operations remain disabled pending separate privacy and processing authorization.');
     assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
     await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     const { candidate, resume } = await restructureResumeForClient(context.supabase, data.candidateId);
