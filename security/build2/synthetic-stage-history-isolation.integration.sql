@@ -16,6 +16,16 @@ ALTER TABLE public.build2_stage_candidates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.build2_stage_history ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON public.build2_stage_candidates TO authenticated;
 GRANT SELECT ON public.build2_stage_history TO authenticated;
+-- Independently create identity fixture to avoid dependence on other test names.
+CREATE TABLE public.build2_auth_profiles (id uuid PRIMARY KEY,status text,is_active boolean);
+ALTER TABLE public.build2_auth_profiles ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.build2_auth_profiles TO authenticated;
+CREATE POLICY build2_auth_self ON public.build2_auth_profiles
+ FOR SELECT TO authenticated USING (id=auth.uid());
+INSERT INTO public.build2_auth_profiles VALUES
+ ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved',true),
+ ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','approved',true),
+ ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','approved',false);
 CREATE POLICY build2_stage_candidate_select ON public.build2_stage_candidates
  FOR SELECT TO authenticated USING (
  assigned_recruiter=auth.uid() AND EXISTS (
@@ -38,36 +48,26 @@ INSERT INTO public.build2_stage_history(id,candidate_id,new_stage) VALUES
  ('33333333-3333-4333-8333-333333333333','11111111-1111-4111-8111-111111111111','screening'),
  ('44444444-4444-4444-8444-444444444444','22222222-2222-4222-8222-222222222222','interview'),
  ('55555555-5555-4555-8555-555555555555',NULL,'unknown');
--- Independently create identity fixture to avoid dependence on other test names.
-CREATE TABLE public.build2_auth_profiles (id uuid PRIMARY KEY,status text,is_active boolean);
-ALTER TABLE public.build2_auth_profiles ENABLE ROW LEVEL SECURITY;
-GRANT SELECT ON public.build2_auth_profiles TO authenticated;
-CREATE POLICY build2_auth_self ON public.build2_auth_profiles
- FOR SELECT TO authenticated USING (id=auth.uid());
-INSERT INTO public.build2_auth_profiles VALUES
- ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved',true),
- ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','approved',true),
- ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','approved',false);
 SET ROLE authenticated;
-SET build2.uid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+SET test.uid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 DO $check$
 BEGIN
  IF (SELECT count(*) FROM public.build2_stage_history)<>1 THEN
  RAISE EXCEPTION 'recruiter A history isolation failed'; END IF;
 END $check$;
-SET build2.uid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+SET test.uid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 DO $check$
 BEGIN
  IF (SELECT count(*) FROM public.build2_stage_history)<>1 THEN
  RAISE EXCEPTION 'recruiter B history isolation failed'; END IF;
 END $check$;
-SET build2.uid='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+SET test.uid='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 DO $check$
 BEGIN
  IF EXISTS (SELECT 1 FROM public.build2_stage_history) THEN
  RAISE EXCEPTION 'inactive profile can read stage history'; END IF;
 END $check$;
-SET build2.uid='';
+SET test.uid='';
 DO $check$
 BEGIN
  IF EXISTS (SELECT 1 FROM public.build2_stage_history) THEN
