@@ -74,7 +74,7 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   try {
     return JSON.parse(outputText) as T;
   } catch {
-    throw new Error(`Gemini returned a response that wasn't valid JSON: ${outputText.slice(0, 500)}`);
+    throw new Error("Gemini returned invalid JSON; provider output suppressed to protect candidate data.");
   }
 }
 
