@@ -31,7 +31,10 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     // SEC-01 defense in depth: never use a mismatched Supabase endpoint.
     // The isolated Preview has a branch-scoped project ID and URL.
     const expectedProject = process.env.VITE_SUPABASE_PROJECT_ID;
-    if (expectedProject) {
+    if (!expectedProject) {
+      throw new Response('Missing expected Supabase project ID', { status: 500 });
+    }
+    {
       let host: string;
       try {
         host = new URL(SUPABASE_URL).hostname;
