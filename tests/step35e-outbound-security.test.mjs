@@ -19,3 +19,13 @@ test('SEC-11 email sending has unconditional server-side deny',()=>{
   assert.match(email,/recipient must match the authorized CRM record/);
   assert.match(email,/CRM email sending is disabled pending durable outbox verification/);
 });
+
+test('SEC-12 all five AI endpoints hard-deny before CRM reads even with approval flag',()=>{
+ assert.equal((ai.match(/throw new Error\('SEC-12: AI CRM operations remain disabled/g)||[]).length,5);
+ const blocks=ai.split(/\.handler\(async \(\{ context, data \}\) => \{/).slice(1,6);
+ assert.equal(blocks.length,5);
+ for(const block of blocks){
+  assert.ok(block.indexOf('AI CRM operations remain disabled') >= 0);
+  assert.ok(block.indexOf('AI CRM operations remain disabled') < block.indexOf('requireCrmRecordAccess('));
+ }
+});
