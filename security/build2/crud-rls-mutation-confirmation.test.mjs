@@ -26,12 +26,15 @@ test('bulk CRUD verifies each bounded batch and stops on partial results',()=>{
  assert.match(helper,/ids\.slice\(start, start \+ 100\)/);
  assert.match(helper,/\.in\("id", batch\)/);
  assert.match(helper,/query\.select\("id"\)/);
+ assert.match(helper,/catch \(cause\)/);
+ assert.match(helper,/return \{ confirmed, error: cause instanceof Error/);
  assert.match(helper,/returnedSet\.size !== batch\.length/);
  assert.match(helper,/batch\.some\(\(id\) => !returnedSet\.has\(id\)\)/);
  for(const [name,part] of [['delete',del],['edit',edit]]){
   assert.match(part,/confirmBulkBatches\(ids,/,name+' must use verified batches');
   assert.match(part,/error \|\| confirmed\.size !== ids\.length/);
   assert.match(part,/await load\(\)/);
+  assert.match(part,/setSelected\(new Set\(ids\.filter\(\(id\) => !confirmed\.has\(id\)\)\)\)/);
   assert.ok(part.indexOf('if (error || confirmed.size !== ids.length')<part.indexOf('toast.success('));
  }
 });
