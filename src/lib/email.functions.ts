@@ -22,6 +22,8 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    // SEC-11: outbound delivery is not authorized; deny before any CRM lookup.
+    throw new Error('SEC-11: CRM email sending is disabled pending durable outbox verification.');
     // Defense in depth: the UI only shows the Mail button when canEdit()
     // already says this role can edit Candidates/Clients (admin or
     // recruiter), but a server function is callable directly, and the
