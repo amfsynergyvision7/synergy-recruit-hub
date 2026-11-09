@@ -28,6 +28,20 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Response(message, { status: 500 });
     }
     
+    // Fail closed if a Preview build accidentally mixes Supabase projects.
+    const expectedProject = process.env.VITE_SUPABASE_PROJECT_ID;
+    if (expectedProject) {
+      let actualHost: string;
+      try {
+        actualHost = new URL(SUPABASE_URL).hostname;
+      } catch {
+        throw new Response("Invalid Supabase endpoint", { status: 500 });
+      }
+      if (actualHost !== `${expectedProject}.supabase.co`) {
+        throw new Response("Supabase project mismatch", { status: 500 });
+      }
+    }
+
     const request = getRequest();
 
     if (!request?.headers) {
