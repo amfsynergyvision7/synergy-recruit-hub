@@ -317,6 +317,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (form.candidate_uuid && (!editing || form.candidate_uuid !== editing.candidate_uuid)) payload.candidate_id = form.candidate_uuid;
     if (form.client_uuid !== undefined && (!editing || (form.client_uuid || null) !== (editing.client_uuid ?? null))) payload.client_id = form.client_uuid || null;
     if (form.job_uuid !== undefined && (!editing || (form.job_uuid || null) !== (editing.job_uuid ?? null))) payload.job_id = form.job_uuid || null;
+    try {
     if (editing) {
       if (Object.keys(payload).length === 0) { setOpen(false); return; }
       const { data, error } = await supabase.from(table as any).update(payload).eq("id", editing.id).select("id").maybeSingle();
@@ -336,16 +337,26 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       toast.success("Created");
     }
     setOpen(false); load();
+    } catch (cause) {
+      // A rejected response is not proof that the database rejected the write.
+      toast.error(`Write outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}`);
+      await load();
+    }
   };
 
   const remove = async (row: any) => {
     if (!confirm("Delete this record?")) return;
-    const { data, error } = await supabase.from(table as any).delete().eq("id", row.id).select("id").maybeSingle();
-    if (error || !data || (data as unknown as { id: string }).id !== row.id) {
+    try {
+      const { data, error } = await supabase.from(table as any).delete().eq("id", row.id).select("id").maybeSingle();
+      if (error || !data || (data as unknown as { id: string }).id !== row.id) {
+        await load();
+        return toast.error(error?.message ?? "Deletion was not confirmed. Inspect refreshed records before retrying.");
+      }
+      toast.success("Deleted"); load();
+    } catch (cause) {
+      toast.error(`Deletion outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}`);
       await load();
-      return toast.error(error?.message ?? "Deletion was not confirmed. Check permissions.");
     }
-    toast.success("Deleted"); load();
   };
 
   // Filtering used to be scoped to `tableFields` — whatever columns the
