@@ -417,7 +417,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       let data: { id: string }[] | null;
       try {
         const response = await query.select("id");
-        if (response.error) return { confirmed, error: response.error.message };
+        if (response.error) return { confirmed, error: `Batch not confirmed. Inspect refreshed records before retrying; earlier batches may have committed. ${response.error.message}` };
         data = response.data as unknown as { id: string }[] | null;
       } catch (cause) {
         return { confirmed, error: `Request outcome unknown; the server may have committed this batch. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}` };
@@ -426,7 +426,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       const returnedSet = new Set(returned);
       if (returnedSet.size !== batch.length || batch.some((id) => !returnedSet.has(id))) {
         returnedSet.forEach((id) => { if (batch.includes(id)) confirmed.add(id); });
-        return { confirmed, error: "Some records were not confirmed. Review the refreshed list before retrying." };
+        return { confirmed, error: "Batch result incomplete. The remaining IDs have an unknown outcome, not a confirmed failure. Inspect refreshed records before retrying." };
       }
       returnedSet.forEach((id) => confirmed.add(id));
     }
