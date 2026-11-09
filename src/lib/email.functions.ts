@@ -39,6 +39,18 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       throw new Error("Only an admin or recruiter can send email from the CRM.");
     }
 
+    // SEC-11: never trust a caller-supplied destination. Resolve the
+    // authoritative recipient from the RLS-visible CRM record.
+    const { data: recipientRecord, error: recipientError } = await context.supabase
+      .from(data.relatedTable)
+      .select("email")
+      .eq("id", data.relatedId)
+      .maybeSingle();
+    const verifiedEmail = recipientRecord?.email?.trim().toLowerCase();
+    if (recipientError || !verifiedEmail || verifiedEmail !== data.toEmail.trim().toLowerCase()) {
+      throw new Error("SEC-11: recipient must match the authorized CRM record.");
+    }
+
     // SEC-11: fail closed. No live SMTP dispatch until a durable,
     // authorized and idempotent outbox worker is implemented and verified.
     throw new Error("SEC-11: CRM email sending is disabled pending durable outbox verification.");
