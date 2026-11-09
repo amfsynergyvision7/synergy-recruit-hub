@@ -48,3 +48,6 @@ Local checks from a complete checkout:
 ```sh
 node --test security/build2/rls-policy-audit.test.mjs security/build2/ai-access-policy.test.mjs
 ```
+
+## CEO decision: free-only continuation
+On 2026-11-09 the CEO declined the Supabase development branch cost of USD 0.01344/hour and instructed free-only continuation. No paid branch was created. Continue GitHub development, local Node tests and metadata-only inspections; do not treat the live production database as an isolated test environment. See `free-path-policy-inventory.md` for the exact 15-table policy inventory and the security sequencing needed before migration. The 47 Node tests remain a **synthetic reference suite**, not SQL integration proof. Production migration, deployment and live role-based access testing remain pending.
