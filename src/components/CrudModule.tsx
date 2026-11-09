@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,6 +141,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  // Ignore superseded refreshes so slow responses cannot overwrite newer data.
+  const refreshSequence = useRef(0);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -196,21 +198,27 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   // anyway; Search covers the common "find this one candidate" case.
 
   const load = async () => {
+    const sequence = ++refreshSequence.current;
     setLoading(true);
     try {
       const q = supabase.from(table as any).select("*");
       const { data, error } = await (orderBy
         ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
         : q.order("created_at", { ascending: false }));
+      if (sequence !== refreshSequence.current) return;
       if (error) {
         toast.error(`Could not refresh records: ${error.message}`);
       } else {
-        setRows(data || []);
+        const freshRows = data || [];
+        setRows(freshRows);
+        // Never retain selected IDs that are no longer present in the refreshed list.
+        const visibleIds = new Set(freshRows.map((row) => row.id));
+        setSelected((previous) => new Set([...previous].filter((id) => visibleIds.has(id))));
       }
     } catch (cause) {
-      toast.error(`Could not refresh records. Check your connection before retrying. ${cause instanceof Error ? cause.message : ""}`);
+      if (sequence === refreshSequence.current) toast.error(`Could not refresh records. Check your connection before retrying. ${cause instanceof Error ? cause.message : ""}`);
     } finally {
-      setLoading(false);
+      if (sequence === refreshSequence.current) setLoading(false);
     }
   };
 
@@ -230,7 +238,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     loadRelations();
     const ch = supabase.channel(`rt-${table}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, load).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { refreshSequence.current++; supabase.removeChannel(ch); };
   }, [table]);
 
   const handleFieldChange = async (name: string, value: any) => {
