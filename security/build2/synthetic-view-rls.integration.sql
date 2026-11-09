@@ -36,7 +36,7 @@ BEGIN
 END $$;
 -- Verify column-level protection: a recruiter may update the name but cannot
 -- reassign a candidate by mutating the ownership field.
-DO $
+DO $$
 BEGIN
  IF has_column_privilege('authenticated','public.build2_synthetic_candidates','assigned_recruiter','UPDATE')
  THEN RAISE EXCEPTION 'recruiter must not update ownership column'; END IF;
@@ -44,7 +44,7 @@ BEGIN
  THEN RAISE EXCEPTION 'recruiter should update permitted field'; END IF;
  IF has_function_privilege('anon','auth.uid()','EXECUTE')
  THEN RAISE EXCEPTION 'anon must not execute synthetic auth helper'; END IF;
-END $;
+END $$;
 SET ROLE authenticated;
 SET test.uid='11111111-1111-1111-1111-111111111111';
 DO $$
@@ -57,11 +57,11 @@ BEGIN
 END $$;
 UPDATE public.build2_synthetic_candidates SET full_name='Synthetic A Updated'
  WHERE id='00000000-0000-0000-0000-000000000001';
-DO $
+DO $$
 BEGIN
  IF NOT EXISTS (SELECT 1 FROM public.build2_synthetic_view WHERE full_name='Synthetic A Updated')
  THEN RAISE EXCEPTION 'permitted recruiter update failed'; END IF;
-END $;
+END $$;
 SET test.uid='22222222-2222-2222-2222-222222222222';
 DO $$
 DECLARE n integer;
