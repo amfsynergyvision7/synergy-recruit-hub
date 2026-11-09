@@ -35,3 +35,18 @@ test('partial positive evidence does not unblock other release conditions', () =
  assert.equal(r.status, 1);
  assert.equal((r.stdout.match(/BLOCK \|/g) ?? []).length, 8);
 });
+
+test('unexpected release evidence keys block release even when all known entries are present', () => {
+ const values = structuredClone(original);
+ values.unreviewed_exception = { passed: true, evidence: 'unapproved' };
+ const r = run(values);
+ assert.equal(r.status, 1);
+ assert.match(r.stderr, /PRODUCTION RELEASE BLOCKED: unrecognised release evidence keys/);
+});
+test('all fields filled does not claim automatic production approval', () => {
+ const values = Object.fromEntries(Object.keys(original).map(key => [key, { passed: true, evidence: 'test placeholder only' }]));
+ const r = run(values);
+ assert.equal(r.status, 0);
+ assert.match(r.stdout, /manual verification still required before release/);
+ assert.doesNotMatch(r.stdout, /PRODUCTION RELEASE APPROVED/);
+});
