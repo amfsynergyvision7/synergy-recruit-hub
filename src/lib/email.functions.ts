@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { sendEmail, textToHtml } from "./email.server";
+import { requireCrmRecordAccess } from "./security/record-access";
 
 // Which CrudModule tables can currently send email from their row actions
 // (Candidates, Clients — see emailField on those two route configs). Kept as
@@ -29,6 +29,7 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     // only blocks the LOG write, and by then a real email would already be
     // on its way to a real person. So the same admin/recruiter check is
     // enforced here too, before anything is sent.
+    await requireCrmRecordAccess(context.supabase, context.userId, data.relatedTable, data.relatedId);
     const { data: roles } = await context.supabase
       .from("user_roles")
       .select("role")
@@ -38,42 +39,9 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       throw new Error("Only an admin or recruiter can send email from the CRM.");
     }
 
-    // SEC-11 release gate: do not dispatch before a durable, idempotent
-    // authorization-checked outbox has been committed. This deliberately
-    // disables live CRM email until that integration is implemented and tested.
-    throw new Error("CRM email sending is temporarily disabled pending SEC-11 durable outbox verification.");
-
-    const result = await sendEmail({
-      to: data.toEmail,
-      subject: data.subject,
-      html: textToHtml(data.body),
-    });
-
-    // Log the attempt either way — a failed send (e.g. domain not verified
-    // yet) is exactly as useful to see in the record's correspondence history
-    // as a successful one, so nobody re-sends the same email twice thinking
-    // the first one silently vanished.
-    const { error: logError } = await context.supabase.from("email_log" as any).insert({
-      related_table: data.relatedTable,
-      related_id: data.relatedId,
-      to_email: data.toEmail,
-      subject: data.subject,
-      body: data.body,
-      status: result.success ? "sent" : "failed",
-      error: result.error ?? null,
-      provider_id: result.providerId ?? null,
-      sent_by: context.userId,
-    });
-    if (logError) {
-      // Don't mask a real send failure behind a logging failure, but do
-      // surface both if the send itself also failed.
-      console.error("[email_log] insert failed:", logError.message);
-    }
-
-    if (!result.success) {
-      throw new Error(result.error ?? "Email failed to send for an unknown reason.");
-    }
-    return { success: true };
+    // SEC-11: fail closed. No live SMTP dispatch until a durable,
+    // authorized and idempotent outbox worker is implemented and verified.
+    throw new Error("SEC-11: CRM email sending is disabled pending durable outbox verification.");
   });
 
 export const listEmailHistory = createServerFn({ method: "POST" })
@@ -82,6 +50,7 @@ export const listEmailHistory = createServerFn({ method: "POST" })
     z.object({ relatedTable: z.enum(EMAIL_RELATED_TABLES), relatedId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    await requireCrmRecordAccess(context.supabase, context.userId, data.relatedTable, data.relatedId);
     const { data: rows, error } = await context.supabase
       .from("email_log" as any)
       .select("*")
@@ -110,6 +79,7 @@ export const getEmailMergeContext = createServerFn({ method: "POST" })
     z.object({ relatedTable: z.enum(EMAIL_RELATED_TABLES), relatedId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }): Promise<EmailMergeContext> => {
+    await requireCrmRecordAccess(context.supabase, context.userId, data.relatedTable, data.relatedId);
     // Resolves a profile id to a human name, falling back to whoever is
     // actually composing this email when the record itself has no owner
     // set — so the signature is never blank just because a candidate or
