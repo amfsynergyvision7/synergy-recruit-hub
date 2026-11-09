@@ -68,3 +68,7 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/live-column-shaped-rls.integration.sql
       - name: Verify approval helpers and self-scoped RPC privilege boundary
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-authorization-helpers.integration.sql
+      - name: Compile and test actual review-only RLS draft in disposable PostgreSQL
+        run: |
+          node security/build2/generate-policy-proposal-disposable.mjs
+          psql -X -v ON_ERROR_STOP=1 -f /tmp/build2-policy-proposal-disposable.sql
