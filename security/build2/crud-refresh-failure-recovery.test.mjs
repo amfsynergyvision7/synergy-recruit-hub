@@ -11,6 +11,6 @@ test('CRM refresh always clears loading even when query rejects',()=>{
 });
 test('failed CRM refresh does not replace prior rows with empty data',()=>{
  assert.match(load,/if \(error\) \{[\s\S]*?toast\.error/);
- assert.match(load,/\} else \{\s*const freshRows = data \|\| \[\];\s*setRows\(freshRows\)/);
+ assert.match(load,/\} else \{\s*const freshRows = \(data \|\| \[\]\) as any\[\];\s*setRows\(freshRows\)/);
  assert.ok(load.indexOf('setRows(freshRows)')<load.indexOf('catch (cause)'));
 });
