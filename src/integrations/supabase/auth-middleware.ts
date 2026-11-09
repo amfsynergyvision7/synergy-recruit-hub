@@ -78,6 +78,18 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Response('Unauthorized: No user ID found in token', { status: 401 });
     }
 
+    // SEC-03: a valid JWT is not sufficient for CRM access.
+    // Query with the caller-bound client; fail closed on missing or inactive profiles.
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('status, is_active')
+      .eq('id', data.claims.sub)
+      .maybeSingle();
+
+    if (profileError || !profile || profile.status !== 'approved' || profile.is_active !== true) {
+      throw new Response('Forbidden: CRM account is not approved and active', { status: 403 });
+    }
+
     return next({
       context: {
         supabase,
