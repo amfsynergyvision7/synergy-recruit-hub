@@ -5,7 +5,7 @@ create table if not exists security_lab.sec11_outbox (
  id uuid primary key default gen_random_uuid(),
  related_table text not null check (related_table in ('synthetic_candidates','synthetic_clients')),
  related_id uuid not null,
- recipient text not null check (recipient ~* '^[^@ ]+@example\\.invalid$'),
+ recipient text not null check (recipient like '%@example.invalid' and length(recipient) > length('@example.invalid') and recipient not like '% %'),
  subject text not null check (length(subject) between 1 and 200),
  body text not null check (length(body) between 1 and 10000),
  requested_by uuid not null,
