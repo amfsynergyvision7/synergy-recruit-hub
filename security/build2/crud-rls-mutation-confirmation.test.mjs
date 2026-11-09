@@ -27,7 +27,8 @@ test('bulk CRUD verifies each bounded batch and stops on partial results',()=>{
  assert.match(helper,/\.in\("id", batch\)/);
  assert.match(helper,/query\.select\("id"\)/);
  assert.match(helper,/catch \(cause\)/);
- assert.match(helper,/return \{ confirmed, error: cause instanceof Error/);
+ assert.match(helper,/Request outcome unknown; the server may have committed this batch/);
+ assert.match(helper,/Inspect refreshed records before retrying/);
  assert.match(helper,/returnedSet\.size !== batch\.length/);
  assert.match(helper,/batch\.some\(\(id\) => !returnedSet\.has\(id\)\)/);
  for(const [name,part] of [['delete',del],['edit',edit]]){
