@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireCrmRecordAccess } from "./security/record-access";
+import { assertExternalAiApproved } from "./security/release-gates.mjs";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -8,17 +10,19 @@ import {
   generateCandidateAtsScore,
   restructureResumeForClient,
 } from "./ai.server";
-import { runResumeDriveImport } from "./drive-import.server";
 import { buildClientResumePdf, fetchLogoBuffer } from "./resume-pdf.server";
 
 export const matchCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
     // No extra role gate beyond "signed in and approved" (already enforced
     // by requireSupabaseAuth + the candidates/job_openings RLS policies
     // context.supabase reads through) — this is a read-only insight, not a
     // write, so anyone who can already see the pipeline can ask for a match.
+    await requireCrmRecordAccess(context.supabase, context.userId, "job_openings", data.jobId);
     return matchCandidatesToJob(context.supabase, data.jobId);
   });
 
@@ -32,6 +36,10 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
     z.object({ jobId: z.string().uuid(), candidateId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
+    await requireCrmRecordAccess(context.supabase, context.userId, "job_openings", data.jobId);
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return matchCandidateResume(context.supabase, data.jobId, data.candidateId);
   });
 
@@ -41,6 +49,9 @@ export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return generateResumeSummary(context.supabase, data.candidateId);
   });
 
@@ -52,6 +63,9 @@ export const generateCandidateAtsScoreFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     return generateCandidateAtsScore(context.supabase, data.candidateId);
   });
 
@@ -64,6 +78,9 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    // Reject before any CRM read, Drive fetch, PDF generation or external AI call.
+    assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
+    await requireCrmRecordAccess(context.supabase, context.userId, "candidates", data.candidateId);
     const { candidate, resume } = await restructureResumeForClient(context.supabase, data.candidateId);
 
     const { data: settings } = await context.supabase
@@ -95,5 +112,5 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
 export const checkDriveForNewResumes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    return runResumeDriveImport(context.supabase);
+    throw new Error("SEC-12: bulk Drive import is disabled until scoped authorization and audit verification are complete.");
   });
