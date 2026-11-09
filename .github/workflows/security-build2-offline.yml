@@ -76,3 +76,5 @@ jobs:
         run: |
           node security/build2/generate-extra-proposals-disposable.mjs
           psql -X -v ON_ERROR_STOP=1 -f /tmp/build2-extra-proposals-disposable.sql
+      - name: Verify three production-definition-shaped invoker views
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-view-definitions-shaped.integration.sql
