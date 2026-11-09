@@ -503,6 +503,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
     try {
       result = await confirmBulkBatches(ids, "delete");
+    } catch (cause) {
+      result = { confirmed: new Set<string>(), error: `Unexpected bulk delete failure; outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Request failed"}` };
     } finally {
       bulkMutationPending.current = false;
       setBulkDeleting(false);
@@ -543,6 +545,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
     try {
       result = await confirmBulkBatches(ids, "update", { [field.name]: v });
+    } catch (cause) {
+      result = { confirmed: new Set<string>(), error: `Unexpected bulk update failure; outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Request failed"}` };
     } finally {
       bulkMutationPending.current = false;
       setBulkEditSaving(false);
