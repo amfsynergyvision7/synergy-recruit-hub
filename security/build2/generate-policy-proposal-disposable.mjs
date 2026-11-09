@@ -9,6 +9,7 @@ const fixture=`\\set ON_ERROR_STOP on
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE anon NOLOGIN;
 CREATE SCHEMA auth;
+GRANT USAGE ON SCHEMA auth TO authenticated;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $fn$
  SELECT NULLIF(current_setting('build2.uid',true),'')::uuid
 $fn$;
