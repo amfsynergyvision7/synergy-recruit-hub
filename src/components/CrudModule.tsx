@@ -282,14 +282,20 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (form.client_uuid !== undefined) payload.client_id = form.client_uuid || null;
     if (form.job_uuid !== undefined) payload.job_id = form.job_uuid || null;
     if (editing) {
-      const { error } = await supabase.from(table as any).update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
+      const { data, error } = await supabase.from(table as any).update(payload).eq("id", editing.id).select("id").maybeSingle();
+      if (error || !data || data.id !== editing.id) {
+        if (!error) await load();
+        return toast.error(error?.message ?? "Update was not confirmed. Check permissions and refresh.");
+      }
       toast.success("Updated");
     } else {
       const { data: u } = await supabase.auth.getUser();
       if (u.user) payload.created_by = u.user.id;
-      const { error } = await supabase.from(table as any).insert(payload);
-      if (error) return toast.error(error.message);
+      const { data, error } = await supabase.from(table as any).insert(payload).select("id").maybeSingle();
+      if (error || !data?.id) {
+        if (!error) await load();
+        return toast.error(error?.message ?? "Creation was not confirmed. Refresh before retrying.");
+      }
       toast.success("Created");
     }
     setOpen(false); load();
@@ -297,8 +303,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const remove = async (row: any) => {
     if (!confirm("Delete this record?")) return;
-    const { error } = await supabase.from(table as any).delete().eq("id", row.id);
-    if (error) return toast.error(error.message);
+    const { data, error } = await supabase.from(table as any).delete().eq("id", row.id).select("id").maybeSingle();
+    if (error || !data || data.id !== row.id) {
+      await load();
+      return toast.error(error?.message ?? "Deletion was not confirmed. Check permissions.");
+    }
     toast.success("Deleted"); load();
   };
 
@@ -401,10 +410,15 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         : `Delete ${ids.length} selected record(s)? This cannot be undone.`;
     if (!confirm(warning)) return;
     setBulkDeleting(true);
-    const { error } = await supabase.from(table as any).delete().in("id", ids);
+    const { data, error } = await supabase.from(table as any).delete().in("id", ids).select("id");
     setBulkDeleting(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Deleted ${ids.length} record(s)`);
+    if (error) { await load(); return toast.error(error.message); }
+    const confirmed = new Set((data ?? []).map((row: { id: string }) => row.id));
+    if (confirmed.size !== ids.length || ids.some((id) => !confirmed.has(id))) {
+      await load();
+      return toast.error(`Deletion confirmed for ${confirmed.size} of ${ids.length} selected records. Review remaining records.`);
+    }
+    toast.success(`Deleted ${confirmed.size} record(s)`);
     setSelected(new Set());
     load();
   };
@@ -423,10 +437,15 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (v === "" || v === undefined) v = null;
     if (field.type === "number" && v !== null) v = Number(v);
     setBulkEditSaving(true);
-    const { error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids);
+    const { data, error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids).select("id");
     setBulkEditSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Updated ${field.label} for ${ids.length} record(s)`);
+    if (error) { await load(); return toast.error(error.message); }
+    const confirmed = new Set((data ?? []).map((row: { id: string }) => row.id));
+    if (confirmed.size !== ids.length || ids.some((id) => !confirmed.has(id))) {
+      await load();
+      return toast.error(`Update confirmed for ${confirmed.size} of ${ids.length} selected records. Review remaining records.`);
+    }
+    toast.success(`Updated ${field.label} for ${confirmed.size} record(s)`);
     setSelected(new Set());
     closeBulkEdit();
     load();
