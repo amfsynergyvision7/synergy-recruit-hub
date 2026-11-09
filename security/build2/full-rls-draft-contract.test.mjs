@@ -5,8 +5,8 @@ import {readFileSync} from 'node:fs';
 const sql=readFileSync(new URL('./full-rls-replacement-review-only.sql',import.meta.url),'utf8');
 const tables=['audit_logs','billing','candidate_activities','candidates','clients','google_integrations','integrations','interviews','job_openings','notifications','offers','profiles','submissions','sync_logs','user_roles'];
 function policy(name) {
-  const escaped=name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  const match=sql.match(new RegExp('CREATE\\s+POLICY\\s+'+escaped+'\\s+ON\\s+public\\.[a-z_]+[\\s\\S]*?;','i'));
+  assert.match(name,/^[a-z_]+$/,'Policy name must be a simple identifier');
+  const match=sql.match(new RegExp('CREATE\\s+POLICY\\s+'+name+'\\s+ON\\s+public\\.[a-z_]+[\\s\\S]*?;','i'));
   assert.ok(match,'Missing policy '+name);
   return match[0];
 }
