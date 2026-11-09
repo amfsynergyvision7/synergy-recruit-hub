@@ -27,3 +27,12 @@ test('send denied',()=>assert.equal(canRead({user:user('admin'),record,field:'ca
 test('operations missing assignment denied',()=>assert.equal(canRead({user:user('operations','ops1'),record:{...record,authorized_operations_user_id:undefined},field:'candidate_name'}),false));
 test('operations non-interview denied',()=>assert.equal(canRead({user:user('operations','ops1'),record:{...record,kind:'candidate'},field:'candidate_name'}),false));
 test('operations projection excludes sensitive fields',()=>{const p=projectAllowedFields({user:user('operations','ops1'),record});assert.equal(p.candidate_name,'Synthetic Candidate');for(const f of ['phone','email','resume','salary'])assert.equal(Object.hasOwn(p,f),false)});
+
+test('missing admin identity is denied',()=>assert.equal(canRead({user:user('admin',''),record,field:'candidate_name'}),false));
+test('blank recruiter identity is denied',()=>assert.equal(canRead({user:user('recruiter',' '),record,field:'candidate_name'}),false));
+test('non-interview admin record is denied',()=>assert.equal(canRead({user:user('admin'),record:{...record,kind:'candidate'},field:'candidate_name'}),false));
+test('non-interview recruiter record is denied',()=>assert.equal(canRead({user:user('recruiter','rec1'),record:{...record,kind:'candidate'},field:'candidate_name'}),false));
+test('missing record kind is denied',()=>assert.equal(canRead({user:user('admin'),record:{candidate_name:'Synthetic Candidate'},field:'candidate_name'}),false));
+test('suspended admin is denied',()=>assert.equal(canRead({user:user('admin','x','suspended'),record,field:'candidate_name'}),false));
+test('rejected recruiter is denied',()=>assert.equal(canRead({user:user('recruiter','rec1','rejected'),record,field:'candidate_name'}),false));
+test('admin projection excludes candidate contact details',()=>{const projection=projectAllowedFields({user:user('admin'),record});for(const f of ['phone','email','resume','salary'])assert.equal(Object.hasOwn(projection,f),false)});
