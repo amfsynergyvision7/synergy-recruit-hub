@@ -4,6 +4,7 @@ import {
   assertExternalAiApproved,
   assertSmtpApproved,
   assertMatchingSupabaseProject,
+  isExplicitlyApproved,
 } from "../src/lib/security/release-gates.mjs";
 
 test("SEC-12 AI processing is disabled by default and with ambiguous values", () => {
@@ -30,4 +31,23 @@ test("SEC-01 rejects wrong, malformed and deceptive Supabase hosts", () => {
     "",
   ]) assert.throws(() => assertMatchingSupabaseProject(url, project));
   assert.throws(() => assertMatchingSupabaseProject(`https://${project}.supabase.co`, undefined));
+});
+
+test("SEC-01 rejects production host in isolation and lookalike hostnames", () => {
+  const isolated = "dhlhlasnaapzckjyvffn";
+  for (const url of [
+    "https://wusntntcqgtpgokggdzv.supabase.co",
+    `https://evil-${isolated}.supabase.co`,
+    `https://${isolated}.supabase.co.evil.example`,
+    undefined,
+  ]) assert.throws(() => assertMatchingSupabaseProject(url, isolated), /SEC-01/);
+});
+
+test("SEC-11 and SEC-12 require literal string approval", () => {
+  for (const value of [null, true, 1, "True", "yes", "on", " true", "true\\n"]) {
+    assert.equal(isExplicitlyApproved(value), false);
+    assert.throws(() => assertExternalAiApproved(value), /SEC-12/);
+    assert.throws(() => assertSmtpApproved(value), /SEC-11/);
+  }
+  assert.equal(isExplicitlyApproved("true"), true);
 });
