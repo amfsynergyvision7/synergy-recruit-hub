@@ -420,7 +420,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         if (response.error) return { confirmed, error: response.error.message };
         data = response.data as unknown as { id: string }[] | null;
       } catch (cause) {
-        return { confirmed, error: cause instanceof Error ? cause.message : "Network request failed" };
+        return { confirmed, error: `Request outcome unknown; the server may have committed this batch. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}` };
       }
       const returned = ((data ?? []) as unknown as { id: string }[]).map((row) => row.id);
       const returnedSet = new Set(returned);
