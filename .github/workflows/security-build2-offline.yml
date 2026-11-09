@@ -86,3 +86,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-rollback-rehearsal.integration.sql
       - name: Reject privileged workflow updates to sensitive fields
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-workflow-field-allowlist.integration.sql
+      - name: Test candidate stage-history row isolation and direct write denial
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-history-isolation.integration.sql
