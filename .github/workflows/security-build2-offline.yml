@@ -94,3 +94,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-transition-chain.integration.sql
       - name: Contrast swallowed stage automation failures with fail-closed rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-automation-failure.integration.sql
+      - name: Rehearse duplicate candidate defaults triggers and safe single-trigger behavior
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-duplicate-defaults-trigger.integration.sql
