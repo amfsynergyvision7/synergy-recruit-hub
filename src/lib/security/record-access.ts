@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function requireCrmRecordAccess(
   supabase: SupabaseClient<any>,
   userId: string,
-  table: "candidates" | "job_openings",
+  table: "candidates" | "job_openings" | "clients",
   recordId: string,
 ): Promise<void> {
   const { data: profile, error: profileError } = await supabase
