@@ -28,6 +28,21 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Response(message, { status: 500 });
     }
     
+    // SEC-01 defense in depth: never use a mismatched Supabase endpoint.
+    // The isolated Preview has a branch-scoped project ID and URL.
+    const expectedProject = process.env.VITE_SUPABASE_PROJECT_ID;
+    if (expectedProject) {
+      let host: string;
+      try {
+        host = new URL(SUPABASE_URL).hostname;
+      } catch {
+        throw new Response('Invalid Supabase endpoint', { status: 500 });
+      }
+      if (host !== `${expectedProject}.supabase.co`) {
+        throw new Response('Supabase project mismatch', { status: 500 });
+      }
+    }
+
     const request = getRequest();
 
     if (!request?.headers) {
