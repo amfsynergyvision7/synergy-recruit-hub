@@ -43,6 +43,10 @@ jobs:
       - name: Repository-wide ESLint baseline (non-blocking until backlog triaged)
         continue-on-error: true
         run: npm run lint
+      - name: Generate TanStack route types via Vite build
+        run: npm run build
+        env:
+          VITE_ENABLE_BD_DEMO: 'false'
       - name: TypeScript
         run: npx tsc --noEmit
 
