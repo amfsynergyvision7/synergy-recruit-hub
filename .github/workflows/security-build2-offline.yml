@@ -62,3 +62,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-view-rls.integration.sql
       - name: Verify synthetic RPC PUBLIC privilege revocation
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-rpc-grants.integration.sql
+      - name: Verify recruiter aggregate isolation and finance view denial
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-aggregate-view.integration.sql
