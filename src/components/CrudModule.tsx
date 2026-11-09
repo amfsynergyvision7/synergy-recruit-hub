@@ -143,6 +143,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [loading, setLoading] = useState(false);
   // Ignore superseded refreshes so slow responses cannot overwrite newer data.
   const refreshSequence = useRef(0);
+  const relationSequence = useRef(0);
   // Guard against duplicate submissions while a single-record mutation is pending.
   const singleMutationPending = useRef(false);
   const bulkMutationPending = useRef(false);
@@ -226,12 +227,20 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const loadRelations = async () => {
+    const sequence = ++relationSequence.current;
     const relationFields = fields.filter((f) => f.relation);
-    const entries = await Promise.all(relationFields.map(async (f) => {
-      const { data } = await supabase.from(f.relation!.table as any).select(f.relation!.select ?? "*").limit(500);
-      return [f.name, data ?? []] as const;
-    }));
-    setRelationOptions(Object.fromEntries(entries));
+    try {
+      const entries = await Promise.all(relationFields.map(async (f) => {
+        const { data, error } = await supabase.from(f.relation!.table as any).select(f.relation!.select ?? "*").limit(500);
+        if (error) throw error;
+        return [f.name, data ?? []] as const;
+      }));
+      if (sequence === relationSequence.current) setRelationOptions(Object.fromEntries(entries));
+    } catch (cause) {
+      if (sequence === relationSequence.current) {
+        toast.error(`Could not refresh related options. Check your connection and permissions. ${cause instanceof Error ? cause.message : ""}`);
+      }
+    }
   };
 
   useEffect(() => {
@@ -241,7 +250,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     loadRelations();
     const ch = supabase.channel(`rt-${table}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, load).subscribe();
-    return () => { refreshSequence.current++; supabase.removeChannel(ch); };
+    return () => { refreshSequence.current++; relationSequence.current++; supabase.removeChannel(ch); };
   }, [table]);
 
   const handleFieldChange = async (name: string, value: any) => {
