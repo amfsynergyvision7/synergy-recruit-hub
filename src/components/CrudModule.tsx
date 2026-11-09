@@ -157,7 +157,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [bulkEditSaving, setBulkEditSaving] = useState(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
-  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
+  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm && !(table === "candidates" && f.name === "assigned_recruiter" && role !== "admin")), [fields, table, role]);
   // What "select some rows, then change one field on all of them at once"
   // (e.g. filter Candidates down to one recruiter's list, select the batch,
   // reassign every one to a different recruiter in a single action) is
@@ -276,12 +276,16 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       let v = form[f.name];
       if (v === "" || v === undefined) v = null;
       if (f.type === "number" && v !== null) v = Number(v);
-      payload[f.name] = v;
+      // UPDATE only fields that changed; full-row writes can require restricted
+      // column privileges (e.g. assigned_recruiter) even when unchanged.
+      const oldValue = editing?.[f.name] ?? null;
+      if (!editing || String(oldValue) !== String(v)) payload[f.name] = v;
     });
-    if (form.candidate_uuid) payload.candidate_id = form.candidate_uuid;
-    if (form.client_uuid !== undefined) payload.client_id = form.client_uuid || null;
-    if (form.job_uuid !== undefined) payload.job_id = form.job_uuid || null;
+    if (form.candidate_uuid && (!editing || form.candidate_uuid !== editing.candidate_uuid)) payload.candidate_id = form.candidate_uuid;
+    if (form.client_uuid !== undefined && (!editing || (form.client_uuid || null) !== (editing.client_uuid ?? null))) payload.client_id = form.client_uuid || null;
+    if (form.job_uuid !== undefined && (!editing || (form.job_uuid || null) !== (editing.job_uuid ?? null))) payload.job_id = form.job_uuid || null;
     if (editing) {
+      if (Object.keys(payload).length === 0) { setOpen(false); return; }
       const { data, error } = await supabase.from(table as any).update(payload).eq("id", editing.id).select("id").maybeSingle();
       if (error || !data || (data as unknown as { id: string }).id !== editing.id) {
         if (!error) await load();
