@@ -12,11 +12,11 @@ test('single CRUD mutations verify returned IDs and reject zero-row success',()=
  const save=segment('const save = async () =>','const remove = async');
  const remove=segment('const remove = async','// Filtering used');
  assert.match(save,/\.update\(payload\)\.eq\("id", editing\.id\)\.select\("id"\)\.maybeSingle\(\)/);
- assert.match(save,/!data \|\| data\.id !== editing\.id/);
+ assert.match(save,/!data \|\| \(data as unknown as \{ id: string \}\)\.id !== editing\.id/);
  assert.match(save,/\.insert\(payload\)\.select\("id"\)\.maybeSingle\(\)/);
- assert.match(save,/!data\?\.id/);
+ assert.match(save,/id\?: string/);
  assert.match(remove,/\.delete\(\)\.eq\("id", row\.id\)\.select\("id"\)\.maybeSingle\(\)/);
- assert.match(remove,/!data \|\| data\.id !== row\.id/);
+ assert.match(remove,/!data \|\| \(data as unknown as \{ id: string \}\)\.id !== row\.id/);
 });
 test('bulk CRUD confirms exact affected ID set, flags partial outcomes and reloads',()=>{
  const del=segment('const bulkDelete = async','const closeBulkEdit');
