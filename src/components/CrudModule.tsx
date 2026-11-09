@@ -353,7 +353,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (form.candidate_uuid && (!editing || form.candidate_uuid !== editing.candidate_uuid)) payload.candidate_id = form.candidate_uuid;
     if (form.client_uuid !== undefined && (!editing || (form.client_uuid || null) !== (editing.client_uuid ?? null))) payload.client_id = form.client_uuid || null;
     if (form.job_uuid !== undefined && (!editing || (form.job_uuid || null) !== (editing.job_uuid ?? null))) payload.job_id = form.job_uuid || null;
-    if (singleMutationPending.current) return;
+    if (singleMutationPending.current || bulkMutationPending.current) return;
     singleMutationPending.current = true;
     try {
     if (editing) {
@@ -385,7 +385,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const remove = async (row: any) => {
-    if (singleMutationPending.current) return;
+    if (singleMutationPending.current || bulkMutationPending.current) return;
     if (!confirm("Delete this record?")) return;
     singleMutationPending.current = true;
     try {
@@ -479,6 +479,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const someSelected = !allSelected && filteredIds.some((id) => selected.has(id));
 
   const toggleAll = (checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       filteredIds.forEach((id) => (checked ? next.add(id) : next.delete(id)));
@@ -487,6 +488,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const toggleRow = (id: string, checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       checked ? next.add(id) : next.delete(id);
@@ -523,7 +525,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const bulkDelete = async () => {
-    if (bulkMutationPending.current) return;
+    if (bulkMutationPending.current || singleMutationPending.current) return;
     const ids = Array.from(selected);
     if (!ids.length) return;
     const warning =
@@ -560,7 +562,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const applyBulkEdit = async () => {
-    if (bulkMutationPending.current) return;
+    if (bulkMutationPending.current || singleMutationPending.current) return;
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
