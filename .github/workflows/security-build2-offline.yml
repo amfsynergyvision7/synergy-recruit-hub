@@ -96,3 +96,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-stage-automation-failure.integration.sql
       - name: Rehearse duplicate candidate defaults triggers and safe single-trigger behavior
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-duplicate-defaults-trigger.integration.sql
+      - name: Verify SECURITY DEFINER search-path hardening boundary
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-definer-search-path.integration.sql
