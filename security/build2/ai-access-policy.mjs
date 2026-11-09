@@ -7,7 +7,7 @@ export const fieldsByRole = Object.freeze({
 });
 export function canRead({user,record,field,action='read'}) {
   if (action !== 'read' || !user || !record) return false;
-  if (user.status !== 'approved' || user.is_active !== true) return false;
+  // Reference model is limited to verified interview records. Do not authorize\n  // other entities, missing identities or client-supplied operation scopes.\n  if (typeof user.id !== 'string' || !user.id.trim() || record.kind !== 'interview') return false;\n  if (user.status !== 'approved' || user.is_active !== true) return false;
   if (!permittedRoles.has(user.role) || !fieldsByRole[user.role].has(field)) return false;
   if (user.role === 'admin') return true; // admin operational scope only
   if (user.role === 'recruiter') return Boolean(user.id && record.assigned_recruiter === user.id);
