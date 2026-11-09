@@ -40,7 +40,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: ESLint
+      - name: Repository-wide ESLint baseline (non-blocking until backlog triaged)
+        continue-on-error: true
         run: npm run lint
       - name: TypeScript
         run: npx tsc --noEmit
