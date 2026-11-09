@@ -81,6 +81,7 @@ export async function sendEmail(opts: {
   // (easy to introduce when copy-pasting into Vercel's env var UI) is
   // invisible in the dashboard but turns an otherwise-correct address into
   // something the SMTP server's strict parser rejects.
+  throw new Error('SEC-11: SMTP transport remains disabled pending separate management authorization and durable outbox verification.');
   assertSmtpApproved(process.env.CRM_SMTP_DISPATCH_APPROVED);
   const user = process.env.SMTP_USER?.trim();
   const pass = process.env.SMTP_PASSWORD?.trim();
