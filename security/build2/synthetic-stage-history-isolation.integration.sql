@@ -1,5 +1,6 @@
 -- Disposable-only candidate stage-history least privilege design test.
 -- Uses exact seven live column names and data types; not live schema or policy.
+CREATE FUNCTION public.build2_stage_uid() RETURNS uuid LANGUAGE sql STABLE AS $fn$ SELECT NULLIF(current_setting('build2_stage.uid',true),'')::uuid $fn$;
 CREATE TABLE public.build2_stage_candidates (
  id uuid PRIMARY KEY, assigned_recruiter uuid NOT NULL
 );
@@ -21,16 +22,16 @@ CREATE TABLE public.build2_auth_profiles (id uuid PRIMARY KEY,status text,is_act
 ALTER TABLE public.build2_auth_profiles ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON public.build2_auth_profiles TO authenticated;
 CREATE POLICY build2_auth_self ON public.build2_auth_profiles
- FOR SELECT TO authenticated USING (id=auth.uid());
+ FOR SELECT TO authenticated USING (id=public.build2_stage_uid());
 INSERT INTO public.build2_auth_profiles VALUES
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved',true),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','approved',true),
  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','approved',false);
 CREATE POLICY build2_stage_candidate_select ON public.build2_stage_candidates
  FOR SELECT TO authenticated USING (
- assigned_recruiter=auth.uid() AND EXISTS (
+ assigned_recruiter=public.build2_stage_uid() AND EXISTS (
  SELECT 1 FROM public.build2_auth_profiles p
- WHERE p.id=auth.uid() AND p.status='approved' AND p.is_active=true
+ WHERE p.id=public.build2_stage_uid() AND p.status='approved' AND p.is_active=true
  )
  );
 CREATE POLICY build2_stage_history_select ON public.build2_stage_history
@@ -49,25 +50,25 @@ INSERT INTO public.build2_stage_history(id,candidate_id,new_stage) VALUES
  ('44444444-4444-4444-8444-444444444444','22222222-2222-4222-8222-222222222222','interview'),
  ('55555555-5555-4555-8555-555555555555',NULL,'unknown');
 SET ROLE authenticated;
-SET test.uid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+SET build2_stage.uid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 DO $check$
 BEGIN
  IF (SELECT count(*) FROM public.build2_stage_history)<>1 THEN
  RAISE EXCEPTION 'recruiter A history isolation failed'; END IF;
 END $check$;
-SET test.uid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+SET build2_stage.uid='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 DO $check$
 BEGIN
  IF (SELECT count(*) FROM public.build2_stage_history)<>1 THEN
  RAISE EXCEPTION 'recruiter B history isolation failed'; END IF;
 END $check$;
-SET test.uid='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+SET build2_stage.uid='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 DO $check$
 BEGIN
  IF EXISTS (SELECT 1 FROM public.build2_stage_history) THEN
  RAISE EXCEPTION 'inactive profile can read stage history'; END IF;
 END $check$;
-SET test.uid='';
+SET build2_stage.uid='';
 DO $check$
 BEGIN
  IF EXISTS (SELECT 1 FROM public.build2_stage_history) THEN
