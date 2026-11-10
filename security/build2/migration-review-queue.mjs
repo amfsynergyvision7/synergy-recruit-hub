@@ -8,17 +8,16 @@ const groups=[
  ['integration_schema_and_policy','20260513120653_866325d2-3efd-4d67-be04-266cfec6243d.sql','20260513123320_d90ef98e-0058-4f43-ac42-0f6df8815fb6.sql'],
  ['extension_dependencies','20260513101842_cb1bc9ab-e5f4-4b42-b09a-60588844ca6c.sql'],
  ['activity_and_privilege','20260517054652_a336ca88-33cd-4bcd-8117-8af35eb851db.sql'],
- ['branding_auth_storage','20260927120000_app_settings_branding.sql'],
  ['notifications_and_email','20260929060000_reminder_automation.sql'],
  ['configurable_workflows','20260930060000_workflow_rules.sql']
 ];
 export function migrationReviewQueue(directory){
  const triage=bulkMigrationTriage(directory);
- if(triage.total!==26||triage.subset_candidates!==15||triage.remaining!==11)throw Error('Inventory drift: manual queue must be reviewed');
+ if(triage.total!==26||triage.subset_candidates!==16||triage.remaining!==10)throw Error('Inventory drift: manual queue must be reviewed');
  const blocked=triage.items.filter(x=>!x.subset_rehearsed);
  const expected=new Set(blocked.map(x=>x.file));
  const assigned=groups.flatMap(([, ...files])=>files);
- if(assigned.length!==11||new Set(assigned).size!==11||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
+ if(assigned.length!==10||new Set(assigned).size!==10||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
  const batches=groups.map(([name,...files])=>({
   name,files:files.map(file=>{
    const item=blocked.find(x=>x.file===file);
@@ -26,7 +25,7 @@ export function migrationReviewQueue(directory){
   }),status:'BLOCKED_PENDING_DEPENDENCY_AND_SECURITY_REVIEW',
   requirements:['approved synthetic dependency fixtures','individual source-guard review','transactional rollback and idempotence tests','explicit allowlist change review']
  }));
- return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:15,blocked:11,batch_count:batches.length,
+ return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:16,blocked:10,batch_count:batches.length,
   unattended_sql_execution_authorized:false,production_release:'HOLD',batches};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
