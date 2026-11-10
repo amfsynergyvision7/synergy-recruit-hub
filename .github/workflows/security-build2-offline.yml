@@ -7,6 +7,7 @@ on:
       - 'src/components/CandidateBoard.tsx'
       - 'src/routes/_app.candidates.tsx'
       - '.github/workflows/security-build2-offline.yml'
+      - '.github/workflows/step35e-security-gates.yml'
   pull_request:
     paths:
       - 'security/build2/**'
@@ -14,6 +15,7 @@ on:
       - 'src/components/CandidateBoard.tsx'
       - 'src/routes/_app.candidates.tsx'
       - '.github/workflows/security-build2-offline.yml'
+      - '.github/workflows/step35e-security-gates.yml'
 permissions:
   contents: read
 jobs:
