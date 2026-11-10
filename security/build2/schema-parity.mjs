@@ -11,6 +11,11 @@ const keyFields={
  policies:['schemaname','tablename','policyname'],triggers:['table_name','trigger_name'],
  grants:['schema_name','object_name','role_name']
 };
+function canonical(value){
+ if(Array.isArray(value))return value.map(canonical);
+ if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));
+ return value;
+}
 export function compareSnapshots(expected,actual){
  const findings=[];
  for(const section of SECTIONS){
@@ -26,7 +31,7 @@ export function compareSnapshots(expected,actual){
     if(keys.some(k=>typeof row[k]!=='string'||(!row[k]&&!(section==='functions'&&k==='arguments')))){findings.push({section,type:'invalid_key',side});continue;}
     const key=keys.map(k=>row[k]).join('::');
     if(map.has(key))findings.push({section,type:'duplicate_key',side,key});
-    map.set(key,JSON.stringify(Object.fromEntries(Object.entries(row).sort(([a],[b])=>a.localeCompare(b)))));
+    map.set(key,JSON.stringify(canonical(row)));
    }
    return map;
   };
