@@ -1,4 +1,4 @@
-// Fail-closed allowlist for the three disposable replay migrations. No SQL execution.
+// Fail-closed allowlist for the five disposable replay migrations. No SQL execution.
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -18,9 +18,9 @@ export function validateSafeColumnMigrations(directory){
   const statements=stripped.split(';').map(x=>x.trim()).filter(Boolean);
   const found=[];
   for(const statement of statements){
-   const match=/^ALTER\s+TABLE\s+public\.(candidates|job_openings)\s+ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+([a-z_]+)\s+(TEXT|INTEGER|JSONB|TIMESTAMPTZ)$/i.exec(statement);
+   const match=/^ALTER\s+TABLE\s+public\.(candidates|job_openings|app_settings)\s+ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+([a-z_]+)\s+(TEXT|INTEGER|JSONB|TIMESTAMPTZ)(?:\s+NOT\s+NULL\s+DEFAULT\s+'neon')?$/i.exec(statement);
    if(!match){issues.push(file+':non_allowlisted_statement');continue;}
-   if(match[2].toLowerCase()==='default_color_theme'&&!/NOT\\s+NULL\\s+DEFAULT\\s+'neon'$/i.test(statement))issues.push(file+':theme_default_changed');
+   if(match[2].toLowerCase()==='default_color_theme'&&!/NOT\s+NULL\s+DEFAULT\s+'neon'$/i.test(statement))issues.push(file+':theme_default_changed');
    found.push(match[1].toLowerCase()+'.'+match[2].toLowerCase()+':'+match[3].toLowerCase());
   }
   if(JSON.stringify(found)!==JSON.stringify(expected))issues.push(file+':column_contract_mismatch');
