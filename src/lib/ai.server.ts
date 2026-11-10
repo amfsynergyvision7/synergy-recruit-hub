@@ -64,7 +64,7 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
     throw new Error("Gemini returned no recognizable output; raw response suppressed.");
   }
   try {
-    return JSON.parse(outputText) as T;
+    return JSON.parse(outputText ?? "") as T;
   } catch {
     throw new Error("Gemini returned invalid JSON; provider output suppressed to protect candidate data.");
   }
