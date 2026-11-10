@@ -9,7 +9,7 @@ test('all 3 blocked original migrations are assigned exactly once to three revie
  assert.equal(q.batch_count,3);
  const files=q.batches.flatMap(x=>x.files);
  assert.equal(files.length,3);
- assert.equal(new Set(files.map(x=>x.file)).size,6);
+ assert.equal(new Set(files.map(x=>x.file)).size,3);
  assert.ok(files.every(x=>x.original_sql_execution_authorized===false));
  assert.equal(q.production_release,'HOLD');
 });
