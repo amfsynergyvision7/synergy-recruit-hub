@@ -45,13 +45,31 @@ SELECT jsonb_build_object(
   JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
   WHERE n.nspname='public' AND NOT t.tgisinternal) x),'[]'::jsonb),
  'grants',COALESCE((SELECT jsonb_agg(to_jsonb(x) ORDER BY x.schema_name,x.object_name,x.role_name) FROM (
-  SELECT n.nspname AS schema_name,c.relname AS object_name,api.role_name,
+  SELECT n.nspname AS schema_name,'relation:'||c.relname AS object_name,api.role_name,
+  'relation' AS object_type,
   has_table_privilege(api.role_name,c.oid,'SELECT') AS can_select,
   has_table_privilege(api.role_name,c.oid,'INSERT') AS can_insert,
   has_table_privilege(api.role_name,c.oid,'UPDATE') AS can_update,
-  has_table_privilege(api.role_name,c.oid,'DELETE') AS can_delete
+  has_table_privilege(api.role_name,c.oid,'DELETE') AS can_delete,
+  NULL::boolean AS can_execute, NULL::boolean AS can_usage
   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-  CROSS JOIN (VALUES ('anon'),('authenticated')) AS api(role_name)
+  CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS api(role_name)
   WHERE n.nspname='public' AND c.relkind IN ('r','p','v')
-  AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api.role_name)) x),'[]'::jsonb)
+  AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api.role_name)
+  UNION ALL
+  SELECT n.nspname AS schema_name,'function:'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' AS object_name,
+  api.role_name,'function' AS object_type,
+  NULL::boolean,NULL::boolean,NULL::boolean,NULL::boolean,
+  has_function_privilege(api.role_name,p.oid,'EXECUTE') AS can_execute,NULL::boolean AS can_usage
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+  CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS api(role_name)
+  WHERE n.nspname='public' AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api.role_name)
+  UNION ALL
+  SELECT n.nspname AS schema_name,'schema:'||n.nspname AS object_name,api.role_name,
+  'schema' AS object_type,
+  NULL::boolean,NULL::boolean,NULL::boolean,NULL::boolean,NULL::boolean,
+  has_schema_privilege(api.role_name,n.oid,'USAGE') AS can_usage
+  FROM pg_namespace n CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS api(role_name)
+  WHERE n.nspname='public' AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api.role_name)
+ ) x),'[]'::jsonb)
 ) AS metadata_snapshot;
