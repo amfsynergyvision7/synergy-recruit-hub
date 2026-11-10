@@ -26,3 +26,8 @@ test('19-table scope includes all four additional sensitive tables',()=>{
 test('read-only metadata recipe can enumerate complete current scope without business rows',()=>{
  for(const expression of ['pg_policies','pg_get_viewdef','pg_get_function_identity_arguments','pg_get_functiondef','has_table_privilege','pg_attribute','pg_constraint'])assert.ok(metadata.includes(expression),expression);
 });
+
+test('schema parity inventory covers indexes, foreign keys and ordered trigger definitions',()=>{
+ for(const expression of ['pg_index','pg_get_indexdef','ix.indisunique','ix.indpred','con.contype=\'f\'','con.confrelid','pg_get_triggerdef','t.tgenabled'])
+   assert.ok(metadata.includes(expression),expression);
+});
