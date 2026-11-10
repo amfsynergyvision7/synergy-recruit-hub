@@ -277,7 +277,7 @@ jobs:
           # A raw pg_dump schema hash is not stable across restored databases:
           # dump headers and database-local metadata can differ without schema drift.
           # Compare deterministic catalog definitions instead.
-          fingerprint_query="SELECT md5(string_agg(kind || ':' || name || ':' || definition, E'\\n' ORDER BY kind,name,definition)) FROM (
+          fingerprint_query="SELECT md5(string_agg(kind || ':' || name || ':' || definition, E'\n' ORDER BY kind,name,definition)) FROM (
             SELECT 'view' kind, c.relname name, pg_get_viewdef(c.oid,true) definition
             FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v'
             UNION ALL
@@ -323,7 +323,7 @@ jobs:
         shell: bash
         run: |
           if [ -f build2-batch-report.json ]; then
-            node --input-type=module -e "import {readFileSync,appendFileSync} from 'node:fs'; const r=JSON.parse(readFileSync('build2-batch-report.json','utf8')); const lines=['## AMF Build 2 — '+r.status,'','- Verification: '+r.verification,'- Original migrations verified in this run: '+r.ci_verified_replays+'/26','- Remaining dependency review: '+r.remaining_manual_dependency_review+'/26','- Authorization scenarios executed: 0/140','- Release gates passed: 0/9','- No production equivalence or release approval'];appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join('\\n')+'\\n');"
+            node --input-type=module -e "import {readFileSync,appendFileSync} from 'node:fs'; const r=JSON.parse(readFileSync('build2-batch-report.json','utf8')); const lines=['## AMF Build 2 — '+r.status,'','- Verification: '+r.verification,'- Original migrations verified in this run: '+r.ci_verified_replays+'/26','- Remaining dependency review: '+r.remaining_manual_dependency_review+'/26','- Authorization scenarios executed: 0/140','- Release gates passed: 0/9','- No production equivalence or release approval'];appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join('\n')+'\n');"
           else
             echo '## AMF Build 2 — report missing; HOLD and NOT VERIFIED' >> "$GITHUB_STEP_SUMMARY"
           fi
