@@ -1,5 +1,6 @@
 name: Security Build 2 offline checks
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'security/build2/**'
@@ -44,6 +45,9 @@ on:
       - 'tests/bd-*.test.mjs'
 permissions:
   contents: read
+concurrency:
+  group: build2-disposable-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   application-typescript-check:
     runs-on: ubuntu-latest
@@ -293,3 +297,32 @@ jobs:
           test "$original_schema" = "$restored_schema"
           echo "PASS: disposable synthetic restore preserves relation counts and deterministic view, function, policy and trigger definitions."
           rm -f /tmp/build2-synthetic-backup.dump
+
+  consolidated-batch-report:
+    name: Consolidated disposable migration report (HOLD)
+    if: ${{ always() && github.ref == 'refs/heads/security/build2-step35e-main-delta-draft-20261110' }}
+    needs: [application-typescript-check, offline-security-tests, isolated-postgres-view-rls]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate consolidated 26-file report and fail closed on any failed prerequisite
+        env:
+          BUILD2_APP_RESULT: ${{ needs.application-typescript-check.result }}
+          BUILD2_OFFLINE_RESULT: ${{ needs.offline-security-tests.result }}
+          BUILD2_PG_RESULT: ${{ needs.isolated-postgres-view-rls.result }}
+        run: |
+          node security/build2/batch-ci-report.mjs supabase/migrations security/build2/release-evidence.json build2-batch-report.json
+      - name: Upload report even when prerequisite tests fail
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build2-disposable-batch-report
+          path: build2-batch-report.json
+          if-no-files-found: warn
+          retention-days: 30
