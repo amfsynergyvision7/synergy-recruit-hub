@@ -38,6 +38,10 @@ on:
       - 'src/integrations/supabase/**'
       - 'package.json'
       - 'scripts/vercel-build.mjs'
+      - 'src/routes/_app.bd.tsx'
+      - 'src/lib/bd-demo-model.ts'
+      - 'src/components/AppSidebar.tsx'
+      - 'tests/bd-*.test.mjs'
 permissions:
   contents: read
 jobs:
