@@ -119,6 +119,10 @@ jobs:
       PGDATABASE: build2_synthetic
     steps:
       - uses: actions/checkout@v4
+      - name: Fail closed unless connected to exact disposable PostgreSQL service
+        run: |
+          node security/build2/assert-disposable-db-target.mjs
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -c 'select current_database()')" = "build2_synthetic"
       - name: Verify pinned synthetic replay contract before PostgreSQL execution
         run: node security/build2/migration-replay-contract-guard.mjs security/build2/disposable-replay-contract.json supabase/migrations
       - name: Reject non-allowlisted SQL before real migration subset replay
