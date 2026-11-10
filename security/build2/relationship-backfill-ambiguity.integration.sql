@@ -61,7 +61,7 @@ INSERT INTO synthetic_offers VALUES
  ('00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000001',NULL,'joined');
 INSERT INTO synthetic_billing VALUES
  ('00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000001',NULL);
-DO $
+DO $$
 BEGIN
  IF (SELECT count(*) FROM synthetic_offers o JOIN synthetic_selected_interviews i
  ON o.candidate_id=i.candidate_id AND i.status='selected'
@@ -70,7 +70,7 @@ BEGIN
  IF (SELECT count(*) FROM synthetic_billing b JOIN synthetic_offers o
  ON b.candidate_id=o.candidate_id AND o.joining_status='joined')<>2
  THEN RAISE EXCEPTION 'Expected joined-offer ambiguity'; END IF;
-END $;
+END $$;
 UPDATE synthetic_offers o SET interview_uuid=i.id
 FROM synthetic_selected_interviews i
 WHERE o.candidate_id=i.candidate_id AND i.status='selected'
@@ -81,12 +81,12 @@ FROM synthetic_offers o
 WHERE b.candidate_id=o.candidate_id AND o.joining_status='joined'
 AND 1=(SELECT count(*) FROM synthetic_offers x
  WHERE x.candidate_id=b.candidate_id AND x.joining_status='joined');
-DO $
+DO $$
 BEGIN
  IF EXISTS(SELECT 1 FROM synthetic_offers WHERE interview_uuid IS NOT NULL)
  OR EXISTS(SELECT 1 FROM synthetic_billing WHERE offer_uuid IS NOT NULL)
  THEN RAISE EXCEPTION 'Ambiguous offer or billing relationship assigned'; END IF;
-END $;
+END $$;
 DELETE FROM synthetic_selected_interviews WHERE id='00000000-0000-0000-0000-000000000032';
 DELETE FROM synthetic_offers WHERE id='00000000-0000-0000-0000-000000000042';
 UPDATE synthetic_offers o SET interview_uuid=i.id
@@ -99,12 +99,12 @@ FROM synthetic_offers o
 WHERE b.candidate_id=o.candidate_id AND o.joining_status='joined'
 AND 1=(SELECT count(*) FROM synthetic_offers x
  WHERE x.candidate_id=b.candidate_id AND x.joining_status='joined');
-DO $
+DO $$
 BEGIN
  IF (SELECT interview_uuid FROM synthetic_offers LIMIT 1)<>'00000000-0000-0000-0000-000000000031'::uuid
  OR (SELECT offer_uuid FROM synthetic_billing LIMIT 1)<>'00000000-0000-0000-0000-000000000041'::uuid
  THEN RAISE EXCEPTION 'Unique offer or billing link not assigned'; END IF;
-END $;
+END $$;
 
 ROLLBACK;
 SELECT 'PASS: synthetic ambiguous-match rejection and unique-match acceptance rolled back' AS result;
