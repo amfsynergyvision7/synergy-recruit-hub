@@ -7,18 +7,18 @@ const groups=[
  ['trigger_replacement','20260513091732_dfcdf0fd-5601-45aa-acf1-1779827843cc.sql','20260513105209_62552999-3585-4ac5-a790-c2b991eafaa5.sql'],
  ['integration_schema_and_policy','20260513101524_83dbcbcf-1eb1-4042-9ec1-3b53fcba7372.sql','20260513113833_08d7691f-5369-48f1-8027-8c46de7b49ae.sql','20260513120653_866325d2-3efd-4d67-be04-266cfec6243d.sql','20260513123320_d90ef98e-0058-4f43-ac42-0f6df8815fb6.sql'],
  ['extension_dependencies','20260513101842_cb1bc9ab-e5f4-4b42-b09a-60588844ca6c.sql'],
- ['activity_and_privilege','20260517054652_a336ca88-33cd-4bcd-8117-8af35eb851db.sql','20260517055116_3d1873db-f213-4a74-ae5e-7ea60e86a001.sql','20260517055343_d3ca28ec-df58-4b32-ba79-cdc2aedc2157.sql'],
+ ['activity_and_privilege','20260517054652_a336ca88-33cd-4bcd-8117-8af35eb851db.sql'],
  ['branding_auth_storage','20260927120000_app_settings_branding.sql'],
  ['notifications_and_email','20260929060000_reminder_automation.sql','20260929070000_email_log.sql'],
  ['configurable_workflows','20260930060000_workflow_rules.sql']
 ];
 export function migrationReviewQueue(directory){
  const triage=bulkMigrationTriage(directory);
- if(triage.total!==26||triage.subset_candidates!==10||triage.remaining!==16)throw Error('Inventory drift: manual queue must be reviewed');
+ if(triage.total!==26||triage.subset_candidates!==12||triage.remaining!==14)throw Error('Inventory drift: manual queue must be reviewed');
  const blocked=triage.items.filter(x=>!x.subset_rehearsed);
  const expected=new Set(blocked.map(x=>x.file));
  const assigned=groups.flatMap(([, ...files])=>files);
- if(assigned.length!==16||new Set(assigned).size!==16||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
+ if(assigned.length!==14||new Set(assigned).size!==14||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
  const batches=groups.map(([name,...files])=>({
   name,files:files.map(file=>{
    const item=blocked.find(x=>x.file===file);
@@ -26,7 +26,7 @@ export function migrationReviewQueue(directory){
   }),status:'BLOCKED_PENDING_DEPENDENCY_AND_SECURITY_REVIEW',
   requirements:['approved synthetic dependency fixtures','individual source-guard review','transactional rollback and idempotence tests','explicit allowlist change review']
  }));
- return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:10,blocked:16,batch_count:batches.length,
+ return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:12,blocked:14,batch_count:batches.length,
   unattended_sql_execution_authorized:false,production_release:'HOLD',batches};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
