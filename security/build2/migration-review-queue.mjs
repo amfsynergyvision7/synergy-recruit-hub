@@ -12,7 +12,7 @@ export function migrationReviewQueue(directory){
  const blocked=triage.items.filter(x=>!x.subset_rehearsed);
  const expected=new Set(blocked.map(x=>x.file));
  const assigned=groups.flatMap(([, ...files])=>files);
- if(assigned.length!==3||new Set(assigned).size!==6||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
+ if(assigned.length!==3||new Set(assigned).size!==3||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
  const batches=groups.map(([name,...files])=>({
   name,files:files.map(file=>{
    const item=blocked.find(x=>x.file===file);
