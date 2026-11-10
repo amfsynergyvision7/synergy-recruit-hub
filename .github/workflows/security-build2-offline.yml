@@ -229,7 +229,12 @@ jobs:
       - name: Pin exact original activity and configurable-workflow migration sources
         run: node security/build2/activity-workflow-original-source-guard.mjs
       - name: Rehearse TWO original activity and configurable workflow migrations with synthetic rollback
-        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-activity-workflow-pair.integration.sql
+        shell: bash
+        run: |
+          set -euo pipefail
+          createdb build2_activity_workflow_synthetic
+          trap 'dropdb --if-exists build2_activity_workflow_synthetic' EXIT
+          PGDATABASE=build2_activity_workflow_synthetic psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-activity-workflow-pair.integration.sql
       - name: Verify synthetic recruiter ownership and silent RLS zero-row updates
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-recruiter-ownership-rls.integration.sql
       - name: Verify recruiter column UPDATE grants prevent ownership reassignment
