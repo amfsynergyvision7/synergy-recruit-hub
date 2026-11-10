@@ -22,3 +22,8 @@
 
 ## Reporting
 Do not label static preflight or manifest generation as migration replay. Do not claim schema equivalence or release readiness until evidence supports it. All nine production release gates remain false; no staging/production writes, merge, deployment or financial activation.
+
+## Verified source dependency and targeted fixture
+- The initial repository migration `20260512131020_8bd78994-f2ec-4e2b-a8f1-6838de651c80.sql` references `auth.users` through foreign keys and attaches an authentication-user trigger. This is an observed source dependency, not proof of successful full migration replay.
+- `synthetic-auth-dependency.integration.sql` exercises a separate synthetic user/profile foreign-key contract, denial of orphan profiles, cascading deletion and transaction rollback on disposable PostgreSQL. It deliberately uses `build2_auth_fixture`, not the actual Supabase `auth` schema, and **does not execute any repository migration or activate financial triggers**.
+- Full migration replay remains blocked on reviewed Supabase authentication/storage dependencies, source authority and safe handling of financial side effects. The targeted fixture cannot establish equivalence.
