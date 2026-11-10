@@ -16,3 +16,8 @@
 
 ## Stop conditions
 Stop and investigate any failed guard, CI job, inventory change, missing artifact, unexpected DB target, release gate drift, or attempted financial/privileged migration execution. No production readiness or schema equivalence is implied.
+
+## Verified baseline and report visibility
+- Baseline commit `0d379aab`: Build 2 run `42772598089` and separate Step 35E run `42772598158` both passed; the Build 2 run uploaded `build2-disposable-batch-report`.
+- Subsequent workflow revisions require fresh CI verification on their own commit. The Actions run summary now shows the HOLD status and migration counts without downloading the JSON; missing JSON artifacts fail the upload step rather than merely warning.
+- A green run verifies only the currently allowlisted nine original migrations. Do not infer that 17 remaining files have been executed.
