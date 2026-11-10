@@ -170,7 +170,7 @@ jobs:
             exit 1
           fi
           # Real PostgreSQL privilege drift, using disposable synthetic roles/objects only.
-          psql -X -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF; END \\$\\$;"
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon NOLOGIN; END IF; END \$\$;"
           psql -X -v ON_ERROR_STOP=1 -c "CREATE TABLE public.build2_privilege_fixture (id integer, confidential_text text);"
           psql -X -v ON_ERROR_STOP=1 -c "REVOKE ALL ON public.build2_privilege_fixture FROM PUBLIC, anon;"
           psql -X -At -v ON_ERROR_STOP=1 -f security/build2/schema-parity-export-readonly.sql > /tmp/build2-grants-before.json
