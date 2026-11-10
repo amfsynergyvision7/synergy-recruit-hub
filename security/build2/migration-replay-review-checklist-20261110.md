@@ -32,3 +32,8 @@ Do not label static preflight or manifest generation as migration replay. Do not
 - `actual-safe-column-migrations.integration.sql` runs three **original** repository files (`20260927180000_job_requirements_field.sql`, `20260927200000_candidate_resume_summary.sql`, `20260930100000_candidate_ats_score.sql`) against two synthetic public tables, checks five column definitions, repeats the SQL to check idempotence and rolls back.
 - This is **3 of 26 files**, selected because they contain simple additive column DDL; it does not validate preceding migration history, application data, Supabase auth/storage, financial triggers or complete schema equivalence. CI execution must pass before calling this rehearsal verified.
 - The migration `20260513101842_cb1bc9ab-e5f4-4b42-b09a-60588844ca6c.sql` explicitly requests `pg_cron` and `pg_net`; these extensions require a separately reviewed disposable Supabase-compatible environment. Never silently skip them while claiming full replay.
+
+## Expanded original SQL rehearsal (five of 26)
+- Added two original, nonfinancial settings-column migrations: `20260927210000_resume_import_folder_setting.sql` and `20260929050000_app_settings_color_theme.sql`. The disposable rehearsal now creates synthetic `public.app_settings`, applies five original files twice, validates seven columns including the non-null `neon` default, and rolls back.
+- Both settings additions rely on existing app-settings policies and do **not** independently test those policies. Their base table creation and branding storage migrations are **not** included in this replay.
+- The fail-closed SQL statement allowlist, pinned contract and negative tests were updated to the five-file subset. CI must pass before treating this expansion as verified.
