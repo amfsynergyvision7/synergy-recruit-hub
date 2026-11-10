@@ -6,11 +6,11 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {validateSafeColumnMigrations} from './safe-column-migration-guard.mjs';
 const source=fileURLToPath(new URL('../../supabase/migrations/',import.meta.url));
-const names=['20260927180000_job_requirements_field.sql','20260927200000_candidate_resume_summary.sql','20260927210000_resume_import_folder_setting.sql','20260929050000_app_settings_color_theme.sql','20260930100000_candidate_ats_score.sql'];
-test('actual five migration files contain only seven allowlisted additive statements',()=>{
+const names=['20260930080000_careers_page.sql','20260927180000_job_requirements_field.sql','20260927200000_candidate_resume_summary.sql','20260927210000_resume_import_folder_setting.sql','20260929050000_app_settings_color_theme.sql','20260930100000_candidate_ats_score.sql'];
+test('actual six additive migration files contain only eight allowlisted additive statements',()=>{
  const r=validateSafeColumnMigrations(source);
  assert.equal(r.safe,true,JSON.stringify(r.issues));
- assert.equal(r.files,5);assert.equal(r.columns.length,7);
+ assert.equal(r.files,6);assert.equal(r.columns.length,8);
 });
 test('unexpected destructive statement fails closed before database execution',()=>{
  const dir=mkdtempSync(join(tmpdir(),'build2-column-guard-'));
