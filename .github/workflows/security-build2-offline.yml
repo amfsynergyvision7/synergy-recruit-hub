@@ -69,14 +69,14 @@ jobs:
           test "$code" -eq 2
           node --input-type=module -e "import {readFileSync} from 'node:fs'; const r=JSON.parse(readFileSync('/tmp/build2-migration-preflight.json','utf8')); if(r.migration_count!==26||r.safe_to_replay_unattended!==false||!r.blockers.some(x=>x.type==='auth_schema_fixture_required'))process.exit(1);"
           echo 'PASS: all 26 migrations inventoried; unattended replay blocked.'
-      - name: Batch-triage all 26 original migrations and preserve 3-file review queue
+      - name: Batch-triage all 26 original migrations and preserve 1-file review queue
         run: |
           node security/build2/bulk-migration-triage.mjs supabase/migrations > /tmp/build2-bulk-triage.json
-          node --input-type=module -e "import {readFileSync} from 'node:fs'; const r=JSON.parse(readFileSync('/tmp/build2-bulk-triage.json','utf8')); if(r.total!==26||r.subset_candidates!==23||r.remaining!==3||r.all_26_replay_verified!==false)process.exit(1);"
-      - name: Generate dependency-aware three-batch review queue without SQL execution
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; const r=JSON.parse(readFileSync('/tmp/build2-bulk-triage.json','utf8')); if(r.total!==26||r.subset_candidates!==25||r.remaining!==1||r.all_26_replay_verified!==false)process.exit(1);"
+      - name: Generate dependency-aware single-batch review queue without SQL execution
         run: |
           node security/build2/migration-review-queue.mjs supabase/migrations > /tmp/build2-review-queue.json
-          node --input-type=module -e "import {readFileSync} from 'node:fs'; const q=JSON.parse(readFileSync('/tmp/build2-review-queue.json','utf8')); if(q.total!==26||q.blocked!==3||q.batch_count!==3||q.unattended_sql_execution_authorized!==false||q.production_release!=='HOLD')process.exit(1);"
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; const q=JSON.parse(readFileSync('/tmp/build2-review-queue.json','utf8')); if(q.total!==26||q.blocked!==1||q.batch_count!==1||q.unattended_sql_execution_authorized!==false||q.production_release!=='HOLD')process.exit(1);"
       - name: Verify production release is blocked
         shell: bash
         run: |

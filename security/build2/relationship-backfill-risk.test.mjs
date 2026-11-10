@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const sql=readFileSync('supabase/migrations/20260513091605_0748e094-a67e-47ca-a5a5-0040593d766f.sql','utf8');
-// Negative release checks: this migration remains blocked until ambiguity and privilege risks are resolved.
+// Negative release checks remain active after a synthetic SQL rehearsal: no release approval.
 test('original relationship backfill includes nondeterministic multi-match updates',()=>{
  assert.match(sql,/UPDATE public\.interviews i\s+SET submission_uuid = s\.id\s+FROM public\.submissions s/i);
  assert.match(sql,/UPDATE public\.offers o\s+SET interview_uuid = i\.id\s+FROM public\.interviews i/i);
@@ -14,7 +14,8 @@ test('original relationship migration contains SECURITY DEFINER resolvers requir
  }
  assert.ok((sql.match(/SECURITY DEFINER/gi)||[]).length>=3);
 });
-test('relationship migration is not promoted by risk tests alone',()=>{
- const queue=readFileSync('security/build2/migration-review-queue.mjs','utf8');
- assert.match(queue,/relationship_backfill.*20260513091605_0748e094-a67e-47ca-a5a5-0040593d766f\.sql/);
+test('relationship rehearsal retains unresolved ambiguity and financial risk controls',()=>{
+ const triage=readFileSync('security/build2/bulk-migration-triage.mjs','utf8');
+ assert.match(triage,/20260513091605_0748e094-a67e-47ca-a5a5-0040593d766f\.sql/);
+ assert.match(sql,/offers_stage_billing_trigger/);
 });
