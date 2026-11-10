@@ -410,6 +410,56 @@ jobs:
           test "$before" = "$after"
           echo 'PASS: isolated original extension SQL and post-rollback state verified'
 
+  synthetic-authorization-model:
+    name: Run all 140 SQL authorization probes (synthetic model only)
+    if: github.ref == 'refs/heads/security/build2-step35e-main-delta-draft-20261110'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic_test_only
+          POSTGRES_DB: build2_synthetic
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: synthetic_test_only
+      PGDATABASE: build2_synthetic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fail closed unless connected to disposable synthetic PostgreSQL
+        run: |
+          node security/build2/assert-disposable-db-target.mjs
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -c 'select current_database()')" = build2_synthetic
+      - name: Run each of the 140 real SQL operations as a synthetic database role
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-authorization-matrix-synthetic.integration.sql > /tmp/build2-auth-sql.log
+          grep -q 'PASS: 140/140 SQL operations match synthetic provisional policy MODEL only' /tmp/build2-auth-sql.log
+          test "$(wc -l < /tmp/build2-auth-synthetic-observations.ndjson)" -eq 140
+          node security/build2/synthetic-authorization-observation-review.mjs /tmp/build2-auth-synthetic-observations.ndjson build2-authorization-model-report.json
+      - name: Upload synthetic-only observed results for inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build2-synthetic-authorization-observations
+          path: build2-authorization-model-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
   consolidated-batch-report:
     name: Consolidated disposable migration report (HOLD)
     if: ${{ always() && github.ref == 'refs/heads/security/build2-step35e-main-delta-draft-20261110' }}
