@@ -6,19 +6,17 @@ const eventPaths = (name, next) => {
  const start = workflow.indexOf('  ' + name + ':\n');
  assert.ok(start >= 0, name + ' trigger missing');
  const end = workflow.indexOf('  ' + next + ':\n', start + 1);
- return workflow.slice(start, end >= 0 ? end : workflow.indexOf('permissions:', start));
+ const section = workflow.slice(start, end >= 0 ? end : workflow.indexOf('permissions:', start));
+ return [...section.matchAll(/^\s+- '([^']+)'\s*$/gm)].map(match => match[1]);
 };
-test('pull request and push security workflows cover the same guarded application files', () => {
+test('pull request and push security workflows cover identical guarded application paths', () => {
  const push = eventPaths('push', 'pull_request');
  const pr = eventPaths('pull_request', 'permissions');
- for (const path of [
-  'security/build2/**',
-  'src/components/CrudModule.tsx',
-  'src/components/CandidateBoard.tsx',
-  'src/routes/_app.candidates.tsx',
-  '.github/workflows/security-build2-offline.yml',
- ]) {
-  assert.ok(push.includes("'" + path + "'"), 'push missing ' + path);
-  assert.ok(pr.includes("'" + path + "'"), 'pull_request missing ' + path);
+ assert.ok(push.length >= 15, 'security workflow has unexpectedly few guarded paths');
+ assert.equal(new Set(push).size, push.length, 'push contains duplicate paths');
+ assert.equal(new Set(pr).size, pr.length, 'pull_request contains duplicate paths');
+ assert.deepEqual([...push].sort(), [...pr].sort(), 'push and PR guarded paths diverge');
+ for (const path of ['src/routes/_app.bd.tsx','src/lib/bd-demo-model.ts','src/components/AppSidebar.tsx','tests/bd-*.test.mjs']) {
+  assert.ok(push.includes(path), 'missing BD guard: ' + path);
  }
 });
