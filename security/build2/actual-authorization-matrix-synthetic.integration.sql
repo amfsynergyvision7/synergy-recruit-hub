@@ -82,6 +82,9 @@ CREATE FUNCTION build2_case.activate_financial_workflow() RETURNS integer LANGUA
 REVOKE ALL ON FUNCTION build2_case.admin_candidate_count(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION build2_case.activate_financial_workflow() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION build2_case.admin_candidate_count(uuid) TO build2_case_admin;
+-- Dedicated integration-ingest boundary: no human role has EXECUTE grant.
+CREATE FUNCTION build2_case.ingest_candidate() RETURNS integer LANGUAGE sql AS $ SELECT 1 $;
+REVOKE ALL ON FUNCTION build2_case.ingest_candidate() FROM PUBLIC;
 CREATE TABLE build2_case_results(id text PRIMARY KEY,expected text NOT NULL,actual text NOT NULL,role text NOT NULL,case_id text NOT NULL);
 
 SET ROLE build2_case_anon;
@@ -3016,7 +3019,7 @@ DO $probe$
 DECLARE n integer:=0; observed text:='deny';
 BEGIN
  BEGIN
-  INSERT INTO build2_case.candidates(id,assigned_recruiter,stage) VALUES ('aaaaaaaa-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','lead_received');
+  SELECT build2_case.ingest_candidate() INTO n;
  GET DIAGNOSTICS n=ROW_COUNT;
   IF n=1 THEN observed:='allow'; END IF;
   RAISE EXCEPTION 'probe rollback' USING ERRCODE='PZ001';
@@ -3038,7 +3041,7 @@ DO $probe$
 DECLARE n integer:=0; observed text:='deny';
 BEGIN
  BEGIN
-  INSERT INTO build2_case.candidates(id,assigned_recruiter,stage) VALUES ('aaaaaaaa-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','lead_received');
+  SELECT build2_case.ingest_candidate() INTO n;
  GET DIAGNOSTICS n=ROW_COUNT;
   IF n=1 THEN observed:='allow'; END IF;
   RAISE EXCEPTION 'probe rollback' USING ERRCODE='PZ001';
@@ -3060,7 +3063,7 @@ DO $probe$
 DECLARE n integer:=0; observed text:='deny';
 BEGIN
  BEGIN
-  INSERT INTO build2_case.candidates(id,assigned_recruiter,stage) VALUES ('aaaaaaaa-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','lead_received');
+  SELECT build2_case.ingest_candidate() INTO n;
  GET DIAGNOSTICS n=ROW_COUNT;
   IF n=1 THEN observed:='allow'; END IF;
   RAISE EXCEPTION 'probe rollback' USING ERRCODE='PZ001';
@@ -3082,7 +3085,7 @@ DO $probe$
 DECLARE n integer:=0; observed text:='deny';
 BEGIN
  BEGIN
-  INSERT INTO build2_case.candidates(id,assigned_recruiter,stage) VALUES ('aaaaaaaa-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','lead_received');
+  SELECT build2_case.ingest_candidate() INTO n;
  GET DIAGNOSTICS n=ROW_COUNT;
   IF n=1 THEN observed:='allow'; END IF;
   RAISE EXCEPTION 'probe rollback' USING ERRCODE='PZ001';
@@ -3104,7 +3107,7 @@ DO $probe$
 DECLARE n integer:=0; observed text:='deny';
 BEGIN
  BEGIN
-  INSERT INTO build2_case.candidates(id,assigned_recruiter,stage) VALUES ('aaaaaaaa-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','lead_received');
+  SELECT build2_case.ingest_candidate() INTO n;
  GET DIAGNOSTICS n=ROW_COUNT;
   IF n=1 THEN observed:='allow'; END IF;
   RAISE EXCEPTION 'probe rollback' USING ERRCODE='PZ001';
@@ -3126,7 +3129,7 @@ DO $probe$
 DECLARE n integer:=0; observed text:='deny';
 BEGIN
  BEGIN
-  INSERT INTO build2_case.candidates(id,assigned_recruiter,stage) VALUES ('aaaaaaaa-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','lead_received');
+  SELECT build2_case.ingest_candidate() INTO n;
  GET DIAGNOSTICS n=ROW_COUNT;
   IF n=1 THEN observed:='allow'; END IF;
   RAISE EXCEPTION 'probe rollback' USING ERRCODE='PZ001';
@@ -3148,7 +3151,7 @@ DO $probe$
 DECLARE n integer:=0; observed text:='deny';
 BEGIN
  BEGIN
-  INSERT INTO build2_case.candidates(id,assigned_recruiter,stage) VALUES ('aaaaaaaa-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','lead_received');
+  SELECT build2_case.ingest_candidate() INTO n;
  GET DIAGNOSTICS n=ROW_COUNT;
   IF n=1 THEN observed:='allow'; END IF;
   RAISE EXCEPTION 'probe rollback' USING ERRCODE='PZ001';
