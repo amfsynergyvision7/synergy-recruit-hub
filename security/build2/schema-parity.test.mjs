@@ -59,3 +59,18 @@ test('zero-argument PostgreSQL function identity is valid and changes are detect
  actual.functions[0].function_definition='SELECT 2';
  assert.equal(compareSnapshots(expected,actual).findings[0].type,'changed_definition');
 });
+
+test('nested metadata key ordering does not produce false schema drift',()=>{
+ const expected=clone(sample),actual=clone(sample);
+ expected.tables[0].metadata={nested:{alpha:1,beta:2},flags:['a','b']};
+ actual.tables[0].metadata={flags:['a','b'],nested:{beta:2,alpha:1}};
+ assert.equal(compareSnapshots(expected,actual).equal,true);
+ actual.tables[0].metadata.nested.beta=3;
+ assert.equal(compareSnapshots(expected,actual).findings[0].type,'changed_definition');
+});
+test('function EXECUTE privilege drift fails closed',()=>{
+ const expected=clone(sample),actual=clone(sample);
+ expected.grants.push({schema_name:'public',object_name:'function:get_role(uuid)',role_name:'anon',object_type:'function',can_execute:false});
+ actual.grants.push({schema_name:'public',object_name:'function:get_role(uuid)',role_name:'anon',object_type:'function',can_execute:true});
+ assert.equal(compareSnapshots(expected,actual).findings[0].type,'changed_definition');
+});
