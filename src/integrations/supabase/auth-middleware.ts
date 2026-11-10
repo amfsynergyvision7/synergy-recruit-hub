@@ -28,6 +28,24 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
       throw new Response(message, { status: 500 });
     }
     
+    // SEC-01 defense in depth: never use a mismatched Supabase endpoint.
+    // The isolated Preview has a branch-scoped project ID and URL.
+    const expectedProject = process.env.VITE_SUPABASE_PROJECT_ID;
+    if (!expectedProject) {
+      throw new Response('Missing expected Supabase project ID', { status: 500 });
+    }
+    {
+      let host: string;
+      try {
+        host = new URL(SUPABASE_URL).hostname;
+      } catch {
+        throw new Response('Invalid Supabase endpoint', { status: 500 });
+      }
+      if (host !== `${expectedProject}.supabase.co`) {
+        throw new Response('Supabase project mismatch', { status: 500 });
+      }
+    }
+
     const request = getRequest();
 
     if (!request?.headers) {
@@ -76,6 +94,18 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
 
     if (!data.claims.sub) {
       throw new Response('Unauthorized: No user ID found in token', { status: 401 });
+    }
+
+    // SEC-03: a valid JWT is not sufficient for CRM access.
+    // Query with the caller-bound client; fail closed on missing or inactive profiles.
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('status, is_active')
+      .eq('id', data.claims.sub)
+      .maybeSingle();
+
+    if (profileError || !profile || profile.status !== 'approved' || profile.is_active !== true) {
+      throw new Response('Forbidden: CRM account is not approved and active', { status: 403 });
     }
 
     return next({

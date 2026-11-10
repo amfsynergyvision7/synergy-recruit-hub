@@ -1,20 +1,7 @@
+import { assertExternalAiApproved } from "./security/release-gates.mjs";
 import { fetchResumeText } from "./resume-fetch.server";
 
-// Server-only Gemini API access. GEMINI_API_KEY must be set as a server
-// environment variable (Vercel project settings, same place SUPABASE_URL /
-// SUPABASE_SERVICE_ROLE_KEY / GOOGLE_SHEETS_API_KEY already live) — it is
-// never read or referenced from client-side code, so it can't end up in the
-// browser bundle. Get a free key at https://aistudio.google.com/apikey.
-//
-// Switched from "gemini-3.8-flash" to "gemini-3.5-flash-lite": both are free
-// on the standard tier, but 3.8-flash's free-tier cap (5 requests/minute, 20/
-// day) got hit almost immediately once Drive bulk import started making one
-// call per resume on top of matching/summary calls. 3.5-flash-lite carries a
-// much larger free-tier allowance (15 requests/minute, 500/day) as of this
-// writing, which is what all the Gemini-backed features below actually need
-// once more than a couple of resumes are involved in a single run. If Google
-// changes these limits again, this is the one line to swap.
-const GEMINI_MODEL = "gemini-3.5-flash-lite";
+// Server-only external AI transport. This integration is currently disabled by\n// the SEC-12 hard gate below. Provider model identifiers, pricing, API\n// compatibility and data-processing terms must be revalidated before any\n// separately authorized reactivation; no free-tier or model availability\n// claim is approved by this code.\nconst GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
 // Google's own Interactions API docs are inconsistent about the response
@@ -40,6 +27,11 @@ function extractOutputText(data: any): string | undefined {
 }
 
 async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>): Promise<T> {
+  // SEC-12 privacy gate: never transmit candidate/job information to an
+  // external AI processor unless explicitly enabled after legal review.
+  // Disabled by default in every environment, including production.
+  throw new Error('SEC-12: external AI transport remains disabled pending separate management authorization and privacy verification.');
+  assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured. Add it as an environment variable and redeploy.");
@@ -57,20 +49,19 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   let data: any;
   try { data = JSON.parse(text); } catch { data = text; }
   if (!res.ok) {
-    throw new Error(`Gemini API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+    throw new Error(`Gemini API request failed (${res.status}); response suppressed to protect candidate data.`);
   }
   const outputText = extractOutputText(data);
   if (!outputText) {
     // Include a slice of the raw response so this is debuggable in one shot
     // if Google's response shape ever drifts again, instead of a dead-end
     // generic message.
-    const preview = typeof data === "string" ? data : JSON.stringify(data);
-    throw new Error(`Gemini returned no recognizable output. Raw response: ${preview.slice(0, 500)}`);
+    throw new Error("Gemini returned no recognizable output; raw response suppressed.");
   }
   try {
     return JSON.parse(outputText) as T;
   } catch {
-    throw new Error(`Gemini returned a response that wasn't valid JSON: ${outputText.slice(0, 500)}`);
+    throw new Error("Gemini returned invalid JSON; provider output suppressed to protect candidate data.");
   }
 }
 

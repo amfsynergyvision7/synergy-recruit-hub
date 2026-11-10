@@ -8,11 +8,13 @@
   },
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "npm run test:security && vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:bd": "node --test tests/bd-demo-model.test.mjs",
+    "test:security": "node --test tests/step35e-security-gates.test.mjs tests/security-release-gates.test.mjs tests/step35e-outbound-security.test.mjs tests/step35e-transport-gates.test.mjs tests/step35e-build-pipeline.test.mjs"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

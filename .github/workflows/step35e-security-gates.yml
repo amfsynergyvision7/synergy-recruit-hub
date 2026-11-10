@@ -1,0 +1,17 @@
+name: Isolated Step 35E security gates
+on:
+  push:
+    branches: [security/step-35e-isolated-hardening]
+  workflow_dispatch:
+jobs:
+  source-security-gates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tests/step35e-security-gates.test.mjs && node --check tests/security-release-gates.test.mjs && node --check tests/step35e-outbound-security.test.mjs && node --check tests/step35e-transport-gates.test.mjs
+      - run: npm run test:security

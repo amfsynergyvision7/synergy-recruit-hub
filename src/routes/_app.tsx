@@ -24,7 +24,7 @@ function AppLayout() {
   }, [session, loading, navigate]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || !profile || profile.status !== "approved" || !profile.is_active) return;
     const load = async () => {
       const { count } = await supabase.from("notifications")
         .select("*", { count: "exact", head: true }).eq("is_read", false);
@@ -34,19 +34,19 @@ function AppLayout() {
     const ch = supabase.channel("hdr-notif").on("postgres_changes",
       { event: "*", schema: "public", table: "notifications" }, load).subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [session]);
+  }, [session, profile?.status, profile?.is_active, profile?.id]);
 
   if (loading || !session) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>;
   }
 
-  if (profile && (profile.status !== "approved" || !profile.is_active)) {
+  if (!profile || profile.status !== "approved" || !profile.is_active) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
         <Card className="w-full max-w-md shadow-elegant">
           <CardHeader><CardTitle>Account pending approval</CardTitle></CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <p>Your account status is <span className="font-medium capitalize text-foreground">{profile.status}</span>. An administrator must approve your access before you can use the CRM.</p>
+            <p>Your account status is <span className="font-medium capitalize text-foreground">{profile?.status ?? "unavailable"}</span>. An administrator must approve your access before you can use the CRM.</p>
             <Button variant="outline" onClick={() => signOut()}>Sign out</Button>
           </CardContent>
         </Card>
