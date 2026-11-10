@@ -176,5 +176,8 @@ jobs:
             restored=$(psql -X -At -v ON_ERROR_STOP=1 -d build2_synthetic_restored -c "$catalog_query")
             test "$original" -eq "$restored"
           done
-          echo "PASS: disposable synthetic restore preserves public relations, policies, functions and triggers."
+          original_schema=$(pg_dump --schema-only --no-owner --no-acl -d "$PGDATABASE" | sha256sum | cut -d ' ' -f 1)
+          restored_schema=$(pg_dump --schema-only --no-owner --no-acl -d build2_synthetic_restored | sha256sum | cut -d ' ' -f 1)
+          test "$original_schema" = "$restored_schema"
+          echo "PASS: disposable synthetic restore preserves relations, policies, functions, triggers and exact schema-only dump hash."
           rm -f /tmp/build2-synthetic-backup.dump
