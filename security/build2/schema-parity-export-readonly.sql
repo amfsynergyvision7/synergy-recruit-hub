@@ -57,6 +57,31 @@ SELECT jsonb_build_object(
   WHERE n.nspname='public' AND c.relkind IN ('r','p','v')
   AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api.role_name)
   UNION ALL
+  SELECT n.nspname AS schema_name,'column:'||c.relname||'.'||a.attname AS object_name,
+  api.role_name,'column' AS object_type,
+  has_column_privilege(api.role_name,c.oid,a.attnum,'SELECT') AS can_select,
+  has_column_privilege(api.role_name,c.oid,a.attnum,'INSERT') AS can_insert,
+  has_column_privilege(api.role_name,c.oid,a.attnum,'UPDATE') AS can_update,
+  NULL::boolean AS can_delete,NULL::boolean AS can_execute,NULL::boolean AS can_usage
+  FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid
+  JOIN pg_namespace n ON n.oid=c.relnamespace
+  CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS api(role_name)
+  WHERE n.nspname='public' AND c.relkind IN ('r','p','v')
+  AND a.attnum>0 AND NOT a.attisdropped
+  AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api.role_name)
+  UNION ALL
+  SELECT n.nspname AS schema_name,'sequence:'||c.relname AS object_name,
+  api.role_name,'sequence' AS object_type,
+  has_sequence_privilege(api.role_name,c.oid,'SELECT') AS can_select,
+  NULL::boolean AS can_insert,
+  has_sequence_privilege(api.role_name,c.oid,'UPDATE') AS can_update,
+  NULL::boolean AS can_delete,NULL::boolean AS can_execute,
+  has_sequence_privilege(api.role_name,c.oid,'USAGE') AS can_usage
+  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+  CROSS JOIN (VALUES ('anon'),('authenticated'),('service_role')) AS api(role_name)
+  WHERE n.nspname='public' AND c.relkind='S'
+  AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname=api.role_name)
+  UNION ALL
   SELECT n.nspname AS schema_name,'function:'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' AS object_name,
   api.role_name,'function' AS object_type,
   NULL::boolean,NULL::boolean,NULL::boolean,NULL::boolean,
