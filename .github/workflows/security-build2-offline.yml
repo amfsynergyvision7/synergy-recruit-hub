@@ -133,6 +133,10 @@ jobs:
         run: node security/build2/safe-column-migration-guard.mjs supabase/migrations
       - name: Replay five actual safe-column migrations twice with disposable rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-safe-column-migrations.integration.sql
+      - name: Verify original settings index migration is strictly allowlisted
+        run: node security/build2/unique-settings-index-guard.mjs supabase/migrations
+      - name: Rehearse original unique settings index twice with rollback
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-unique-settings-index.integration.sql
       - name: Verify disposable synthetic auth dependency fixture and rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-auth-dependency.integration.sql
       - name: Verify synthetic security-invoker view obeys recruiter RLS
