@@ -41,6 +41,9 @@ BEGIN
  ) THEN
   RAISE EXCEPTION 'Theme default/nullability contract failed';
  END IF;
+ IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='job_openings' AND column_name='is_confidential' AND is_nullable='NO' AND column_default='false') THEN
+  RAISE EXCEPTION 'Careers confidentiality default/nullability contract failed';
+ END IF;
 END $$;
 ROLLBACK;
 DO $$
