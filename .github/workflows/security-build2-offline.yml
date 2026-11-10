@@ -168,5 +168,13 @@ jobs:
           after=$(psql -X -At -v ON_ERROR_STOP=1 -d build2_synthetic_restored -c "$query")
           test "$before" -gt 0
           test "$before" -eq "$after"
-          echo "PASS: disposable synthetic backup restored with matching public relation count ($before)."
+          for catalog_query in \
+            "SELECT count(*) FROM pg_policies WHERE schemaname='public';" \
+            "SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public';" \
+            "SELECT count(*) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND NOT t.tgisinternal;"; do
+            original=$(psql -X -At -v ON_ERROR_STOP=1 -d "$PGDATABASE" -c "$catalog_query")
+            restored=$(psql -X -At -v ON_ERROR_STOP=1 -d build2_synthetic_restored -c "$catalog_query")
+            test "$original" -eq "$restored"
+          done
+          echo "PASS: disposable synthetic restore preserves public relations, policies, functions and triggers."
           rm -f /tmp/build2-synthetic-backup.dump
