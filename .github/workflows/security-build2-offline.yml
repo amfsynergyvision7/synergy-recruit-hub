@@ -184,6 +184,22 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -c "REVOKE SELECT (confidential_text) ON public.build2_privilege_fixture FROM anon; DROP TABLE public.build2_privilege_fixture;"
           rm -f /tmp/build2-grants-before.json /tmp/build2-grants-after.json /tmp/build2-grants-diff.json
           echo "PASS: real disposable column-level privilege drift detected."
+
+          # A synthetic RPC must not silently gain anon EXECUTE permission.
+          psql -X -v ON_ERROR_STOP=1 -c "CREATE FUNCTION public.build2_privilege_rpc() RETURNS integer LANGUAGE sql AS 'SELECT 1';"
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE ALL ON FUNCTION public.build2_privilege_rpc() FROM PUBLIC, anon;"
+          psql -X -At -v ON_ERROR_STOP=1 -f security/build2/schema-parity-export-readonly.sql > /tmp/build2-rpc-before.json
+          psql -X -v ON_ERROR_STOP=1 -c "GRANT EXECUTE ON FUNCTION public.build2_privilege_rpc() TO anon;"
+          psql -X -At -v ON_ERROR_STOP=1 -f security/build2/schema-parity-export-readonly.sql > /tmp/build2-rpc-after.json
+          if node security/build2/schema-parity.mjs /tmp/build2-rpc-before.json /tmp/build2-rpc-after.json > /tmp/build2-rpc-diff.json; then
+            echo "FAIL: RPC EXECUTE privilege escalation was not detected"
+            exit 1
+          fi
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; const r=JSON.parse(readFileSync('/tmp/build2-rpc-diff.json','utf8')); if(!r.findings.some(x=>x.section==='grants'&&x.type==='changed_definition'&&x.key.includes('function:build2_privilege_rpc')))process.exit(1);"
+          psql -X -v ON_ERROR_STOP=1 -c "REVOKE EXECUTE ON FUNCTION public.build2_privilege_rpc() FROM anon; DROP FUNCTION public.build2_privilege_rpc();"
+          rm -f /tmp/build2-rpc-before.json /tmp/build2-rpc-after.json /tmp/build2-rpc-diff.json
+          echo "PASS: real disposable RPC EXECUTE privilege drift detected."
+
           psql -X -v ON_ERROR_STOP=1 -c "DROP TABLE public.build2_parity_negative_fixture;"
           rm -f /tmp/build2-catalog-before.json /tmp/build2-catalog-equal.json /tmp/build2-catalog-changed.json
           echo "PASS: live disposable catalog export and negative schema-drift detection."
