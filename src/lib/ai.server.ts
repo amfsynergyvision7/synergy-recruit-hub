@@ -37,7 +37,7 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   // Disabled by default in every environment, including production.
   throw new Error('SEC-12: external AI transport remains disabled pending separate management authorization and privacy verification.');
   assertExternalAiApproved(process.env.CRM_EXTERNAL_AI_APPROVED);
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey: string = process.env.GEMINI_API_KEY ?? "";
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured. Add it as an environment variable and redeploy.");
   }
