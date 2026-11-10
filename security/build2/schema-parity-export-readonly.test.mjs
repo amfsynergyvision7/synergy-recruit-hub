@@ -27,3 +27,9 @@ test('export captures function EXECUTE, schema USAGE, and service role privilege
   assert.ok(sql.includes(expression),expression);
  }
 });
+
+test('export captures effective column and sequence privileges',()=>{
+ for(const expression of ['has_column_privilege','has_sequence_privilege',"'column:'","'sequence:'","a.attnum>0","NOT a.attisdropped"]){
+  assert.ok(sql.includes(expression),expression);
+ }
+});
