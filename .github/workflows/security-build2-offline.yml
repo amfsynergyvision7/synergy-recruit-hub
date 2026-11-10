@@ -176,8 +176,26 @@ jobs:
             restored=$(psql -X -At -v ON_ERROR_STOP=1 -d build2_synthetic_restored -c "$catalog_query")
             test "$original" -eq "$restored"
           done
-          original_schema=$(pg_dump --schema-only --no-owner --no-acl -d "$PGDATABASE" | sha256sum | cut -d ' ' -f 1)
-          restored_schema=$(pg_dump --schema-only --no-owner --no-acl -d build2_synthetic_restored | sha256sum | cut -d ' ' -f 1)
+          # A raw pg_dump schema hash is not stable across restored databases:
+          # dump headers and database-local metadata can differ without schema drift.
+          # Compare deterministic catalog definitions instead.
+          fingerprint_query="SELECT md5(string_agg(kind || ':' || name || ':' || definition, E'\\n' ORDER BY kind,name,definition)) FROM (
+            SELECT 'view' kind, c.relname name, pg_get_viewdef(c.oid,true) definition
+            FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v'
+            UNION ALL
+            SELECT 'function', p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')', pg_get_functiondef(p.oid)
+            FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public'
+            UNION ALL
+            SELECT 'policy', tablename || '.' || policyname, cmd || ':' || roles::text || ':' || coalesce(qual,'') || ':' || coalesce(with_check,'')
+            FROM pg_policies WHERE schemaname='public'
+            UNION ALL
+            SELECT 'trigger', c.relname || '.' || t.tgname, pg_get_triggerdef(t.oid)
+            FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+            WHERE n.nspname='public' AND NOT t.tgisinternal
+          ) definitions;"
+          original_schema=$(psql -X -At -v ON_ERROR_STOP=1 -d "$PGDATABASE" -c "$fingerprint_query")
+          restored_schema=$(psql -X -At -v ON_ERROR_STOP=1 -d build2_synthetic_restored -c "$fingerprint_query")
+          test -n "$original_schema"
           test "$original_schema" = "$restored_schema"
-          echo "PASS: disposable synthetic restore preserves relations, policies, functions, triggers and exact schema-only dump hash."
+          echo "PASS: disposable synthetic restore preserves relation counts and deterministic view, function, policy and trigger definitions."
           rm -f /tmp/build2-synthetic-backup.dump
