@@ -226,6 +226,15 @@ jobs:
       - name: Exercise privileged workflow trigger with in-function field allowlist
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-workflow-trigger-guard.integration.sql
 
+      - name: Pin exact original baseline SQL and track bootstrap privilege exception
+        run: node security/build2/baseline-original-source-guard.mjs
+      - name: Rehearse ORIGINAL baseline schema with synthetic auth dependency and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          createdb build2_baseline_synthetic
+          trap 'dropdb --if-exists build2_baseline_synthetic' EXIT
+          PGDATABASE=build2_baseline_synthetic psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-baseline-original.integration.sql
       - name: Pin exact original activity and configurable-workflow migration sources
         run: node security/build2/activity-workflow-original-source-guard.mjs
       - name: Rehearse TWO original activity and configurable workflow migrations with synthetic rollback
