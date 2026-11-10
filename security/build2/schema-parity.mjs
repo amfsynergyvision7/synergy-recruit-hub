@@ -23,7 +23,7 @@ export function compareSnapshots(expected,actual){
    for(const row of rows){
     if(!row||typeof row!=='object'||Array.isArray(row)){findings.push({section,type:'invalid_row',side});continue;}
     const keys=keyFields[section];
-    if(keys.some(k=>typeof row[k]!=='string'||!row[k])){findings.push({section,type:'invalid_key',side});continue;}
+    if(keys.some(k=>typeof row[k]!=='string'||(!row[k]&&!(section==='functions'&&k==='arguments')))){findings.push({section,type:'invalid_key',side});continue;}
     const key=keys.map(k=>row[k]).join('::');
     if(map.has(key))findings.push({section,type:'duplicate_key',side,key});
     map.set(key,JSON.stringify(Object.fromEntries(Object.entries(row).sort(([a],[b])=>a.localeCompare(b)))));
