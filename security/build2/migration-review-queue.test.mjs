@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import {migrationReviewQueue} from './migration-review-queue.mjs';
 const dir=fileURLToPath(new URL('../../supabase/migrations/',import.meta.url));
-test('all 11 blocked original migrations are assigned exactly once to nine review batches',()=>{
+test('all 10 blocked original migrations are assigned exactly once to eight review batches',()=>{
  const q=migrationReviewQueue(dir);
- assert.equal(q.total,26);assert.equal(q.rehearsed,15);assert.equal(q.blocked,11);
- assert.equal(q.batch_count,9);
+ assert.equal(q.total,26);assert.equal(q.rehearsed,16);assert.equal(q.blocked,10);
+ assert.equal(q.batch_count,8);
  const files=q.batches.flatMap(x=>x.files);
- assert.equal(files.length,11);
- assert.equal(new Set(files.map(x=>x.file)).size,11);
+ assert.equal(files.length,10);
+ assert.equal(new Set(files.map(x=>x.file)).size,10);
  assert.ok(files.every(x=>x.original_sql_execution_authorized===false));
  assert.equal(q.production_release,'HOLD');
 });
