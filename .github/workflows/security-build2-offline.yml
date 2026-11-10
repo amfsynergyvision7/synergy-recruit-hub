@@ -127,7 +127,7 @@ jobs:
         run: node security/build2/migration-replay-contract-guard.mjs security/build2/disposable-replay-contract.json supabase/migrations
       - name: Reject non-allowlisted SQL before real migration subset replay
         run: node security/build2/safe-column-migration-guard.mjs supabase/migrations
-      - name: Replay three actual safe-column migrations twice with disposable rollback
+      - name: Replay five actual safe-column migrations twice with disposable rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-safe-column-migrations.integration.sql
       - name: Verify disposable synthetic auth dependency fixture and rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-auth-dependency.integration.sql
