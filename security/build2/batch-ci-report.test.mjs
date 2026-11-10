@@ -7,12 +7,15 @@ import {makeBatchReport} from './batch-ci-report.mjs';
 const dir=fileURLToPath(new URL('../../supabase/migrations/',import.meta.url));
 const release=JSON.parse(readFileSync(fileURLToPath(new URL('./release-evidence.json',import.meta.url)),'utf8'));
 const triage=bulkMigrationTriage(dir);
-const green={'application-typescript-check':'success','offline-security-tests':'success','isolated-postgres-view-rls':'success','isolated-postgres-extensions':'success'};
+const green={'application-typescript-check':'success','offline-security-tests':'success','isolated-postgres-view-rls':'success','isolated-postgres-extensions':'success','synthetic-authorization-model':'success'};
 test('green CI produces 26 disposable rehearsals, no blocked files, HOLD and no release gates',()=>{
  const r=makeBatchReport({triage,release,jobResults:green,sha:'synthetic',runId:'synthetic'});
  assert.equal(r.verification,'DISPOSABLE_CI_JOBS_PASSED');
  assert.equal(r.ci_verified_replays,26);assert.equal(r.blocked_files.length,0);
  assert.equal(r.release_gates_passed,0);assert.equal(r.status,'HOLD');
+ assert.equal(r.synthetic_policy_model_cases_ci_verified,140);
+ assert.equal(r.authorization_scenarios_executed,0);
+ assert.equal(r.pipeline_verification,'ALL_DISPOSABLE_CI_JOBS_PASSED');
 });
 test('failed or skipped CI cannot claim verified migration replay',()=>{
  for(const state of ['failure','cancelled','skipped','unknown']){
@@ -25,6 +28,13 @@ test('missing or failed extension job cannot certify all original migrations',()
   const r=makeBatchReport({triage,release,jobResults:{...green,'isolated-postgres-extensions':state}});
   assert.equal(r.ci_verified_replays,0);assert.equal(r.verification,'NOT_VERIFIED');
  }
+});
+test('authorization synthetic job failure affects only its own metric and full pipeline',()=>{
+ const r=makeBatchReport({triage,release,jobResults:{...green,'synthetic-authorization-model':'failure'}});
+ assert.equal(r.ci_verified_replays,26);
+ assert.equal(r.synthetic_policy_model_cases_ci_verified,0);
+ assert.equal(r.authorization_scenarios_executed,0);
+ assert.equal(r.pipeline_verification,'NOT_VERIFIED');
 });
 test('release gate changes and migration inventory drift fail closed',()=>{
  const changed=structuredClone(release);changed.release_approved.passed=true;
