@@ -141,6 +141,10 @@ jobs:
         run: node security/build2/interview-scheduling-source-guard.mjs supabase/migrations
       - name: Rehearse original scheduling migration and token uniqueness with rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-interview-scheduling.integration.sql
+      - name: Guard original mapping-function migration source
+        run: node security/build2/google-mapping-source-guard.mjs supabase/migrations
+      - name: Rehearse original mapping function and synthetic trigger behavior
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-google-mapping-function.integration.sql
       - name: Verify disposable synthetic auth dependency fixture and rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-auth-dependency.integration.sql
       - name: Verify synthetic security-invoker view obeys recruiter RLS
