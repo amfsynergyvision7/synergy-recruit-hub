@@ -44,6 +44,7 @@ function Page() {
         .from('profiles')
         .select('id, full_name, email')
         .eq('status', 'approved')
+        .eq('is_active', true)
         .order('full_name');
       
       if (!error && data) {

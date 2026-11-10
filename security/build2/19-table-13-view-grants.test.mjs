@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const sql=readFileSync(new URL('./19-table-13-view-grants-review-only.sql',import.meta.url),'utf8');
+const tables=['app_settings','audit_logs','billing','candidate_activities','candidate_stage_history','candidates','clients','email_log','google_integrations','integrations','interviews','job_openings','notifications','offers','profiles','submissions','sync_logs','user_roles','workflow_rules'];
+const views=['available_recruiters','candidates_for_assignment','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary','vw_billing_filters','vw_candidate_filters','vw_client_filters','vw_interview_filters','vw_job_filters','vw_offer_filters','vw_submission_filters'];
+test('draft is non-production and transaction scoped',()=>{assert.match(sql,/DO NOT RUN ON PRODUCTION/);assert.match(sql,/\bBEGIN;/);assert.match(sql,/\bCOMMIT;/)});
+test('all 19 tables have anonymous grants revoked',()=>{const segment=sql.split('FROM anon;')[0];for(const name of tables)assert.ok(segment.includes('public.'+name),name)});
+test('all 13 views have anonymous grants revoked',()=>{const segment=sql.split('FROM anon;')[1];for(const name of views)assert.ok(segment.includes('public.'+name),name)});
+for(const name of views)test(name+' uses security_invoker',()=>assert.ok(sql.includes('ALTER VIEW public.'+name+' SET (security_invoker=true);')));
+test('draft documents unresolved app compatibility',()=>assert.match(sql,/view dependency and app UI testing/));

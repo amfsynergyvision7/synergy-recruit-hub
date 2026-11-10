@@ -88,10 +88,17 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
     const candidate = rows.find((r) => r.id === candidateId);
     if (!candidate || candidate.stage === newStage) return;
     setRows((prev) => prev.map((r) => (r.id === candidateId ? { ...r, stage: newStage } : r)));
-    const { error } = await supabase.from("candidates" as any).update({ stage: newStage }).eq("id", candidateId);
-    if (error) {
-      toast.error(error.message);
-      load(); // roll back the optimistic move
+    // Under RLS an UPDATE can succeed with zero affected rows. Confirm the
+    // returned row rather than reporting an optimistic move as persisted.
+    const { data, error } = await supabase.from("candidates" as any)
+      .update({ stage: newStage })
+      .eq("id", candidateId)
+      .select("id, stage")
+      .maybeSingle();
+    const confirmed = data as unknown as { id: string; stage: string } | null;
+    if (error || !confirmed || confirmed.id !== candidateId || confirmed.stage !== newStage) {
+      toast.error(error?.message ?? "Stage change was not confirmed. Your access or the candidate may have changed.");
+      await load(); // restore the authoritative state
       return;
     }
     toast.success(`Moved to ${newStage.replace(/_/g, " ")}`);

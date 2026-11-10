@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,6 +141,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  // Ignore superseded refreshes so slow responses cannot overwrite newer data.
+  const refreshSequence = useRef(0);
+  const relationSequence = useRef(0);
+  // Guard against duplicate submissions while a single-record mutation is pending.
+  const singleMutationPending = useRef(false);
+  const bulkMutationPending = useRef(false);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -157,7 +163,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [bulkEditSaving, setBulkEditSaving] = useState(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
-  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
+  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm && !(table === "candidates" && f.name === "assigned_recruiter" && role !== "admin")), [fields, table, role]);
   // What "select some rows, then change one field on all of them at once"
   // (e.g. filter Candidates down to one recruiter's list, select the batch,
   // reassign every one to a different recruiter in a single action) is
@@ -196,23 +202,45 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   // anyway; Search covers the common "find this one candidate" case.
 
   const load = async () => {
+    const sequence = ++refreshSequence.current;
     setLoading(true);
-    const q = supabase.from(table as any).select("*");
-    const { data, error } = await (orderBy
-      ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
-      : q.order("created_at", { ascending: false }));
-    setLoading(false);
-    if (error) toast.error(error.message);
-    else setRows(data || []);
+    try {
+      const q = supabase.from(table as any).select("*");
+      const { data, error } = await (orderBy
+        ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
+        : q.order("created_at", { ascending: false }));
+      if (sequence !== refreshSequence.current) return;
+      if (error) {
+        toast.error(`Could not refresh records: ${error.message}`);
+      } else {
+        const freshRows = (data || []) as any[];
+        setRows(freshRows);
+        // Never retain selected IDs that are no longer present in the refreshed list.
+        const visibleIds = new Set(freshRows.map((row) => row.id));
+        setSelected((previous) => new Set([...previous].filter((id) => visibleIds.has(id))));
+      }
+    } catch (cause) {
+      if (sequence === refreshSequence.current) toast.error(`Could not refresh records. Check your connection before retrying. ${cause instanceof Error ? cause.message : ""}`);
+    } finally {
+      if (sequence === refreshSequence.current) setLoading(false);
+    }
   };
 
   const loadRelations = async () => {
+    const sequence = ++relationSequence.current;
     const relationFields = fields.filter((f) => f.relation);
-    const entries = await Promise.all(relationFields.map(async (f) => {
-      const { data } = await supabase.from(f.relation!.table as any).select(f.relation!.select ?? "*").limit(500);
-      return [f.name, data ?? []] as const;
-    }));
-    setRelationOptions(Object.fromEntries(entries));
+    try {
+      const entries = await Promise.all(relationFields.map(async (f) => {
+        const { data, error } = await supabase.from(f.relation!.table as any).select(f.relation!.select ?? "*").limit(500);
+        if (error) throw error;
+        return [f.name, data ?? []] as const;
+      }));
+      if (sequence === relationSequence.current) setRelationOptions(Object.fromEntries(entries));
+    } catch (cause) {
+      if (sequence === relationSequence.current) {
+        toast.error(`Could not refresh related options. Check your connection and permissions. ${cause instanceof Error ? cause.message : ""}`);
+      }
+    }
   };
 
   useEffect(() => {
@@ -222,38 +250,62 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     loadRelations();
     const ch = supabase.channel(`rt-${table}`)
       .on("postgres_changes", { event: "*", schema: "public", table }, load).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { refreshSequence.current++; relationSequence.current++; offerLookupSequence.current++; supabase.removeChannel(ch); };
   }, [table]);
 
+  // Invalidate pending offer lookups when a different candidate is selected or a form is reopened.
+  const offerLookupSequence = useRef(0);
   const handleFieldChange = async (name: string, value: any) => {
-    const next = { ...form, [name]: value };
-    if (name === "candidate_uuid") next.candidate_id = value;
-    if (name === "client_uuid") next.client_id = value;
-    if (name === "job_uuid") next.job_id = value;
-    if (module === "offers" && name === "candidate_uuid" && value) {
-      const candidate = relationOptions[name]?.find((r) => r.id === value);
-      next.salary = next.salary ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
-      next.ctc = next.ctc ?? candidate?.expected_salary ?? candidate?.current_salary ?? null;
+    if (name === "candidate_uuid") offerLookupSequence.current++;
+    const sequence = offerLookupSequence.current;
+    // Apply the direct edit immediately; never replace intervening user edits
+    // with a form snapshot captured before an asynchronous lookup.
+    setForm((previous: any) => ({
+      ...previous,
+      [name]: value,
+      ...(name === "candidate_uuid" ? { candidate_id: value } : {}),
+      ...(name === "client_uuid" ? { client_id: value } : {}),
+      ...(name === "job_uuid" ? { job_id: value } : {}),
+    }));
+    if (module !== "offers" || name !== "candidate_uuid" || !value) return;
+    const candidate = relationOptions[name]?.find((r) => r.id === value);
+    try {
       const interviewResult = await supabase.from("interviews" as any).select("id, client_uuid, client_id, submission_uuid").eq("candidate_uuid", value).eq("status", "selected").order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (interviewResult.error) throw interviewResult.error;
       const interview: any = interviewResult.data;
       const submissionResult = interview?.submission_uuid
-        ? { data: null as any }
+        ? { data: null as any, error: null }
         : await supabase.from("submissions" as any).select("id, client_uuid, client_id").eq("candidate_uuid", value).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (submissionResult.error) throw submissionResult.error;
+      if (sequence !== offerLookupSequence.current) return;
       const submission: any = submissionResult.data;
-      next.interview_uuid = next.interview_uuid ?? interview?.id ?? null;
-      next.submission_uuid = next.submission_uuid ?? interview?.submission_uuid ?? submission?.id ?? null;
-      next.client_uuid = next.client_uuid ?? interview?.client_uuid ?? interview?.client_id ?? submission?.client_uuid ?? submission?.client_id ?? null;
-      next.client_id = next.client_uuid;
+      setForm((previous: any) => {
+        if (previous.candidate_uuid !== value) return previous;
+        const clientUuid = previous.client_uuid ?? interview?.client_uuid ?? interview?.client_id ?? submission?.client_uuid ?? submission?.client_id ?? null;
+        return {
+          ...previous,
+          salary: previous.salary ?? candidate?.expected_salary ?? candidate?.current_salary ?? null,
+          ctc: previous.ctc ?? candidate?.expected_salary ?? candidate?.current_salary ?? null,
+          interview_uuid: previous.interview_uuid ?? interview?.id ?? null,
+          submission_uuid: previous.submission_uuid ?? interview?.submission_uuid ?? submission?.id ?? null,
+          client_uuid: clientUuid,
+          client_id: clientUuid,
+        };
+      });
+    } catch (cause) {
+      if (sequence === offerLookupSequence.current) {
+        toast.error(`Could not load related offer details. Check permissions and connection. ${cause instanceof Error ? cause.message : ""}`);
+      }
     }
-    setForm(next);
   };
 
   const openCreate = () => {
+    offerLookupSequence.current++;
     const init: any = {};
     fields.forEach((f) => { if (f.default !== undefined) init[f.name] = f.default; });
     setForm(init); setEditing(null); setOpen(true);
   };
-  const openEdit = (row: any) => { setForm(row); setEditing(row); setOpen(true); };
+  const openEdit = (row: any) => { offerLookupSequence.current++; setForm(row); setEditing(row); setOpen(true); };
   const openView = (row: any) => setViewing(row);
 
   const save = async () => {
@@ -271,35 +323,84 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       return;
     }
 
+    // Reject malformed numeric inputs before constructing any write payload.
+    // Number("invalid") becomes NaN and must never reach the database.
+    const invalidNumber = formFields.find((f) => f.type === "number" &&
+      form[f.name] !== "" && form[f.name] !== undefined && form[f.name] !== null &&
+      !Number.isFinite(Number(form[f.name])));
+    if (invalidNumber) {
+      toast.error(`${invalidNumber.label} must be a valid number.`);
+      return;
+    }
+
     const payload: any = {};
     formFields.forEach((f) => {
       let v = form[f.name];
       if (v === "" || v === undefined) v = null;
       if (f.type === "number" && v !== null) v = Number(v);
-      payload[f.name] = v;
+      // UPDATE only fields that changed; full-row writes can require restricted
+      // column privileges (e.g. assigned_recruiter) even when unchanged.
+      const oldValue = editing?.[f.name];
+      const normalizedOld = oldValue === "" || oldValue === undefined ? null : oldValue;
+      // Treat an empty stored value and a cleared form input consistently.
+      // Numeric values may be returned as strings by the API.
+      const sameValue = f.type === "number"
+        ? (normalizedOld === null && v === null) ||
+          (normalizedOld !== null && v !== null && Number(normalizedOld) === v)
+        : normalizedOld === v;
+      if (!editing || !sameValue) payload[f.name] = v;
     });
-    if (form.candidate_uuid) payload.candidate_id = form.candidate_uuid;
-    if (form.client_uuid !== undefined) payload.client_id = form.client_uuid || null;
-    if (form.job_uuid !== undefined) payload.job_id = form.job_uuid || null;
+    if (form.candidate_uuid && (!editing || form.candidate_uuid !== editing.candidate_uuid)) payload.candidate_id = form.candidate_uuid;
+    if (form.client_uuid !== undefined && (!editing || (form.client_uuid || null) !== (editing.client_uuid ?? null))) payload.client_id = form.client_uuid || null;
+    if (form.job_uuid !== undefined && (!editing || (form.job_uuid || null) !== (editing.job_uuid ?? null))) payload.job_id = form.job_uuid || null;
+    if (singleMutationPending.current || bulkMutationPending.current) return;
+    singleMutationPending.current = true;
+    try {
     if (editing) {
-      const { error } = await supabase.from(table as any).update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
+      if (Object.keys(payload).length === 0) { setOpen(false); return; }
+      const { data, error } = await supabase.from(table as any).update(payload).eq("id", editing.id).select("id").maybeSingle();
+      if (error || !data || (data as unknown as { id: string }).id !== editing.id) {
+        if (!error) await load();
+        return toast.error(error?.message ?? "Update was not confirmed. Check permissions and refresh.");
+      }
       toast.success("Updated");
     } else {
       const { data: u } = await supabase.auth.getUser();
       if (u.user) payload.created_by = u.user.id;
-      const { error } = await supabase.from(table as any).insert(payload);
-      if (error) return toast.error(error.message);
+      const { data, error } = await supabase.from(table as any).insert(payload).select("id").maybeSingle();
+      if (error || !(data as unknown as { id?: string } | null)?.id) {
+        if (!error) await load();
+        return toast.error(error?.message ?? "Creation was not confirmed. Refresh before retrying.");
+      }
       toast.success("Created");
     }
     setOpen(false); load();
+    } catch (cause) {
+      // A rejected response is not proof that the database rejected the write.
+      toast.error(`Write outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}`);
+      await load();
+    } finally {
+      singleMutationPending.current = false;
+    }
   };
 
   const remove = async (row: any) => {
+    if (singleMutationPending.current || bulkMutationPending.current) return;
     if (!confirm("Delete this record?")) return;
-    const { error } = await supabase.from(table as any).delete().eq("id", row.id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted"); load();
+    singleMutationPending.current = true;
+    try {
+      const { data, error } = await supabase.from(table as any).delete().eq("id", row.id).select("id").maybeSingle();
+      if (error || !data || (data as unknown as { id: string }).id !== row.id) {
+        await load();
+        return toast.error(error?.message ?? "Deletion was not confirmed. Inspect refreshed records before retrying.");
+      }
+      toast.success("Deleted"); load();
+    } catch (cause) {
+      toast.error(`Deletion outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}`);
+      await load();
+    } finally {
+      singleMutationPending.current = false;
+    }
   };
 
   // Filtering used to be scoped to `tableFields` — whatever columns the
@@ -364,6 +465,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const hasColumnFilters = Object.values(columnFilters).some((v) => v.trim());
   const setColumnFilter = (name: string, value: string) => {
+    setSelected(new Set());
     setColumnFilters((prev) => {
       const next = { ...prev };
       if (!value) delete next[name];
@@ -377,6 +479,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const someSelected = !allSelected && filteredIds.some((id) => selected.has(id));
 
   const toggleAll = (checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       filteredIds.forEach((id) => (checked ? next.add(id) : next.delete(id)));
@@ -385,6 +488,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const toggleRow = (id: string, checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       checked ? next.add(id) : next.delete(id);
@@ -392,7 +496,36 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     });
   };
 
+  // Keep returned IDs below common PostgREST max-rows limits. Stop on the first
+  // unconfirmed batch; earlier batches may already have committed.
+  const confirmBulkBatches = async (ids: string[], action: "delete" | "update", patch?: Record<string, any>) => {
+    const confirmed = new Set<string>();
+    for (let start = 0; start < ids.length; start += 100) {
+      const batch = ids.slice(start, start + 100);
+      const query = action === "delete"
+        ? supabase.from(table as any).delete().in("id", batch)
+        : supabase.from(table as any).update(patch!).in("id", batch);
+      let data: { id: string }[] | null;
+      try {
+        const response = await query.select("id");
+        if (response.error) return { confirmed, error: `Batch not confirmed. Inspect refreshed records before retrying; earlier batches may have committed. ${response.error.message}` };
+        data = response.data as unknown as { id: string }[] | null;
+      } catch (cause) {
+        return { confirmed, error: `Request outcome unknown; the server may have committed this batch. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Network request failed"}` };
+      }
+      const returned = ((data ?? []) as unknown as { id: string }[]).map((row) => row.id);
+      const returnedSet = new Set(returned);
+      if (returnedSet.size !== batch.length || batch.some((id) => !returnedSet.has(id))) {
+        returnedSet.forEach((id) => { if (batch.includes(id)) confirmed.add(id); });
+        return { confirmed, error: "Batch result incomplete. The remaining IDs have an unknown outcome, not a confirmed failure. Inspect refreshed records before retrying." };
+      }
+      returnedSet.forEach((id) => confirmed.add(id));
+    }
+    return { confirmed, error: null };
+  };
+
   const bulkDelete = async () => {
+    if (bulkMutationPending.current || singleMutationPending.current) return;
     const ids = Array.from(selected);
     if (!ids.length) return;
     const warning =
@@ -400,11 +533,28 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         ? `Delete ${ids.length} candidate(s)? This will also permanently delete their linked submissions, interviews, offers, and stage history.`
         : `Delete ${ids.length} selected record(s)? This cannot be undone.`;
     if (!confirm(warning)) return;
+    bulkMutationPending.current = true;
     setBulkDeleting(true);
-    const { error } = await supabase.from(table as any).delete().in("id", ids);
-    setBulkDeleting(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Deleted ${ids.length} record(s)`);
+    let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
+    let confirmationCountKnown = true;
+    try {
+      result = await confirmBulkBatches(ids, "delete");
+    } catch (cause) {
+      confirmationCountKnown = false;
+      result = { confirmed: new Set<string>(), error: `Unexpected bulk delete failure; outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Request failed"}` };
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkDeleting(false);
+    }
+    const { confirmed, error } = result;
+    if (error || confirmed.size !== ids.length) {
+      // Unknown or incomplete outcomes must not leave a one-click replay selection.
+      // Operators must inspect the refreshed records and explicitly reselect targets.
+      setSelected(new Set());
+      await load();
+      return toast.error(`${confirmationCountKnown ? `Deletion explicitly confirmed for ${confirmed.size} of ${ids.length} records.` : `Deletion confirmation count unavailable for ${ids.length} requested records.`} Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
+    }
+    toast.success(`Deleted ${confirmed.size} record(s)`);
     setSelected(new Set());
     load();
   };
@@ -416,17 +566,41 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const applyBulkEdit = async () => {
+    if (bulkMutationPending.current || singleMutationPending.current) return;
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
     let v = bulkEditValue;
     if (v === "" || v === undefined) v = null;
-    if (field.type === "number" && v !== null) v = Number(v);
+    if (field.type === "number" && v !== null) {
+      v = Number(v);
+      if (!Number.isFinite(v)) {
+        toast.error(`${field.label} must be a valid number.`);
+        return;
+      }
+    }
+    bulkMutationPending.current = true;
     setBulkEditSaving(true);
-    const { error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids);
-    setBulkEditSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Updated ${field.label} for ${ids.length} record(s)`);
+    let result: Awaited<ReturnType<typeof confirmBulkBatches>>;
+    let confirmationCountKnown = true;
+    try {
+      result = await confirmBulkBatches(ids, "update", { [field.name]: v });
+    } catch (cause) {
+      confirmationCountKnown = false;
+      result = { confirmed: new Set<string>(), error: `Unexpected bulk update failure; outcome unknown. Inspect refreshed records before retrying. ${cause instanceof Error ? cause.message : "Request failed"}` };
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkEditSaving(false);
+    }
+    const { confirmed, error } = result;
+    if (error || confirmed.size !== ids.length) {
+      // Unknown or incomplete outcomes must not leave a one-click replay selection.
+      // Operators must inspect the refreshed records and explicitly reselect targets.
+      setSelected(new Set());
+      await load();
+      return toast.error(`${confirmationCountKnown ? `Update explicitly confirmed for ${confirmed.size} of ${ids.length} records.` : `Update confirmation count unavailable for ${ids.length} requested records.`} Other outcomes may be unknown. Inspect refreshed records and reselect targets before retrying. ${error ?? "Review remaining records."}`);
+    }
+    toast.success(`Updated ${field.label} for ${confirmed.size} record(s)`);
     setSelected(new Set());
     closeBulkEdit();
     load();
@@ -473,12 +647,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
               style={{ paddingLeft: "2.5rem" }}
               placeholder="Search…"
               value={search}
-              onChange={(e)=>setSearch(e.target.value)}
+              onChange={(e)=>{ setSelected(new Set()); setSearch(e.target.value); }}
             />
           </div>
           <Button
             variant="outline"
-            onClick={() => setColumnFilters({})}
+            onClick={() => { setSelected(new Set()); setColumnFilters({}); }}
             disabled={!hasColumnFilters}
           >
             <FilterX className="h-4 w-4 mr-2"/>
@@ -607,7 +781,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
             </Button>
           )}
           {editable && (
-            <Dialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) offerLookupSequence.current++; setOpen(nextOpen); }}>
               <DialogTrigger asChild>
                 <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2"/>Add</Button>
               </DialogTrigger>
