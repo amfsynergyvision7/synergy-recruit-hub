@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const sql=readFileSync(new URL('./metadata-snapshot-readonly.sql',import.meta.url),'utf8');
 const statements=sql.replace(/--[^\n]*/g,'').split(';').map(x=>x.trim()).filter(Boolean);
 test('metadata inventory is SELECT-only and never queries business rows',()=>{
- assert.equal(statements.length,12,'all twelve metadata inventories must remain present');
+ assert.equal(statements.length,15,'all fifteen read-only metadata inventories must remain present');
  for(const stmt of statements){
   assert.match(stmt,/^SELECT\b/i);
   const withoutLiterals=stmt.replace(/'(?:''|[^'])*'/g,"''");
@@ -14,8 +14,8 @@ test('metadata inventory is SELECT-only and never queries business rows',()=>{
  }
  assert.doesNotMatch(sql,/\b(?:FROM|JOIN)\s+(?:public\.|auth\.|storage\.)/i);
 });
-test('schema contract covers policies, RLS, grants, columns, views, functions, triggers and constraints',()=>{
- for(const item of ['pg_policies','relrowsecurity','role_table_grants','column_privileges','pg_get_viewdef','pg_get_functiondef','pg_trigger','pg_constraint','pg_attribute','has_table_privilege']){
+test('schema contract covers policies, RLS, grants, columns, views, functions, triggers, constraints and indexes',()=>{
+ for(const item of ['pg_policies','relrowsecurity','role_table_grants','column_privileges','pg_get_viewdef','pg_get_functiondef','pg_trigger','pg_constraint','pg_attribute','has_table_privilege','pg_index','pg_get_indexdef','pg_get_triggerdef']){
   assert.ok(sql.includes(item),'metadata recipe missing '+item);
  }
 });
