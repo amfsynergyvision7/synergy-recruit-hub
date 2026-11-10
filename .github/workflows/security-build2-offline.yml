@@ -318,11 +318,20 @@ jobs:
           BUILD2_PG_RESULT: ${{ needs.isolated-postgres-view-rls.result }}
         run: |
           node security/build2/batch-ci-report.mjs supabase/migrations security/build2/release-evidence.json build2-batch-report.json
+      - name: Publish consolidated HOLD summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [ -f build2-batch-report.json ]; then
+            node --input-type=module -e "import {readFileSync,appendFileSync} from 'node:fs'; const r=JSON.parse(readFileSync('build2-batch-report.json','utf8')); const lines=['## AMF Build 2 — '+r.status,'','- Verification: '+r.verification,'- Original migrations verified in this run: '+r.ci_verified_replays+'/26','- Remaining dependency review: '+r.remaining_manual_dependency_review+'/26','- Authorization scenarios executed: 0/140','- Release gates passed: 0/9','- No production equivalence or release approval'];appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join('\\n')+'\\n');"
+          else
+            echo '## AMF Build 2 — report missing; HOLD and NOT VERIFIED' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload report even when prerequisite tests fail
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: build2-disposable-batch-report
           path: build2-batch-report.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
