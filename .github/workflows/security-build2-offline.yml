@@ -8,6 +8,14 @@ on:
       - 'src/routes/_app.candidates.tsx'
       - '.github/workflows/security-build2-offline.yml'
       - '.github/workflows/step35e-security-gates.yml'
+      - 'tests/step35e-*.test.mjs'
+      - 'tests/security-release-gates.test.mjs'
+      - 'src/lib/security/**'
+      - 'src/lib/ai.*'
+      - 'src/lib/email.*'
+      - 'src/integrations/supabase/**'
+      - 'package.json'
+      - 'scripts/vercel-build.mjs'
   pull_request:
     paths:
       - 'security/build2/**'
@@ -16,6 +24,14 @@ on:
       - 'src/routes/_app.candidates.tsx'
       - '.github/workflows/security-build2-offline.yml'
       - '.github/workflows/step35e-security-gates.yml'
+      - 'tests/step35e-*.test.mjs'
+      - 'tests/security-release-gates.test.mjs'
+      - 'src/lib/security/**'
+      - 'src/lib/ai.*'
+      - 'src/lib/email.*'
+      - 'src/integrations/supabase/**'
+      - 'package.json'
+      - 'scripts/vercel-build.mjs'
 permissions:
   contents: read
 jobs:
