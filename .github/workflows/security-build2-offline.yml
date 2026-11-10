@@ -137,6 +137,8 @@ jobs:
         run: node security/build2/google-mapping-source-guard.mjs supabase/migrations
       - name: Rehearse original mapping function and synthetic trigger behavior
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-google-mapping-function.integration.sql
+      - name: Reject unsafe relationship backfill promotion
+        run: node --test security/build2/relationship-backfill-risk.test.mjs
       - name: Guard original integration owner backfill exact source
         run: node security/build2/integration-owner-original-source-guard.mjs supabase/migrations
       - name: Rehearse original integration owner backfill twice with synthetic rollback
