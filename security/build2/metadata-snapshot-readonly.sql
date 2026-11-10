@@ -112,3 +112,36 @@ FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
 CROSS JOIN (VALUES ('anon'),('authenticated')) AS api(role_name)
 WHERE n.nspname='public' AND c.relkind IN ('r','p','v')
 ORDER BY c.relname,role_name;
+
+
+-- 13. Index definitions, uniqueness and partial predicates for schema parity.
+SELECT n.nspname AS schema_name, c.relname AS table_name,
+       i.relname AS index_name, ix.indisunique AS is_unique,
+       ix.indisprimary AS is_primary, pg_get_indexdef(i.oid) AS index_definition,
+       pg_get_expr(ix.indpred,ix.indrelid) AS partial_predicate
+FROM pg_index ix
+JOIN pg_class i ON i.oid=ix.indexrelid
+JOIN pg_class c ON c.oid=ix.indrelid
+JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname='public' AND c.relkind IN ('r','p')
+ORDER BY c.relname,i.relname;
+
+-- 14. Foreign-key target relationships and delete/update behavior.
+SELECT src.relname AS source_table, con.conname AS foreign_key,
+       target.relname AS referenced_table,
+       pg_get_constraintdef(con.oid,true) AS constraint_definition
+FROM pg_constraint con
+JOIN pg_class src ON src.oid=con.conrelid
+JOIN pg_namespace n ON n.oid=src.relnamespace
+JOIN pg_class target ON target.oid=con.confrelid
+WHERE n.nspname='public' AND con.contype='f'
+ORDER BY src.relname,con.conname;
+
+-- 15. Enabled trigger ordering and definitions, including side-effect paths.
+SELECT c.relname AS table_name, t.tgname AS trigger_name,
+       t.tgenabled AS enabled_state, pg_get_triggerdef(t.oid,true) AS trigger_definition
+FROM pg_trigger t
+JOIN pg_class c ON c.oid=t.tgrelid
+JOIN pg_namespace n ON n.oid=c.relnamespace
+WHERE n.nspname='public' AND NOT t.tgisinternal
+ORDER BY c.relname,t.tgname;
