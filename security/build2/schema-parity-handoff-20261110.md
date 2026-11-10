@@ -28,3 +28,10 @@ The read-only catalog exporter `schema-parity-export-readonly.sql` now produces 
 - Compare snapshots, investigate every missing/extra/changed object, then run the role authorization matrix with synthetic identities.
 - Record source timestamp, version, reviewer, exact source/target scope and a checksum of the *private* export in a restricted evidence register.
 - A passing comparator is not a release authorization; require independent review, full acceptance and explicit management approval.
+
+## Remaining parity limits and independent review requirements
+- Current grants inventory evaluates effective access for `anon`, `authenticated`, and `service_role` where those roles exist, including relation, column, sequence, function and schema privileges. It does not yet model every custom role, grant option, role membership, default privileges or ownership.
+- The catalog export is scoped to the `public` schema. Objects, policies and grants in other schemas, including application dependencies, need a separately reviewed inventory before claiming full equivalence.
+- View options and function source are included, but a matching definition alone does not prove runtime isolation, RLS behavior, role reassignment safety, or browser compatibility.
+- A disposable negative test for column privilege escalation passed at commit `126d6465`; the RPC privilege negative test added later must pass CI independently before being marked verified.
+- The final evidence pack must record role-specific expected/actual outcomes, source coverage, test logs, rollback rehearsal and independent sign-off; until then all release gates remain false.
