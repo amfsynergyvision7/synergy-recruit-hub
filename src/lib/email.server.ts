@@ -83,8 +83,8 @@ export async function sendEmail(opts: {
   // something the SMTP server's strict parser rejects.
   throw new Error('SEC-11: SMTP transport remains disabled pending separate management authorization and durable outbox verification.');
   assertSmtpApproved(process.env.CRM_SMTP_DISPATCH_APPROVED);
-  const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASSWORD?.trim();
+  const user: string = process.env.SMTP_USER?.trim() ?? "";
+  const pass: string = process.env.SMTP_PASSWORD?.trim() ?? "";
   if (!user || !pass) {
     const missing = [!user && "SMTP_USER", !pass && "SMTP_PASSWORD"].filter(Boolean).join(", ");
     return { success: false, error: `${missing} not configured. Add it as an environment variable and redeploy.` };
