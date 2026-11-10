@@ -10,12 +10,23 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RefreshCw, TriangleAlert, UserPlus, UserCheck, FileWarning, FileX } from "lucide-react";
 
+type DriveImportOutcome = { status: string; fileName: string; reason?: string };
+type DriveImportSummary = {
+  outcomes: DriveImportOutcome[];
+  created: number;
+  updated: number;
+  totalInFolder: number;
+  alreadyImported: number;
+  processed: number;
+  remaining: number;
+};
+
 export function DriveImportButton() {
   const [open, setOpen] = useState(false);
 
   const runCheck = useServerFn(checkDriveForNewResumes);
-  const mut = useMutation({
-    mutationFn: () => runCheck(),
+  const mut = useMutation<DriveImportSummary, Error>({
+    mutationFn: async (): Promise<DriveImportSummary> => runCheck() as Promise<DriveImportSummary>,
     onSuccess: () => setOpen(true),
   });
 
