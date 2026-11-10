@@ -137,6 +137,10 @@ jobs:
         run: node security/build2/google-mapping-source-guard.mjs supabase/migrations
       - name: Rehearse original mapping function and synthetic trigger behavior
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-google-mapping-function.integration.sql
+      - name: Guard original candidate sync migration exact source
+        run: node security/build2/candidate-sync-original-source-guard.mjs supabase/migrations
+      - name: Rehearse original candidate sync migration twice with synthetic rollback
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-candidate-sync.integration.sql
       - name: Guard original branding migration exact source
         run: node security/build2/branding-original-source-guard.mjs supabase/migrations
       - name: Rehearse original branding migration with synthetic storage rollback
