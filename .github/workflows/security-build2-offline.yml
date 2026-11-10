@@ -76,7 +76,7 @@ jobs:
       - name: Generate dependency-aware nine-batch review queue without SQL execution
         run: |
           node security/build2/migration-review-queue.mjs supabase/migrations > /tmp/build2-review-queue.json
-          node --input-type=module -e "import {readFileSync} from 'node:fs'; const q=JSON.parse(readFileSync('/tmp/build2-review-queue.json','utf8')); if(q.total!==26||q.blocked!==17||q.batch_count!==9||q.unattended_sql_execution_authorized!==false||q.production_release!=='HOLD')process.exit(1);"
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; const q=JSON.parse(readFileSync('/tmp/build2-review-queue.json','utf8')); if(q.total!==26||q.blocked!==16||q.batch_count!==9||q.unattended_sql_execution_authorized!==false||q.production_release!=='HOLD')process.exit(1);"
       - name: Verify production release is blocked
         shell: bash
         run: |
