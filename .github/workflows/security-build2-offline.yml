@@ -141,7 +141,7 @@ jobs:
         run: node --test security/build2/relationship-backfill-risk.test.mjs
       - name: Guard original integration owner backfill exact source
         run: node security/build2/integration-owner-original-source-guard.mjs supabase/migrations
-      - name: Demonstrate and reject ambiguous submission, offer, and billing matches in disposable PostgreSQL
+      - name: Validate synthetic submission, offer, and billing ambiguity with corrected SQL delimiters
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/relationship-backfill-ambiguity.integration.sql
       - name: Rehearse original integration owner backfill twice with synthetic rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-integration-owner.integration.sql
