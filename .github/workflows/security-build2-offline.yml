@@ -137,6 +137,10 @@ jobs:
         run: node security/build2/google-mapping-source-guard.mjs supabase/migrations
       - name: Rehearse original mapping function and synthetic trigger behavior
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-google-mapping-function.integration.sql
+      - name: Guard original email log migration exact source
+        run: node security/build2/email-log-original-source-guard.mjs supabase/migrations
+      - name: Rehearse original email log migration with synthetic rollback
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-email-log.integration.sql
       - name: Guard both original RLS policy migrations
         run: node security/build2/rls-policy-original-source-guard.mjs supabase/migrations
       - name: Rehearse two original RLS policy migrations with synthetic rollback
