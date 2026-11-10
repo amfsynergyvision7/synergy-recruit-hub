@@ -51,3 +51,11 @@ test('missing both sides of a required section cannot be mistaken for parity',()
  delete expected.triggers;delete actual.triggers;
  assert.equal(compareSnapshots(expected,actual).equal,false);
 });
+
+test('zero-argument PostgreSQL function identity is valid and changes are detected',()=>{
+ const expected=clone(sample),actual=clone(sample);
+ expected.functions[0].arguments='';actual.functions[0].arguments='';
+ assert.equal(compareSnapshots(expected,actual).equal,true);
+ actual.functions[0].function_definition='SELECT 2';
+ assert.equal(compareSnapshots(expected,actual).findings[0].type,'changed_definition');
+});
