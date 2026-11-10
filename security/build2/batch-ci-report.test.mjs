@@ -7,16 +7,22 @@ import {makeBatchReport} from './batch-ci-report.mjs';
 const dir=fileURLToPath(new URL('../../supabase/migrations/',import.meta.url));
 const release=JSON.parse(readFileSync(fileURLToPath(new URL('./release-evidence.json',import.meta.url)),'utf8'));
 const triage=bulkMigrationTriage(dir);
-const green={'application-typescript-check':'success','offline-security-tests':'success','isolated-postgres-view-rls':'success'};
-test('green CI produces 25 disposable rehearsals, 1 blocked, HOLD and no release gates',()=>{
+const green={'application-typescript-check':'success','offline-security-tests':'success','isolated-postgres-view-rls':'success','isolated-postgres-extensions':'success'};
+test('green CI produces 26 disposable rehearsals, no blocked files, HOLD and no release gates',()=>{
  const r=makeBatchReport({triage,release,jobResults:green,sha:'synthetic',runId:'synthetic'});
  assert.equal(r.verification,'DISPOSABLE_CI_JOBS_PASSED');
- assert.equal(r.ci_verified_replays,25);assert.equal(r.blocked_files.length,1);
+ assert.equal(r.ci_verified_replays,26);assert.equal(r.blocked_files.length,0);
  assert.equal(r.release_gates_passed,0);assert.equal(r.status,'HOLD');
 });
 test('failed or skipped CI cannot claim verified migration replay',()=>{
  for(const state of ['failure','cancelled','skipped','unknown']){
   const r=makeBatchReport({triage,release,jobResults:{...green,'isolated-postgres-view-rls':state}});
+  assert.equal(r.ci_verified_replays,0);assert.equal(r.verification,'NOT_VERIFIED');
+ }
+});
+test('missing or failed extension job cannot certify all original migrations',()=>{
+ for(const state of ['failure','cancelled','skipped','unknown']){
+  const r=makeBatchReport({triage,release,jobResults:{...green,'isolated-postgres-extensions':state}});
   assert.equal(r.ci_verified_replays,0);assert.equal(r.verification,'NOT_VERIFIED');
  }
 });

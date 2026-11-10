@@ -1,16 +1,14 @@
 // Offline dependency-aware review queue. This script never executes SQL.
 import {bulkMigrationTriage} from './bulk-migration-triage.mjs';
 import {pathToFileURL} from 'node:url';
-const groups=[
- ['extension_dependencies','20260513101842_cb1bc9ab-e5f4-4b42-b09a-60588844ca6c.sql']
-];
+const groups=[];
 export function migrationReviewQueue(directory){
  const triage=bulkMigrationTriage(directory);
- if(triage.total!==26||triage.subset_candidates!==25||triage.remaining!==1)throw Error('Inventory drift: manual queue must be reviewed');
+ if(triage.total!==26||triage.subset_candidates!==26||triage.remaining!==0)throw Error('Inventory drift: manual queue must be reviewed');
  const blocked=triage.items.filter(x=>!x.subset_rehearsed);
  const expected=new Set(blocked.map(x=>x.file));
  const assigned=groups.flatMap(([, ...files])=>files);
- if(assigned.length!==1||new Set(assigned).size!==1||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
+ if(assigned.length!==0||new Set(assigned).size!==0||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
  const batches=groups.map(([name,...files])=>({
   name,files:files.map(file=>{
    const item=blocked.find(x=>x.file===file);
@@ -18,7 +16,7 @@ export function migrationReviewQueue(directory){
   }),status:'BLOCKED_PENDING_DEPENDENCY_AND_SECURITY_REVIEW',
   requirements:['approved synthetic dependency fixtures','individual source-guard review','transactional rollback and idempotence tests','explicit allowlist change review']
  }));
- return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:25,blocked:1,batch_count:batches.length,
+ return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:26,blocked:0,batch_count:batches.length,
   unattended_sql_execution_authorized:false,production_release:'HOLD',batches};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){

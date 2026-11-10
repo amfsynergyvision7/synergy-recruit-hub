@@ -1,13 +1,6 @@
 name: Isolated original extension migration rehearsal
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - security/build2-step35e-main-delta-draft-20261110
-    paths:
-      - '.github/workflows/security-build2-extensions.yml'
-      - 'security/build2/actual-extensions-original.integration.sql'
-      - 'security/build2/extensions-original-source-guard.mjs'
 permissions:
   contents: read
 jobs:
