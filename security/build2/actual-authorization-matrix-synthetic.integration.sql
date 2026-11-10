@@ -83,7 +83,7 @@ REVOKE ALL ON FUNCTION build2_case.admin_candidate_count(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION build2_case.activate_financial_workflow() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION build2_case.admin_candidate_count(uuid) TO build2_case_admin;
 -- Dedicated integration-ingest boundary: no human role has EXECUTE grant.
-CREATE FUNCTION build2_case.ingest_candidate() RETURNS integer LANGUAGE sql AS $ SELECT 1 $;
+CREATE FUNCTION build2_case.ingest_candidate() RETURNS integer LANGUAGE sql AS $$ SELECT 1 $$;
 REVOKE ALL ON FUNCTION build2_case.ingest_candidate() FROM PUBLIC;
 CREATE TABLE build2_case_results(id text PRIMARY KEY,expected text NOT NULL,actual text NOT NULL,role text NOT NULL,case_id text NOT NULL);
 
