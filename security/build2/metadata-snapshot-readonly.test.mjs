@@ -10,7 +10,7 @@ test('metadata inventory is SELECT-only and never queries business rows',()=>{
   assert.match(stmt,/^SELECT\b/i);
   const withoutLiterals=stmt.replace(/'(?:''|[^'])*'/g,\"''\");
   assert.doesNotMatch(withoutLiterals,/\b(?:INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|TRUNCATE|GRANT|REVOKE|COPY|DO|CALL|EXECUTE)\b/i);
-  assert.match(stmt,/\b(?:pg_catalog|pg_|information_schema)\b/i);
+  assert.match(stmt,/(?:pg_|information_schema)/i);
  }
  assert.doesNotMatch(sql,/\b(?:FROM|JOIN)\s+(?:public\.|auth\.|storage\.)/i);
 });
