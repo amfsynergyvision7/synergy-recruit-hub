@@ -156,6 +156,23 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-recruiter-ownership-rls.integration.sql
       - name: Verify recruiter column UPDATE grants prevent ownership reassignment
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-column-grant-ownership.integration.sql
+      - name: Export and compare real disposable PostgreSQL catalog snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -X -At -v ON_ERROR_STOP=1 -f security/build2/schema-parity-export-readonly.sql > /tmp/build2-catalog-before.json
+          cp /tmp/build2-catalog-before.json /tmp/build2-catalog-equal.json
+          node security/build2/schema-parity.mjs /tmp/build2-catalog-before.json /tmp/build2-catalog-equal.json
+          psql -X -v ON_ERROR_STOP=1 -c "CREATE TABLE public.build2_parity_negative_fixture (id integer PRIMARY KEY);"
+          psql -X -At -v ON_ERROR_STOP=1 -f security/build2/schema-parity-export-readonly.sql > /tmp/build2-catalog-changed.json
+          if node security/build2/schema-parity.mjs /tmp/build2-catalog-before.json /tmp/build2-catalog-changed.json; then
+            echo "FAIL: schema drift was not detected"
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -c "DROP TABLE public.build2_parity_negative_fixture;"
+          rm -f /tmp/build2-catalog-before.json /tmp/build2-catalog-equal.json /tmp/build2-catalog-changed.json
+          echo "PASS: live disposable catalog export and negative schema-drift detection."
+
       - name: Rehearse disposable synthetic database backup and restore
         shell: bash
         run: |
