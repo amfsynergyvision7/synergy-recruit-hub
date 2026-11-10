@@ -31,3 +31,11 @@
 5. Obtain independent security review, approved release evidence, maintenance/rollback plan and explicit release authorization.
 
 All nine entries in `security/build2/release-evidence.json` remain `passed:false`. No staging or production writes, merges, deployments, external communications, or financial activation authorized.
+
+## Consolidated batch milestone — 2026-11-10
+- Latest fully green prior checkpoint: `126d6465` (Build 2 and Step 35E); subsequent privilege tests and documentation require their own CI checks.
+- New machine-readable `authorization-acceptance-matrix.json` defines 20 synthetic scenarios × seven role contexts = **140 provisional expected outcomes**, including cross-recruiter access, confidential columns, views, RPCs, stage history, bulk unknown-commit outcomes, role escalation and financial inactivity.
+- `authorization-acceptance-matrix.test.mjs` checks role completeness, uniqueness and fail-closed high-risk defaults. These are **contract checks, not executed database/browser authorization evidence**.
+- Policy-sensitive expectations (assignment, deletion, admin, finance and integration scopes) are **proposed security baselines** pending explicit management confirmation; they do not supersede approved company policies.
+- Progress reporting rule: mark a milestone complete only when its acceptance evidence is green. A commit or additional planned scenario does not increase the overall estimate. Maintain provisional ~69% until an entire blocked workstream has been verified.
+- Batch next: obtain approved schema-only source; validate scope and private fingerprints; build disposable equivalent; execute 140 scenarios and capture actual vs expected results; independently review differences; then rehearse full rollback and browser flows. No automatic promotion or release-gate changes.
