@@ -18,4 +18,4 @@ Each input is an object containing arrays named `tables`, `columns`, `constraint
 5. Complete source and target metadata snapshots must be independently verified before this result is used in a release review.
 
 ## Important limits
-The existing catalog recipe has 15 queries and does not yet export all nine sections as one normalized JSON payload. Preparing that export safely is separate work. Production-schema-equivalent testing, full role and browser acceptance, and independent approval are **not** completed by this comparator. All release evidence flags remain false.
+The read-only catalog exporter `schema-parity-export-readonly.sql` now produces all nine sections as one JSON object. Its synthetic PostgreSQL CI check verifies identical snapshots and rejects an introduced schema change. The exporter has not been run against an approved full production-schema-equivalent database; source snapshot completeness and authenticity remain unverified. Production-schema-equivalent testing, full role and browser acceptance, and independent approval are **not** completed by this comparator. All release evidence flags remain false.
