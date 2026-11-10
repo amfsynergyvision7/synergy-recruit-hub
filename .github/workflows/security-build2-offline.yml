@@ -235,6 +235,15 @@ jobs:
           createdb build2_baseline_synthetic
           trap 'dropdb --if-exists build2_baseline_synthetic' EXIT
           PGDATABASE=build2_baseline_synthetic psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-baseline-original.integration.sql
+      - name: Pin exact original relationship migration source
+        run: node security/build2/relationship-original-source-guard.mjs
+      - name: Rehearse ORIGINAL relationship backfill twice with synthetic downstream billing and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          createdb build2_relationship_synthetic
+          trap 'dropdb --if-exists build2_relationship_synthetic' EXIT
+          PGDATABASE=build2_relationship_synthetic psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-relationship-original.integration.sql
       - name: Pin exact original activity and configurable-workflow migration sources
         run: node security/build2/activity-workflow-original-source-guard.mjs
       - name: Rehearse TWO original activity and configurable workflow migrations with synthetic rollback
