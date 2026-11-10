@@ -12,7 +12,7 @@ export function validateReplayContract(config,directory){
  if(config?.migration_mode!=='allowlisted_subset_only')issues.push('unapproved_migration_mode');
  const guard=validateSafeColumnMigrations(directory);
  if(!guard.safe)issues.push(...guard.issues.map(x=>'sql:'+x));
- const expected=['20260927180000_job_requirements_field.sql','20260927200000_candidate_resume_summary.sql','20260927210000_resume_import_folder_setting.sql','20260929050000_app_settings_color_theme.sql','20260930100000_candidate_ats_score.sql'];
+ const expected=['20260927180000_job_requirements_field.sql','20260927200000_candidate_resume_summary.sql','20260927210000_resume_import_folder_setting.sql','20260929050000_app_settings_color_theme.sql','20260930080000_careers_page.sql','20260930100000_candidate_ats_score.sql'];
  if(!Array.isArray(config?.files)||JSON.stringify(config.files)!==JSON.stringify(expected))issues.push('file_order_or_scope_mismatch');
  return {ready_for_disposable_subset_replay:issues.length===0,issues,production_equivalent:false,release_authorized:false};
 }
