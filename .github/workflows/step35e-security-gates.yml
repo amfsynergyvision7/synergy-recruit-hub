@@ -1,7 +1,7 @@
 name: Isolated Step 35E security gates
 on:
   push:
-    branches: [security/step-35e-isolated-hardening, security/build2-step35e-integration-draft-20261110]
+    branches: [security/step-35e-isolated-hardening, security/build2-step35e-integration-draft-20261110, security/build2-step35e-main-delta-draft-20261110]
   workflow_dispatch:
 jobs:
   source-security-gates:
