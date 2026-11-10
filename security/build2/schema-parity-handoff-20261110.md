@@ -19,3 +19,12 @@ Each input is an object containing arrays named `tables`, `columns`, `constraint
 
 ## Important limits
 The read-only catalog exporter `schema-parity-export-readonly.sql` now produces all nine sections as one JSON object. Its synthetic PostgreSQL CI check verifies identical snapshots and rejects an introduced schema change. The exporter has not been run against an approved full production-schema-equivalent database; source snapshot completeness and authenticity remain unverified. Production-schema-equivalent testing, full role and browser acceptance, and independent approval are **not** completed by this comparator. All release evidence flags remain false.
+
+## Approved-environment handoff checklist (not authorization to access)
+- Obtain separate confirmation that the source is approved for read-only catalog extraction, including function/view source visibility and confidential literal handling.
+- Confirm the source PostgreSQL major version, role grants and schema search path; export only the nine catalog sections with the read-only exporter.
+- Keep snapshots in an access-controlled temporary workspace, not GitHub commits, CI artifacts or public logs.
+- Build the target from independently reviewed schema-only migration scripts in a disposable local PostgreSQL instance; do not clone or restore business records.
+- Compare snapshots, investigate every missing/extra/changed object, then run the role authorization matrix with synthetic identities.
+- Record source timestamp, version, reviewer, exact source/target scope and a checksum of the *private* export in a restricted evidence register.
+- A passing comparator is not a release authorization; require independent review, full acceptance and explicit management approval.
