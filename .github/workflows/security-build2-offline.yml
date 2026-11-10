@@ -4,6 +4,7 @@ on:
     paths:
       - 'security/build2/**'
       - 'src/components/CrudModule.tsx'
+      - 'src/components/DriveImportButton.tsx'
       - 'src/components/CandidateBoard.tsx'
       - 'src/routes/_app.candidates.tsx'
       - '.github/workflows/security-build2-offline.yml'
@@ -20,6 +21,7 @@ on:
     paths:
       - 'security/build2/**'
       - 'src/components/CrudModule.tsx'
+      - 'src/components/DriveImportButton.tsx'
       - 'src/components/CandidateBoard.tsx'
       - 'src/routes/_app.candidates.tsx'
       - '.github/workflows/security-build2-offline.yml'
