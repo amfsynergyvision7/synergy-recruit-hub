@@ -8,7 +8,7 @@ test('metadata inventory is SELECT-only and never queries business rows',()=>{
  assert.equal(statements.length,12,'all twelve metadata inventories must remain present');
  for(const stmt of statements){
   assert.match(stmt,/^SELECT\b/i);
-  const withoutLiterals=stmt.replace(/'(?:''|[^'])*'/g,\"''\");
+  const withoutLiterals=stmt.replace(/'(?:''|[^'])*'/g,"''");
   assert.doesNotMatch(withoutLiterals,/\b(?:INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|TRUNCATE|GRANT|REVOKE|COPY|DO|CALL|EXECUTE)\b/i);
   assert.match(stmt,/(?:pg_|information_schema)/i);
  }
