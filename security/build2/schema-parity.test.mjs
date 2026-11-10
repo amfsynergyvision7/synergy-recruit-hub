@@ -74,3 +74,18 @@ test('function EXECUTE privilege drift fails closed',()=>{
  actual.grants.push({schema_name:'public',object_name:'function:get_role(uuid)',role_name:'anon',object_type:'function',can_execute:true});
  assert.equal(compareSnapshots(expected,actual).findings[0].type,'changed_definition');
 });
+
+test('column-level SELECT grant drift is detected',()=>{
+ const expected=clone(sample),actual=clone(sample);
+ expected.grants.push({schema_name:'public',object_name:'column:candidates.email',role_name:'anon',object_type:'column',can_select:false});
+ actual.grants.push({schema_name:'public',object_name:'column:candidates.email',role_name:'anon',object_type:'column',can_select:true});
+ const result=compareSnapshots(expected,actual);
+ assert.equal(result.equal,false);
+ assert.ok(result.findings.some(f=>f.section==='grants'&&f.type==='changed_definition'));
+});
+test('sequence USAGE grant drift is detected',()=>{
+ const expected=clone(sample),actual=clone(sample);
+ expected.grants.push({schema_name:'public',object_name:'sequence:candidate_number_seq',role_name:'authenticated',object_type:'sequence',can_usage:false});
+ actual.grants.push({schema_name:'public',object_name:'sequence:candidate_number_seq',role_name:'authenticated',object_type:'sequence',can_usage:true});
+ assert.ok(compareSnapshots(expected,actual).findings.some(f=>f.section==='grants'&&f.type==='changed_definition'));
+});
