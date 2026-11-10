@@ -33,7 +33,7 @@ END $$;
 ROLLBACK;
 DO $$
 BEGIN
- IF to_regclass('public.notifications') IS NOT NULL OR to_regprocedure('public.has_role(uuid,public.app_role)') IS NOT NULL
+ IF to_regclass('public.notifications') IS NOT NULL OR EXISTS(SELECT 1 FROM pg_proc WHERE proname='has_role' AND pronamespace='public'::regnamespace)
  THEN RAISE EXCEPTION 'RLS synthetic fixture survived rollback'; END IF;
 END $$;
 SELECT 'PASS: two original RLS migrations replayed twice in disposable fixture and rolled back' AS result;
