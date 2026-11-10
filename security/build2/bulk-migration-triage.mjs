@@ -3,7 +3,7 @@ import {auditMigrationDirectory} from './migration-source-audit.mjs';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-const approvedSubset=['20260513123429_96eb00ba-85cc-4ea0-82f5-f72784d19773.sql','20260930050000_interview_scheduling_links.sql','20260930080000_careers_page.sql','20260513114418_a73bb859-8580-44ae-aa31-0ea0a49fb6cb.sql','20260927180000_job_requirements_field.sql','20260927200000_candidate_resume_summary.sql','20260927210000_resume_import_folder_setting.sql','20260929050000_app_settings_color_theme.sql','20260930100000_candidate_ats_score.sql'];
+const approvedSubset=['20260513123429_96eb00ba-85cc-4ea0-82f5-f72784d19773.sql','20260930050000_interview_scheduling_links.sql','20260930080000_careers_page.sql','20260513114418_a73bb859-8580-44ae-aa31-0ea0a49fb6cb.sql','20260927180000_job_requirements_field.sql','20260927200000_candidate_resume_summary.sql','20260927210000_resume_import_folder_setting.sql','20260929050000_app_settings_color_theme.sql','20260930100000_candidate_ats_score.sql','20260513114149_ef9683b0-d887-4e8d-bb05-5daedc4e6004.sql'];
 export function bulkMigrationTriage(directory){
  const audit=auditMigrationDirectory(directory);
  const items=audit.inventory.map(x=>{
@@ -27,6 +27,6 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  try{
   if(process.argv.length!==3)throw Error('Usage: node bulk-migration-triage.mjs supabase/migrations');
   const result=bulkMigrationTriage(process.argv[2]);console.log(JSON.stringify(result,null,2));
-  if(result.total!==26||result.subset_candidates!==9)process.exitCode=1;
+  if(result.total!==26||result.subset_candidates!==10)process.exitCode=1;
  }catch(e){console.error(e.message);process.exitCode=1;}
 }
