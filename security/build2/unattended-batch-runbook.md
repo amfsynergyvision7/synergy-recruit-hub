@@ -22,3 +22,6 @@ Stop and investigate any failed guard, CI job, inventory change, missing artifac
 - Baseline commit `0d379aab`: Build 2 run `42772598089` and separate Step 35E run `42772598158` both passed; the Build 2 run uploaded `build2-disposable-batch-report`.
 - Subsequent workflow revisions require fresh CI verification on their own commit. The Actions run summary now shows the HOLD status and migration counts without downloading the JSON; missing JSON artifacts fail the upload step rather than merely warning.
 - A green run verifies only the currently allowlisted nine original migrations. Do not infer that 17 remaining files have been executed.
+
+## Dependency-aware static review batches
+Run `node security/build2/migration-review-queue.mjs supabase/migrations` to generate the deterministic nine-batch review queue covering all 17 blocked original migration sources. The output records each original file hash, risk reasons, review prerequisites and explicit `original_sql_execution_authorized:false`. CI checks this queue offline. **No new original SQL migrations are added to the execution allowlist by this change.** Review grouping is a planning tool, not approval or proof of safe replay.
