@@ -37,3 +37,10 @@ Do not label static preflight or manifest generation as migration replay. Do not
 - Added two original, nonfinancial settings-column migrations: `20260927210000_resume_import_folder_setting.sql` and `20260929050000_app_settings_color_theme.sql`. The disposable rehearsal now creates synthetic `public.app_settings`, applies five original files twice, validates seven columns including the non-null `neon` default, and rolls back.
 - Both settings additions rely on existing app-settings policies and do **not** independently test those policies. Their base table creation and branding storage migrations are **not** included in this replay.
 - The fail-closed SQL statement allowlist, pinned contract and negative tests were updated to the five-file subset. CI must pass before treating this expansion as verified.
+
+## Batch completion protocol (management request, 2026-11-10)
+- Continue safe draft-only migration rehearsals in batches, without requiring routine per-file confirmation. The reviewed subset currently comprises nine original files; remaining seventeen are **not** pre-authorized for execution.
+- Before adding a file: classify its SQL and dependency graph; exclude destructive, financial, privileged, extension-dependent, auth/storage-dependent or external-side-effect SQL from unattended execution. Require exact source guard, synthetic fixture, isolated PostgreSQL target assertion, idempotence/behavior checks and rollback.
+- Preserve all nine release gates as failed/HOLD; never merge, deploy, touch staging/production, enable cron/net, run financial triggers, send emails, or access candidate records.
+- A migration may be marked verified only after both CI workflows pass on the same latest commit. Static classification alone is not a successful replay. Unsafe files remain blocked rather than being counted as complete.
+- If remaining files cannot be executed within the authorized scope, produce an explicit blocked-file list and required approvals rather than manufacturing 26/26 coverage.
