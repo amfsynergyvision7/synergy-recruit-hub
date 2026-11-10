@@ -1,7 +1,12 @@
 import { assertExternalAiApproved } from "./security/release-gates.mjs";
 import { fetchResumeText } from "./resume-fetch.server";
 
-// Server-only external AI transport. This integration is currently disabled by\n// the SEC-12 hard gate below. Provider model identifiers, pricing, API\n// compatibility and data-processing terms must be revalidated before any\n// separately authorized reactivation; no free-tier or model availability\n// claim is approved by this code.\nconst GEMINI_MODEL = "gemini-3.5-flash-lite";
+// Server-only external AI transport. This integration is currently disabled by
+// the SEC-12 hard gate below. Provider model identifiers, pricing, API
+// compatibility and data-processing terms must be revalidated before any
+// separately authorized reactivation; no free-tier or model availability
+// claim is approved by this code.
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
 // Google's own Interactions API docs are inconsistent about the response
