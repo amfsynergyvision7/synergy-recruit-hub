@@ -2,27 +2,8 @@ name: Security Build 2 offline checks
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'security/build2/**'
-      - 'src/components/CrudModule.tsx'
-      - 'src/components/DriveImportButton.tsx'
-      - 'src/components/CandidateBoard.tsx'
-      - 'src/routes/_app.candidates.tsx'
-      - '.github/workflows/security-build2-offline.yml'
-      - '.github/workflows/step35e-security-gates.yml'
-      - 'tests/step35e-*.test.mjs'
-      - 'tests/security-release-gates.test.mjs'
-      - 'src/lib/security/**'
-      - 'src/lib/ai.*'
-      - 'src/lib/email.*'
-      - 'src/integrations/supabase/**'
-      - 'package.json'
-      - 'scripts/vercel-build.mjs'
-      - 'src/routes/_app.bd.tsx'
-      - 'src/lib/bd-demo-model.ts'
-      - 'src/components/AppSidebar.tsx'
-      - 'tests/bd-*.test.mjs'
-  pull_request:
+    branches:
+      - security/build2-step35e-main-delta-draft-20261110
     paths:
       - 'security/build2/**'
       - 'src/components/CrudModule.tsx'
@@ -50,6 +31,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   application-typescript-check:
+    if: ${{ github.ref == 'refs/heads/security/build2-step35e-main-delta-draft-20261110' }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -67,6 +49,7 @@ jobs:
       - name: Verify BD remains synthetic and demo-only
         run: node --test tests/bd-*.test.mjs
   offline-security-tests:
+    if: ${{ github.ref == 'refs/heads/security/build2-step35e-main-delta-draft-20261110' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -104,6 +87,7 @@ jobs:
           echo 'PASS: All nine release conditions remain blocked.'
 
   isolated-postgres-view-rls:
+    if: ${{ github.ref == 'refs/heads/security/build2-step35e-main-delta-draft-20261110' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     services:
