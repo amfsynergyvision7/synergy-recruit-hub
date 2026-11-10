@@ -8,10 +8,10 @@ const dir=fileURLToPath(new URL('../../supabase/migrations/',import.meta.url));
 const release=JSON.parse(readFileSync(fileURLToPath(new URL('./release-evidence.json',import.meta.url)),'utf8'));
 const triage=bulkMigrationTriage(dir);
 const green={'application-typescript-check':'success','offline-security-tests':'success','isolated-postgres-view-rls':'success'};
-test('green CI produces 18 disposable rehearsals, 8 blocked, HOLD and no release gates',()=>{
+test('green CI produces 19 disposable rehearsals, 7 blocked, HOLD and no release gates',()=>{
  const r=makeBatchReport({triage,release,jobResults:green,sha:'synthetic',runId:'synthetic'});
  assert.equal(r.verification,'DISPOSABLE_CI_JOBS_PASSED');
- assert.equal(r.ci_verified_replays,18);assert.equal(r.blocked_files.length,8);
+ assert.equal(r.ci_verified_replays,19);assert.equal(r.blocked_files.length,7);
  assert.equal(r.release_gates_passed,0);assert.equal(r.status,'HOLD');
 });
 test('failed or skipped CI cannot claim verified migration replay',()=>{
