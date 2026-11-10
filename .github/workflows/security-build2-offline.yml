@@ -119,6 +119,8 @@ jobs:
       PGDATABASE: build2_synthetic
     steps:
       - uses: actions/checkout@v4
+      - name: Verify pinned synthetic replay contract before PostgreSQL execution
+        run: node security/build2/migration-replay-contract-guard.mjs security/build2/disposable-replay-contract.json supabase/migrations
       - name: Reject non-allowlisted SQL before real migration subset replay
         run: node security/build2/safe-column-migration-guard.mjs supabase/migrations
       - name: Replay three actual safe-column migrations twice with disposable rollback
