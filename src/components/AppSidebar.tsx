@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Building2, Briefcase, Send, CalendarCheck,
-  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug, Activity, Sparkles, Users2, FileSpreadsheet, Workflow
+  FileSignature, Receipt, Bell, ScrollText, UserCog, Settings, LogOut, Upload, Plug, Activity, Sparkles, Users2, FileSpreadsheet, Workflow, Handshake
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -31,6 +31,10 @@ const items = [
   { title: "User Management", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
+
+const bdDemoItems = import.meta.env.VITE_ENABLE_BD_DEMO === "true"
+  ? [{ title: "Business Development · Demo", url: "/bd", icon: Handshake }]
+  : [];
 
 const adminItems = [
   { title: "Workflow Rules", url: "/workflow-rules", icon: Workflow },
@@ -88,7 +92,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminItems.map((item) => (
+                {[...bdDemoItems, ...adminItems].map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={path === item.url}>
                       <Link to={item.url}>
