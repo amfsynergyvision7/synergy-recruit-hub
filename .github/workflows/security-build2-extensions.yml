@@ -1,0 +1,57 @@
+name: Isolated original extension migration rehearsal
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - security/build2-step35e-main-delta-draft-20261110
+    paths:
+      - '.github/workflows/security-build2-extensions.yml'
+      - 'security/build2/actual-extensions-original.integration.sql'
+      - 'security/build2/extensions-original-source-guard.mjs'
+permissions:
+  contents: read
+jobs:
+  disposable-extension-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: supabase/postgres:17.11.0.018
+        env:
+          POSTGRES_PASSWORD: build2_synthetic_only
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 55432
+      PGUSER: postgres
+      PGPASSWORD: build2_synthetic_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fail closed unless using local synthetic Supabase PostgreSQL container
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PGHOST" = localhost
+          test "$PGPORT" = 55432
+          test "$PGDATABASE" = postgres
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -c 'select current_database()')" = postgres
+      - name: Verify exact original extension migration source
+        run: node security/build2/extensions-original-source-guard.mjs
+      - name: Execute original pg_cron and pg_net migration twice with transactional rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          before=$(psql -X -At -v ON_ERROR_STOP=1 -c "select coalesce(string_agg(extname || ':' || extversion, ',' order by extname),'none') from pg_extension where extname in ('pg_cron','pg_net')")
+          psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-extensions-original.integration.sql
+          after=$(psql -X -At -v ON_ERROR_STOP=1 -c "select coalesce(string_agg(extname || ':' || extversion, ',' order by extname),'none') from pg_extension where extname in ('pg_cron','pg_net')")
+          test "$before" = "$after"
+          echo "PASS: original extension migration reversible in disposable database; pre-existing extension state preserved"
