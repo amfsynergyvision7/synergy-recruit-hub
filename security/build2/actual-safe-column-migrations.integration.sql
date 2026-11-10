@@ -26,12 +26,20 @@ END $$;
 -- Idempotence on synthetic disposable schema.
 \ir ../../supabase/migrations/20260927180000_job_requirements_field.sql
 \ir ../../supabase/migrations/20260927200000_candidate_resume_summary.sql
+\ir ../../supabase/migrations/20260927210000_resume_import_folder_setting.sql
+\ir ../../supabase/migrations/20260929050000_app_settings_color_theme.sql
 \ir ../../supabase/migrations/20260930100000_candidate_ats_score.sql
-DO $ BEGIN
- IF NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='app_settings' AND column_name='default_color_theme' AND is_nullable='NO' AND column_default=\'\'\'neon\'\'\') THEN
+DO $$
+BEGIN
+ IF NOT EXISTS(
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema='public' AND table_name='app_settings'
+  AND column_name='default_color_theme'
+  AND is_nullable='NO' AND column_default LIKE '%neon%'
+ ) THEN
   RAISE EXCEPTION 'Theme default/nullability contract failed';
  END IF;
-END $;
+END $$;
 ROLLBACK;
 DO $$
 BEGIN
