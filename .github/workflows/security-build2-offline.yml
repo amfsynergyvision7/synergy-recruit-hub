@@ -20,7 +20,7 @@ on:
       - 'src/routes/_app.bd.tsx'
       - 'src/lib/bd-demo-model.ts'
       - 'src/components/AppSidebar.tsx'
-      - 'tests/bd-demo-model.test.mjs'
+      - 'tests/bd-*.test.mjs'
   pull_request:
     paths:
       - 'security/build2/**'
@@ -57,7 +57,7 @@ jobs:
       - name: Typecheck application
         run: npx tsc --noEmit
       - name: Verify BD remains synthetic and demo-only
-        run: npm run test:bd
+        run: node --test tests/bd-*.test.mjs
   offline-security-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 5
