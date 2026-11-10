@@ -21,3 +21,9 @@ test('export includes security-critical definitions and grants',()=>{
   assert.ok(sql.includes(expression),expression);
  }
 });
+
+test('export captures function EXECUTE, schema USAGE, and service role privileges',()=>{
+ for(const expression of ['has_function_privilege','has_schema_privilege',"'service_role'","'function:'","'schema:'"]){
+  assert.ok(sql.includes(expression),expression);
+ }
+});
