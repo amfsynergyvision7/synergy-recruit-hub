@@ -156,3 +156,17 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-recruiter-ownership-rls.integration.sql
       - name: Verify recruiter column UPDATE grants prevent ownership reassignment
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-column-grant-ownership.integration.sql
+      - name: Rehearse disposable synthetic database backup and restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          pg_dump -Fc --no-owner --no-acl -f /tmp/build2-synthetic-backup.dump "$PGDATABASE"
+          createdb build2_synthetic_restored
+          pg_restore --exit-on-error --no-owner --no-acl -d build2_synthetic_restored /tmp/build2-synthetic-backup.dump
+          query="SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v');"
+          before=$(psql -X -At -v ON_ERROR_STOP=1 -d "$PGDATABASE" -c "$query")
+          after=$(psql -X -At -v ON_ERROR_STOP=1 -d build2_synthetic_restored -c "$query")
+          test "$before" -gt 0
+          test "$before" -eq "$after"
+          echo "PASS: disposable synthetic backup restored with matching public relation count ($before)."
+          rm -f /tmp/build2-synthetic-backup.dump
