@@ -8,6 +8,8 @@
   "files": [
     "20260927180000_job_requirements_field.sql",
     "20260927200000_candidate_resume_summary.sql",
+    "20260927210000_resume_import_folder_setting.sql",
+    "20260929050000_app_settings_color_theme.sql",
     "20260930100000_candidate_ats_score.sql"
   ]
 }
