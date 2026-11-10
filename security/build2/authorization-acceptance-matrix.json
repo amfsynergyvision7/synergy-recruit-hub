@@ -1,0 +1,1417 @@
+{
+  "version": 1,
+  "status": "DRAFT_ONLY_NOT_VERIFIED",
+  "fixture_policy": "synthetic identities and synthetic records only",
+  "release_gate_effect": "none",
+  "roles": [
+    "anon",
+    "unapproved",
+    "recruiter_assigned",
+    "recruiter_other",
+    "admin",
+    "finance",
+    "integration"
+  ],
+  "tests": [
+    {
+      "id": "candidate_read_assigned__anon",
+      "case_id": "candidate_read_assigned",
+      "role": "anon",
+      "operation": "candidate.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "cross-recruiter read denied",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_assigned__unapproved",
+      "case_id": "candidate_read_assigned",
+      "role": "unapproved",
+      "operation": "candidate.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "cross-recruiter read denied",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_assigned__recruiter_assigned",
+      "case_id": "candidate_read_assigned",
+      "role": "recruiter_assigned",
+      "operation": "candidate.select",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "cross-recruiter read denied",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_assigned__recruiter_other",
+      "case_id": "candidate_read_assigned",
+      "role": "recruiter_other",
+      "operation": "candidate.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "cross-recruiter read denied",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_assigned__admin",
+      "case_id": "candidate_read_assigned",
+      "role": "admin",
+      "operation": "candidate.select",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "cross-recruiter read denied",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_assigned__finance",
+      "case_id": "candidate_read_assigned",
+      "role": "finance",
+      "operation": "candidate.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "cross-recruiter read denied",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_assigned__integration",
+      "case_id": "candidate_read_assigned",
+      "role": "integration",
+      "operation": "candidate.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "cross-recruiter read denied",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_other__anon",
+      "case_id": "candidate_read_other",
+      "role": "anon",
+      "operation": "candidate.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "other recruiter cannot read",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_other__unapproved",
+      "case_id": "candidate_read_other",
+      "role": "unapproved",
+      "operation": "candidate.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "other recruiter cannot read",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_other__recruiter_assigned",
+      "case_id": "candidate_read_other",
+      "role": "recruiter_assigned",
+      "operation": "candidate.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "other recruiter cannot read",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_other__recruiter_other",
+      "case_id": "candidate_read_other",
+      "role": "recruiter_other",
+      "operation": "candidate.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "other recruiter cannot read",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_other__admin",
+      "case_id": "candidate_read_other",
+      "role": "admin",
+      "operation": "candidate.select",
+      "scope": "other",
+      "expected": "allow",
+      "risk": "other recruiter cannot read",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_other__finance",
+      "case_id": "candidate_read_other",
+      "role": "finance",
+      "operation": "candidate.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "other recruiter cannot read",
+      "verified": false
+    },
+    {
+      "id": "candidate_read_other__integration",
+      "case_id": "candidate_read_other",
+      "role": "integration",
+      "operation": "candidate.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "other recruiter cannot read",
+      "verified": false
+    },
+    {
+      "id": "candidate_create__anon",
+      "case_id": "candidate_create",
+      "role": "anon",
+      "operation": "candidate.insert",
+      "scope": "new",
+      "expected": "deny",
+      "risk": "creation must obey approval and defaults",
+      "verified": false
+    },
+    {
+      "id": "candidate_create__unapproved",
+      "case_id": "candidate_create",
+      "role": "unapproved",
+      "operation": "candidate.insert",
+      "scope": "new",
+      "expected": "deny",
+      "risk": "creation must obey approval and defaults",
+      "verified": false
+    },
+    {
+      "id": "candidate_create__recruiter_assigned",
+      "case_id": "candidate_create",
+      "role": "recruiter_assigned",
+      "operation": "candidate.insert",
+      "scope": "new",
+      "expected": "allow",
+      "risk": "creation must obey approval and defaults",
+      "verified": false
+    },
+    {
+      "id": "candidate_create__recruiter_other",
+      "case_id": "candidate_create",
+      "role": "recruiter_other",
+      "operation": "candidate.insert",
+      "scope": "new",
+      "expected": "deny",
+      "risk": "creation must obey approval and defaults",
+      "verified": false
+    },
+    {
+      "id": "candidate_create__admin",
+      "case_id": "candidate_create",
+      "role": "admin",
+      "operation": "candidate.insert",
+      "scope": "new",
+      "expected": "allow",
+      "risk": "creation must obey approval and defaults",
+      "verified": false
+    },
+    {
+      "id": "candidate_create__finance",
+      "case_id": "candidate_create",
+      "role": "finance",
+      "operation": "candidate.insert",
+      "scope": "new",
+      "expected": "deny",
+      "risk": "creation must obey approval and defaults",
+      "verified": false
+    },
+    {
+      "id": "candidate_create__integration",
+      "case_id": "candidate_create",
+      "role": "integration",
+      "operation": "candidate.insert",
+      "scope": "new",
+      "expected": "deny",
+      "risk": "creation must obey approval and defaults",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_assigned__anon",
+      "case_id": "candidate_update_assigned",
+      "role": "anon",
+      "operation": "candidate.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "server-side assignment enforcement",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_assigned__unapproved",
+      "case_id": "candidate_update_assigned",
+      "role": "unapproved",
+      "operation": "candidate.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "server-side assignment enforcement",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_assigned__recruiter_assigned",
+      "case_id": "candidate_update_assigned",
+      "role": "recruiter_assigned",
+      "operation": "candidate.update",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "server-side assignment enforcement",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_assigned__recruiter_other",
+      "case_id": "candidate_update_assigned",
+      "role": "recruiter_other",
+      "operation": "candidate.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "server-side assignment enforcement",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_assigned__admin",
+      "case_id": "candidate_update_assigned",
+      "role": "admin",
+      "operation": "candidate.update",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "server-side assignment enforcement",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_assigned__finance",
+      "case_id": "candidate_update_assigned",
+      "role": "finance",
+      "operation": "candidate.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "server-side assignment enforcement",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_assigned__integration",
+      "case_id": "candidate_update_assigned",
+      "role": "integration",
+      "operation": "candidate.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "server-side assignment enforcement",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_other__anon",
+      "case_id": "candidate_update_other",
+      "role": "anon",
+      "operation": "candidate.update",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no cross-recruiter mutation",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_other__unapproved",
+      "case_id": "candidate_update_other",
+      "role": "unapproved",
+      "operation": "candidate.update",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no cross-recruiter mutation",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_other__recruiter_assigned",
+      "case_id": "candidate_update_other",
+      "role": "recruiter_assigned",
+      "operation": "candidate.update",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no cross-recruiter mutation",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_other__recruiter_other",
+      "case_id": "candidate_update_other",
+      "role": "recruiter_other",
+      "operation": "candidate.update",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no cross-recruiter mutation",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_other__admin",
+      "case_id": "candidate_update_other",
+      "role": "admin",
+      "operation": "candidate.update",
+      "scope": "other",
+      "expected": "allow",
+      "risk": "no cross-recruiter mutation",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_other__finance",
+      "case_id": "candidate_update_other",
+      "role": "finance",
+      "operation": "candidate.update",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no cross-recruiter mutation",
+      "verified": false
+    },
+    {
+      "id": "candidate_update_other__integration",
+      "case_id": "candidate_update_other",
+      "role": "integration",
+      "operation": "candidate.update",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no cross-recruiter mutation",
+      "verified": false
+    },
+    {
+      "id": "candidate_delete__anon",
+      "case_id": "candidate_delete",
+      "role": "anon",
+      "operation": "candidate.delete",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "destructive operations require explicit approval",
+      "verified": false
+    },
+    {
+      "id": "candidate_delete__unapproved",
+      "case_id": "candidate_delete",
+      "role": "unapproved",
+      "operation": "candidate.delete",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "destructive operations require explicit approval",
+      "verified": false
+    },
+    {
+      "id": "candidate_delete__recruiter_assigned",
+      "case_id": "candidate_delete",
+      "role": "recruiter_assigned",
+      "operation": "candidate.delete",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "destructive operations require explicit approval",
+      "verified": false
+    },
+    {
+      "id": "candidate_delete__recruiter_other",
+      "case_id": "candidate_delete",
+      "role": "recruiter_other",
+      "operation": "candidate.delete",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "destructive operations require explicit approval",
+      "verified": false
+    },
+    {
+      "id": "candidate_delete__admin",
+      "case_id": "candidate_delete",
+      "role": "admin",
+      "operation": "candidate.delete",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "destructive operations require explicit approval",
+      "verified": false
+    },
+    {
+      "id": "candidate_delete__finance",
+      "case_id": "candidate_delete",
+      "role": "finance",
+      "operation": "candidate.delete",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "destructive operations require explicit approval",
+      "verified": false
+    },
+    {
+      "id": "candidate_delete__integration",
+      "case_id": "candidate_delete",
+      "role": "integration",
+      "operation": "candidate.delete",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "destructive operations require explicit approval",
+      "verified": false
+    },
+    {
+      "id": "candidate_reassign__anon",
+      "case_id": "candidate_reassign",
+      "role": "anon",
+      "operation": "candidate.reassign",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "assignment policy provisional; management signoff required",
+      "verified": false
+    },
+    {
+      "id": "candidate_reassign__unapproved",
+      "case_id": "candidate_reassign",
+      "role": "unapproved",
+      "operation": "candidate.reassign",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "assignment policy provisional; management signoff required",
+      "verified": false
+    },
+    {
+      "id": "candidate_reassign__recruiter_assigned",
+      "case_id": "candidate_reassign",
+      "role": "recruiter_assigned",
+      "operation": "candidate.reassign",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "assignment policy provisional; management signoff required",
+      "verified": false
+    },
+    {
+      "id": "candidate_reassign__recruiter_other",
+      "case_id": "candidate_reassign",
+      "role": "recruiter_other",
+      "operation": "candidate.reassign",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "assignment policy provisional; management signoff required",
+      "verified": false
+    },
+    {
+      "id": "candidate_reassign__admin",
+      "case_id": "candidate_reassign",
+      "role": "admin",
+      "operation": "candidate.reassign",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "assignment policy provisional; management signoff required",
+      "verified": false
+    },
+    {
+      "id": "candidate_reassign__finance",
+      "case_id": "candidate_reassign",
+      "role": "finance",
+      "operation": "candidate.reassign",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "assignment policy provisional; management signoff required",
+      "verified": false
+    },
+    {
+      "id": "candidate_reassign__integration",
+      "case_id": "candidate_reassign",
+      "role": "integration",
+      "operation": "candidate.reassign",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "assignment policy provisional; management signoff required",
+      "verified": false
+    },
+    {
+      "id": "confidential_column_read__anon",
+      "case_id": "confidential_column_read",
+      "role": "anon",
+      "operation": "candidate.confidential.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "column privilege and view leakage",
+      "verified": false
+    },
+    {
+      "id": "confidential_column_read__unapproved",
+      "case_id": "confidential_column_read",
+      "role": "unapproved",
+      "operation": "candidate.confidential.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "column privilege and view leakage",
+      "verified": false
+    },
+    {
+      "id": "confidential_column_read__recruiter_assigned",
+      "case_id": "confidential_column_read",
+      "role": "recruiter_assigned",
+      "operation": "candidate.confidential.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "column privilege and view leakage",
+      "verified": false
+    },
+    {
+      "id": "confidential_column_read__recruiter_other",
+      "case_id": "confidential_column_read",
+      "role": "recruiter_other",
+      "operation": "candidate.confidential.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "column privilege and view leakage",
+      "verified": false
+    },
+    {
+      "id": "confidential_column_read__admin",
+      "case_id": "confidential_column_read",
+      "role": "admin",
+      "operation": "candidate.confidential.select",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "column privilege and view leakage",
+      "verified": false
+    },
+    {
+      "id": "confidential_column_read__finance",
+      "case_id": "confidential_column_read",
+      "role": "finance",
+      "operation": "candidate.confidential.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "column privilege and view leakage",
+      "verified": false
+    },
+    {
+      "id": "confidential_column_read__integration",
+      "case_id": "confidential_column_read",
+      "role": "integration",
+      "operation": "candidate.confidential.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "column privilege and view leakage",
+      "verified": false
+    },
+    {
+      "id": "candidate_stage_change__anon",
+      "case_id": "candidate_stage_change",
+      "role": "anon",
+      "operation": "candidate.stage.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "no unauthorized financial side effects",
+      "verified": false
+    },
+    {
+      "id": "candidate_stage_change__unapproved",
+      "case_id": "candidate_stage_change",
+      "role": "unapproved",
+      "operation": "candidate.stage.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "no unauthorized financial side effects",
+      "verified": false
+    },
+    {
+      "id": "candidate_stage_change__recruiter_assigned",
+      "case_id": "candidate_stage_change",
+      "role": "recruiter_assigned",
+      "operation": "candidate.stage.update",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "no unauthorized financial side effects",
+      "verified": false
+    },
+    {
+      "id": "candidate_stage_change__recruiter_other",
+      "case_id": "candidate_stage_change",
+      "role": "recruiter_other",
+      "operation": "candidate.stage.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "no unauthorized financial side effects",
+      "verified": false
+    },
+    {
+      "id": "candidate_stage_change__admin",
+      "case_id": "candidate_stage_change",
+      "role": "admin",
+      "operation": "candidate.stage.update",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "no unauthorized financial side effects",
+      "verified": false
+    },
+    {
+      "id": "candidate_stage_change__finance",
+      "case_id": "candidate_stage_change",
+      "role": "finance",
+      "operation": "candidate.stage.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "no unauthorized financial side effects",
+      "verified": false
+    },
+    {
+      "id": "candidate_stage_change__integration",
+      "case_id": "candidate_stage_change",
+      "role": "integration",
+      "operation": "candidate.stage.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "no unauthorized financial side effects",
+      "verified": false
+    },
+    {
+      "id": "candidate_bulk_update__anon",
+      "case_id": "candidate_bulk_update",
+      "role": "anon",
+      "operation": "candidate.bulk.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "unknown-commit reconciliation and per-ID authorization",
+      "verified": false
+    },
+    {
+      "id": "candidate_bulk_update__unapproved",
+      "case_id": "candidate_bulk_update",
+      "role": "unapproved",
+      "operation": "candidate.bulk.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "unknown-commit reconciliation and per-ID authorization",
+      "verified": false
+    },
+    {
+      "id": "candidate_bulk_update__recruiter_assigned",
+      "case_id": "candidate_bulk_update",
+      "role": "recruiter_assigned",
+      "operation": "candidate.bulk.update",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "unknown-commit reconciliation and per-ID authorization",
+      "verified": false
+    },
+    {
+      "id": "candidate_bulk_update__recruiter_other",
+      "case_id": "candidate_bulk_update",
+      "role": "recruiter_other",
+      "operation": "candidate.bulk.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "unknown-commit reconciliation and per-ID authorization",
+      "verified": false
+    },
+    {
+      "id": "candidate_bulk_update__admin",
+      "case_id": "candidate_bulk_update",
+      "role": "admin",
+      "operation": "candidate.bulk.update",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "unknown-commit reconciliation and per-ID authorization",
+      "verified": false
+    },
+    {
+      "id": "candidate_bulk_update__finance",
+      "case_id": "candidate_bulk_update",
+      "role": "finance",
+      "operation": "candidate.bulk.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "unknown-commit reconciliation and per-ID authorization",
+      "verified": false
+    },
+    {
+      "id": "candidate_bulk_update__integration",
+      "case_id": "candidate_bulk_update",
+      "role": "integration",
+      "operation": "candidate.bulk.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "unknown-commit reconciliation and per-ID authorization",
+      "verified": false
+    },
+    {
+      "id": "candidate_view_read_other__anon",
+      "case_id": "candidate_view_read_other",
+      "role": "anon",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "security_invoker and RLS",
+      "verified": false
+    },
+    {
+      "id": "candidate_view_read_other__unapproved",
+      "case_id": "candidate_view_read_other",
+      "role": "unapproved",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "security_invoker and RLS",
+      "verified": false
+    },
+    {
+      "id": "candidate_view_read_other__recruiter_assigned",
+      "case_id": "candidate_view_read_other",
+      "role": "recruiter_assigned",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "security_invoker and RLS",
+      "verified": false
+    },
+    {
+      "id": "candidate_view_read_other__recruiter_other",
+      "case_id": "candidate_view_read_other",
+      "role": "recruiter_other",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "security_invoker and RLS",
+      "verified": false
+    },
+    {
+      "id": "candidate_view_read_other__admin",
+      "case_id": "candidate_view_read_other",
+      "role": "admin",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "allow",
+      "risk": "security_invoker and RLS",
+      "verified": false
+    },
+    {
+      "id": "candidate_view_read_other__finance",
+      "case_id": "candidate_view_read_other",
+      "role": "finance",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "security_invoker and RLS",
+      "verified": false
+    },
+    {
+      "id": "candidate_view_read_other__integration",
+      "case_id": "candidate_view_read_other",
+      "role": "integration",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "security_invoker and RLS",
+      "verified": false
+    },
+    {
+      "id": "candidate_rpc_other__anon",
+      "case_id": "candidate_rpc_other",
+      "role": "anon",
+      "operation": "candidate.rpc.execute",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "SECURITY DEFINER privilege escalation",
+      "verified": false
+    },
+    {
+      "id": "candidate_rpc_other__unapproved",
+      "case_id": "candidate_rpc_other",
+      "role": "unapproved",
+      "operation": "candidate.rpc.execute",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "SECURITY DEFINER privilege escalation",
+      "verified": false
+    },
+    {
+      "id": "candidate_rpc_other__recruiter_assigned",
+      "case_id": "candidate_rpc_other",
+      "role": "recruiter_assigned",
+      "operation": "candidate.rpc.execute",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "SECURITY DEFINER privilege escalation",
+      "verified": false
+    },
+    {
+      "id": "candidate_rpc_other__recruiter_other",
+      "case_id": "candidate_rpc_other",
+      "role": "recruiter_other",
+      "operation": "candidate.rpc.execute",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "SECURITY DEFINER privilege escalation",
+      "verified": false
+    },
+    {
+      "id": "candidate_rpc_other__admin",
+      "case_id": "candidate_rpc_other",
+      "role": "admin",
+      "operation": "candidate.rpc.execute",
+      "scope": "other",
+      "expected": "allow",
+      "risk": "SECURITY DEFINER privilege escalation",
+      "verified": false
+    },
+    {
+      "id": "candidate_rpc_other__finance",
+      "case_id": "candidate_rpc_other",
+      "role": "finance",
+      "operation": "candidate.rpc.execute",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "SECURITY DEFINER privilege escalation",
+      "verified": false
+    },
+    {
+      "id": "candidate_rpc_other__integration",
+      "case_id": "candidate_rpc_other",
+      "role": "integration",
+      "operation": "candidate.rpc.execute",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "SECURITY DEFINER privilege escalation",
+      "verified": false
+    },
+    {
+      "id": "stage_history_read_other__anon",
+      "case_id": "stage_history_read_other",
+      "role": "anon",
+      "operation": "stage_history.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no history leakage",
+      "verified": false
+    },
+    {
+      "id": "stage_history_read_other__unapproved",
+      "case_id": "stage_history_read_other",
+      "role": "unapproved",
+      "operation": "stage_history.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no history leakage",
+      "verified": false
+    },
+    {
+      "id": "stage_history_read_other__recruiter_assigned",
+      "case_id": "stage_history_read_other",
+      "role": "recruiter_assigned",
+      "operation": "stage_history.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no history leakage",
+      "verified": false
+    },
+    {
+      "id": "stage_history_read_other__recruiter_other",
+      "case_id": "stage_history_read_other",
+      "role": "recruiter_other",
+      "operation": "stage_history.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no history leakage",
+      "verified": false
+    },
+    {
+      "id": "stage_history_read_other__admin",
+      "case_id": "stage_history_read_other",
+      "role": "admin",
+      "operation": "stage_history.select",
+      "scope": "other",
+      "expected": "allow",
+      "risk": "no history leakage",
+      "verified": false
+    },
+    {
+      "id": "stage_history_read_other__finance",
+      "case_id": "stage_history_read_other",
+      "role": "finance",
+      "operation": "stage_history.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no history leakage",
+      "verified": false
+    },
+    {
+      "id": "stage_history_read_other__integration",
+      "case_id": "stage_history_read_other",
+      "role": "integration",
+      "operation": "stage_history.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "no history leakage",
+      "verified": false
+    },
+    {
+      "id": "billing_read__anon",
+      "case_id": "billing_read",
+      "role": "anon",
+      "operation": "billing.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "finance policy unapproved",
+      "verified": false
+    },
+    {
+      "id": "billing_read__unapproved",
+      "case_id": "billing_read",
+      "role": "unapproved",
+      "operation": "billing.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "finance policy unapproved",
+      "verified": false
+    },
+    {
+      "id": "billing_read__recruiter_assigned",
+      "case_id": "billing_read",
+      "role": "recruiter_assigned",
+      "operation": "billing.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "finance policy unapproved",
+      "verified": false
+    },
+    {
+      "id": "billing_read__recruiter_other",
+      "case_id": "billing_read",
+      "role": "recruiter_other",
+      "operation": "billing.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "finance policy unapproved",
+      "verified": false
+    },
+    {
+      "id": "billing_read__admin",
+      "case_id": "billing_read",
+      "role": "admin",
+      "operation": "billing.select",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "finance policy unapproved",
+      "verified": false
+    },
+    {
+      "id": "billing_read__finance",
+      "case_id": "billing_read",
+      "role": "finance",
+      "operation": "billing.select",
+      "scope": "assigned",
+      "expected": "allow",
+      "risk": "finance policy unapproved",
+      "verified": false
+    },
+    {
+      "id": "billing_read__integration",
+      "case_id": "billing_read",
+      "role": "integration",
+      "operation": "billing.select",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "finance policy unapproved",
+      "verified": false
+    },
+    {
+      "id": "billing_mutate__anon",
+      "case_id": "billing_mutate",
+      "role": "anon",
+      "operation": "billing.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "financial workflows inactive",
+      "verified": false
+    },
+    {
+      "id": "billing_mutate__unapproved",
+      "case_id": "billing_mutate",
+      "role": "unapproved",
+      "operation": "billing.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "financial workflows inactive",
+      "verified": false
+    },
+    {
+      "id": "billing_mutate__recruiter_assigned",
+      "case_id": "billing_mutate",
+      "role": "recruiter_assigned",
+      "operation": "billing.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "financial workflows inactive",
+      "verified": false
+    },
+    {
+      "id": "billing_mutate__recruiter_other",
+      "case_id": "billing_mutate",
+      "role": "recruiter_other",
+      "operation": "billing.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "financial workflows inactive",
+      "verified": false
+    },
+    {
+      "id": "billing_mutate__admin",
+      "case_id": "billing_mutate",
+      "role": "admin",
+      "operation": "billing.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "financial workflows inactive",
+      "verified": false
+    },
+    {
+      "id": "billing_mutate__finance",
+      "case_id": "billing_mutate",
+      "role": "finance",
+      "operation": "billing.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "financial workflows inactive",
+      "verified": false
+    },
+    {
+      "id": "billing_mutate__integration",
+      "case_id": "billing_mutate",
+      "role": "integration",
+      "operation": "billing.update",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "financial workflows inactive",
+      "verified": false
+    },
+    {
+      "id": "workflow_financial_trigger__anon",
+      "case_id": "workflow_financial_trigger",
+      "role": "anon",
+      "operation": "billing.trigger",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "must remain inactive",
+      "verified": false
+    },
+    {
+      "id": "workflow_financial_trigger__unapproved",
+      "case_id": "workflow_financial_trigger",
+      "role": "unapproved",
+      "operation": "billing.trigger",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "must remain inactive",
+      "verified": false
+    },
+    {
+      "id": "workflow_financial_trigger__recruiter_assigned",
+      "case_id": "workflow_financial_trigger",
+      "role": "recruiter_assigned",
+      "operation": "billing.trigger",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "must remain inactive",
+      "verified": false
+    },
+    {
+      "id": "workflow_financial_trigger__recruiter_other",
+      "case_id": "workflow_financial_trigger",
+      "role": "recruiter_other",
+      "operation": "billing.trigger",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "must remain inactive",
+      "verified": false
+    },
+    {
+      "id": "workflow_financial_trigger__admin",
+      "case_id": "workflow_financial_trigger",
+      "role": "admin",
+      "operation": "billing.trigger",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "must remain inactive",
+      "verified": false
+    },
+    {
+      "id": "workflow_financial_trigger__finance",
+      "case_id": "workflow_financial_trigger",
+      "role": "finance",
+      "operation": "billing.trigger",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "must remain inactive",
+      "verified": false
+    },
+    {
+      "id": "workflow_financial_trigger__integration",
+      "case_id": "workflow_financial_trigger",
+      "role": "integration",
+      "operation": "billing.trigger",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "must remain inactive",
+      "verified": false
+    },
+    {
+      "id": "role_approval__anon",
+      "case_id": "role_approval",
+      "role": "anon",
+      "operation": "user.approve",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "admin approval semantics provisional",
+      "verified": false
+    },
+    {
+      "id": "role_approval__unapproved",
+      "case_id": "role_approval",
+      "role": "unapproved",
+      "operation": "user.approve",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "admin approval semantics provisional",
+      "verified": false
+    },
+    {
+      "id": "role_approval__recruiter_assigned",
+      "case_id": "role_approval",
+      "role": "recruiter_assigned",
+      "operation": "user.approve",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "admin approval semantics provisional",
+      "verified": false
+    },
+    {
+      "id": "role_approval__recruiter_other",
+      "case_id": "role_approval",
+      "role": "recruiter_other",
+      "operation": "user.approve",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "admin approval semantics provisional",
+      "verified": false
+    },
+    {
+      "id": "role_approval__admin",
+      "case_id": "role_approval",
+      "role": "admin",
+      "operation": "user.approve",
+      "scope": "other",
+      "expected": "allow",
+      "risk": "admin approval semantics provisional",
+      "verified": false
+    },
+    {
+      "id": "role_approval__finance",
+      "case_id": "role_approval",
+      "role": "finance",
+      "operation": "user.approve",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "admin approval semantics provisional",
+      "verified": false
+    },
+    {
+      "id": "role_approval__integration",
+      "case_id": "role_approval",
+      "role": "integration",
+      "operation": "user.approve",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "admin approval semantics provisional",
+      "verified": false
+    },
+    {
+      "id": "role_escalation__anon",
+      "case_id": "role_escalation",
+      "role": "anon",
+      "operation": "user.promote",
+      "scope": "self",
+      "expected": "deny",
+      "risk": "self-promotion prohibited",
+      "verified": false
+    },
+    {
+      "id": "role_escalation__unapproved",
+      "case_id": "role_escalation",
+      "role": "unapproved",
+      "operation": "user.promote",
+      "scope": "self",
+      "expected": "deny",
+      "risk": "self-promotion prohibited",
+      "verified": false
+    },
+    {
+      "id": "role_escalation__recruiter_assigned",
+      "case_id": "role_escalation",
+      "role": "recruiter_assigned",
+      "operation": "user.promote",
+      "scope": "self",
+      "expected": "deny",
+      "risk": "self-promotion prohibited",
+      "verified": false
+    },
+    {
+      "id": "role_escalation__recruiter_other",
+      "case_id": "role_escalation",
+      "role": "recruiter_other",
+      "operation": "user.promote",
+      "scope": "self",
+      "expected": "deny",
+      "risk": "self-promotion prohibited",
+      "verified": false
+    },
+    {
+      "id": "role_escalation__admin",
+      "case_id": "role_escalation",
+      "role": "admin",
+      "operation": "user.promote",
+      "scope": "self",
+      "expected": "deny",
+      "risk": "self-promotion prohibited",
+      "verified": false
+    },
+    {
+      "id": "role_escalation__finance",
+      "case_id": "role_escalation",
+      "role": "finance",
+      "operation": "user.promote",
+      "scope": "self",
+      "expected": "deny",
+      "risk": "self-promotion prohibited",
+      "verified": false
+    },
+    {
+      "id": "role_escalation__integration",
+      "case_id": "role_escalation",
+      "role": "integration",
+      "operation": "user.promote",
+      "scope": "self",
+      "expected": "deny",
+      "risk": "self-promotion prohibited",
+      "verified": false
+    },
+    {
+      "id": "unauthenticated_view__anon",
+      "case_id": "unauthenticated_view",
+      "role": "anon",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "anon view leakage",
+      "verified": false
+    },
+    {
+      "id": "unauthenticated_view__unapproved",
+      "case_id": "unauthenticated_view",
+      "role": "unapproved",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "anon view leakage",
+      "verified": false
+    },
+    {
+      "id": "unauthenticated_view__recruiter_assigned",
+      "case_id": "unauthenticated_view",
+      "role": "recruiter_assigned",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "anon view leakage",
+      "verified": false
+    },
+    {
+      "id": "unauthenticated_view__recruiter_other",
+      "case_id": "unauthenticated_view",
+      "role": "recruiter_other",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "anon view leakage",
+      "verified": false
+    },
+    {
+      "id": "unauthenticated_view__admin",
+      "case_id": "unauthenticated_view",
+      "role": "admin",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "allow",
+      "risk": "anon view leakage",
+      "verified": false
+    },
+    {
+      "id": "unauthenticated_view__finance",
+      "case_id": "unauthenticated_view",
+      "role": "finance",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "anon view leakage",
+      "verified": false
+    },
+    {
+      "id": "unauthenticated_view__integration",
+      "case_id": "unauthenticated_view",
+      "role": "integration",
+      "operation": "candidate.view.select",
+      "scope": "other",
+      "expected": "deny",
+      "risk": "anon view leakage",
+      "verified": false
+    },
+    {
+      "id": "integration_candidate_write__anon",
+      "case_id": "integration_candidate_write",
+      "role": "anon",
+      "operation": "candidate.insert",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "integration authority requires explicit scope",
+      "verified": false
+    },
+    {
+      "id": "integration_candidate_write__unapproved",
+      "case_id": "integration_candidate_write",
+      "role": "unapproved",
+      "operation": "candidate.insert",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "integration authority requires explicit scope",
+      "verified": false
+    },
+    {
+      "id": "integration_candidate_write__recruiter_assigned",
+      "case_id": "integration_candidate_write",
+      "role": "recruiter_assigned",
+      "operation": "candidate.insert",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "integration authority requires explicit scope",
+      "verified": false
+    },
+    {
+      "id": "integration_candidate_write__recruiter_other",
+      "case_id": "integration_candidate_write",
+      "role": "recruiter_other",
+      "operation": "candidate.insert",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "integration authority requires explicit scope",
+      "verified": false
+    },
+    {
+      "id": "integration_candidate_write__admin",
+      "case_id": "integration_candidate_write",
+      "role": "admin",
+      "operation": "candidate.insert",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "integration authority requires explicit scope",
+      "verified": false
+    },
+    {
+      "id": "integration_candidate_write__finance",
+      "case_id": "integration_candidate_write",
+      "role": "finance",
+      "operation": "candidate.insert",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "integration authority requires explicit scope",
+      "verified": false
+    },
+    {
+      "id": "integration_candidate_write__integration",
+      "case_id": "integration_candidate_write",
+      "role": "integration",
+      "operation": "candidate.insert",
+      "scope": "assigned",
+      "expected": "deny",
+      "risk": "integration authority requires explicit scope",
+      "verified": false
+    }
+  ]
+}
