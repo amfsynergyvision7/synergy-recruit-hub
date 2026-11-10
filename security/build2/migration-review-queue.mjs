@@ -9,16 +9,16 @@ const groups=[
  ['extension_dependencies','20260513101842_cb1bc9ab-e5f4-4b42-b09a-60588844ca6c.sql'],
  ['activity_and_privilege','20260517054652_a336ca88-33cd-4bcd-8117-8af35eb851db.sql'],
  ['branding_auth_storage','20260927120000_app_settings_branding.sql'],
- ['notifications_and_email','20260929060000_reminder_automation.sql','20260929070000_email_log.sql'],
+ ['notifications_and_email','20260929060000_reminder_automation.sql'],
  ['configurable_workflows','20260930060000_workflow_rules.sql']
 ];
 export function migrationReviewQueue(directory){
  const triage=bulkMigrationTriage(directory);
- if(triage.total!==26||triage.subset_candidates!==12||triage.remaining!==14)throw Error('Inventory drift: manual queue must be reviewed');
+ if(triage.total!==26||triage.subset_candidates!==13||triage.remaining!==13)throw Error('Inventory drift: manual queue must be reviewed');
  const blocked=triage.items.filter(x=>!x.subset_rehearsed);
  const expected=new Set(blocked.map(x=>x.file));
  const assigned=groups.flatMap(([, ...files])=>files);
- if(assigned.length!==14||new Set(assigned).size!==14||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
+ if(assigned.length!==13||new Set(assigned).size!==13||assigned.some(x=>!expected.has(x)))throw Error('Review group mismatch');
  const batches=groups.map(([name,...files])=>({
   name,files:files.map(file=>{
    const item=blocked.find(x=>x.file===file);
@@ -26,7 +26,7 @@ export function migrationReviewQueue(directory){
   }),status:'BLOCKED_PENDING_DEPENDENCY_AND_SECURITY_REVIEW',
   requirements:['approved synthetic dependency fixtures','individual source-guard review','transactional rollback and idempotence tests','explicit allowlist change review']
  }));
- return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:12,blocked:14,batch_count:batches.length,
+ return {status:'STATIC_REVIEW_ONLY',total:26,rehearsed:13,blocked:13,batch_count:batches.length,
   unattended_sql_execution_authorized:false,production_release:'HOLD',batches};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
