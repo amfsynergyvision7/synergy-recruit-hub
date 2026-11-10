@@ -7,22 +7,22 @@ export function makeBatchReport({triage,release,jobResults,sha,runId}){
  const results=Object.fromEntries(jobs.map(k=>[k,jobResults[k]??'unknown']));
  const gates=Object.entries(release);
  if(gates.length!==9||gates.some(([,v])=>v?.passed!==false))throw Error('HOLD invariant violated: all nine release gates must remain false');
- if(triage.total!==26||triage.subset_candidates!==19||triage.remaining!==7||triage.all_26_replay_verified!==false)throw Error('Unexpected migration inventory or subset count');
+ if(triage.total!==26||triage.subset_candidates!==20||triage.remaining!==6||triage.all_26_replay_verified!==false)throw Error('Unexpected migration inventory or subset count');
  const allGreen=jobs.every(k=>results[k]==='success');
  const report={
   status:'HOLD',release_authorized:false,production_equivalent:false,
   verification:allGreen?'DISPOSABLE_CI_JOBS_PASSED':'NOT_VERIFIED',
   commit:sha||'unknown',workflow_run_id:runId||'unknown',
-  migration_inventory:26,disposable_replay_candidates:19,
-  ci_verified_replays:allGreen?19:0,
-  remaining_manual_dependency_review:7,
+  migration_inventory:26,disposable_replay_candidates:20,
+  ci_verified_replays:allGreen?20:0,
+  remaining_manual_dependency_review:6,
   authorization_scenarios_executed:0,authorization_scenarios_planned:140,
   release_gates_passed:0,release_gates_total:9,
   ci_jobs:results,
   replay_caveats:['Two original RLS policy migrations pass first application only; repeated application fails on existing CREATE POLICY and is not release-ready'],
   rehearsed_files:triage.items.filter(x=>x.subset_rehearsed).map(x=>x.file).sort(),
   blocked_files:triage.items.filter(x=>!x.subset_rehearsed).map(x=>({file:x.file,reasons:x.reasons.length?x.reasons:['manual_review_required']})),
-  note:'Nineteen original migrations are tested only in disposable synthetic PostgreSQL. No full-schema equivalence or production release is implied.'
+  note:'Twenty original migrations are tested only in disposable synthetic PostgreSQL. No full-schema equivalence or production release is implied.'
  };
  return report;
 }
