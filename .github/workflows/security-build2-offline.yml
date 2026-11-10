@@ -137,6 +137,10 @@ jobs:
         run: node security/build2/unique-settings-index-guard.mjs supabase/migrations
       - name: Rehearse original unique settings index twice with rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-unique-settings-index.integration.sql
+      - name: Guard original interview scheduling SQL source
+        run: node security/build2/interview-scheduling-source-guard.mjs supabase/migrations
+      - name: Rehearse original scheduling migration and token uniqueness with rollback
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build2/actual-interview-scheduling.integration.sql
       - name: Verify disposable synthetic auth dependency fixture and rollback
         run: psql -X -v ON_ERROR_STOP=1 -f security/build2/synthetic-auth-dependency.integration.sql
       - name: Verify synthetic security-invoker view obeys recruiter RLS
