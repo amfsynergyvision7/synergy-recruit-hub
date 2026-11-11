@@ -18,3 +18,9 @@
 - UI still paused by default; formal hosted user/browser API UAT required before any activation.
 - Actual production objects remediated: 0/48. Historically accepted hosted cases: 0/140. Signed release gates 0/9. Full Command Center workstream closures 0/6. Independent reviewers still absent.
 - The proposed `SECURITY DEFINER` implementation must receive independent code review, an exact privileges audit and production-equivalent backup/roll-forward rehearsal. Do not publish or deploy based on CI alone.
+
+## Additional Build52 live-trigger compatibility hardening
+
+- Read-only production audit confirmed the `candidates_updated_at_trigger` uses `now()`, which can return the same timestamp for multiple updates within one SQL transaction. The review-only SQL now installs a candidate-specific AFTER-legacy-order `BEFORE UPDATE` trigger to enforce monotonically increasing `updated_at` values, including the same-transaction case. Standalone fixture recreates the real trigger for regression tests.
+- Read-only production audit confirmed the active `run_workflow_rules()` trigger supports privileged dynamic update actions. There were no currently active workflow rules at the time of the read-only check. The candidate RPC now takes a table `SHARE` lock and refuses any active candidate rules, serializing against concurrent rule activation. This is deliberately fail-closed until the workflow allowlist/business approval is independently completed.
+- These two safeguards add a function and a trigger to the proposed release scope; 48-object baseline preflight and full rollout review must be updated accordingly. No hosted changes.

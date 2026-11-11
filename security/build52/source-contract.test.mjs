@@ -14,6 +14,10 @@ test("SQL definer authenticates active approved role, enforces ownership and aud
  assert.match(sql,/v_old_assignee IS DISTINCT FROM v_actor/);
  assert.match(sql,/FROM public\.candidates c WHERE c\.id=p_candidate_id FOR UPDATE/);
  assert.match(sql,/v_old_updated IS DISTINCT FROM p_expected_updated_at/);
+ assert.ok(sql.includes("CREATE TRIGGER zz_crm_candidate_monotonic_version"));
+ assert.ok(sql.includes("OLD.updated_at + interval '1 microsecond'"));
+ assert.ok(sql.includes("LOCK TABLE public.workflow_rules IN SHARE MODE"));
+ assert.ok(sql.includes("w.table_name='candidates' AND w.is_active IS TRUE"));
  assert.match(sql,/INSERT INTO public\.audit_logs/);
  assert.match(sql,/jsonb_build_object\('changed_fields',v_audit_fields\)/);
  assert.doesNotMatch(sql,/p_actor uuid|p_role text/);

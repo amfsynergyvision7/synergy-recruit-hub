@@ -32,6 +32,25 @@ BEGIN
  END LOOP;
 END $column52$;
 
+-- The existing candidates_updated_at_trigger overwrites updated_at with
+-- transaction timestamp now(). A second UPDATE in the same transaction can
+-- otherwise reuse the old version and bypass the compare-and-swap check.
+-- PostgreSQL fires triggers of the same timing in name order; "zz_" follows
+-- the current "candidates_updated_at_trigger" and makes versions monotonic.
+CREATE OR REPLACE FUNCTION public.crm_candidate_monotonic_version()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER
+SET search_path=pg_catalog,public AS $version52$
+BEGIN
+ NEW.updated_at := greatest(clock_timestamp(),
+   OLD.updated_at + interval '1 microsecond');
+ RETURN NEW;
+END $version52$;
+REVOKE ALL ON FUNCTION public.crm_candidate_monotonic_version()
+ FROM PUBLIC,anon,authenticated,service_role;
+CREATE TRIGGER zz_crm_candidate_monotonic_version
+ BEFORE UPDATE ON public.candidates FOR EACH ROW
+ EXECUTE FUNCTION public.crm_candidate_monotonic_version();
+
 CREATE OR REPLACE FUNCTION public.crm_write_candidate(
   p_candidate_id uuid,
   p_expected_updated_at timestamptz,
@@ -76,6 +95,16 @@ BEGIN
   SELECT EXISTS(
     SELECT 1 FROM public.user_roles r WHERE r.user_id=v_actor AND r.role='admin'
   ) INTO v_admin;
+  -- Live run_workflow_rules() is a privileged AFTER INSERT/UPDATE trigger
+  -- capable of dynamic field changes. Until a separate allowlist migration is
+  -- approved, refuse candidate writes whenever candidate rules are active.
+  -- SHARE lock prevents a simultaneous rule activation passing this preflight.
+  LOCK TABLE public.workflow_rules IN SHARE MODE;
+  IF EXISTS(SELECT 1 FROM public.workflow_rules w
+            WHERE w.table_name='candidates' AND w.is_active IS TRUE) THEN
+    RAISE EXCEPTION 'Candidate workflow rules must be independently reviewed'
+      USING ERRCODE='42501';
+  END IF;
   FOR v_key IN SELECT jsonb_object_keys(p_fields) LOOP
     IF v_key NOT IN ('full_name','mobile','email','location','position_applied','current_company','experience_years','current_salary','expected_salary','notice_period','resume_url','source','notes','assigned_recruiter') THEN
       RAISE EXCEPTION 'Candidate field is not writable: %',v_key USING ERRCODE='42501';

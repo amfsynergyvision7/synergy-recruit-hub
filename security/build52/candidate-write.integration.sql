@@ -31,6 +31,13 @@ CREATE TABLE public.candidates(
  resume_summary text,ats_score int,ats_issues jsonb,ats_checked_at timestamptz
 );
 CREATE TABLE public.billing(candidate_id uuid);
+CREATE TABLE public.workflow_rules(table_name text,is_active boolean);
+-- Source-shaped legacy trigger overrides every UPDATE timestamp with now().
+CREATE FUNCTION public.set_updated_at() RETURNS trigger
+LANGUAGE plpgsql SET search_path=public AS $legacy52$
+BEGIN NEW.updated_at:=now(); RETURN NEW; END $legacy52$;
+CREATE TRIGGER candidates_updated_at_trigger BEFORE UPDATE ON public.candidates
+ FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE FUNCTION public.build52_bill() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,public AS $$
  BEGIN IF NEW.stage='joined' AND OLD.stage IS DISTINCT FROM NEW.stage
@@ -74,6 +81,18 @@ DO $grantCheck$ BEGIN
  OR NOT has_function_privilege('authenticated','public.crm_write_candidate(uuid,timestamptz,jsonb)','EXECUTE')
  THEN RAISE EXCEPTION 'Unsafe direct candidate DML or function grants'; END IF;
 END $grantCheck$;
+-- Active workflow rules must fail closed even for an authorized actor.
+INSERT INTO public.workflow_rules VALUES('candidates',true);
+SET ROLE authenticated;
+DO $wf_guard$ BEGIN
+ PERFORM set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
+ BEGIN
+  PERFORM public.crm_write_candidate(NULL,NULL,'{"full_name":"Should never create"}'::jsonb);
+  RAISE EXCEPTION 'Active privileged workflow rule did not block candidate creation';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $wf_guard$;
+RESET ROLE;
+DELETE FROM public.workflow_rules;
 SET ROLE authenticated;
 DO $recruiter$
 DECLARE n uuid; old_ts timestamptz; n_count integer;
@@ -100,6 +119,8 @@ BEGIN
  SELECT updated_at INTO old_ts FROM public.candidates WHERE id=n;
  IF public.crm_write_candidate(n,old_ts,'{"notes":"Revised private note"}'::jsonb)<>n
  THEN RAISE EXCEPTION 'Owner edit failed'; END IF;
+ IF (SELECT updated_at FROM public.candidates WHERE id=n)<=old_ts THEN
+  RAISE EXCEPTION 'Legacy now() trigger defeated monotonic candidate version'; END IF;
  BEGIN
   PERFORM public.crm_write_candidate(n,old_ts,'{"notes":"Stale update"}'::jsonb);
   RAISE EXCEPTION 'Stale timestamp accepted';
