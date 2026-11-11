@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const app=readFileSync('src/routes/_app.settings.tsx','utf8');
-const helper=readFileSync('src/lib/admin-settings.client.ts','utf8');
+const helper=readFileSync('src/lib/admin-settings.ts','utf8');
 const branding=readFileSync('src/hooks/use-branding.tsx','utf8');
 const sql=readFileSync('security/build40/admin-settings-rpc-review-only.sql','utf8');
 test('settings screen uses protected helper for private folder read',()=>{

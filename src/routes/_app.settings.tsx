@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getAdminResumeFolder, updateAdminSetting } from "@/lib/admin-settings.client";
+import { getAdminResumeFolder, updateAdminSetting } from "@/lib/admin-settings";
 import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
