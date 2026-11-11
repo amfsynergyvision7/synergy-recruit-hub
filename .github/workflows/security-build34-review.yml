@@ -15,6 +15,7 @@ on:
       - 'security/build36/**'
       - 'security/build37/**'
       - 'security/build38/**'
+      - 'security/build40/**'
       - 'src/lib/sync-lease.server.ts'
       - '.github/workflows/security-build34-review.yml'
 permissions:
@@ -98,6 +99,31 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: bash security/build38/run_database_contracts.sh
+  expanded-public-security-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify 19 tables, 13 views and 16 privileged functions in isolated PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: bash security/build40/run_full_scope.sh
+      - name: Audit actual CRM callsites affected by proposed grants
+        run: node security/build40/repository-compatibility-audit.mjs
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
