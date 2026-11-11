@@ -27,6 +27,13 @@ function check(id,want,got,pass,data){
  evidence.push({case_id:id,expected:want,observed:got,pass});
  if(!pass)failures.push({case_id:id,expected:want,observed:got,response:String(JSON.stringify(data)).slice(0,250)});
 }
+let schemaReady=false;
+for(let retry=0;retry<30;retry++){
+ const warm=await query('/profiles?select=id','11111111-1111-4111-8111-111111111111');
+ if(warm.status===200){schemaReady=true;break}
+ await new Promise(resolve=>setTimeout(resolve,500));
+}
+assert.ok(schemaReady,'PostgREST schema cache did not become ready for a signed authenticated request');
 for(const r of rows){
  const x=await query('/'+r.table+'?select=id',r.sub);
  const n=Array.isArray(x.data)?x.data.length:null;
