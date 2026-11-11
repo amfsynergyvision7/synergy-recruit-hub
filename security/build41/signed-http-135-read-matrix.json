@@ -1,0 +1,817 @@
+{
+  "source": "security/build38/15-table-rls-source-shaped.integration.sql",
+  "identities": 9,
+  "tables": 15,
+  "read_cases": [
+    {
+      "case_id": "B41-SIGNED-READ-001",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "audit_logs",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-002",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "billing",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-003",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "candidate_activities",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-004",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "candidates",
+      "expected": 2
+    },
+    {
+      "case_id": "B41-SIGNED-READ-005",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "clients",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-006",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "google_integrations",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-007",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "integrations",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-008",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "interviews",
+      "expected": 2
+    },
+    {
+      "case_id": "B41-SIGNED-READ-009",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "job_openings",
+      "expected": 2
+    },
+    {
+      "case_id": "B41-SIGNED-READ-010",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "notifications",
+      "expected": 2
+    },
+    {
+      "case_id": "B41-SIGNED-READ-011",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "offers",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-012",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "profiles",
+      "expected": 8
+    },
+    {
+      "case_id": "B41-SIGNED-READ-013",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "submissions",
+      "expected": 2
+    },
+    {
+      "case_id": "B41-SIGNED-READ-014",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "sync_logs",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-015",
+      "sub": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
+      "table": "user_roles",
+      "expected": 8
+    },
+    {
+      "case_id": "B41-SIGNED-READ-016",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-017",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "billing",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-018",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-019",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "candidates",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-020",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-021",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-022",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-023",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "interviews",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-024",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "job_openings",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-025",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "notifications",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-026",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-027",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "profiles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-028",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "submissions",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-029",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-030",
+      "sub": "11111111-1111-4111-8111-111111111111",
+      "table": "user_roles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-031",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-032",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "billing",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-033",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-034",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "candidates",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-035",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-036",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-037",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-038",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "interviews",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-039",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "job_openings",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-040",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "notifications",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-041",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-042",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "profiles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-043",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "submissions",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-044",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-045",
+      "sub": "22222222-2222-4222-8222-222222222222",
+      "table": "user_roles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-046",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-047",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "billing",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-048",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-049",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "candidates",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-050",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-051",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-052",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-053",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "interviews",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-054",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "job_openings",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-055",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "notifications",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-056",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-057",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "profiles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-058",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "submissions",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-059",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-060",
+      "sub": "33333333-3333-4333-8333-333333333333",
+      "table": "user_roles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-061",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-062",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "billing",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-063",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-064",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "candidates",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-065",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-066",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-067",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-068",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "interviews",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-069",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "job_openings",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-070",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "notifications",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-071",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-072",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "profiles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-073",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "submissions",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-074",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-075",
+      "sub": "44444444-4444-4444-8444-444444444444",
+      "table": "user_roles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-076",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-077",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "billing",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-078",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-079",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "candidates",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-080",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-081",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-082",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-083",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "interviews",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-084",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "job_openings",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-085",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "notifications",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-086",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-087",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "profiles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-088",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "submissions",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-089",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-090",
+      "sub": "55555555-5555-4555-8555-555555555555",
+      "table": "user_roles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-091",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-092",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "billing",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-093",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-094",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "candidates",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-095",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-096",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-097",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-098",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "interviews",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-099",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "job_openings",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-100",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "notifications",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-101",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-102",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "profiles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-103",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "submissions",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-104",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-105",
+      "sub": "66666666-6666-4666-8666-666666666666",
+      "table": "user_roles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-106",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-107",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "billing",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-108",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-109",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "candidates",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-110",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-111",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-112",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-113",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "interviews",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-114",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "job_openings",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-115",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "notifications",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-116",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-117",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "profiles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-118",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "submissions",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-119",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-120",
+      "sub": "77777777-7777-4777-8777-777777777777",
+      "table": "user_roles",
+      "expected": 1
+    },
+    {
+      "case_id": "B41-SIGNED-READ-121",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "audit_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-122",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "billing",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-123",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "candidate_activities",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-124",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "candidates",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-125",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "clients",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-126",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "google_integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-127",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "integrations",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-128",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "interviews",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-129",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "job_openings",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-130",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "notifications",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-131",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "offers",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-132",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "profiles",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-133",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "submissions",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-134",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "sync_logs",
+      "expected": 0
+    },
+    {
+      "case_id": "B41-SIGNED-READ-135",
+      "sub": "88888888-8888-4888-8888-888888888888",
+      "table": "user_roles",
+      "expected": 0
+    }
+  ]
+}

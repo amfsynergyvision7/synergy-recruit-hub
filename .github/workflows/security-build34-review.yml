@@ -16,6 +16,7 @@ on:
       - 'security/build37/**'
       - 'security/build38/**'
       - 'security/build40/**'
+      - 'security/build41/**'
       - 'src/lib/sync-lease.server.ts'
       - '.github/workflows/security-build34-review.yml'
 permissions:
@@ -149,6 +150,40 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build40/admin-settings-rpc.integration.sql
+  signed-jwt-http-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rehearse signed JWT via actual isolated PostgREST HTTP
+        env:
+          PGPASSWORD: postgres
+          B41_JWT_SECRET: b41-synthetic-hmac-only-0123456789abcdefghijklmnopqrstuvwxyz
+        run: bash security/build41/run_signed_http.sh
+      - name: Upload synthetic signed HTTP case evidence without tokens
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build41-synthetic-jwt-http-evidence
+          path: /tmp/build41-signed-http-evidence.json
+          if-no-files-found: ignore
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
