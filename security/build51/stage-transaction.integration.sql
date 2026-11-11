@@ -80,7 +80,7 @@ END $checkgrants$;
 
 SET ROLE authenticated;
 DO $cases$
-DECLARE stage_now text; audit_count int;
+DECLARE stage_now text;
 BEGIN
  PERFORM set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
  BEGIN
@@ -136,12 +136,16 @@ BEGIN
  SELECT stage::text INTO stage_now FROM public.candidates
   WHERE id='22222222-2222-4222-8222-222222222222';
  IF stage_now<>'selected' THEN RAISE EXCEPTION 'Audit exception left partial stage change'; END IF;
+END $cases$;
+RESET ROLE;
+-- Assert privileged audit and billing outcomes outside the unprivileged
+-- authenticated role; do not grant recruiters access to either table.
+DO $post$ DECLARE audit_count integer; BEGIN
  SELECT count(*) INTO audit_count FROM public.audit_logs;
  IF audit_count<>2 THEN RAISE EXCEPTION 'Expected two auditable successful transitions, got %',audit_count; END IF;
  IF EXISTS(SELECT 1 FROM public.billing)
  THEN RAISE EXCEPTION 'Legacy auto-billing fired during supposedly safe transitions'; END IF;
-END $cases$;
-RESET ROLE;
+END $post$;
 SET ROLE anon;
 DO $anonymous$ BEGIN
  BEGIN
