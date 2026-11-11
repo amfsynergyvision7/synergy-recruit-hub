@@ -35,9 +35,10 @@ test('manual UI disables misleading full history action',()=>{
  assert.doesNotMatch(ux,/syncMut\.mutate\(true\)/);
 });
 test('Drive importer fails closed before any integration credentials or network access',()=>{
- const guard=drive.indexOf('throw new Error("Drive bulk import paused pending transactional idempotency approval")');
+ const guard=drive.indexOf('assertDriveBulkImportReviewed();');
  const api=drive.indexOf('const apiKey = process.env.DRIVE_API_KEY');
  assert.ok(guard>0&&guard<api,'Drive hold must precede provider access');
+ assert.match(drive,/function assertDriveBulkImportReviewed\(\): void \{\s*throw new Error/);
  assert.match(ai,/await assertApprovedRole\(context\.userId, \["admin"\]\);\s*return runResumeDriveImport\(context\.supabase\)/);
 });
 test('Drive UI communicates pause and has no enabled import controls',()=>{
@@ -63,5 +64,5 @@ test('synthetic trigger rehearsal makes the unassigned-recruiter blocker explici
 });
 test('the new SQL remains CI-only, not a live database migration',()=>{
  assert.ok(!sql.includes('SUPABASE_SERVICE_ROLE_KEY'));
- assert.match(sql,/NOT a deployable migration/);
+ assert.match(sql,/not a deployable migration/i);
 });

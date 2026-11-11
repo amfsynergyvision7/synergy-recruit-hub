@@ -161,12 +161,14 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
   return results;
 }
 
-export async function runResumeDriveImport(supabase: any): Promise<DriveImportSummary> {
-  // Build 44 review-branch fail-closed safety hold: this importer performs
-  // concurrent multi-call candidate writes without a durable Drive file ledger.
-  // Do not attempt a network request or candidate read until a transactional
-  // importer and a formally accepted migration replace this pathway.
+// Explicit void return keeps the legacy importer type-checkable while every
+// invocation remains blocked until a durable transactional importer replaces it.
+function assertDriveBulkImportReviewed(): void {
   throw new Error("Drive bulk import paused pending transactional idempotency approval");
+}
+
+export async function runResumeDriveImport(supabase: any): Promise<DriveImportSummary> {
+  assertDriveBulkImportReviewed();
   const apiKey = process.env.DRIVE_API_KEY;
   if (!apiKey) {
     throw new Error(
