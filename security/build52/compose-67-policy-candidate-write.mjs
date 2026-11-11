@@ -53,7 +53,7 @@ BEGIN
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  PERFORM set_config('request.jwt.claim.sub','aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',true);
  IF public.crm_write_candidate(NULL,NULL,
-    '{"full_name":"Admin safe create","assigned_recruiter":"22222222-2222-4222-8222-222222222222"}'::jsonb)
+    '{"full_name":"Admin safe create","assigned_recruiter":"11111111-1111-4111-8111-111111111111"}'::jsonb)
  IS NULL THEN RAISE EXCEPTION 'Admin create failed'; END IF;
  SELECT count(*) INTO a_count FROM public.audit_logs WHERE action IN
     ('crm_candidate_create','crm_candidate_update');
