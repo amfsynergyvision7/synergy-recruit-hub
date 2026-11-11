@@ -1,0 +1,612 @@
+{
+  "snapshot_date": "2026-11-11",
+  "source": "read-only live pg_policies metadata",
+  "scope": "67 existing PUBLIC schema policies; no candidate rows or secrets",
+  "count": 67,
+  "tables": 18,
+  "policies": [
+    {
+      "tablename": "app_settings",
+      "policyname": "admin update app settings",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "app_settings",
+      "policyname": "public read app settings",
+      "permissive": "PERMISSIVE",
+      "roles": "{anon,authenticated}",
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "tablename": "audit_logs",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "audit_logs",
+      "policyname": "insert audit",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "has_role(auth.uid(), 'admin'::app_role)"
+    },
+    {
+      "tablename": "audit_logs",
+      "policyname": "read audit",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "billing",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "billing",
+      "policyname": "delete bill",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "billing",
+      "policyname": "insert bill",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'finance'::app_role))"
+    },
+    {
+      "tablename": "billing",
+      "policyname": "read bill",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "billing",
+      "policyname": "update bill",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'finance'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "candidate_activities",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "candidate_activities",
+      "policyname": "read activities",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "candidates",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "candidates",
+      "policyname": "delete candidates",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "candidates",
+      "policyname": "insert candidates",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))"
+    },
+    {
+      "tablename": "candidates",
+      "policyname": "read candidates",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "candidates",
+      "policyname": "update candidates",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role) OR has_role(auth.uid(), 'operations'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "clients",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "clients",
+      "policyname": "delete clients",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "clients",
+      "policyname": "insert clients",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))"
+    },
+    {
+      "tablename": "clients",
+      "policyname": "read clients",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "clients",
+      "policyname": "update clients",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "email_log",
+      "policyname": "insert email_log",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))"
+    },
+    {
+      "tablename": "email_log",
+      "policyname": "read email_log",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "google_integrations",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "google_integrations",
+      "policyname": "admin insert own google integration",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((user_id = auth.uid()) AND has_role(auth.uid(), 'admin'::app_role))"
+    },
+    {
+      "tablename": "google_integrations",
+      "policyname": "admin select own google integration",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((user_id = auth.uid()) AND has_role(auth.uid(), 'admin'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "google_integrations",
+      "policyname": "admin update own google integration",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((user_id = auth.uid()) AND has_role(auth.uid(), 'admin'::app_role))",
+      "with_check": "((user_id = auth.uid()) AND has_role(auth.uid(), 'admin'::app_role))"
+    },
+    {
+      "tablename": "integrations",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "integrations",
+      "policyname": "admin read integrations",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "integrations",
+      "policyname": "admin write integrations",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": "has_role(auth.uid(), 'admin'::app_role)"
+    },
+    {
+      "tablename": "interviews",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "interviews",
+      "policyname": "delete int",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "interviews",
+      "policyname": "insert int",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))"
+    },
+    {
+      "tablename": "interviews",
+      "policyname": "read int",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "interviews",
+      "policyname": "update int",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "job_openings",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "job_openings",
+      "policyname": "delete jobs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "job_openings",
+      "policyname": "insert jobs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))"
+    },
+    {
+      "tablename": "job_openings",
+      "policyname": "read jobs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "job_openings",
+      "policyname": "update jobs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "notifications",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "notifications",
+      "policyname": "insert notif",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((user_id = auth.uid()) OR has_role(auth.uid(), 'admin'::app_role))"
+    },
+    {
+      "tablename": "notifications",
+      "policyname": "read notif",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(user_id = auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "notifications",
+      "policyname": "update notif",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((user_id = auth.uid()) OR (user_id IS NULL))",
+      "with_check": null
+    },
+    {
+      "tablename": "offers",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "offers",
+      "policyname": "delete off",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "offers",
+      "policyname": "insert off",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role) OR has_role(auth.uid(), 'operations'::app_role))"
+    },
+    {
+      "tablename": "offers",
+      "policyname": "read off",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "offers",
+      "policyname": "update off",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'operations'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "profiles",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "profiles",
+      "policyname": "admin delete profiles",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "profiles",
+      "policyname": "admin update profiles",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "profiles",
+      "policyname": "approved read profiles",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(is_approved(auth.uid()) OR (auth.uid() = id))",
+      "with_check": null
+    },
+    {
+      "tablename": "profiles",
+      "policyname": "self update profile",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = id)",
+      "with_check": null
+    },
+    {
+      "tablename": "submissions",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "submissions",
+      "policyname": "delete subs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "submissions",
+      "policyname": "insert subs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))"
+    },
+    {
+      "tablename": "submissions",
+      "policyname": "read subs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "is_approved(auth.uid())",
+      "with_check": null
+    },
+    {
+      "tablename": "submissions",
+      "policyname": "update subs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'recruiter'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "sync_logs",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "sync_logs",
+      "policyname": "admin insert sync logs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "has_role(auth.uid(), 'admin'::app_role)"
+    },
+    {
+      "tablename": "sync_logs",
+      "policyname": "admin read sync logs",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": null
+    },
+    {
+      "tablename": "user_roles",
+      "policyname": "Allow all for authenticated",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "true",
+      "with_check": "true"
+    },
+    {
+      "tablename": "user_roles",
+      "policyname": "admin manage roles",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": "has_role(auth.uid(), 'admin'::app_role)"
+    },
+    {
+      "tablename": "user_roles",
+      "policyname": "self read role",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((user_id = auth.uid()) OR has_role(auth.uid(), 'admin'::app_role))",
+      "with_check": null
+    },
+    {
+      "tablename": "workflow_rules",
+      "policyname": "admin manage workflow rules",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "has_role(auth.uid(), 'admin'::app_role)",
+      "with_check": "has_role(auth.uid(), 'admin'::app_role)"
+    }
+  ]
+}

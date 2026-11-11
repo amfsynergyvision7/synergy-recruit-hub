@@ -23,6 +23,7 @@ on:
       - 'security/build45/**'
       - 'security/build46/**'
       - 'security/build47/**'
+      - 'security/build48/**'
       - 'src/lib/integrations.functions.ts'
       - 'src/lib/drive-import.server.ts'
       - 'src/components/DriveImportButton.tsx'
@@ -444,6 +445,34 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build47/48-object-and-rls.integration.sql
+  exact-67-live-policy-replacement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact 67-policy catalog, legacy exposure and full replacement controls
+        run: node --test security/build48/security-contract.test.mjs
+      - name: Recreate 67 current policies, reject drift and test 35 restrictive replacements in one rollback
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build48/67-policy-replacement.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
