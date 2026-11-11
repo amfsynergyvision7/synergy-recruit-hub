@@ -70,6 +70,10 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build36/synthetic-sync-lease.sql
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build37/sync-lease.integration.sql
+      - name: Verify two PostgreSQL sessions cannot acquire the same owner lease
+        env:
+          PGPASSWORD: postgres
+        run: bash security/build37/two-session-lease.test.sh
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
