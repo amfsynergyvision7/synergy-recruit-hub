@@ -22,7 +22,7 @@ for(const [prior,next] of [[1,3],[3,3],[3,2],[-1,0],[0,1.5],[Infinity,1]])test('
 test('actual importer has owner, exact-match and fail-fast guards',()=>{
  const code=readFileSync(resolve(root,'src/lib/sheets-sync.server.ts'),'utf8');
  assert.match(code,/if \(!opts\.userId\) throw new Error\("Explicit sync owner required"\)/);
- assert.match(code,/uniqueCandidateMatch\(matches\)/);
+ assert.match(code,/uniqueCandidateMatch<[^>]+>\(matches\)/);
  assert.match(code,/reconcileCandidateMatches\(mobileMatch, emailMatch\)/);
  assert.match(code,/escapeIlikeLiteral\(cand\.email\)/);
  const batch=code.slice(code.indexOf('for (let i = startIdx;'),code.indexOf('result.created = result.rows_created;'));
