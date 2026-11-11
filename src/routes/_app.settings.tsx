@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAdminResumeFolder, updateAdminSetting } from "@/lib/admin-settings.client";
 import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
@@ -34,20 +35,14 @@ function Page() {
 
   useEffect(() => {
     if (role !== "admin") return;
-    supabase
-      .from("app_settings")
-      .select("resume_import_folder_url")
-      .eq("id", 1)
-      .maybeSingle()
-      .then(({ data }) => setDriveFolderUrl(data?.resume_import_folder_url ?? ""));
+    getAdminResumeFolder().then(({ data, error }) => {
+      if (!error) setDriveFolderUrl(data ?? "");
+    });
   }, [role]);
 
   const saveDriveFolder = async () => {
     setSavingFolder(true);
-    const { error } = await supabase
-      .from("app_settings")
-      .update({ resume_import_folder_url: driveFolderUrl.trim() || null, updated_by: profile?.id })
-      .eq("id", 1);
+    const { error } = await updateAdminSetting("resume_import_folder_url", driveFolderUrl.trim() || null);
     setSavingFolder(false);
     if (error) return toast.error(error.message);
     toast.success("Resume import folder saved");
@@ -80,10 +75,7 @@ function Page() {
     }
     const { data } = supabase.storage.from("branding").getPublicUrl(LOGO_STORAGE_PATH);
     const versionedUrl = `${data.publicUrl}?v=${Date.now()}`;
-    const { error: dbError } = await supabase
-      .from("app_settings")
-      .update({ logo_url: versionedUrl, updated_by: profile?.id })
-      .eq("id", 1);
+    const { error: dbError } = await updateAdminSetting("logo_url", versionedUrl);
     setUploading(false);
     if (dbError) return toast.error(dbError.message);
     toast.success("Logo updated");
@@ -91,10 +83,7 @@ function Page() {
   };
 
   const setOrgDefaultTheme = async (id: ColorThemeId) => {
-    const { error } = await supabase
-      .from("app_settings")
-      .update({ default_color_theme: id, updated_by: profile?.id })
-      .eq("id", 1);
+    const { error } = await updateAdminSetting("default_color_theme", id);
     if (error) return toast.error(error.message);
     toast.success("Organization default theme updated");
     refreshBranding();
@@ -103,10 +92,7 @@ function Page() {
   const removeLogo = async () => {
     setUploading(true);
     await supabase.storage.from("branding").remove([LOGO_STORAGE_PATH]);
-    const { error } = await supabase
-      .from("app_settings")
-      .update({ logo_url: null, updated_by: profile?.id })
-      .eq("id", 1);
+    const { error } = await updateAdminSetting("logo_url", null);
     setUploading(false);
     if (error) return toast.error(error.message);
     toast.success("Logo removed — showing the default mark again");

@@ -124,6 +124,31 @@ jobs:
         run: bash security/build40/run_full_scope.sh
       - name: Audit actual CRM callsites affected by proposed grants
         run: node security/build40/repository-compatibility-audit.mjs
+  admin-settings-rpc-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify CRM Settings uses protected admin RPC calls
+        run: node --test security/build40/admin-settings-source.test.mjs
+      - name: Test anonymous, recruiter, pending, inactive and admin SQL access
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build40/admin-settings-rpc.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
