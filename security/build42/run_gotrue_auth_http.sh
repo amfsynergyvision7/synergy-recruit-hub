@@ -4,6 +4,8 @@ set -euo pipefail
 if test -z "$PGPASSWORD" || test -z "$B42_JWT_SECRET"; then echo 'Synthetic CI credentials required' >&2; exit 1; fi
 if test "$(printf '%s' "$B42_JWT_SECRET" | wc -c)" -lt 32; then echo 'Synthetic JWT secret too short' >&2; exit 1; fi
 cleanup() {
+  result=$?
+  if test "$result" != 0; then echo 'GoTrue diagnostic output (synthetic only):' >&2; docker logs --tail 45 build42-gotrue 2>&1 | tail -45 || true; fi
   docker rm -f build42-gotrue build42-postgrest >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -15,8 +17,8 @@ docker run -d --rm --name build42-gotrue --network host \
   -e API_EXTERNAL_URL=http://127.0.0.1:9999 \
   -e GOTRUE_DB_DRIVER=postgres \
   -e GOTRUE_DB_NAMESPACE=auth \
-  -e GOTRUE_DB_DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable" \
-  -e DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable" \
+  -e GOTRUE_DB_DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable\&options=-csearch_path%3Dauth%2Cpublic" \
+  -e DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable\&options=-csearch_path%3Dauth%2Cpublic" \
   -e GOTRUE_SITE_URL=http://localhost:3000 \
   -e GOTRUE_DISABLE_SIGNUP=false \
   -e GOTRUE_EXTERNAL_EMAIL_ENABLED=true \
