@@ -12,6 +12,7 @@ on:
       - 'src/lib/sheets-sync.server.ts'
       - 'src/routes/api/public/hooks/sheets-sync.ts'
       - 'security/build34/**'
+      - 'security/build36/**'
       - '.github/workflows/security-build34-review.yml'
 permissions:
   contents: read
@@ -25,7 +26,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test fail-closed webhook and account authorization without credentials
-        run: node --experimental-strip-types --test security/build34/*.test.mjs
+        run: node --experimental-strip-types --test security/build34/*.test.mjs security/build36/*.test.mjs
   application-compile:
     runs-on: ubuntu-latest
     timeout-minutes: 15

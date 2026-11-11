@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
 import { assertApprovedRole } from "./access-gates.server";
+import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor } from "./sync-safety";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
@@ -126,6 +127,7 @@ export function diagnosticsForIntegration(integ?: GoogleIntegrationSettings | nu
 }
 
 export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean; userId?: string } = {}): Promise<GoogleIntegrationSettings | null> {
+  if (!opts.userId) throw new Error("Explicit integration owner required");
   let query = (supabaseAdmin as any)
     .from("google_integrations")
     .select("*")
@@ -314,7 +316,10 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   }
 
   const startIdx = opts.fullHistory ? headerRow : Math.max(headerRow, integ.last_synced_row || headerRow);
-  let lastSynced = integ.last_synced_row || headerRow;
+  let lastSynced = opts.fullHistory ? headerRow : Math.max(headerRow, integ.last_synced_row || headerRow);
+  if (!opts.fullHistory && lastSynced > values.length) {
+    throw new Error("Source sheet row count shrank; manual resync review required");
+  }
 
   for (let i = startIdx; i < values.length; i++) {
     const sheetRowNumber = i + 1;
@@ -322,7 +327,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
     try {
       const cand = rowToCandidate(headers, values[i], mapping);
       if (!cand.full_name && !cand.email && !cand.mobile) {
-        result.rows_skipped++; lastSynced = sheetRowNumber; continue;
+        result.rows_skipped++; lastSynced = advanceContiguousCursor(lastSynced, sheetRowNumber); continue;
       }
       cand.full_name = cand.full_name || cand.email || cand.mobile;
       cand.source = cand.source || "Google Form";
@@ -330,21 +335,23 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
       cand.status = "active";
       cand.created_source = "google_form_sync";
 
-      let existingId: string | null = null;
-      let existing: Record<string, any> | null = null;
       const candidateSelect = "id, full_name, mobile, email, location, position_applied, current_company, experience_years, current_salary, expected_salary, notice_period, source, resume_url, notes, status, created_source";
+      let mobileMatch: Record<string, any> | null = null;
+      let emailMatch: Record<string, any> | null = null;
       if (cand.mobile) {
-        const { data: m, error } = await (supabaseAdmin.from("candidates") as any)
-          .select(candidateSelect).eq("mobile", cand.mobile).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const { data: matches, error } = await (supabaseAdmin.from("candidates") as any)
+          .select(candidateSelect).eq("mobile", cand.mobile).order("created_at", { ascending: false }).limit(2);
         if (error) throw error;
-        if (m) { existingId = m.id; existing = m; }
+        mobileMatch = uniqueCandidateMatch(matches);
       }
       if (cand.email) {
-        const { data: e, error } = await (supabaseAdmin.from("candidates") as any)
-          .select(candidateSelect).ilike("email", cand.email).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        const { data: matches, error } = await (supabaseAdmin.from("candidates") as any)
+          .select(candidateSelect).ilike("email", escapeIlikeLiteral(cand.email)).order("created_at", { ascending: false }).limit(2);
         if (error) throw error;
-        if (!existingId && e) { existingId = e.id; existing = e; }
+        emailMatch = uniqueCandidateMatch(matches);
       }
+      const existing = reconcileCandidateMatches(mobileMatch, emailMatch);
+      const existingId = existing?.id ?? null;
 
       if (existingId) {
         const upd: Record<string, any> = {};
@@ -367,10 +374,11 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
           type: "success",
         });
       }
-      lastSynced = sheetRowNumber;
+      lastSynced = advanceContiguousCursor(lastSynced, sheetRowNumber);
     } catch (e: any) {
       result.error_details.push({ row: sheetRowNumber, message: e?.message || String(e) });
       result.rows_skipped++;
+      break; // Fail fast: do not checkpoint beyond a failed row.
     }
   }
 
@@ -403,6 +411,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
 }
 
 export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string }): Promise<SyncResult> {
+  if (!opts.userId) throw new Error("Explicit sync owner required");
   try {
     return await runCandidateSyncUnsafe(opts);
   } catch (e: any) {
