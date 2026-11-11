@@ -4,10 +4,10 @@
 import { readFileSync, writeFileSync } from "node:fs";
 const prior = readFileSync("security/build49/67-policy-admin-profile-compat.integration.sql","utf8");
 const patch = readFileSync("security/build51/candidate-stage-rpc-review-only.sql","utf8");
-const anchor = " -- Build49: Account management and self-profile compatibility AFTER the full";
-const finish = " RESET ROLE;\n SET ROLE anon;";
+const anchor = "-- Build49: Account management and self-profile compatibility AFTER the full";
+const finish = "RESET ROLE;\nSET ROLE anon;";
 if (prior.split(anchor).length !== 2 || prior.split(finish).length !== 2 ||
-    !prior.includes(" ROLLBACK;") ||
+    !prior.includes("\nROLLBACK;") ||
     !prior.includes("Expected exactly 35 new approved-for-review policies")) {
   throw new Error("Build49 full replay drifted; do not silently skip stage integration");
 }
