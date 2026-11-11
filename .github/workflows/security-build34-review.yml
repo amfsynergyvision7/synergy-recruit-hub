@@ -603,6 +603,13 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build51/stage-transaction.integration.sql
+      - name: Run stage-RPC after full original 67-policy replay and 35 restrictive replacement
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build51/compose-67-policy-stage.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build51-full-67-policy-stage.integration.sql
+
 
   production-release-hold:
     if: github.event_name == 'pull_request'
