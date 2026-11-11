@@ -25,8 +25,8 @@ test("Dangerous candidate fields are never client writable",()=>{
   assert.equal(allow.includes("'"+blocked+"'"),false);
  }
  assert.match(sql,/REVOKE INSERT, UPDATE, DELETE ON public\.candidates FROM PUBLIC,anon,authenticated/);
- assert.match(sql,/REVOKE INSERT\\(%I\\),UPDATE\\(%I\\) ON public\\.candidates/);
- assert.match(sql,/has_column_privilege\\('authenticated','public\\.candidates',v_col,'UPDATE'\\)/);
+ assert.ok(sql.includes("REVOKE INSERT(%I),UPDATE(%I) ON public.candidates"));
+ assert.ok(sql.includes("has_column_privilege('authenticated','public.candidates',v_col,'UPDATE')"));
  assert.match(sql,/GRANT EXECUTE ON FUNCTION public\.crm_write_candidate\(uuid,timestamptz,jsonb\)\s+TO authenticated/);
 });
 test("Candidate UI now targets the RPC without reopening the Build50 release hold",()=>{
