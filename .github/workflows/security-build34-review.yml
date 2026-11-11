@@ -17,6 +17,7 @@ on:
       - 'security/build38/**'
       - 'security/build40/**'
       - 'security/build41/**'
+      - 'security/build42/**'
       - 'src/lib/sync-lease.server.ts'
       - '.github/workflows/security-build34-review.yml'
 permissions:
@@ -183,6 +184,40 @@ jobs:
         with:
           name: build41-synthetic-jwt-http-evidence
           path: /tmp/build41-signed-http-evidence.json
+          if-no-files-found: ignore
+  gotrue-issued-signed-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test real Supabase GoTrue-issued signed sessions in isolated PostgreSQL and PostgREST
+        env:
+          PGPASSWORD: postgres
+          B42_JWT_SECRET: build42-only-disposable-jwt-secret-with-long-fake-seed-abcd1234
+        run: bash security/build42/run_gotrue_auth_http.sh
+      - name: Archive synthetic case outcomes without credentials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build42-synthetic-gotrue-auth-evidence
+          path: /tmp/build42-gotrue-issued-auth-results.json
           if-no-files-found: ignore
   production-release-hold:
     if: github.event_name == 'pull_request'
