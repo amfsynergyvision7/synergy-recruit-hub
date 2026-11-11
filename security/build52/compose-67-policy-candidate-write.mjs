@@ -38,7 +38,7 @@ BEGIN
  THEN RAISE EXCEPTION 'Owner edit failed under full RLS lockdown'; END IF;
  BEGIN
   PERFORM public.crm_write_candidate('22222222-2222-4222-8222-222222222222',
-    (SELECT updated_at FROM public.candidates WHERE id='22222222-2222-4222-8222-222222222222'),
+    '2000-01-01T00:00:00Z'::timestamptz, -- Do not SELECT another recruiter's hidden row
     '{"notes":"Cross-owner"}'::jsonb);
   RAISE EXCEPTION 'Cross-owner write succeeded';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
