@@ -1,11 +1,20 @@
-# Build 34 — isolated source security review (NOT FOR MERGE)
-This branch is independent from the 145-file draft Security PR #11 and must remain review-only.
-- Sync POST requires a strong server-only CRON_SECRET. Missing or incorrect credentials fail before any integration lookup.
-- The existing route is POST; native Vercel Cron invokes GET. Do not enable a native Cron schedule without a reviewed protocol change.
-- The existing cron path still picks the latest saved integration when no user ID is specified: tenant-scoping is a release blocker.
-- Admin integration functions now require server-verified approved/active profile and admin role.
-- Six AI/import operations have approved/active role guards (AI Admin/Recruiter; bulk import Admin only).
-- These guards do not replace database least-privilege RLS, column grants or actual signed-user tests. Critical live database findings remain.
-- A preview build, if automatically created, is not a release approval. No staging/production DB writes, external emails, real sync or financial activation are authorized by these tests.
-- Run signed synthetic JWT/API/browser tests, scheduler compatibility, tenant-binding, rollback and independent review before merging.
-- Nine formal release gates remain blocked.
+# Build 35 — Focused review-only scheduler and role-gate fixes
+
+RELEASE HOLD: do not merge, promote, schedule, or enable synchronization. The nine formal security gates remain incomplete.
+
+## Proposed protected scheduled path
+- HTTP GET (Vercel Cron) and POST (trusted external scheduler) at /api/public/hooks/sheets-sync.
+- Require Authorization: Bearer CRON_SECRET. Generate/manage a strong secret outside source control.
+- SHEETS_SYNC_CRON_ENABLED must be exactly true. Missing or any other value denies all requests.
+- SHEETS_SYNC_OWNER_USER_ID must be the approved admin UUID. No value is configured by this code.
+- Server checks approved+active profile and admin role, then loads only the integration for that same owner.
+- Live read-only metadata confirms UNIQUE(user_id) on google_integrations.
+- Respond with sanitized aggregate totals only. Errors return a generic failure, not candidate diagnostics.
+- No cron schedule, production/preview environment variable updates, live sync calls or database migrations were performed.
+
+## Outstanding release blockers
+- Signed JWT user/API/browser testing, stage-history and recruiter ownership, least privilege RLS/column grants, triggered effects, backup/restore and independent review.
+- The sync service is not transactional; partial candidate writes are possible before a later row fails.
+- Verify idempotency, overlapping-run locks, rate/volume limits, Vercel scheduler behavior and secrets lifecycle in an isolated environment before activation.
+- The 15 broad PUBLIC RLS policies, 13 anonymous non-invoker views, 16 privileged function grants and 16 anon TRUNCATE grants remain unresolved.
+- Nine formal production release gates remain HOLD.
