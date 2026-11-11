@@ -225,12 +225,10 @@ export async function saveDetectedHeaders(integration: GoogleIntegrationSettings
   if (error) throw error;
 }
 
-export async function resetGoogleIntegrationSyncCursor(integrationId: string) {
-  const { error } = await (supabaseAdmin as any)
-    .from("google_integrations")
-    .update({ last_synced_row: 1 })
-    .eq("id", integrationId);
-  if (error) throw error;
+export async function resetGoogleIntegrationSyncCursor(_integrationId: string) {
+  // A cursor reset without the corresponding idempotency ledger would
+  // permit ambiguous reimports; require a separate reviewed reconciliation.
+  throw new Error("Sync cursor reset is disabled pending safe ledger reconciliation");
 }
 
 export async function getCandidateSyncLogs() {
@@ -450,6 +448,11 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
 
 export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void>; leaseToken?: string; atomicRowWrites?: boolean }): Promise<SyncResult> {
   if (!opts.userId) throw new Error("Explicit sync owner required");
+  if (opts.fullHistory) throw new Error("Full-history sync disabled until ledger reconciliation");
+  // Public sync entry points may not bypass the database-backed owner lease.
+  if (!opts.atomicRowWrites || !opts.leaseToken || !opts.leaseHeartbeat) {
+    throw new Error("Non-atomic candidate sync disabled until transactional release");
+  }
   try {
     return await runCandidateSyncUnsafe(opts);
   } catch (e: any) {

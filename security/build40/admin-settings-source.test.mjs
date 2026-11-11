@@ -40,4 +40,5 @@ test('Drive importer uses protected admin-only folder RPC',()=>{
  assert.doesNotMatch(code,/\.from\("app_settings"\)/);
  const handler=readFileSync('src/lib/ai.functions.ts','utf8');
  assert.match(handler,/await assertApprovedRole\(context\.userId, \["admin"\]\);\s*return runResumeDriveImport\(context\.supabase\)/);
+ assert.match(code,/Drive bulk import paused pending transactional idempotency approval/);
 });

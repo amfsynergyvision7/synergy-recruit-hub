@@ -19,6 +19,10 @@ on:
       - 'security/build41/**'
       - 'security/build42/**'
       - 'security/build43/**'
+      - 'security/build44/**'
+      - 'src/lib/integrations.functions.ts'
+      - 'src/lib/drive-import.server.ts'
+      - 'src/components/DriveImportButton.tsx'
       - 'src/lib/sync-lease.server.ts'
       - '.github/workflows/security-build34-review.yml'
 permissions:
@@ -271,6 +275,34 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: bash security/build43/atomic-concurrency-restore.test.sh
+  production-derived-trigger-and-manual-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test manual Sheet fencing, full-history hold and Drive bulk pause
+        run: node --test security/build44/manual-and-trigger-contract.test.mjs
+      - name: Test seven real trigger function definitions and nine trigger attachments with synthetic atomic rows
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build44/production-trigger-compat.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

@@ -41,15 +41,15 @@ export function DriveImportButton() {
       <Button
         variant="outline"
         size="sm"
-        disabled={mut.isPending}
-        onClick={() => { setOpen(true); mut.mutate(); }}
+        disabled
+        title="Drive bulk import is paused until transactional deduplication is approved"
       >
         <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${mut.isPending ? "animate-spin" : ""}`} />
         {/* Full label on a screen wide enough for it; a short one below sm
             so this button doesn't push the Table/Board toggle off a phone
             screen (that row wraps now too, but this keeps it from needing to). */}
-        <span className="hidden sm:inline">{mut.isPending ? "Checking Drive…" : "Check Google Drive for new resumes"}</span>
-        <span className="sm:hidden">{mut.isPending ? "Checking…" : "Check Drive"}</span>
+        <span className="hidden sm:inline">Drive bulk import paused</span>
+        <span className="sm:hidden">Import paused</span>
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -112,7 +112,7 @@ export function DriveImportButton() {
           </div>
 
           <DialogFooter>
-            <Button disabled={mut.isPending} onClick={() => mut.mutate()}>
+            <Button disabled title="Drive bulk import is paused until approved">
               {mut.isPending ? "Checking…" : "Run again"}
             </Button>
           </DialogFooter>

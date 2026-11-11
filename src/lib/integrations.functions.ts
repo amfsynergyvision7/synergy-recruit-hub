@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createSupabaseSyncLeaseOperations, withCandidateSyncLease } from "./sync-lease.server";
 import {
   runCandidateSync,
   fetchSheetValues,
@@ -9,7 +11,6 @@ import {
   getSavedGoogleIntegration,
   saveGoogleIntegrationSettings,
   saveDetectedHeaders,
-  resetGoogleIntegrationSyncCursor,
   getCandidateSyncLogs,
   diagnosticsForIntegration,
 } from "./sheets-sync.server";
@@ -62,13 +63,21 @@ export const triggerSync = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ fullHistory: z.boolean().optional() }).parse(input))
   .handler(async ({ context, data }) => {
     await assertAdminUser(context.userId);
+    // Full history previously rewound a cursor without reconciling the
+    // idempotency ledger. Block it until an approved, reversible replay plan exists.
     if (data.fullHistory) {
-      const integration = await getSavedGoogleIntegration({ userId: context.userId });
-      if (!integration?.spreadsheet_id) throw new Error("Google Sheet not configured");
-      await resetGoogleIntegrationSyncCursor(integration.id);
+      throw new Error("Full-history resync is paused pending safe ledger reconciliation");
     }
-    const result = await runCandidateSync({ fullHistory: !!data.fullHistory, triggeredBy: data.fullHistory ? "manual_full" : "manual", userId: context.userId });
-    return result;
+    const execution = await withCandidateSyncLease(
+      context.userId,
+      (heartbeat, token) => runCandidateSync({
+        fullHistory: false, triggeredBy: "manual", userId: context.userId,
+        leaseHeartbeat: heartbeat, leaseToken: token, atomicRowWrites: true,
+      }),
+      createSupabaseSyncLeaseOperations(supabaseAdmin as any),
+    );
+    if (!execution.acquired) throw new Error("Candidate synchronization already in progress");
+    return execution.value;
   });
 
 export const getSyncLogs = createServerFn({ method: "GET" })

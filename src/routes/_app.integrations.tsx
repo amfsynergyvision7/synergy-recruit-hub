@@ -179,8 +179,8 @@ function Page() {
             <Button variant="secondary" onClick={() => syncMut.mutate(false)} disabled={syncMut.isPending || !canSync}>
               {syncMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4"/>} Sync new rows
             </Button>
-            <Button variant="outline" onClick={() => syncMut.mutate(true)} disabled={syncMut.isPending || !canSync}>
-              <History className="h-4 w-4"/> Import full history
+            <Button variant="outline" disabled title="Full-history import requires reconciliation of the source-row ledger">
+              <History className="h-4 w-4"/> Full history (paused)
             </Button>
           </div>
 
