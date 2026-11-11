@@ -613,6 +613,41 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build51-full-67-policy-stage.integration.sql
 
 
+  build52-candidate-write-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check candidate write RPC and client source contracts
+        run: node --test security/build52/source-contract.test.mjs
+      - name: Run role-aware candidate write, audit rollback and billing trap on disposable PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build52/candidate-write.integration.sql
+      - name: Run candidate RPC after full original 67 policy replay and 35 restrictive policies
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build52/compose-67-policy-candidate-write.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build52-full-policy-candidate-write.integration.sql
+
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
