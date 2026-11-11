@@ -336,19 +336,19 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
       cand.created_source = "google_form_sync";
 
       const candidateSelect = "id, full_name, mobile, email, location, position_applied, current_company, experience_years, current_salary, expected_salary, notice_period, source, resume_url, notes, status, created_source";
-      let mobileMatch: Record<string, any> | null = null;
-      let emailMatch: Record<string, any> | null = null;
+      let mobileMatch: { id: string; [key: string]: any } | null = null;
+      let emailMatch: { id: string; [key: string]: any } | null = null;
       if (cand.mobile) {
         const { data: matches, error } = await (supabaseAdmin.from("candidates") as any)
           .select(candidateSelect).eq("mobile", cand.mobile).order("created_at", { ascending: false }).limit(2);
         if (error) throw error;
-        mobileMatch = uniqueCandidateMatch(matches);
+        mobileMatch = uniqueCandidateMatch<{ id: string; [key: string]: any }>(matches);
       }
       if (cand.email) {
         const { data: matches, error } = await (supabaseAdmin.from("candidates") as any)
           .select(candidateSelect).ilike("email", escapeIlikeLiteral(cand.email)).order("created_at", { ascending: false }).limit(2);
         if (error) throw error;
-        emailMatch = uniqueCandidateMatch(matches);
+        emailMatch = uniqueCandidateMatch<{ id: string; [key: string]: any }>(matches);
       }
       const existing = reconcileCandidateMatches(mobileMatch, emailMatch);
       const existingId = existing?.id ?? null;
