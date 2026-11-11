@@ -14,6 +14,8 @@ test('GitHub Actions uses the same security suite as Preview', () => {
   const workflow = read('.github/workflows/step35e-security-gates.yml');
   assert.ok(workflow.includes('branches: [security/step-35e-isolated-hardening]'));
   assert.match(workflow, /npm run test:security/);
+  assert.match(workflow, /node --check tests\/step35e-build-pipeline\.test\.mjs/);
+  assert.match(workflow, /permissions:\s*\n\s*contents: read/);
   const pkg = JSON.parse(read('package.json'));
   assert.ok(pkg.scripts['test:security'].includes('step35e-build-pipeline.test.mjs'));
 });
