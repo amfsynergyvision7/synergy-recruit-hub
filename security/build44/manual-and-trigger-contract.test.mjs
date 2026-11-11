@@ -38,8 +38,8 @@ test('Drive importer fails closed before any integration credentials or network 
  const guard=drive.indexOf('assertDriveBulkImportReviewed();');
  const api=drive.indexOf('const apiKey = process.env.DRIVE_API_KEY');
  assert.ok(guard>0&&guard<api,'Drive hold must precede provider access');
- assert.match(drive,/function assertDriveBulkImportReviewed\(\): void \{\s*throw new Error/);
- assert.match(ai,/await assertApprovedRole\(context\.userId, \["admin"\]\);\s*return runResumeDriveImport\(context\.supabase\)/);
+ assert.match(drive,/function assertDriveBulkImportReviewed\(\): void \{[\s\S]*?throw new Error\("Drive bulk import paused pending transactional idempotency approval"\)/);
+ assert.match(ai,/await assertApprovedRole\(context\.userId, \["admin"\]\);\s*return runResumeDriveImport\(context\.supabase, context\.userId\)/);
 });
 test('Drive UI communicates pause and has no enabled import controls',()=>{
  assert.match(driveButton,/disabled\s+title="Drive bulk import is paused until transactional deduplication is approved"/);
