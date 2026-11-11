@@ -22,6 +22,7 @@ on:
       - 'security/build44/**'
       - 'security/build45/**'
       - 'security/build46/**'
+      - 'security/build47/**'
       - 'src/lib/integrations.functions.ts'
       - 'src/lib/drive-import.server.ts'
       - 'src/components/DriveImportButton.tsx'
@@ -392,6 +393,57 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: bash security/build46/drive-concurrency-restore.test.sh
+  security-48-object-catalog-lockdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate exact 48-object catalog, preflight and release-only invariants
+        run: node --test security/build47/security-contract.test.mjs
+      - name: Rehearse 48-object lockdown, reject changed catalog and roll back
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build47/48-object-lockdown.integration.sql
+  security-48-plus-31-rls-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse 48-object lockdown plus 31 restrictive RLS policies under real PostgreSQL roles
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build47/48-object-and-rls.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
