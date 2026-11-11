@@ -13,6 +13,8 @@ on:
       - 'src/routes/api/public/hooks/sheets-sync.ts'
       - 'security/build34/**'
       - 'security/build36/**'
+      - 'security/build37/**'
+      - 'src/lib/sync-lease.server.ts'
       - '.github/workflows/security-build34-review.yml'
 permissions:
   contents: read
@@ -26,7 +28,7 @@ jobs:
         with:
           node-version: '22'
       - name: Test fail-closed webhook and account authorization without credentials
-        run: node --experimental-strip-types --test security/build34/*.test.mjs security/build36/*.test.mjs
+        run: node --experimental-strip-types --test security/build34/*.test.mjs security/build36/*.test.mjs security/build37/*.test.mjs
   application-compile:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -65,7 +67,9 @@ jobs:
       - name: Rehearse synthetic lease transitions in disposable PostgreSQL 17
         env:
           PGPASSWORD: postgres
-        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build36/synthetic-sync-lease.sql
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build36/synthetic-sync-lease.sql
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build37/sync-lease.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

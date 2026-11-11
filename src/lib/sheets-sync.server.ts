@@ -285,17 +285,19 @@ function emptyResult(): SyncResult {
   return { created: 0, updated: 0, skipped: 0, errors: 0, rows_scanned: 0, rows_created: 0, rows_updated: 0, rows_skipped: 0, error_details: [] };
 }
 
-async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string }): Promise<SyncResult> {
+async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void> }): Promise<SyncResult> {
   const integ = await getSavedGoogleIntegration({ userId: opts.userId });
   if (!integ || !integ.spreadsheet_id) throw new Error("Google Sheet not configured");
 
   const sheetName = integ.sheet_name || "Form Responses 1";
   const headerRow = integ.header_row || 1;
   const values = await fetchSheetValues(integ.spreadsheet_id, sheetName);
+  await opts.leaseHeartbeat?.(); // Abort if a lease expired while fetching the sheet.
 
   const result = emptyResult();
   result.diagnostics = diagnosticsForIntegration(integ, values);
   if (values.length < headerRow) {
+    await opts.leaseHeartbeat?.();
     await (supabaseAdmin as any).from("google_integrations").update({
       last_sync: new Date().toISOString(), connection_status: "success", last_error: null,
     }).eq("id", integ.id);
@@ -312,6 +314,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   }));
   const mapping: Record<string, string> = { ...autoMap(headers), ...normalizedSaved };
   if (JSON.stringify(mapping) !== JSON.stringify(savedMapping)) {
+    await opts.leaseHeartbeat?.();
     await (supabaseAdmin as any).from("google_integrations").update({ column_mapping: mapping }).eq("id", integ.id);
   }
 
@@ -322,6 +325,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   }
 
   for (let i = startIdx; i < values.length; i++) {
+    await opts.leaseHeartbeat?.();
     const sheetRowNumber = i + 1;
     result.rows_scanned++;
     try {
@@ -360,14 +364,17 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
           if (String(existing?.[key] ?? "") !== String(value)) upd[key] = value;
         });
         if (Object.keys(upd).length > 0) {
+          await opts.leaseHeartbeat?.();
           const { error } = await (supabaseAdmin.from("candidates") as any).update(upd).eq("id", existingId);
           if (error) throw error;
         }
         result.rows_updated++;
       } else {
+        await opts.leaseHeartbeat?.();
         const { data: ins, error } = await (supabaseAdmin.from("candidates") as any).insert(cand).select("id, candidate_code, full_name").single();
         if (error) throw error;
         result.rows_created++;
+        await opts.leaseHeartbeat?.();
         await supabaseAdmin.from("notifications").insert({
           title: "New Candidate Added via Google Form",
           message: `${ins.full_name} (${ins.candidate_code}) was synced from Google Sheets.`,
@@ -388,6 +395,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   result.errors = result.error_details.length;
 
   const status = result.errors ? (result.created + result.updated > 0 ? "partial" : "error") : "success";
+  await opts.leaseHeartbeat?.();
   await (supabaseAdmin as any).from("google_integrations").update({
     last_sync: new Date().toISOString(),
     last_synced_row: lastSynced,
@@ -410,7 +418,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   return result;
 }
 
-export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string }): Promise<SyncResult> {
+export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void> }): Promise<SyncResult> {
   if (!opts.userId) throw new Error("Explicit sync owner required");
   try {
     return await runCandidateSyncUnsafe(opts);

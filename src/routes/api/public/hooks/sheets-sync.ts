@@ -3,6 +3,7 @@ import { getSavedGoogleIntegration, runCandidateSync } from '@/lib/sheets-sync.s
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 import { assertApprovedRole } from '@/lib/access-gates.server';
 import { handleCandidateSyncCron } from '@/lib/cron-auth.server';
+import { createSupabaseSyncLeaseOperations, withCandidateSyncLease } from '@/lib/sync-lease.server';
 
 // REVIEW ONLY. No Vercel cron schedule or server secrets are activated here.
 // Native Vercel Cron GET and trusted POST both require an authenticated bearer.
@@ -13,7 +14,15 @@ const handler = async ({ request }: { request: Request }) => handleCandidateSync
 }, {
   assertOwnerAdmin: (ownerId) => assertApprovedRole(ownerId, ['admin']),
   getIntegration: (ownerId) => getSavedGoogleIntegration({ backfillLegacy: false, userId: ownerId }),
-  runSync: (ownerId) => runCandidateSync({ triggeredBy: 'cron', userId: ownerId }),
+  runSync: async (ownerId) => {
+    const execution = await withCandidateSyncLease(
+      ownerId,
+      (heartbeat) => runCandidateSync({ triggeredBy: 'cron', userId: ownerId, leaseHeartbeat: heartbeat }),
+      createSupabaseSyncLeaseOperations(supabaseAdmin as any),
+    );
+    if (!execution.acquired) throw new Error('Candidate sync already leased');
+    return execution.value;
+  },
   recordFailure: async () => {
     const { error } = await supabaseAdmin.from('sync_logs').insert({
       module: 'candidates', triggered_by: 'cron', status: 'error',
