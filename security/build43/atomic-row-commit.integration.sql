@@ -9,7 +9,7 @@ CREATE TYPE public.candidate_stage AS ENUM('lead_received','screening','intervie
 CREATE TABLE public.profiles(id uuid,status public.user_status,is_active boolean);
 CREATE TABLE public.user_roles(user_id uuid,role public.app_role);
 CREATE TABLE public.google_integrations(id uuid PRIMARY KEY,user_id uuid,last_synced_row int,header_row int,spreadsheet_id text,sheet_name text,connection_status text,last_error text,last_sync timestamptz);
-CREATE TABLE public.candidates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),full_name text NOT NULL,mobile text,email text,location text,position_applied text,current_company text,experience_years numeric,current_salary numeric,expected_salary numeric,notice_period text,resume_url text,source text,notes text,stage public.candidate_stage NOT NULL DEFAULT 'lead_received',status text NOT NULL DEFAULT 'active',created_source text);
+CREATE TABLE public.candidates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),full_name text NOT NULL,mobile text,email text,location text,position_applied text,current_company text,experience_years numeric,current_salary numeric,expected_salary numeric,notice_period text,resume_url text,source text,notes text,stage public.candidate_stage NOT NULL DEFAULT 'lead_received',status text NOT NULL DEFAULT 'active',created_source text,assigned_recruiter uuid);
 CREATE TABLE public.notifications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),title text NOT NULL,message text,type text,related_table text,related_id uuid,CONSTRAINT notification_once UNIQUE(related_table,related_id,type));
 CREATE SCHEMA crm_private;
 CREATE TABLE crm_private.candidate_sync_leases(owner_id uuid PRIMARY KEY,lease_token uuid NOT NULL,expires_at timestamptz NOT NULL);
@@ -33,7 +33,7 @@ ALTER TABLE crm_private.candidate_sync_row_ledger ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON crm_private.candidate_sync_row_ledger FROM PUBLIC,anon,authenticated;
 
 CREATE FUNCTION public.crm_commit_candidate_sync_row(
- p_owner uuid,p_token uuid,p_integration uuid,p_row_number integer,p_candidate jsonb
+ p_owner uuid,p_token uuid,p_integration uuid,p_row_number integer,p_candidate jsonb,p_assigned_recruiter uuid
 ) RETURNS TABLE(outcome text,candidate_id uuid)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE
@@ -62,6 +62,11 @@ BEGIN
    SELECT 1 FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.id
    WHERE p.id=p_owner AND p.status='approved' AND p.is_active IS TRUE AND r.role='admin'
  ) THEN RAISE EXCEPTION 'Sync owner not an approved administrator' USING ERRCODE='42501'; END IF;
+ IF p_assigned_recruiter IS NULL OR NOT EXISTS(
+   SELECT 1 FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.id
+   WHERE p.id=p_assigned_recruiter AND p.status='approved'
+     AND p.is_active IS TRUE AND r.role='recruiter'
+ ) THEN RAISE EXCEPTION 'Approved active recruiter assignment required' USING ERRCODE='42501'; END IF;
  -- Lock makes a stale worker unable to commit after expiry/takeover.
  PERFORM 1 FROM crm_private.candidate_sync_leases l
  WHERE l.owner_id=p_owner AND l.lease_token=p_token AND l.expires_at>clock_timestamp()
@@ -122,7 +127,7 @@ BEGIN
      INSERT INTO public.candidates(
        full_name,mobile,email,location,position_applied,current_company,
        experience_years,current_salary,expected_salary,notice_period,resume_url,
-       source,notes,stage,status,created_source
+       source,notes,stage,status,created_source,assigned_recruiter
      ) VALUES (
        v_name,v_mobile,v_email,nullif(p_candidate->>'location',''),
        nullif(p_candidate->>'position_applied',''),nullif(p_candidate->>'current_company',''),
@@ -131,7 +136,7 @@ BEGIN
        nullif(p_candidate->>'expected_salary','')::numeric,
        nullif(p_candidate->>'notice_period',''),nullif(p_candidate->>'resume_url',''),
        coalesce(nullif(p_candidate->>'source',''),'Google Form'),
-       nullif(p_candidate->>'notes',''),'lead_received','active','google_form_sync'
+       nullif(p_candidate->>'notes',''),'lead_received','active','google_form_sync',p_assigned_recruiter
      ) RETURNING id INTO v_id;
      INSERT INTO public.notifications(title,message,type,related_table,related_id)
      VALUES('New Candidate Added via Google Form','A candidate was synced from Google Sheets.',
@@ -168,43 +173,54 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Sync lease expired during row commit' USING ERRCODE='42501'; END IF;
  RETURN QUERY SELECT v_action,v_id;
 END $fn$;
-REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)
+REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)
  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)
+GRANT EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)
  TO service_role;
 
 CREATE FUNCTION public.fail_notification_if_flagged() RETURNS trigger LANGUAGE plpgsql AS $trap$ BEGIN IF current_setting('build43.fail_notification',true)='on' THEN RAISE EXCEPTION 'injected notification failure' USING ERRCODE='P9876'; END IF; RETURN NEW; END $trap$;
 CREATE TRIGGER b43_notification_fail BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.fail_notification_if_flagged();
 DO $tests$ DECLARE r record; n int; BEGIN
- IF has_function_privilege('anon','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'anon can execute'; END IF;
- IF has_function_privilege('authenticated','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'auth can execute'; END IF;
- IF NOT has_function_privilege('service_role','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'service cannot execute'; END IF;
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"No"}'); RAISE EXCEPTION 'recruiter succeeded'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','33333333-3333-4333-8333-333333333333','44444444-4444-4444-8444-444444444444',2,'{"full_name":"No"}'); RAISE EXCEPTION 'stale token succeeded'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Bad","assigned_recruiter":"11111111-1111-4111-8111-111111111111"}'); RAISE EXCEPTION 'unexpected candidate key accepted'; EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+ -- Assignment must resolve to an active, approved recruiter; neither admin
+ -- ownership nor mere recruiter-role possession permits bypass.
+ INSERT INTO public.profiles VALUES ('55555555-5555-4555-8555-555555555555','pending',true),
+ ('66666666-6666-4666-8666-666666666666','approved',false);
+ INSERT INTO public.user_roles VALUES ('55555555-5555-4555-8555-555555555555','recruiter'),
+ ('66666666-6666-4666-8666-666666666666','recruiter');
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Rejected"}','55555555-5555-4555-8555-555555555555'); RAISE EXCEPTION 'pending recruiter accepted'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Rejected"}','66666666-6666-4666-8666-666666666666'); RAISE EXCEPTION 'inactive recruiter accepted'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Rejected"}',NULL::uuid); RAISE EXCEPTION 'missing recruiter accepted'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+ IF has_function_privilege('anon','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)','EXECUTE') THEN RAISE EXCEPTION 'anon can execute'; END IF;
+ IF has_function_privilege('authenticated','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)','EXECUTE') THEN RAISE EXCEPTION 'auth can execute'; END IF;
+ IF NOT has_function_privilege('service_role','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)','EXECUTE') THEN RAISE EXCEPTION 'service cannot execute'; END IF;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"No"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'recruiter succeeded'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','33333333-3333-4333-8333-333333333333','44444444-4444-4444-8444-444444444444',2,'{"full_name":"No"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'stale token succeeded'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Bad","assigned_recruiter":"11111111-1111-4111-8111-111111111111"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'unexpected candidate key accepted'; EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
  PERFORM set_config('build43.fail_notification','on',true);
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Rollback","email":"rollback@example.invalid"}'); RAISE EXCEPTION 'notification error was not raised'; EXCEPTION WHEN SQLSTATE 'P9876' THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Rollback","email":"rollback@example.invalid"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'notification error was not raised'; EXCEPTION WHEN SQLSTATE 'P9876' THEN NULL; END;
  PERFORM set_config('build43.fail_notification','off',true);
  SELECT count(*) INTO n FROM public.candidates; IF n<>0 THEN RAISE EXCEPTION 'postfailure candidate persisted'; END IF;
  SELECT count(*) INTO n FROM crm_private.candidate_sync_row_ledger; IF n<>0 THEN RAISE EXCEPTION 'postfailure ledger persisted'; END IF;
  IF (SELECT last_synced_row FROM public.google_integrations WHERE id='44444444-4444-4444-8444-444444444444')<>1 THEN RAISE EXCEPTION 'postfailure cursor moved'; END IF;
- SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"A","email":"alice@example.invalid","mobile":"111"}');
+ SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"A","email":"alice@example.invalid","mobile":"111"}','11111111-1111-4111-8111-111111111111');
  IF r.outcome<>'created' OR r.candidate_id IS NULL THEN RAISE EXCEPTION 'initial creation invalid'; END IF;
- SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"mobile":"111","full_name":"A","email":"alice@example.invalid"}');
+ IF (SELECT assigned_recruiter FROM public.candidates WHERE id=r.candidate_id)<>'11111111-1111-4111-8111-111111111111' THEN RAISE EXCEPTION 'explicit approved recruiter not preserved'; END IF;
+ SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"mobile":"111","full_name":"A","email":"alice@example.invalid"}','11111111-1111-4111-8111-111111111111');
  IF r.outcome<>'replayed' THEN RAISE EXCEPTION 'idempotent replay failed'; END IF;
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"mobile":"111","full_name":"Changed","email":"alice@example.invalid"}'); RAISE EXCEPTION 'modified row accepted'; EXCEPTION WHEN unique_violation THEN NULL; END;
- SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',3,'{"full_name":"A Updated","email":"alice@example.invalid","mobile":"111","location":"Kolkata"}');
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"mobile":"111","full_name":"Changed","email":"alice@example.invalid"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'modified row accepted'; EXCEPTION WHEN unique_violation THEN NULL; END;
+ SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',3,'{"full_name":"A Updated","email":"alice@example.invalid","mobile":"111","location":"Kolkata"}','11111111-1111-4111-8111-111111111111');
  IF r.outcome<>'updated' THEN RAISE EXCEPTION 'expected existing-candidate update'; END IF;
  SELECT count(*) INTO n FROM public.candidates; IF n<>1 THEN RAISE EXCEPTION 'sync duplicated person'; END IF;
  SELECT count(*) INTO n FROM public.notifications; IF n<>1 THEN RAISE EXCEPTION 'sync duplicated notification'; END IF;
  INSERT INTO public.candidates(full_name,email,mobile) VALUES('Other','other@example.invalid','222');
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',4,'{"full_name":"Collision","email":"alice@example.invalid","mobile":"222"}'); RAISE EXCEPTION 'identity collision allowed'; EXCEPTION WHEN unique_violation THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',4,'{"full_name":"Collision","email":"alice@example.invalid","mobile":"222"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'identity collision allowed'; EXCEPTION WHEN unique_violation THEN NULL; END;
  IF (SELECT last_synced_row FROM public.google_integrations WHERE id='44444444-4444-4444-8444-444444444444')<>3 THEN RAISE EXCEPTION 'collision moved cursor'; END IF;
- SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',4,'{}');
+ SELECT * INTO r FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',4,'{}','11111111-1111-4111-8111-111111111111');
  IF r.outcome<>'skipped' THEN RAISE EXCEPTION 'blank source row not skipped'; END IF;
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',6,'{"full_name":"Gap"}'); RAISE EXCEPTION 'gap accepted'; EXCEPTION WHEN check_violation THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',6,'{"full_name":"Gap"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'gap accepted'; EXCEPTION WHEN check_violation THEN NULL; END;
  UPDATE crm_private.candidate_sync_leases SET expires_at=clock_timestamp()-interval '1 second' WHERE owner_id='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
- BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',5,'{"full_name":"Expired"}'); RAISE EXCEPTION 'expired lease committed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ BEGIN PERFORM * FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',5,'{"full_name":"Expired"}','11111111-1111-4111-8111-111111111111'); RAISE EXCEPTION 'expired lease committed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  SELECT count(*) INTO n FROM crm_private.candidate_sync_row_ledger; IF n<>3 THEN RAISE EXCEPTION 'ledger count %',n; END IF;
  SELECT count(*) INTO n FROM public.notifications; IF n<>1 THEN RAISE EXCEPTION 'duplicate notification count %',n; END IF;
  IF (SELECT last_synced_row FROM public.google_integrations WHERE id='44444444-4444-4444-8444-444444444444')<>4 THEN RAISE EXCEPTION 'final cursor not 4'; END IF;

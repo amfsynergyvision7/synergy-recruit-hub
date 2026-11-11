@@ -56,6 +56,8 @@ test('replays reject edited source rows, cursor gaps and changed source identity
 test('candidate owner fields are excluded from the JSON allowlist',()=>{
  assert.match(sql,/Unsupported candidate keys/);
  assert.ok(!sql.includes("'assigned_recruiter'"));
+ assert.match(sql,/p_assigned_recruiter uuid/);
+ assert.match(sql,/Approved active recruiter assignment required/);
  assert.ok(!sql.includes("p_candidate->>'candidate_code'"));
 });
 test('function is service-role-only and ledger is private',()=>{

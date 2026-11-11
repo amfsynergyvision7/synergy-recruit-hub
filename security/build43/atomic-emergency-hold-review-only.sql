@@ -3,7 +3,7 @@
 -- this revocation alone cancels an already-started transaction.
 -- Preserve the ledger and candidate records for reconciliation and recovery.
 BEGIN;
-REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)
+REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)
  FROM service_role;
 COMMIT;
 -- Never drop crm_private.candidate_sync_row_ledger as a routine rollback:

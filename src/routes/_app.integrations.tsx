@@ -163,7 +163,7 @@ function Page() {
             </div>
             <div className="flex items-end gap-3">
               <div className="flex items-center gap-2">
-                <Switch checked={form.auto_sync_enabled} onCheckedChange={(v) => setForm({ ...form, auto_sync_enabled: v })}/>
+                <Switch checked={form.auto_sync_enabled} disabled title="Scheduled sync remains inactive until release approval" />
                 <Label>Auto sync (every 2 min)</Label>
               </div>
             </div>
@@ -176,8 +176,8 @@ function Page() {
             <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
               {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin"/>} Save settings
             </Button>
-            <Button variant="secondary" onClick={() => syncMut.mutate(false)} disabled={syncMut.isPending || !canSync}>
-              {syncMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4"/>} Sync new rows
+            <Button variant="secondary" disabled title="Manual candidate sync requires release approval and an assigned recruiter">
+              <RefreshCw className="h-4 w-4"/> Sync new rows (paused)
             </Button>
             <Button variant="outline" disabled title="Full-history import requires reconciliation of the source-row ledger">
               <History className="h-4 w-4"/> Full history (paused)

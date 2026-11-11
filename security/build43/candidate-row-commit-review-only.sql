@@ -18,7 +18,7 @@ ALTER TABLE crm_private.candidate_sync_row_ledger ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON crm_private.candidate_sync_row_ledger FROM PUBLIC,anon,authenticated;
 
 CREATE FUNCTION public.crm_commit_candidate_sync_row(
- p_owner uuid,p_token uuid,p_integration uuid,p_row_number integer,p_candidate jsonb
+ p_owner uuid,p_token uuid,p_integration uuid,p_row_number integer,p_candidate jsonb,p_assigned_recruiter uuid
 ) RETURNS TABLE(outcome text,candidate_id uuid)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE
@@ -47,6 +47,11 @@ BEGIN
    SELECT 1 FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.id
    WHERE p.id=p_owner AND p.status='approved' AND p.is_active IS TRUE AND r.role='admin'
  ) THEN RAISE EXCEPTION 'Sync owner not an approved administrator' USING ERRCODE='42501'; END IF;
+ IF p_assigned_recruiter IS NULL OR NOT EXISTS(
+   SELECT 1 FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.id
+   WHERE p.id=p_assigned_recruiter AND p.status='approved'
+     AND p.is_active IS TRUE AND r.role='recruiter'
+ ) THEN RAISE EXCEPTION 'Approved active recruiter assignment required' USING ERRCODE='42501'; END IF;
  -- Lock makes a stale worker unable to commit after expiry/takeover.
  PERFORM 1 FROM crm_private.candidate_sync_leases l
  WHERE l.owner_id=p_owner AND l.lease_token=p_token AND l.expires_at>clock_timestamp()
@@ -107,7 +112,7 @@ BEGIN
      INSERT INTO public.candidates(
        full_name,mobile,email,location,position_applied,current_company,
        experience_years,current_salary,expected_salary,notice_period,resume_url,
-       source,notes,stage,status,created_source
+       source,notes,stage,status,created_source,assigned_recruiter
      ) VALUES (
        v_name,v_mobile,v_email,nullif(p_candidate->>'location',''),
        nullif(p_candidate->>'position_applied',''),nullif(p_candidate->>'current_company',''),
@@ -116,7 +121,7 @@ BEGIN
        nullif(p_candidate->>'expected_salary','')::numeric,
        nullif(p_candidate->>'notice_period',''),nullif(p_candidate->>'resume_url',''),
        coalesce(nullif(p_candidate->>'source',''),'Google Form'),
-       nullif(p_candidate->>'notes',''),'lead_received','active','google_form_sync'
+       nullif(p_candidate->>'notes',''),'lead_received','active','google_form_sync',p_assigned_recruiter
      ) RETURNING id INTO v_id;
      INSERT INTO public.notifications(title,message,type,related_table,related_id)
      VALUES('New Candidate Added via Google Form','A candidate was synced from Google Sheets.',
@@ -153,9 +158,9 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Sync lease expired during row commit' USING ERRCODE='42501'; END IF;
  RETURN QUERY SELECT v_action,v_id;
 END $fn$;
-REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)
+REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)
  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)
+GRANT EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)
  TO service_role;
 COMMIT;
 -- Reviewer blockers: manual/importer writes outside this RPC remain non-fenced;

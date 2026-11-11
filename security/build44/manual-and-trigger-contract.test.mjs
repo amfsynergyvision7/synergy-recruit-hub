@@ -57,12 +57,20 @@ test('source-equivalent fixture attaches all nine production candidate/integrati
   assert.ok(sql.includes('CREATE TRIGGER '+trigger),trigger);
  assert.equal((sql.match(/CREATE TRIGGER [a-z_]+/g)||[]).length,9);
 });
-test('synthetic trigger rehearsal makes the unassigned-recruiter blocker explicit',()=>{
- assert.match(sql,/service-role auth\.uid unexpectedly assigned recruiter/);
+test('synthetic trigger rehearsal preserves explicit approved recruiter assignment',()=>{
+ assert.match(sql,/explicit approved recruiter assignment not preserved by actual trigger/);
  assert.match(sql,/stage history trigger expected 1/);
  assert.match(sql,/ROLLBACK;/);
 });
 test('the new SQL remains CI-only, not a live database migration',()=>{
  assert.ok(!sql.includes('SUPABASE_SERVICE_ROLE_KEY'));
  assert.match(sql,/not a deployable migration/i);
+});
+
+test('Build45 manual sync requires explicit release flag and propagates row errors',()=>{
+ assert.match(server,/CANDIDATE_SYNC_MANUAL_ENABLED !== "true"/);
+ assert.match(server,/if \(execution\.value\.errors !== 0\)/);
+ assert.match(server,/review the sync log/);
+ assert.match(ux,/Sync new rows \(paused\)/);
+ assert.doesNotMatch(ux,/syncMut\.mutate\(false\)/);
 });

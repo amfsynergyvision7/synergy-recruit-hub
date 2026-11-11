@@ -63,6 +63,9 @@ export const triggerSync = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ fullHistory: z.boolean().optional() }).parse(input))
   .handler(async ({ context, data }) => {
     await assertAdminUser(context.userId);
+    if (process.env.CANDIDATE_SYNC_MANUAL_ENABLED !== "true") {
+      throw new Error("Manual candidate sync is disabled until release approval");
+    }
     // Full history previously rewound a cursor without reconciling the
     // idempotency ledger. Block it until an approved, reversible replay plan exists.
     if (data.fullHistory) {
@@ -77,6 +80,9 @@ export const triggerSync = createServerFn({ method: "POST" })
       createSupabaseSyncLeaseOperations(supabaseAdmin as any),
     );
     if (!execution.acquired) throw new Error("Candidate synchronization already in progress");
+    if (execution.value.errors !== 0) {
+      throw new Error("Candidate synchronization stopped on an error; review the sync log");
+    }
     return execution.value;
   });
 

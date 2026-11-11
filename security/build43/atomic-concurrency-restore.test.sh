@@ -28,7 +28,7 @@ db "$TEST_DB" -f security/build43/candidate-row-commit-review-only.sql >/dev/nul
 owner=aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa
 token=22222222-2222-4222-8222-222222222222
 integration=44444444-4444-4444-8444-444444444444
-call="SELECT outcome FROM public.crm_commit_candidate_sync_row('$owner','$token','$integration',2,'{\"full_name\":\"Synthetic A\",\"email\":\"synthetic@example.invalid\",\"mobile\":\"111\"}');"
+call="SELECT outcome FROM public.crm_commit_candidate_sync_row('$owner','$token','$integration',2,'{\"full_name\":\"Synthetic A\",\"email\":\"synthetic@example.invalid\",\"mobile\":\"111\"}','11111111-1111-4111-8111-111111111111');"
 psql -X -qAt -v ON_ERROR_STOP=1 -h localhost -U postgres -d "$TEST_DB" \
  -c "BEGIN;" -c "$call" -c "SELECT pg_sleep(4);" -c "COMMIT;" >"$tmp/first" &
 first_pid=$!
@@ -64,7 +64,7 @@ DO $expiry$ BEGIN
   PERFORM * FROM public.crm_commit_candidate_sync_row(
    'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222',
    '44444444-4444-4444-8444-444444444444',3,'{"full_name":"Synthetic Expire","email":"expire@example.invalid"}'
-  );
+  ,'11111111-1111-4111-8111-111111111111');
   RAISE EXCEPTION 'Expired in-flight row unexpectedly committed';
  EXCEPTION WHEN insufficient_privilege THEN NULL;
  END;
@@ -84,8 +84,8 @@ DO $restore$ DECLARE n int;BEGIN
  SELECT count(*) INTO n FROM public.notifications; IF n<>1 THEN RAISE EXCEPTION 'restored notices %',n; END IF;
  SELECT count(*) INTO n FROM crm_private.candidate_sync_row_ledger; IF n<>1 THEN RAISE EXCEPTION 'restored ledger %',n; END IF;
  IF (SELECT last_synced_row FROM public.google_integrations)<>2 THEN RAISE EXCEPTION 'restored cursor'; END IF;
- IF has_function_privilege('anon','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'anonymous RPC privilege restored insecurely'; END IF;
- IF NOT has_function_privilege('service_role','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'service RPC privilege not restored'; END IF;
+ IF has_function_privilege('anon','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)','EXECUTE') THEN RAISE EXCEPTION 'anonymous RPC privilege restored insecurely'; END IF;
+ IF NOT has_function_privilege('service_role','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)','EXECUTE') THEN RAISE EXCEPTION 'service RPC privilege not restored'; END IF;
 END $restore$;
 SQL
 echo 'PASS: full synthetic schema+data backup/restore with ledger, cursor and RPC grants'
@@ -93,7 +93,7 @@ echo 'PASS: full synthetic schema+data backup/restore with ledger, cursor and RP
 db "$RESTORE_DB" -f security/build43/atomic-emergency-hold-review-only.sql >/dev/null
 db "$RESTORE_DB" <<'SQL'
 DO $hold$ DECLARE n int;BEGIN
- IF has_function_privilege('service_role','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'emergency revoke did not disable service RPC'; END IF;
+ IF has_function_privilege('service_role','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)','EXECUTE') THEN RAISE EXCEPTION 'emergency revoke did not disable service RPC'; END IF;
  SELECT count(*) INTO n FROM public.candidates; IF n<>1 THEN RAISE EXCEPTION 'emergency halt deleted candidate'; END IF;
  SELECT count(*) INTO n FROM crm_private.candidate_sync_row_ledger; IF n<>1 THEN RAISE EXCEPTION 'emergency halt deleted idempotency ledger'; END IF;
 END $hold$;

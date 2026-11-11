@@ -20,6 +20,7 @@ on:
       - 'security/build42/**'
       - 'security/build43/**'
       - 'security/build44/**'
+      - 'security/build45/**'
       - 'src/lib/integrations.functions.ts'
       - 'src/lib/drive-import.server.ts'
       - 'src/components/DriveImportButton.tsx'
@@ -303,6 +304,38 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build44/production-trigger-compat.integration.sql
+  recruiter-assignment-and-financial-hold-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check fail-closed recruiter assignment and financial automation guard proposals
+        run: node --test security/build45/assignment-finance-contract.test.mjs
+      - name: Reproduce actual current joined-stage automatic billing risk in disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build45/financial-automation-baseline.integration.sql
+      - name: Rehearse review-only financial hold and ensure unrelated notifications still work
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build45/financial-hold-rehearsal.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

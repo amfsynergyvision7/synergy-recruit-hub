@@ -287,6 +287,12 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   if (opts.atomicRowWrites && (!opts.leaseToken || !opts.leaseHeartbeat || !opts.userId)) {
     throw new Error("Atomic sync requires owner, lease token and heartbeat");
   }
+  // Assignment is an explicit release configuration, never inferred from
+  // the service-role session or selected randomly from existing recruiters.
+  const assignedRecruiterId = process.env.CANDIDATE_SYNC_ASSIGNED_RECRUITER_ID;
+  if (!assignedRecruiterId || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(assignedRecruiterId)) {
+    throw new Error("Candidate sync requires an approved recruiter assignment configuration");
+  }
   const integ = await getSavedGoogleIntegration({ userId: opts.userId });
   if (!integ || !integ.spreadsheet_id) throw new Error("Google Sheet not configured");
 
@@ -343,6 +349,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
             p_integration: integ.id,
             p_row_number: sheetRowNumber,
             p_candidate: cand,
+            p_assigned_recruiter: assignedRecruiterId,
           },
         );
         if (commitError || !Array.isArray(committed) || committed.length !== 1) {

@@ -627,6 +627,8 @@ CREATE SCHEMA crm_private;
 CREATE TABLE crm_private.candidate_sync_leases(owner_id uuid PRIMARY KEY,lease_token uuid NOT NULL,expires_at timestamptz NOT NULL);
 INSERT INTO public.profiles(id,status,is_active,full_name) VALUES('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','approved',true,'Synthetic Admin');
 INSERT INTO public.user_roles(user_id,role) VALUES('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','admin');
+INSERT INTO public.profiles(id,status,is_active,full_name) VALUES('11111111-1111-4111-8111-111111111111','approved',true,'Synthetic Recruiter');
+INSERT INTO public.user_roles(user_id,role) VALUES('11111111-1111-4111-8111-111111111111','recruiter');
 INSERT INTO public.google_integrations(id,user_id,last_synced_row,header_row,spreadsheet_id,sheet_name) VALUES('44444444-4444-4444-8444-444444444444','aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',1,1,'SYNTHETIC-SOURCE','Applicants');
 INSERT INTO crm_private.candidate_sync_leases(owner_id,lease_token,expires_at) VALUES('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222',clock_timestamp()+interval '20 minutes');
 CREATE SCHEMA IF NOT EXISTS crm_private;
@@ -645,7 +647,7 @@ ALTER TABLE crm_private.candidate_sync_row_ledger ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON crm_private.candidate_sync_row_ledger FROM PUBLIC,anon,authenticated;
 
 CREATE FUNCTION public.crm_commit_candidate_sync_row(
- p_owner uuid,p_token uuid,p_integration uuid,p_row_number integer,p_candidate jsonb
+ p_owner uuid,p_token uuid,p_integration uuid,p_row_number integer,p_candidate jsonb,p_assigned_recruiter uuid
 ) RETURNS TABLE(outcome text,candidate_id uuid)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $fn$
 DECLARE
@@ -674,6 +676,11 @@ BEGIN
    SELECT 1 FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.id
    WHERE p.id=p_owner AND p.status='approved' AND p.is_active IS TRUE AND r.role='admin'
  ) THEN RAISE EXCEPTION 'Sync owner not an approved administrator' USING ERRCODE='42501'; END IF;
+ IF p_assigned_recruiter IS NULL OR NOT EXISTS(
+   SELECT 1 FROM public.profiles p JOIN public.user_roles r ON r.user_id=p.id
+   WHERE p.id=p_assigned_recruiter AND p.status='approved'
+     AND p.is_active IS TRUE AND r.role='recruiter'
+ ) THEN RAISE EXCEPTION 'Approved active recruiter assignment required' USING ERRCODE='42501'; END IF;
  -- Lock makes a stale worker unable to commit after expiry/takeover.
  PERFORM 1 FROM crm_private.candidate_sync_leases l
  WHERE l.owner_id=p_owner AND l.lease_token=p_token AND l.expires_at>clock_timestamp()
@@ -734,7 +741,7 @@ BEGIN
      INSERT INTO public.candidates(
        full_name,mobile,email,location,position_applied,current_company,
        experience_years,current_salary,expected_salary,notice_period,resume_url,
-       source,notes,stage,status,created_source
+       source,notes,stage,status,created_source,assigned_recruiter
      ) VALUES (
        v_name,v_mobile,v_email,nullif(p_candidate->>'location',''),
        nullif(p_candidate->>'position_applied',''),nullif(p_candidate->>'current_company',''),
@@ -743,7 +750,7 @@ BEGIN
        nullif(p_candidate->>'expected_salary','')::numeric,
        nullif(p_candidate->>'notice_period',''),nullif(p_candidate->>'resume_url',''),
        coalesce(nullif(p_candidate->>'source',''),'Google Form'),
-       nullif(p_candidate->>'notes',''),'lead_received','active','google_form_sync'
+       nullif(p_candidate->>'notes',''),'lead_received','active','google_form_sync',p_assigned_recruiter
      ) RETURNING id INTO v_id;
      INSERT INTO public.notifications(title,message,type,related_table,related_id)
      VALUES('New Candidate Added via Google Form','A candidate was synced from Google Sheets.',
@@ -780,18 +787,18 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'Sync lease expired during row commit' USING ERRCODE='42501'; END IF;
  RETURN QUERY SELECT v_action,v_id;
 END $fn$;
-REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)
+REVOKE EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)
  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)
+GRANT EXECUTE ON FUNCTION public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb,uuid)
  TO service_role;
 
 DO $test$ DECLARE z record; c record; n int; BEGIN
- SELECT * INTO z FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Synthetic Candidate","email":"example@example.invalid","mobile":"7000000000"}');
+ SELECT * INTO z FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',2,'{"full_name":"Synthetic Candidate","email":"example@example.invalid","mobile":"7000000000"}','11111111-1111-4111-8111-111111111111');
  IF z.outcome<>'created' THEN RAISE EXCEPTION 'create failed'; END IF;
  SELECT candidate_code,stage,status,assigned_recruiter INTO c FROM public.candidates WHERE id=z.candidate_id;
  IF c.candidate_code NOT LIKE 'CAND-%' OR c.stage<>'lead_received' OR c.status<>'active' THEN RAISE EXCEPTION 'actual insert triggers did not set defaults'; END IF;
- IF c.assigned_recruiter IS NOT NULL THEN RAISE EXCEPTION 'service-role auth.uid unexpectedly assigned recruiter'; END IF;
- SELECT * INTO z FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',3,'{"full_name":"Synthetic Candidate","email":"example@example.invalid","mobile":"7000000000","location":"Kolkata"}');
+ IF c.assigned_recruiter<>'11111111-1111-4111-8111-111111111111' THEN RAISE EXCEPTION 'explicit approved recruiter assignment not preserved by actual trigger'; END IF;
+ SELECT * INTO z FROM public.crm_commit_candidate_sync_row('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa','22222222-2222-4222-8222-222222222222','44444444-4444-4444-8444-444444444444',3,'{"full_name":"Synthetic Candidate","email":"example@example.invalid","mobile":"7000000000","location":"Kolkata"}','11111111-1111-4111-8111-111111111111');
  IF z.outcome<>'updated' THEN RAISE EXCEPTION 'actual trigger update failed'; END IF;
  UPDATE public.candidates SET stage='contacted',updated_at=NULL WHERE id=z.candidate_id;
  SELECT count(*) INTO n FROM public.candidate_stage_history WHERE candidate_id=z.candidate_id AND new_stage='contacted';
