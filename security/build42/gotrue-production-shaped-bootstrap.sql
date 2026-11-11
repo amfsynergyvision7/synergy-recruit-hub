@@ -2,8 +2,6 @@
 -- Auth is initialized before this file, so auth schema may already exist. No hosted Supabase project is touched.
 -- Build 41: synthetic, disposable PostgreSQL 17. Not a live CRM migration.
 \set ON_ERROR_STOP on
-CREATE ROLE anon NOLOGIN;
-CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE authenticator LOGIN PASSWORD 'b41_synthetic_postgrest_login_only';
 GRANT anon,authenticated TO authenticator;
 GRANT USAGE ON SCHEMA public TO anon,authenticated,authenticator;

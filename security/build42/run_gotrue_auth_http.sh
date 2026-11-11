@@ -10,7 +10,7 @@ cleanup() {
 }
 trap cleanup EXIT
 # GoTrue migrations target auth.users; the disposable Postgres image has no auth schema.
-psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c 'CREATE SCHEMA IF NOT EXISTS auth;'
+psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build42/gotrue-auth-base-schema.sql
 docker run -d --rm --name build42-gotrue --network host \
   -e GOTRUE_API_HOST=0.0.0.0 \
   -e GOTRUE_API_PORT=9999 \
