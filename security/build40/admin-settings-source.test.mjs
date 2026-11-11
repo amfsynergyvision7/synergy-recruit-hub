@@ -33,3 +33,11 @@ test('admin update only allows explicitly named settings',()=>{
  assert.doesNotMatch(sql,/EXECUTE\s+format\(/);
 });
 test('RLS helper cannot be invoked anonymously after function grants',()=>assert.match(sql,/GRANT EXECUTE ON FUNCTION .* TO authenticated/));
+
+test('Drive importer uses protected admin-only folder RPC',()=>{
+ const code=readFileSync('src/lib/drive-import.server.ts','utf8');
+ assert.match(code,/\.rpc\("crm_admin_get_resume_folder"\)/);
+ assert.doesNotMatch(code,/\.from\("app_settings"\)/);
+ const handler=readFileSync('src/lib/ai.functions.ts','utf8');
+ assert.match(handler,/await assertApprovedRole\(context\.userId, \["admin"\]\);\s*return runResumeDriveImport\(context\.supabase\)/);
+});

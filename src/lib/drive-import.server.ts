@@ -169,14 +169,11 @@ export async function runResumeDriveImport(supabase: any): Promise<DriveImportSu
     );
   }
 
-  const { data: settings, error: settingsError } = await supabase
-    .from("app_settings")
-    .select("resume_import_folder_url")
-    .eq("id", 1)
-    .maybeSingle();
+  // The folder URL is private; access it through an approved-admin RPC
+  // instead of granting browser SELECT on private app_settings columns.
+  const { data: folderUrl, error: settingsError } =
+    await supabase.rpc("crm_admin_get_resume_folder");
   if (settingsError) throw settingsError;
-
-  const folderUrl = settings?.resume_import_folder_url;
   if (!folderUrl) {
     throw new Error('No Google Drive folder is configured yet — set one under Settings → "Resume Import Folder" first.');
   }
