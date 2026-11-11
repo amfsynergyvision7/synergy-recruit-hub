@@ -9,3 +9,7 @@ This build adds an exact source-policy snapshot, a 67-policy source replay fixtu
 **Compatibility remains unapproved.** These are engineering proposals, not AMF business policy. Administrative role/profile updates, workflow rule management, recruiter email access and stage history operations may require new privileged workflows. Full live function bodies, triggers, UI calls, production backup/restore and genuine hosted Auth sessions remain untested by this fixture.
 
 Release counters remain **0/48 actual production objects remediated, 0/140 real hosted Auth/browser/API cases accepted, 0/9 formal gates passed.** Independent security review and protected main remain outstanding. No merge, live import, billing activation or production deployment.
+
+## Build48 disposable emergency-recovery rehearsal
+
+The read-only 32-object ACL and 16-function EXECUTE snapshot is retained as `live-acl-catalog.json`. A separate `unsafe-legacy-restoration-disposable-only.sql` reconstructs the exact original 67 RLS policies plus the recorded table/view/function grants and view security options. It requires an explicit disposable-test setting; restoring the baseline would **reopen vulnerabilities** and is NOT recommended production rollback. The independent `unsafe-recovery.integration.sql` test applies the tightened controls, reconstructs the insecure original permissions, verifies their fingerprint and then rolls the whole synthetic transaction back. A safe production release still needs an approved roll-forward plan and full backup/restore acceptance.

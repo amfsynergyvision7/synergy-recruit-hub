@@ -1,0 +1,5807 @@
+{
+  "captured": "2026-11-11",
+  "scope": "read-only grants for 19 public tables, 13 views, 16 security-definer functions, public schema",
+  "source": "pg_class.relacl and pg_proc.proacl aclexplode; pg_namespace.nspacl",
+  "note": "This record has no candidate rows or secrets, and restoring it would reinstate old unsafe permissions",
+  "tableAndViewGrants": [
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "app_settings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "audit_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "available_recruiters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "billing",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_activities",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidate_stage_history",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "candidates_for_assignment",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "clients",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "email_log",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "google_integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "integrations",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "interviews",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "job_openings",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "notifications",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "offers",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "profiles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_stats",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "recruiter_summary",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "submissions",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "sync_logs",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "user_roles",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_billing_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_candidate_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_client_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_interview_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_job_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_offer_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "vw_submission_filters",
+      "relkind": "v",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "anon",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "authenticated",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "DELETE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "INSERT",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "MAINTAIN",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "REFERENCES",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "SELECT",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRIGGER",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "TRUNCATE",
+      "is_grantable": false
+    },
+    {
+      "name": "workflow_rules",
+      "relkind": "r",
+      "grantee": "service_role",
+      "privilege_type": "UPDATE",
+      "is_grantable": false
+    }
+  ],
+  "functionGrants": [
+    {
+      "proname": "generate_reminders",
+      "args": "",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "generate_reminders",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "generate_reminders",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "generate_reminders",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "get_user_role",
+      "args": "_user_id uuid",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "get_user_role",
+      "args": "_user_id uuid",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "get_user_role",
+      "args": "_user_id uuid",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "get_user_role",
+      "args": "_user_id uuid",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "handle_new_user",
+      "args": "",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "handle_new_user",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "handle_new_user",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "handle_new_user",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "has_role",
+      "args": "_user_id uuid, _role app_role",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "has_role",
+      "args": "_user_id uuid, _role app_role",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "has_role",
+      "args": "_user_id uuid, _role app_role",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "has_role",
+      "args": "_user_id uuid, _role app_role",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "is_approved",
+      "args": "_user_id uuid",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "is_approved",
+      "args": "_user_id uuid",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "is_approved",
+      "args": "_user_id uuid",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "is_approved",
+      "args": "_user_id uuid",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_candidate_stage_change",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_candidate_stage_change",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_candidate_stage_change",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_interview_change",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_interview_change",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_interview_change",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_offer_change",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_offer_change",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_offer_change",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_submission_insert",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_submission_insert",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "on_submission_insert",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_candidate_uuid",
+      "args": "_value text",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_candidate_uuid",
+      "args": "_value text",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_candidate_uuid",
+      "args": "_value text",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_client_uuid",
+      "args": "_value text",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_client_uuid",
+      "args": "_value text",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_client_uuid",
+      "args": "_value text",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_job_uuid",
+      "args": "_value text",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_job_uuid",
+      "args": "_value text",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "resolve_job_uuid",
+      "args": "_value text",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "rls_auto_enable",
+      "args": "",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "rls_auto_enable",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "rls_auto_enable",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "rls_auto_enable",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "run_workflow_rules",
+      "args": "",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "run_workflow_rules",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "run_workflow_rules",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "run_workflow_rules",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "set_assigned_recruiter",
+      "args": "",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "set_assigned_recruiter",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "set_assigned_recruiter",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "set_assigned_recruiter",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "track_stage_changes",
+      "args": "",
+      "grantee": "PUBLIC",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "track_stage_changes",
+      "args": "",
+      "grantee": "anon",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "track_stage_changes",
+      "args": "",
+      "grantee": "authenticated",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    },
+    {
+      "proname": "track_stage_changes",
+      "args": "",
+      "grantee": "service_role",
+      "privilege_type": "EXECUTE",
+      "is_grantable": false
+    }
+  ],
+  "schemaGrants": [
+    {
+      "grantee": "PUBLIC",
+      "privilege_type": "USAGE",
+      "is_grantable": false
+    },
+    {
+      "grantee": "anon",
+      "privilege_type": "USAGE",
+      "is_grantable": false
+    },
+    {
+      "grantee": "authenticated",
+      "privilege_type": "USAGE",
+      "is_grantable": false
+    },
+    {
+      "grantee": "service_role",
+      "privilege_type": "USAGE",
+      "is_grantable": false
+    }
+  ]
+}

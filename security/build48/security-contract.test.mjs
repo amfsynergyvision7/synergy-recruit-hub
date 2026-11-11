@@ -78,3 +78,18 @@ test('transaction remains review-only and fully rolled back in integration test'
  assert.match(fixture,/no_persistent_candidates/);
  assert.match(fixture,/ROLLBACK;/);
 });
+
+test('unsafe emergency restoration is gated to disposable rehearsal',()=>{
+ const recovery=read('security/build48/unsafe-legacy-restoration-disposable-only.sql');
+ const acl=JSON.parse(read('security/build48/live-acl-catalog.json'));
+ const rehearsal=read('security/build48/unsafe-recovery.integration.sql');
+ assert.match(recovery,/DO NOT EXECUTE IN PRODUCTION\/STAGING/);
+ assert.match(recovery,/build48\.disposable_recovery/);
+ assert.match(recovery,/Recovered policy fingerprint mismatch/);
+ assert.equal((recovery.match(/^CREATE POLICY /gm)||[]).length,67);
+ assert.equal(acl.tableAndViewGrants.length,768);
+ assert.equal(acl.functionGrants.length,57);
+ assert.equal(acl.schemaGrants.length,4);
+ assert.match(rehearsal,/Restored pre-release broad candidate read expected 2/);
+ assert.match(rehearsal,/ROLLBACK;/);
+});
