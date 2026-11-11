@@ -60,6 +60,9 @@ INSERT INTO public.candidates(id,full_name,assigned_recruiter,stage) VALUES
  ('11111111-1111-4111-8111-111111111111','Owned A','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','lead_received'),
  ('22222222-2222-4222-8222-222222222222','Owned B','cccccccc-cccc-4ccc-8ccc-cccccccccccc','contacted');
 GRANT SELECT,INSERT,UPDATE,DELETE ON public.candidates TO authenticated;
+-- Deliberately simulate older column grants that table REVOKE alone leaves.
+GRANT UPDATE(stage,notes) ON public.candidates TO authenticated;
+GRANT INSERT(full_name) ON public.candidates TO authenticated;
 \ir candidate-write-rpc-review-only.sql
 DO $grantCheck$ BEGIN
  IF has_table_privilege('authenticated','public.candidates','INSERT')

@@ -8,6 +8,29 @@
 -- ownership validation, row lock and atomic audit must enforce authorization.
 -- No email dispatch, deletion, billing or stage transition is authorized.
 REVOKE INSERT, UPDATE, DELETE ON public.candidates FROM PUBLIC,anon,authenticated;
+-- Table-level REVOKE does NOT remove separate INSERT/UPDATE column grants.
+-- Exhaustively revoke them, including the older Build48 stage/notes grant.
+DO $column52$
+DECLARE v_col text;
+BEGIN
+ FOR v_col IN
+  SELECT a.attname FROM pg_attribute a WHERE a.attrelid='public.candidates'::regclass
+   AND a.attnum>0 AND NOT a.attisdropped
+ LOOP
+  EXECUTE format('REVOKE INSERT(%I),UPDATE(%I) ON public.candidates FROM PUBLIC,anon,authenticated',v_col,v_col);
+ END LOOP;
+ FOR v_col IN
+  SELECT a.attname FROM pg_attribute a WHERE a.attrelid='public.candidates'::regclass
+   AND a.attnum>0 AND NOT a.attisdropped
+ LOOP
+  IF has_column_privilege('authenticated','public.candidates',v_col,'INSERT')
+  OR has_column_privilege('authenticated','public.candidates',v_col,'UPDATE')
+  OR has_column_privilege('anon','public.candidates',v_col,'INSERT')
+  OR has_column_privilege('anon','public.candidates',v_col,'UPDATE')
+  THEN RAISE EXCEPTION 'Residual candidate column-write grant: %',v_col USING ERRCODE='42501';
+  END IF;
+ END LOOP;
+END $column52$;
 
 CREATE OR REPLACE FUNCTION public.crm_write_candidate(
   p_candidate_id uuid,
