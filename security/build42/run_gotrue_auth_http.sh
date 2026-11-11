@@ -14,6 +14,7 @@ docker run -d --rm --name build42-gotrue --network host \
   -e GOTRUE_API_PORT=9999 \
   -e API_EXTERNAL_URL=http://127.0.0.1:9999 \
   -e GOTRUE_DB_DRIVER=postgres \
+  -e GOTRUE_DB_NAMESPACE=auth \
   -e GOTRUE_DB_DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable" \
   -e DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable" \
   -e GOTRUE_SITE_URL=http://localhost:3000 \
@@ -32,6 +33,7 @@ for i in $(seq 1 60); do
   sleep 1
 done
 if test "$ready" != 1; then echo 'GoTrue did not start' >&2; docker logs build42-gotrue | tail -70; exit 1; fi
+psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT CASE WHEN to_regclass('auth.identities') IS NULL THEN (SELECT 1/0) ELSE 1 END AS gotrue_schema_ready;"
 psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build42/gotrue-production-shaped-bootstrap.sql
 docker run -d --rm --name build42-postgrest --network host \
   -e PGRST_DB_URI="postgres://authenticator:b41_synthetic_postgrest_login_only@localhost:5432/postgres" \
