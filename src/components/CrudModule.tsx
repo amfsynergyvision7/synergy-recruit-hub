@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
+import { saveCandidateRecord } from "@/lib/candidate-write";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,7 +160,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [bulkEditSaving, setBulkEditSaving] = useState(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
-  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
+  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm && !(module === "candidates" && role !== "admin" && f.name === "assigned_recruiter")), [fields, module, role]);
   // What "select some rows, then change one field on all of them at once"
   // (e.g. filter Candidates down to one recruiter's list, select the batch,
   // reassign every one to a different recruiter in a single action) is
@@ -284,6 +285,36 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (form.candidate_uuid) payload.candidate_id = form.candidate_uuid;
     if (form.client_uuid !== undefined) payload.client_id = form.client_uuid || null;
     if (form.job_uuid !== undefined) payload.job_id = form.job_uuid || null;
+    if (module === "candidates") {
+      if (editing ? form.stage !== editing.stage : form.stage !== "lead_received") {
+        toast.error("Candidate stage changes require the separately approved stage workflow.");
+        return;
+      }
+      // Submit only changed, editable candidate fields, never stage or generated
+      // status/code/creator metadata. SQL repeats all authorization checks.
+      delete payload.stage;
+      if (editing) {
+        for (const key of Object.keys(payload)) {
+          if (String(payload[key] ?? "") === String(editing[key] ?? "")) {
+            delete payload[key];
+          }
+        }
+        if (Object.keys(payload).length === 0) {
+          toast.info("No changes to save");
+          return;
+        }
+      }
+      const { error } = await saveCandidateRecord({
+        candidateId: editing?.id ?? null,
+        expectedUpdatedAt: editing?.updated_at ?? null,
+        fields: payload,
+      });
+      if (error) return toast.error(error.message);
+      toast.success(editing ? "Updated" : "Created");
+      setOpen(false);
+      load();
+      return;
+    }
     if (editing) {
       const { error } = await supabase.from(table as any).update(payload).eq("id", editing.id);
       if (error) return toast.error(error.message);

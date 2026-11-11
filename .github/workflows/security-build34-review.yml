@@ -27,6 +27,8 @@ on:
       - 'security/build49/**'
       - 'security/build50/**'
       - 'security/build51/**'
+      - 'security/build52/**'
+      - 'src/lib/candidate-write.ts'
       - 'src/lib/candidate-stage.ts'
       - 'src/lib/release-safety.ts'
       - 'src/components/CrudModule.tsx'
