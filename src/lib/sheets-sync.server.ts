@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
+import { assertApprovedRole } from "./access-gates.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
@@ -47,14 +48,7 @@ export function extractSpreadsheetId(url: string): string | null {
 }
 
 export async function assertAdminUser(userId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) throw new Error("Admin only");
+  await assertApprovedRole(userId, ["admin"]);
 }
 
 async function gw(path: string, init?: RequestInit) {

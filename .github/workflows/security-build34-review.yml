@@ -1,0 +1,50 @@
+name: Build 34 guarded sync and role-gate review
+on:
+  push:
+    branches:
+      - security/build34-guarded-sync-review-20261111
+  pull_request:
+    paths:
+      - 'src/lib/cron-auth.server.ts'
+      - 'src/lib/access-gates.server.ts'
+      - 'src/lib/approved-role-policy.ts'
+      - 'src/lib/ai.functions.ts'
+      - 'src/lib/sheets-sync.server.ts'
+      - 'src/routes/api/public/hooks/sheets-sync.ts'
+      - 'security/build34/**'
+      - '.github/workflows/security-build34-review.yml'
+permissions:
+  contents: read
+jobs:
+  offline-authorization-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test fail-closed webhook and account authorization without credentials
+        run: node --experimental-strip-types --test security/build34/*.test.mjs
+  application-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build application
+        run: npm run build
+      - name: Typecheck
+        run: npx tsc --noEmit
+  production-release-hold:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo 'PRODUCTION RELEASE BLOCKED: nine formal release gates and independent authorization remain incomplete.'
+          exit 1

@@ -1,26 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { getSavedGoogleIntegration, runCandidateSync } from "@/lib/sheets-sync.server";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-
-export const Route = createFileRoute("/api/public/hooks/sheets-sync")({
+import { createFileRoute } from '@tanstack/react-router';
+import { getSavedGoogleIntegration, runCandidateSync } from '@/lib/sheets-sync.server';
+import { supabaseAdmin } from '@/integrations/supabase/client.server';
+import { handleCandidateSyncCron } from '@/lib/cron-auth.server';
+// REVIEW ONLY: protected POST scheduler required; Vercel native cron uses GET.
+export const Route = createFileRoute('/api/public/hooks/sheets-sync')({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        try {
-          const integ = await getSavedGoogleIntegration();
-          if (!integ?.auto_sync_enabled || !integ?.spreadsheet_id) {
-            return Response.json({ skipped: true, reason: "auto_sync disabled or sheet not configured" });
-          }
-          const result = await runCandidateSync({ triggeredBy: "cron" });
-          return Response.json({ ok: true, ...result });
-        } catch (e: any) {
-          await supabaseAdmin.from("sync_logs").insert({
-            module: "candidates", triggered_by: "cron", status: "error",
-            message: e?.message || String(e), errors: [{ row: 0, message: e?.message || String(e) }],
+      POST: async ({ request }) => handleCandidateSyncCron(request, process.env.CRON_SECRET, {
+        getIntegration: () => getSavedGoogleIntegration({ backfillLegacy: false }),
+        runSync: () => runCandidateSync({ triggeredBy: 'cron' }),
+        recordFailure: async () => {
+          const { error } = await supabaseAdmin.from('sync_logs').insert({
+            module: 'candidates', triggered_by: 'cron', status: 'error',
+            message: 'Scheduled candidate sync failed',
+            errors: [{ row: 0, message: 'Scheduled candidate sync failed' }],
           });
-          return Response.json({ ok: false, error: e?.message || String(e) }, { status: 500 });
-        }
-      },
+          if (error) console.error('Unable to persist scheduled sync failure');
+        },
+      }),
     },
   },
 });
