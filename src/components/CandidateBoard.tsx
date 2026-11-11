@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canEdit } from "@/hooks/use-auth";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { TONE_VAR, type PillTone } from "@/components/StatusPill";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ interface CandidateRow {
 // handful of fields the board actually displays.
 export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoardProps) {
   const { role } = useAuth();
-  const editable = canEdit(role, "candidates");
+  const editable = canEdit(role, "candidates") && !LEGACY_CANDIDATE_WRITES_PAUSED;
   const [rows, setRows] = useState<CandidateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -85,6 +86,7 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
   }, [filtered]);
 
   const moveCandidate = async (candidateId: string, newStage: string) => {
+    if (LEGACY_CANDIDATE_WRITES_PAUSED) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     const candidate = rows.find((r) => r.id === candidateId);
     if (!candidate || candidate.stage === newStage) return;
     setRows((prev) => prev.map((r) => (r.id === candidateId ? { ...r, stage: newStage } : r)));
@@ -112,7 +114,9 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
         />
       </div>
 
-      {!editable && <p className="text-xs text-muted-foreground">Read-only — drag-to-advance is disabled for your role.</p>}
+      {LEGACY_CANDIDATE_WRITES_PAUSED ? (
+        <p className="text-xs text-muted-foreground">{CANDIDATE_MUTATION_HOLD_REASON}</p>
+      ) : !editable && <p className="text-xs text-muted-foreground">Read-only — drag-to-advance is disabled for your role.</p>}
 
       <div className="flex gap-3 overflow-x-auto pb-2">
         {stages.map((stage) => {

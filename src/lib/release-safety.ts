@@ -1,0 +1,29 @@
+/**
+ * Build 50 — review branch only. These are presentation-level holds, not
+ * authorization controls. Server-side RLS, RPC privileges and signed-user
+ * acceptance must independently enforce the approved business rules.
+ *
+ * Do not replace these constants with environment flags: a build-time flag
+ * could reopen legacy client DML before its authorization model is approved.
+ * Remove the holds only in the same reviewed change that replaces all
+ * legacy mutation paths with tested, audited server-side commands.
+ */
+export const LEGACY_CANDIDATE_WRITES_PAUSED = true as const;
+export const LEGACY_BULK_IMPORT_WRITES_PAUSED = true as const;
+
+export const CANDIDATE_MUTATION_HOLD_REASON =
+  "Candidate edits, deletes, stage moves and duplicate cleanup are paused pending audited CRM write commands and hosted role acceptance.";
+export const BULK_IMPORT_HOLD_REASON =
+  "CSV/Excel preview remains available; row-by-row browser import writes are paused pending an atomic, reviewed server-side import.";
+
+export function assertLegacyCandidateWritePaused(): void {
+  if (LEGACY_CANDIDATE_WRITES_PAUSED) {
+    throw new Error(CANDIDATE_MUTATION_HOLD_REASON);
+  }
+}
+
+export function assertLegacyImportWritePaused(): void {
+  if (LEGACY_BULK_IMPORT_WRITES_PAUSED) {
+    throw new Error(BULK_IMPORT_HOLD_REASON);
+  }
+}

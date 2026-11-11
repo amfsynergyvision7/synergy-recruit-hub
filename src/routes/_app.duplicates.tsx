@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { scanForDuplicateCandidates } from "@/lib/duplicates.functions";
 import type { DuplicateCluster, DuplicateMatchReason } from "@/lib/duplicates.server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -75,7 +75,7 @@ function ClusterCard({
           <Button
             variant="destructive"
             size="sm"
-            disabled={selectedCount === 0 || deleting}
+            disabled={selectedCount === 0 || deleting || LEGACY_CANDIDATE_WRITES_PAUSED}
             onClick={() => onDelete(cluster)}
           >
             <Trash2 className="h-3.5 w-3.5 mr-1.5" />
@@ -142,7 +142,6 @@ function Page() {
     );
   }
 
-  const qc = useQueryClient();
   const runScan = useServerFn(scanForDuplicateCandidates);
   const query = useQuery({
     queryKey: ["duplicate-candidates"],
@@ -191,28 +190,10 @@ function Page() {
     });
   };
 
-  const deleteCluster = async (cluster: DuplicateCluster) => {
-    const ids = cluster.members.map((m) => m.id).filter((id) => selected.has(id));
-    if (ids.length === 0) return;
-    if (ids.length === cluster.members.length) {
-      toast.error("At least one record in this group has to stay — unselect one first.");
-      return;
-    }
-    const warning = `Delete ${ids.length} candidate record(s)? This will also permanently delete their linked submissions, interviews, offers, and stage history. This can't be undone.`;
-    if (!confirm(warning)) return;
-
-    setDeletingClusterId(cluster.clusterId);
-    const { error } = await supabase.from("candidates").delete().in("id", ids);
-    setDeletingClusterId(null);
-    if (error) return toast.error(error.message);
-
-    toast.success(`Deleted ${ids.length} duplicate record(s)`);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.delete(id));
-      return next;
-    });
-    qc.invalidateQueries({ queryKey: ["duplicate-candidates"] });
+  const deleteCluster = async (_cluster: DuplicateCluster) => {
+    // Build50: there is no candidate DELETE call in duplicate cleanup.
+    // Review-only scanning continues; merge/delete requires audited RPCs.
+    toast.error(CANDIDATE_MUTATION_HOLD_REASON);
   };
 
   return (
@@ -232,6 +213,13 @@ function Page() {
         </Button>
       </div>
 
+      {LEGACY_CANDIDATE_WRITES_PAUSED && (
+        <Alert>
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Duplicate deletion paused</AlertTitle>
+          <AlertDescription>{CANDIDATE_MUTATION_HOLD_REASON}</AlertDescription>
+        </Alert>
+      )}
       {query.isPending && (
         <Card>
           <CardContent className="space-y-3 pt-6">

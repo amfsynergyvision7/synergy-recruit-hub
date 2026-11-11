@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { LEGACY_BULK_IMPORT_WRITES_PAUSED, BULK_IMPORT_HOLD_REASON } from "@/lib/release-safety";
 import { IMPORT_SCHEMAS, type ImportSchema, type ImportFieldDef } from "@/lib/import-schemas";
 import { toast } from "sonner";
 import { Download, Upload, FileSpreadsheet, ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -227,38 +228,13 @@ function Page() {
     setStep("preview");
   };
 
+  // Build50: preview stays useful, but there is deliberately NO import writer.
+  // A future atomic import RPC requires separate review and hosted acceptance.
   const runImport = async () => {
-    setRunning(true); setProgress(0);
-    let created = 0, updated = 0, skipped = 0;
-    const errors: string[] = [];
-    const valid = mappedRows.filter((r) => skipInvalid ? r.errors.length === 0 : true);
-
-    for (let i = 0; i < valid.length; i++) {
-      const row = valid[i];
-      try {
-        if (row.isDuplicate) {
-          if (!updateExisting) { skipped++; }
-          else {
-            const keyVal = row.data[schema.uniqueField];
-            const { error } = await supabase.from(schema.table as any).update(row.data).eq(schema.uniqueField, keyVal);
-            if (error) { errors.push(`Row ${row.rowIndex}: ${error.message}`); skipped++; }
-            else updated++;
-          }
-        } else {
-          const { error } = await supabase.from(schema.table as any).insert(row.data);
-          if (error) { errors.push(`Row ${row.rowIndex}: ${error.message}`); skipped++; }
-          else created++;
-        }
-      } catch (e: any) {
-        errors.push(`Row ${row.rowIndex}: ${e.message}`); skipped++;
-      }
-      setProgress(Math.round(((i + 1) / valid.length) * 100));
-    }
-    if (skipInvalid) skipped += mappedRows.length - valid.length;
-    setResult({ created, updated, skipped, errors });
     setRunning(false);
-    setStep("result");
-    toast.success(`Imported: ${created} created, ${updated} updated, ${skipped} skipped`);
+    setProgress(0);
+    setResult(null);
+    toast.error(BULK_IMPORT_HOLD_REASON);
   };
 
   const validCount = useMemo(() => mappedRows.filter((r) => r.errors.length === 0).length, [mappedRows]);
@@ -270,11 +246,18 @@ function Page() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Bulk Data Import</h1>
-          <p className="text-sm text-muted-foreground">Upload Excel or CSV files. Admin only.</p>
+          <p className="text-sm text-muted-foreground">Excel/CSV review and mapping only. No database imports are enabled.</p>
         </div>
         <Button asChild variant="outline" size="sm"><Link to="/settings"><ArrowLeft className="h-4 w-4 mr-2"/>Settings</Link></Button>
       </div>
 
+      {LEGACY_BULK_IMPORT_WRITES_PAUSED && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Import writes paused</AlertTitle>
+          <AlertDescription>{BULK_IMPORT_HOLD_REASON}</AlertDescription>
+        </Alert>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>1. Choose Module</CardTitle>
@@ -413,8 +396,8 @@ function Page() {
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep("map")} disabled={running}>Back</Button>
-              <Button onClick={runImport} disabled={running}>
-                {running ? `Importing… ${progress}%` : "Start Import"}
+              <Button onClick={runImport} disabled={running || LEGACY_BULK_IMPORT_WRITES_PAUSED}>
+                {LEGACY_BULK_IMPORT_WRITES_PAUSED ? "Import paused" : running ? `Importing… ${progress}%` : "Start Import"}
               </Button>
             </div>
           </CardContent>

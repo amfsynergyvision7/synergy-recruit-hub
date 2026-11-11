@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,8 +137,9 @@ function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
 
 export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
   const { role } = useAuth();
-  const editable = canEdit(role, module);
-  const deletable = canDelete(role);
+  const candidateMutationPaused = module === "candidates" && LEGACY_CANDIDATE_WRITES_PAUSED;
+  const editable = canEdit(role, module) && !candidateMutationPaused;
+  const deletable = canDelete(role) && !candidateMutationPaused;
   const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -257,6 +259,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const openView = (row: any) => setViewing(row);
 
   const save = async () => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     // Catch an empty required field here, with a message naming the actual
     // field, instead of letting it reach Supabase and come back as a raw
     // Postgres "null value in column ... violates not-null constraint" —
@@ -296,6 +299,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const remove = async (row: any) => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (!confirm("Delete this record?")) return;
     const { error } = await supabase.from(table as any).delete().eq("id", row.id);
     if (error) return toast.error(error.message);
@@ -393,6 +397,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const bulkDelete = async () => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     const ids = Array.from(selected);
     if (!ids.length) return;
     const warning =
@@ -416,6 +421,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const applyBulkEdit = async () => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
@@ -673,7 +679,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         </div>
       </div>
 
-      {!editable && (
+      {candidateMutationPaused && <Badge variant="secondary">{CANDIDATE_MUTATION_HOLD_REASON}</Badge>}
+      {!editable && !candidateMutationPaused && (
         <Badge variant="secondary">Read-only access</Badge>
       )}
 

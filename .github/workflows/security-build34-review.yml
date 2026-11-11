@@ -25,6 +25,12 @@ on:
       - 'security/build47/**'
       - 'security/build48/**'
       - 'security/build49/**'
+      - 'security/build50/**'
+      - 'src/lib/release-safety.ts'
+      - 'src/components/CrudModule.tsx'
+      - 'src/components/CandidateBoard.tsx'
+      - 'src/routes/_app.import.tsx'
+      - 'src/routes/_app.duplicates.tsx'
       - 'src/lib/user-administration.ts'
       - 'src/lib/profile-settings.ts'
       - 'src/routes/_app.users.tsx'
@@ -556,6 +562,17 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build49/67-policy-admin-profile-compat.integration.sql
+  build50-browser-write-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify legacy candidate CRUD, board, duplicate delete and bulk import remain paused
+        run: node --test security/build50/source-contract.test.mjs
+
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
