@@ -89,3 +89,13 @@ DO $restore$ DECLARE n int;BEGIN
 END $restore$;
 SQL
 echo 'PASS: full synthetic schema+data backup/restore with ledger, cursor and RPC grants'
+# A safe operational halt revokes the service RPC without deleting the ledger.
+db "$RESTORE_DB" -f security/build43/atomic-emergency-hold-review-only.sql >/dev/null
+db "$RESTORE_DB" <<'SQL'
+DO $hold$ DECLARE n int;BEGIN
+ IF has_function_privilege('service_role','public.crm_commit_candidate_sync_row(uuid,uuid,uuid,integer,jsonb)','EXECUTE') THEN RAISE EXCEPTION 'emergency revoke did not disable service RPC'; END IF;
+ SELECT count(*) INTO n FROM public.candidates; IF n<>1 THEN RAISE EXCEPTION 'emergency halt deleted candidate'; END IF;
+ SELECT count(*) INTO n FROM crm_private.candidate_sync_row_ledger; IF n<>1 THEN RAISE EXCEPTION 'emergency halt deleted idempotency ledger'; END IF;
+END $hold$;
+SQL
+echo 'PASS: emergency release hold disables service RPC while preserving ledger and records'
