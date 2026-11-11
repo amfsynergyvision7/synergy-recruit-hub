@@ -21,6 +21,7 @@ on:
       - 'security/build43/**'
       - 'security/build44/**'
       - 'security/build45/**'
+      - 'security/build46/**'
       - 'src/lib/integrations.functions.ts'
       - 'src/lib/drive-import.server.ts'
       - 'src/components/DriveImportButton.tsx'
@@ -336,6 +337,38 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build45/financial-hold-rehearsal.integration.sql
+  drive-resume-atomic-ledger-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Drive ledger, safe server adapter and unconditional import pause
+        run: node --test security/build46/drive-ledger-contract.test.mjs
+      - name: Rehearse atomic Drive candidate and ledger commit with synthetic rollback
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build46/drive-ledger-rollback.integration.sql
+      - name: Exercise source-derived real candidate triggers with synthetic Drive import
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build46/drive-production-trigger.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

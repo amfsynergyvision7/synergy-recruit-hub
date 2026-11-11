@@ -100,5 +100,5 @@ export const checkDriveForNewResumes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertApprovedRole(context.userId, ["admin"]);
-    return runResumeDriveImport(context.supabase);
+    return runResumeDriveImport(context.supabase, context.userId);
   });

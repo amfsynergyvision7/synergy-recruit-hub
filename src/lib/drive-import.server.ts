@@ -32,7 +32,7 @@
 //     and shows as "—" in the table.
 import { extractDriveFileId, fetchDriveBytes, extractText } from "./resume-fetch.server";
 import { extractCandidateFieldsFromResume } from "./ai.server";
-import { normalizeEmail, normalizePhone, normalizeName } from "./dedupe";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const DRIVE_LIST_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
 
@@ -115,23 +115,10 @@ async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveF
   return files;
 }
 
-function withNA(value: string | null): string {
-  return value && value.trim().length > 0 ? value.trim() : "NA";
-}
-
-interface CandidateRecord {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  mobile: string | null;
-  position_applied: string | null;
-  experience_years: number | null;
-  resume_url: string | null;
-}
-
 export type DriveImportFileOutcome =
   | { status: "created"; fileName: string; candidateName: string }
   | { status: "updated"; fileName: string; candidateName: string; fieldsFilled: string[] }
+  | { status: "already_imported"; fileName: string }
   | { status: "failed"; fileName: string; reason: string }
   | { status: "skipped_unsupported_format"; fileName: string };
 
@@ -143,7 +130,7 @@ export interface DriveImportSummary {
   created: number;
   updated: number;
   failed: number;
-  remaining: number; // new files found but not processed this run, due to MAX_FILES_PER_RUN
+  remaining: number;
   outcomes: DriveImportFileOutcome[];
 }
 
@@ -152,176 +139,113 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
   let next = 0;
   async function worker() {
     for (;;) {
-      const i = next++;
-      if (i >= items.length) return;
-      results[i] = await fn(items[i]);
+      const index = next++;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index]);
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return results;
 }
 
-// Explicit void return keeps the legacy importer type-checkable while every
-// invocation remains blocked until a durable transactional importer replaces it.
 function assertDriveBulkImportReviewed(): void {
+  // This unconditional server-side hold cannot be bypassed by a browser,
+  // environment flag, or a direct function call.
   throw new Error("Drive bulk import paused pending transactional idempotency approval");
 }
 
-export async function runResumeDriveImport(supabase: any): Promise<DriveImportSummary> {
+/**
+ * Review-branch implementation of Drive import using one atomic
+ * PostgreSQL RPC per file. Until independent review and release acceptance,
+ * assertDriveBulkImportReviewed() always denies before credentials/network.
+ */
+export async function runResumeDriveImport(supabase: any, ownerId: string): Promise<DriveImportSummary> {
   assertDriveBulkImportReviewed();
+  if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(ownerId)) {
+    throw new Error("Drive import owner is invalid");
+  }
+  const recruiterId = process.env.CANDIDATE_SYNC_ASSIGNED_RECRUITER_ID;
+  if (!recruiterId || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(recruiterId)) {
+    throw new Error("Drive import requires an approved recruiter configuration");
+  }
   const apiKey = process.env.DRIVE_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "DRIVE_API_KEY is not configured. Add a Google Cloud API key with the Drive API enabled as an environment variable and redeploy.",
-    );
-  }
-
-  // The folder URL is private; access it through an approved-admin RPC
-  // instead of granting browser SELECT on private app_settings columns.
-  const { data: folderUrl, error: settingsError } =
-    await supabase.rpc("crm_admin_get_resume_folder");
-  if (settingsError) throw settingsError;
-  if (!folderUrl) {
-    throw new Error('No Google Drive folder is configured yet — set one under Settings → "Resume Import Folder" first.');
-  }
+  if (!apiKey) throw new Error("Drive API credentials are not configured");
+  const { data: folderUrl, error: folderError } = await supabase.rpc("crm_admin_get_resume_folder");
+  if (folderError || typeof folderUrl !== "string") throw new Error("Drive folder unavailable");
   const folderId = extractDriveFolderId(folderUrl);
-  if (!folderId) {
-    throw new Error("Couldn't find a folder ID in the configured Drive URL — check it's a normal folder share link.");
-  }
+  if (!folderId) throw new Error("Drive folder link is invalid");
 
   const allFiles = await listFolderFiles(folderId, apiKey);
+  // The source-of-truth import ledger is not directly selectable by browsers
+  // or authenticated clients. This service-role RPC validates owner+folder.
+  const { data: ledger, error: ledgerError } = await (supabaseAdmin as any).rpc(
+    "crm_list_drive_imported_file_ids", { p_owner: ownerId, p_folder_id: folderId },
+  );
+  if (ledgerError || !Array.isArray(ledger)) throw new Error("Drive import ledger unavailable");
+  const knownIds = new Set<string>(ledger
+    .map((row: { file_id?: unknown }) => row?.file_id)
+    .filter((id: unknown): id is string => typeof id === "string"));
 
-  const { data: candidatesData, error: candError } = await supabase
-    .from("candidates")
-    .select("id, full_name, email, mobile, position_applied, experience_years, resume_url")
-    .limit(5000);
-  if (candError) throw candError;
-  const candidates: CandidateRecord[] = candidatesData ?? [];
-
-  // "Already imported" = the file's Drive ID matches the file ID embedded in
-  // some candidate's saved resume_url. Comparing by file ID (not raw string)
-  // means it doesn't matter whether that link was saved in the
-  // /file/d/.../view form (what this feature writes) or the /uc?id=... form
-  // (what may have been pasted in manually) — both resolve to the same ID.
-  const alreadyImportedFileIds = new Set<string>();
-  for (const c of candidates) {
-    const id = extractDriveFileId(c.resume_url ?? "");
-    if (id) alreadyImportedFileIds.add(id);
-  }
-
-  const byEmail = new Map<string, CandidateRecord>();
-  const byPhone = new Map<string, CandidateRecord>();
-  const byName = new Map<string, CandidateRecord>();
-  for (const c of candidates) {
-    const email = normalizeEmail(c.email);
-    if (email && !byEmail.has(email)) byEmail.set(email, c);
-    const phone = normalizePhone(c.mobile);
-    if (phone && !byPhone.has(phone)) byPhone.set(phone, c);
-    // Never index a candidate whose name is missing/"NA" — otherwise every
-    // NA-named candidate would falsely "match" every other one.
-    const name = normalizeName(c.full_name);
-    if (name && name !== "na" && !byName.has(name)) byName.set(name, c);
-  }
-
-  const unsupported = allFiles.filter((f) => !SUPPORTED_MIME_TYPES.has(f.mimeType));
-  const supported = allFiles.filter((f) => SUPPORTED_MIME_TYPES.has(f.mimeType));
-  const newFiles = supported.filter((f) => !alreadyImportedFileIds.has(f.id));
-
-  const toProcess = newFiles.slice(0, MAX_FILES_PER_RUN);
-  const remaining = newFiles.length - toProcess.length;
+  const unsupported = allFiles.filter(file => !SUPPORTED_MIME_TYPES.has(file.mimeType));
+  const supported = allFiles.filter(file => SUPPORTED_MIME_TYPES.has(file.mimeType));
+  const toImport = supported.filter(file => !knownIds.has(file.id));
+  const toProcess = toImport.slice(0, MAX_FILES_PER_RUN);
 
   const outcomes = await mapWithConcurrency(toProcess, CONCURRENCY, async (file): Promise<DriveImportFileOutcome> => {
     try {
       const downloaded = await fetchDriveBytes(file.id);
-      if ("error" in downloaded) {
-        return { status: "failed", fileName: file.name, reason: downloaded.error };
-      }
+      if ("error" in downloaded) return { status: "failed", fileName: file.name, reason: downloaded.error };
       const parsed = await extractText(downloaded.buffer, downloaded.contentType);
-      if (!parsed.ok) {
-        return { status: "failed", fileName: file.name, reason: parsed.error };
-      }
-
+      if (!parsed.ok) return { status: "failed", fileName: file.name, reason: parsed.error };
       const extracted = await extractCandidateFieldsFromResume(parsed.text);
-
-      const emailKey = normalizeEmail(extracted.email);
-      const phoneKey = normalizePhone(extracted.mobile);
-      const nameKey = normalizeName(extracted.fullName);
-      const match =
-        (emailKey && byEmail.get(emailKey)) ||
-        (phoneKey && byPhone.get(phoneKey)) ||
-        (nameKey && nameKey !== "na" && byName.get(nameKey)) ||
-        null;
-
-      if (match) {
-        const updates: Record<string, string | number> = {};
-        const fieldsFilled: string[] = [];
-
-        if (!match.full_name || match.full_name.trim() === "") { updates.full_name = withNA(extracted.fullName); fieldsFilled.push("full_name"); }
-        if (!match.email || match.email.trim() === "") { updates.email = withNA(extracted.email); fieldsFilled.push("email"); }
-        if (!match.mobile || match.mobile.trim() === "") { updates.mobile = withNA(extracted.mobile); fieldsFilled.push("mobile"); }
-        if (!match.position_applied || match.position_applied.trim() === "") { updates.position_applied = withNA(extracted.lastRole); fieldsFilled.push("position_applied"); }
-        if (match.experience_years == null && extracted.experienceYears != null) { updates.experience_years = extracted.experienceYears; fieldsFilled.push("experience_years"); }
-        if (!match.resume_url || match.resume_url.trim() === "") { updates.resume_url = file.webViewLink; fieldsFilled.push("resume_url"); }
-
-        if (Object.keys(updates).length > 0) {
-          const { error: updateError } = await supabase.from("candidates").update(updates).eq("id", match.id);
-          if (updateError) return { status: "failed", fileName: file.name, reason: updateError.message };
-        }
-        // Keep the in-memory record consistent in case a later file in this
-        // same run also matches this candidate.
-        Object.assign(match, updates);
-
-        return { status: "updated", fileName: file.name, candidateName: match.full_name ?? "NA", fieldsFilled };
+      const { data: committed, error: commitError } = await (supabaseAdmin as any).rpc(
+        "crm_commit_drive_resume_import", {
+          p_owner: ownerId,
+          p_assigned_recruiter: recruiterId,
+          p_folder_id: folderId,
+          p_file_id: file.id,
+          p_extracted: {
+            full_name: extracted.fullName ?? null,
+            email: extracted.email ?? null,
+            mobile: extracted.mobile ?? null,
+            position_applied: extracted.lastRole ?? null,
+            experience_years: extracted.experienceYears ?? null,
+          },
+        },
+      );
+      if (commitError || !Array.isArray(committed) || committed.length !== 1) {
+        throw new Error("Atomic Drive import commit unavailable; manual review required");
       }
-
-      const insertPayload = {
-        full_name: withNA(extracted.fullName),
-        email: withNA(extracted.email),
-        mobile: withNA(extracted.mobile),
-        position_applied: withNA(extracted.lastRole),
-        experience_years: extracted.experienceYears,
-        resume_url: file.webViewLink,
-        source: "Google Drive Bulk Import",
-        stage: "lead_received",
-      };
-      const { data: inserted, error: insertError } = await supabase
-        .from("candidates")
-        .insert(insertPayload)
-        .select("id, full_name, email, mobile, position_applied, experience_years, resume_url")
-        .single();
-      if (insertError) return { status: "failed", fileName: file.name, reason: insertError.message };
-
-      // A newly created candidate is now a valid dedupe target for any other
-      // file later in this same run (e.g. two resumes from the same person).
-      const created: CandidateRecord = inserted;
-      const createdEmail = normalizeEmail(created.email);
-      if (createdEmail) byEmail.set(createdEmail, created);
-      const createdPhone = normalizePhone(created.mobile);
-      if (createdPhone) byPhone.set(createdPhone, created);
-      const createdName = normalizeName(created.full_name);
-      if (createdName && createdName !== "na") byName.set(createdName, created);
-
-      return { status: "created", fileName: file.name, candidateName: created.full_name ?? "NA" };
-    } catch (err: any) {
-      return { status: "failed", fileName: file.name, reason: err?.message ?? "Unknown error" };
+      const outcome = committed[0]?.outcome;
+      if (outcome === "replayed") return { status: "already_imported", fileName: file.name };
+      if (outcome === "created") return { status: "created", fileName: file.name, candidateName: extracted.fullName ?? "" };
+      if (outcome === "updated") {
+        const filled = committed[0]?.fields_filled;
+        return { status: "updated", fileName: file.name, candidateName: extracted.fullName ?? "", fieldsFilled: Array.isArray(filled) ? filled.filter((x: unknown): x is string => typeof x === "string") : [] };
+      }
+      throw new Error("Unknown Drive import commit result; manual review required");
+    } catch {
+      // The admin-facing result does not expose SQL internals, candidate data
+      // or service credentials; case-level failure details remain in evidence.
+      return { status: "failed", fileName: file.name, reason: "Drive import was not committed; review configuration and source data" };
     }
   });
 
-  const unsupportedOutcomes: DriveImportFileOutcome[] = unsupported.map((f) => ({
+  const unsupportedOutcomes: DriveImportFileOutcome[] = unsupported.map(file => ({
     status: "skipped_unsupported_format",
-    fileName: f.name,
+    fileName: file.name,
   }));
-  const allOutcomes = [...outcomes, ...unsupportedOutcomes];
-
+  const already = supported.length - toImport.length +
+    outcomes.filter(o => o.status === "already_imported").length;
   return {
     totalInFolder: allFiles.length,
-    alreadyImported: supported.length - newFiles.length,
+    alreadyImported: already,
     skippedUnsupportedFormat: unsupported.length,
     processed: outcomes.length,
-    created: outcomes.filter((o) => o.status === "created").length,
-    updated: outcomes.filter((o) => o.status === "updated").length,
-    failed: outcomes.filter((o) => o.status === "failed").length,
-    remaining,
-    outcomes: allOutcomes,
+    created: outcomes.filter(o => o.status === "created").length,
+    updated: outcomes.filter(o => o.status === "updated").length,
+    failed: outcomes.filter(o => o.status === "failed").length,
+    remaining: toImport.length - toProcess.length,
+    outcomes: [...outcomes, ...unsupportedOutcomes],
   };
 }
