@@ -15,3 +15,7 @@
 - A 500 on an already partial import does not reverse a candidate insert or update.
 - Signed-user tests, App UI/browser compatibility, rollback, least-privilege database grants and independent review remain open.
 - DO NOT MERGE, DEPLOY TO PRODUCTION, ACTIVATE SYNC, OR HANDLE REAL CANDIDATE RECORDS.
+
+## Disposable PostgreSQL lease proof
+- `synthetic-sync-lease.sql` demonstrates the atomic INSERT/ON CONFLICT lease pattern, competing claim rejection, isolated owners, expiry takeover and token-specific release. It rolls back the entire test schema.
+- The test is NOT integrated into the production scheduler. Multi-session concurrency, lease heartbeat, expired-lease recovery, idempotent candidate inserts, and restore must still be verified before any activation.
