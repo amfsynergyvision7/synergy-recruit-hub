@@ -285,7 +285,10 @@ function emptyResult(): SyncResult {
   return { created: 0, updated: 0, skipped: 0, errors: 0, rows_scanned: 0, rows_created: 0, rows_updated: 0, rows_skipped: 0, error_details: [] };
 }
 
-async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void> }): Promise<SyncResult> {
+async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void>; leaseToken?: string; atomicRowWrites?: boolean }): Promise<SyncResult> {
+  if (opts.atomicRowWrites && (!opts.leaseToken || !opts.leaseHeartbeat || !opts.userId)) {
+    throw new Error("Atomic sync requires owner, lease token and heartbeat");
+  }
   const integ = await getSavedGoogleIntegration({ userId: opts.userId });
   if (!integ || !integ.spreadsheet_id) throw new Error("Google Sheet not configured");
 
@@ -330,6 +333,31 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
     result.rows_scanned++;
     try {
       const cand = rowToCandidate(headers, values[i], mapping);
+      if (opts.atomicRowWrites) {
+        // One PostgreSQL RPC atomically fences the lease, resolves a candidate,
+        // stores the idempotency ledger, creates the notification and advances
+        // the cursor. A missing RPC fails closed: never fall back to separate writes.
+        await opts.leaseHeartbeat?.();
+        const { data: committed, error: commitError } = await (supabaseAdmin as any).rpc(
+          "crm_commit_candidate_sync_row", {
+            p_owner: opts.userId,
+            p_token: opts.leaseToken,
+            p_integration: integ.id,
+            p_row_number: sheetRowNumber,
+            p_candidate: cand,
+          },
+        );
+        if (commitError || !Array.isArray(committed) || committed.length !== 1) {
+          throw new Error("Atomic candidate sync commit unavailable");
+        }
+        const action: unknown = committed[0]?.outcome;
+        if (action === "created") result.rows_created++;
+        else if (action === "updated") result.rows_updated++;
+        else if (action === "skipped" || action === "replayed") result.rows_skipped++;
+        else throw new Error("Unexpected atomic candidate sync result");
+        lastSynced = advanceContiguousCursor(lastSynced, sheetRowNumber);
+        continue;
+      }
       if (!cand.full_name && !cand.email && !cand.mobile) {
         result.rows_skipped++; lastSynced = advanceContiguousCursor(lastSynced, sheetRowNumber); continue;
       }
@@ -398,7 +426,9 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   await opts.leaseHeartbeat?.();
   await (supabaseAdmin as any).from("google_integrations").update({
     last_sync: new Date().toISOString(),
-    last_synced_row: lastSynced,
+    // Atomic RPC already checkpointed each committed row in the same
+    // transaction; never overwrite its cursor with stale browser/server state.
+    ...(!opts.atomicRowWrites ? { last_synced_row: lastSynced } : {}),
     connection_status: status,
     last_error: result.error_details.length ? result.error_details[0].message : null,
   }).eq("id", integ.id);
@@ -418,7 +448,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   return result;
 }
 
-export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void> }): Promise<SyncResult> {
+export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void>; leaseToken?: string; atomicRowWrites?: boolean }): Promise<SyncResult> {
   if (!opts.userId) throw new Error("Explicit sync owner required");
   try {
     return await runCandidateSyncUnsafe(opts);

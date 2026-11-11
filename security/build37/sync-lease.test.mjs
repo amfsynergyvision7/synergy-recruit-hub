@@ -105,3 +105,8 @@ test('SQL revokes public rights, fixes search_path and grants only service role'
   assert.ok(code.includes('GRANT EXECUTE ON FUNCTION public.crm_'+fn+'_candidate_sync_lease(uuid,uuid) TO service_role'));
  }
 });
+
+test('lease token is passed to the scheduler callback for atomic RPC fencing',async()=>{
+ const ops=lease();const observed=await withCandidateSyncLease(owner,async(heartbeat,token)=>{await heartbeat();return token},ops,()=>tokenA);
+ assert.deepEqual(observed,{acquired:true,value:tokenA});
+});

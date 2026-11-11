@@ -16,7 +16,7 @@ export type CandidateSyncLeaseExecution<T> =
  */
 export async function withCandidateSyncLease<T>(
   ownerId: string,
-  work: (heartbeat: () => Promise<void>) => Promise<T>,
+  work: (heartbeat: () => Promise<void>, token: string) => Promise<T>,
   operations: CandidateSyncLeaseOperations,
   tokenFactory: () => string = randomUUID,
 ): Promise<CandidateSyncLeaseExecution<T>> {
@@ -36,7 +36,7 @@ export async function withCandidateSyncLease<T>(
   let failed = false;
   try {
     await heartbeat();
-    result = await work(heartbeat);
+    result = await work(heartbeat, token);
     await heartbeat();
   } catch (error) {
     failed = true;

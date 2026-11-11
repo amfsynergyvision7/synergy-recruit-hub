@@ -108,6 +108,6 @@ test('source binds owner for read, role and mutation, and supports GET',()=>{
  assert.match(code,/SHEETS_SYNC_CRON_ENABLED/);
  assert.match(code,/assertApprovedRole\(ownerId, \['admin'\]\)/);
  assert.match(code,/getSavedGoogleIntegration\(\{ backfillLegacy: false, userId: ownerId \}\)/);
- assert.match(code,/runCandidateSync\(\{ triggeredBy: 'cron', userId: ownerId, leaseHeartbeat: heartbeat \}\)/);
+ assert.match(code,/runCandidateSync\(\{ triggeredBy: 'cron', userId: ownerId, leaseHeartbeat: heartbeat, leaseToken: token, atomicRowWrites: true \}\)/);
  assert.match(code,/GET: handler, POST: handler/);
 });

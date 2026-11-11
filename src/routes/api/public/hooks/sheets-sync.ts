@@ -17,7 +17,7 @@ const handler = async ({ request }: { request: Request }) => handleCandidateSync
   runSync: async (ownerId) => {
     const execution = await withCandidateSyncLease(
       ownerId,
-      (heartbeat) => runCandidateSync({ triggeredBy: 'cron', userId: ownerId, leaseHeartbeat: heartbeat }),
+      (heartbeat, token) => runCandidateSync({ triggeredBy: 'cron', userId: ownerId, leaseHeartbeat: heartbeat, leaseToken: token, atomicRowWrites: true }),
       createSupabaseSyncLeaseOperations(supabaseAdmin as any),
     );
     if (!execution.acquired) throw new Error('Candidate sync already leased');
