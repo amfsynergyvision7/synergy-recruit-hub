@@ -24,6 +24,11 @@ on:
       - 'security/build46/**'
       - 'security/build47/**'
       - 'security/build48/**'
+      - 'security/build49/**'
+      - 'src/lib/user-administration.ts'
+      - 'src/lib/profile-settings.ts'
+      - 'src/routes/_app.users.tsx'
+      - 'src/routes/_app.settings.tsx'
       - 'src/lib/integrations.functions.ts'
       - 'src/lib/drive-import.server.ts'
       - 'src/components/DriveImportButton.tsx'
@@ -496,6 +501,61 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build48/unsafe-recovery.integration.sql
+  audited-account-and-profile-transaction-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify user/profile RPCs, locked-down UI and release hold source contracts
+        run: node --test security/build49/source-contract.test.mjs
+      - name: Rehearse approved admin status/role edits and audit rollback in disposable SQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build49/user-admin-transaction.integration.sql
+      - name: Rehearse narrow self-profile edits and audit rollback in disposable SQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build49/self-profile-transaction.integration.sql
+  account-compatibility-under-67-policy-lockdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse admin/profile RPCs after live 67-policy replacement and legacy DML revocation
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build49/67-policy-admin-profile-compat.integration.sql
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

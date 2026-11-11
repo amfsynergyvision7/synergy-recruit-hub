@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAdminResumeFolder, updateAdminSetting } from "@/lib/admin-settings";
+import { CRM_PROFILE_MUTATIONS_ENABLED, updateOwnCRMProfile } from "@/lib/profile-settings";
 import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
@@ -50,7 +51,7 @@ function Page() {
 
   const save = async () => {
     if (!profile) return;
-    const { error } = await supabase.from("profiles").update(form).eq("id", profile.id);
+    const { error } = await updateOwnCRMProfile(form);
     if (error) return toast.error(error.message);
     toast.success("Profile updated"); refresh();
   };
@@ -106,11 +107,12 @@ function Page() {
         <p className="text-sm text-muted-foreground">Manage your profile.</p>
       </div>
       <Card><CardHeader><CardTitle>Profile</CardTitle></CardHeader>
+        {!CRM_PROFILE_MUTATIONS_ENABLED && <p className="px-6 text-sm text-muted-foreground">Profile edits are temporarily paused pending secure release.</p>}
         <CardContent className="space-y-4">
-          <div className="space-y-2"><Label>Full name</Label><Input value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></div>
-          <div className="space-y-2"><Label>Phone</Label><Input value={form.phone ?? ""} onChange={(e)=>setForm({...form,phone:e.target.value})}/></div>
-          <div className="space-y-2"><Label>Department</Label><Input value={form.department ?? ""} onChange={(e)=>setForm({...form,department:e.target.value})}/></div>
-          <Button onClick={save}>Save</Button>
+          <div className="space-y-2"><Label>Full name</Label><Input disabled={!CRM_PROFILE_MUTATIONS_ENABLED} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></div>
+          <div className="space-y-2"><Label>Phone</Label><Input disabled={!CRM_PROFILE_MUTATIONS_ENABLED} value={form.phone ?? ""} onChange={(e)=>setForm({...form,phone:e.target.value})}/></div>
+          <div className="space-y-2"><Label>Department</Label><Input disabled={!CRM_PROFILE_MUTATIONS_ENABLED} value={form.department ?? ""} onChange={(e)=>setForm({...form,department:e.target.value})}/></div>
+          <Button onClick={save} disabled={!CRM_PROFILE_MUTATIONS_ENABLED}>Save</Button>
         </CardContent>
       </Card>
       <Card>
