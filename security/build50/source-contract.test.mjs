@@ -28,9 +28,11 @@ test("candidate CRUD create/edit/delete and bulk mutations use the hold", () => 
 test("candidate board stage transition cannot optimistically move or write while held", () => {
   assert.match(board, /canEdit\(role, "candidates"\) && !LEGACY_CANDIDATE_WRITES_PAUSED/);
   const guard = board.indexOf("if (LEGACY_CANDIDATE_WRITES_PAUSED)", board.indexOf("const moveCandidate"));
-  const dml = board.indexOf('.update({ stage: newStage })', guard);
-  assert.ok(guard > 0 && dml > guard);
+  const rpcCall = board.indexOf('changeCandidateStage({ candidateId, expectedStage: candidate.stage, newStage })', guard);
+  assert.ok(guard > 0 && rpcCall > guard);
+  assert.doesNotMatch(board, /\.from\("candidates" as any\)\.update\(/);
   assert.match(board, /draggable=\{editable\}/);
+  assert.match(board, /isReviewableStageTarget\(stage.value\)/);
 });
 
 test("legacy Excel and CSV import has zero direct client row writes", () => {

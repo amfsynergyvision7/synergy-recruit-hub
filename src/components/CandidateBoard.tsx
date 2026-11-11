@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canEdit } from "@/hooks/use-auth";
 import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
+import { changeCandidateStage, isReviewableStageTarget } from "@/lib/candidate-stage";
 import { TONE_VAR, type PillTone } from "@/components/StatusPill";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -90,12 +91,13 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
     const candidate = rows.find((r) => r.id === candidateId);
     if (!candidate || candidate.stage === newStage) return;
     setRows((prev) => prev.map((r) => (r.id === candidateId ? { ...r, stage: newStage } : r)));
-    const { error } = await supabase.from("candidates" as any).update({ stage: newStage }).eq("id", candidateId);
+    const { error } = await changeCandidateStage({ candidateId, expectedStage: candidate.stage, newStage });
     if (error) {
       toast.error(error.message);
       load(); // roll back the optimistic move
       return;
     }
+    await load(); // read server result rather than trusting optimistic UI state
     toast.success(`Moved to ${newStage.replace(/_/g, " ")}`);
   };
 
@@ -126,14 +128,14 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
           return (
             <div
               key={stage.value}
-              onDragOver={(e) => { if (editable) e.preventDefault(); }}
-              onDragEnter={() => editable && setDragOverStage(stage.value)}
+              onDragOver={(e) => { if (editable && isReviewableStageTarget(stage.value)) e.preventDefault(); }}
+              onDragEnter={() => editable && isReviewableStageTarget(stage.value) && setDragOverStage(stage.value)}
               onDragLeave={() => setDragOverStage((s) => (s === stage.value ? null : s))}
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverStage(null);
                 const id = e.dataTransfer.getData("text/plain");
-                if (id) moveCandidate(id, stage.value);
+                if (id && editable && isReviewableStageTarget(stage.value)) moveCandidate(id, stage.value);
               }}
               className={`flex w-64 shrink-0 flex-col rounded-lg border bg-muted/20 transition-colors ${
                 isDragOver ? "border-primary ring-2 ring-primary/30" : "border-border"

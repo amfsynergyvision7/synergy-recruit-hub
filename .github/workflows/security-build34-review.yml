@@ -26,6 +26,8 @@ on:
       - 'security/build48/**'
       - 'security/build49/**'
       - 'security/build50/**'
+      - 'security/build51/**'
+      - 'src/lib/candidate-stage.ts'
       - 'src/lib/release-safety.ts'
       - 'src/components/CrudModule.tsx'
       - 'src/components/CandidateBoard.tsx'
@@ -572,6 +574,35 @@ jobs:
           node-version: '22'
       - name: Verify legacy candidate CRUD, board, duplicate delete and bulk import remain paused
         run: node --test security/build50/source-contract.test.mjs
+
+  build51-stage-transaction-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify stage RPC and client safety contracts
+        run: node --test security/build51/source-contract.test.mjs
+      - name: Rehearse scoped stage mutations with synthetic signed subjects and legacy billing trap
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build51/stage-transaction.integration.sql
 
   production-release-hold:
     if: github.event_name == 'pull_request'
