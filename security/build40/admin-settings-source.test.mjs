@@ -13,7 +13,11 @@ test('settings screen uses four named protected write calls',()=>{
  assert.equal((app.match(/await updateAdminSetting\(/g)||[]).length,4);
  for(const name of ['logo_url','default_color_theme','resume_import_folder_url']) assert.ok(app.includes('updateAdminSetting("'+name+'"'));
 });
-test('direct profile edit remains independent',()=>assert.match(app,/\.from\("profiles"\)\.update\(form\)/));
+test('self-profile edit uses the restricted signed-session RPC instead of browser UPDATE',()=>{
+ assert.match(app,/updateOwnCRMProfile\(form\)/);
+ assert.doesNotMatch(app,/\.from\("profiles"\)\.update\(form\)/);
+ assert.match(app,/disabled=\{!CRM_PROFILE_MUTATIONS_ENABLED\}/);
+});
 test('unauthenticated login branding needs only public columns',()=>assert.match(branding,/\.select\("logo_url, default_color_theme"\)/));
 test('private read and update RPC names are explicit',()=>{
  assert.match(helper,/crm_admin_get_resume_folder/);
