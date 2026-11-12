@@ -10,8 +10,8 @@ const include="\\ir candidate-write-rpc-review-only.sql";
 const end="ROLLBACK;\nSELECT 'PASS Build52";
 if(f.split(include).length!==2||f.split(end).length!==2)
  throw new Error("Build52 fixture changed: fail closed");
-const combined=f.replace(include,()=>write+"\n"+assessment+"\n"+setup)
- .replace(end,()=>cases+"\n"+end);
+const combined=f.replace(include,()=>write+"\n"+assessment)
+ .replace(end,()=>setup+"\n"+cases+"\n"+end);
 if((combined.match(/^ROLLBACK;$/gm)||[]).length!==1||
    (combined.match(/^COMMIT;$/gm)||[]).length!==0)
  throw new Error("Candidate deletion assessment test would persist changes");
