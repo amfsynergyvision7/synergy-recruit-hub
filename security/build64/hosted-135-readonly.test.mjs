@@ -32,7 +32,9 @@ const fake=(options={})=>{
    const p=JSON.parse(init.body),idx=config.credentials.findIndex(x=>x.email===p.email);
    if(idx<0)throw Error("unrecognized synthetic fixture");
    return {ok:true,status:200,json:async()=>({
-     access_token:options.badTokenStructure===idx?"malformed-token":tokens[idx],user:{id:subjects[idx]}
+     access_token:options.badTokenStructure===idx?"malformed-token":
+       tokens[options.wrongPinnedSubject===idx?(idx+1)%9:idx],
+     user:{id:subjects[options.wrongPinnedSubject===idx?(idx+1)%9:idx]}
    })};
   }
   if(u.pathname==="/auth/v1/user"){
@@ -180,4 +182,10 @@ test("hosted GoTrue token claims must be signed-user shaped, current and exact-s
   await assert.rejects(runHostedReadOnlyMatrix(config,http),
    /hosted JWT role, subject or expiry mismatch|invalid hosted JWT structure/);
  }
+});
+
+test("a valid GoTrue session for the wrong historical slot cannot pass",async()=>{
+ const {http}=fake({wrongPinnedSubject:0});
+ await assert.rejects(runHostedReadOnlyMatrix(config,http),
+  /GoTrue user UUID does not match pinned historical fixture slot/);
 });
