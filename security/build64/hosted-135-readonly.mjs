@@ -6,6 +6,7 @@
 import {readFileSync} from "node:fs";
 import {pathToFileURL} from "node:url";
 import {assertUnprivilegedUatKey} from "../build66/uat-key-gate.mjs";
+import {parseExactCount} from "../build68/exact-content-range.mjs";
 
 const HOST="dhlhlasnaapzckjyvffn.supabase.co";
 const fixtureAck="I_CONFIRM_NINE_SYNTHETIC_HOSTED_IDENTITIES_AND_EXACT_135_CASE_FIXTURES";
@@ -198,13 +199,7 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
       expectedIds.every(id=>found.includes(id));
    }
   }else if(!checkIds&&[200,206].includes(response.status)){
-   const range=response?.headers?.get?.("content-range");
-   const matched=typeof range==="string"?
-     /^(?:\*|\d+-\d+)\/(\d+)$/.exec(range.trim()):null;
-   if(matched){
-    const total=Number(matched[1]);
-    if(Number.isSafeInteger(total)&&total>=0)count=total;
-   }
+   count=parseExactCount(response?.headers?.get?.("content-range"));
   }
   const passed=(checkIds?response.status===200:[200,206].includes(response.status))&&
     count===c.expected&&exactCandidateOwnership;
