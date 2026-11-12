@@ -8,91 +8,104 @@
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "be4b16ba453445979b692fce4ad76b89"
+      "definition_md5": "be4b16ba453445979b692fce4ad76b89",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "candidates_for_assignment",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "fac3fc9311d674f0735ddbb34b4c0bea"
+      "definition_md5": "fac3fc9311d674f0735ddbb34b4c0bea",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "recruiter_performance",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "5b47ad70a6abd7be1c4d6897b128627f"
+      "definition_md5": "5b47ad70a6abd7be1c4d6897b128627f",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "recruiter_performance_with_names",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "95e34f87e7e4f11ca82d19887dd05546"
+      "definition_md5": "95e34f87e7e4f11ca82d19887dd05546",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "recruiter_stats",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "d1c7c0dd3475898cdc5b2ee02c1f0cde"
+      "definition_md5": "d1c7c0dd3475898cdc5b2ee02c1f0cde",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "recruiter_summary",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "f96652112290df365e786c23320d5938"
+      "definition_md5": "f96652112290df365e786c23320d5938",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "vw_billing_filters",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "005700ffaf4b7fc8e3957445a2d41413"
+      "definition_md5": "005700ffaf4b7fc8e3957445a2d41413",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "vw_candidate_filters",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "d1471d48998dfc2bf6fba92862331aab"
+      "definition_md5": "d1471d48998dfc2bf6fba92862331aab",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "vw_client_filters",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "0da6b3ac023805637feaf4a31170d525"
+      "definition_md5": "0da6b3ac023805637feaf4a31170d525",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "vw_interview_filters",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "802fa2546b71e09b63545668e6d9dd08"
+      "definition_md5": "802fa2546b71e09b63545668e6d9dd08",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "vw_job_filters",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "4fcfff9411bf90fc94651c46a09e84de"
+      "definition_md5": "4fcfff9411bf90fc94651c46a09e84de",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "vw_offer_filters",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "e18c25f23b5312b13489689cd279b5be"
+      "definition_md5": "e18c25f23b5312b13489689cd279b5be",
+      "view_owner_role": "postgres"
     },
     {
       "view_name": "vw_submission_filters",
       "anon_select_granted": true,
       "authenticated_select_granted": true,
       "security_invoker": false,
-      "definition_md5": "8a24b9878d98a42ab794cf06d60410d1"
+      "definition_md5": "8a24b9878d98a42ab794cf06d60410d1",
+      "view_owner_role": "postgres"
     }
   ],
   "view_count": 13,
@@ -102,5 +115,7 @@
   "synthetic_lab_only": true,
   "interpretation": "Table/view privileges and definer mode are a potential public exposure route. This is not evidence that an individual production data row was actually returned to anon.",
   "remediation_accepted": 0,
-  "live_database_modified": false
+  "live_database_modified": false,
+  "all_views_owned_by_postgres": true,
+  "owner_privilege_context": "All thirteen views currently owned by postgres. Default owner-rights mode and anonymous SELECT grant elevate risk; actual business-row exposure was not tested."
 }
