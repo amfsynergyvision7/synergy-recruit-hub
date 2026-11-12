@@ -34,6 +34,13 @@ Existing authoritative `security/build75/isolated-hosted-preseed.readonly.sql`, 
 
 Additional count-only query independently confirmed **239 columns**, **19 force-RLS public tables**, zero anon/authenticated table privileges, zero application policies, zero Auth users and zero publicly executable application functions for those roles. Security advisor's `rls_enabled_no_policy` informational notices are expected while the staged fixture intentionally has no access policies; they MUST NOT be dismissed as tested access rules.
 
+## Post-migration security-advisor findings
+
+- 16 application functions, seven SECURITY DEFINER, zero executable by `anon`, `authenticated` or `service_role`; all 32 triggers remain disabled.
+- Security Advisor WARN: two source-preserved SECURITY DEFINER functions lack fixed search paths: `set_assigned_recruiter()` and `track_stage_changes()`. Source hash fidelity required retaining their original definitions; neither is approved for activation. Hardening will require a separately reviewed migration and new pinned hashes.
+- Security Advisor INFO: 24 RLS-enabled-with-no-policy notices: 19 intentionally deny-all public fixture tables and five existing separate lab tables. No signed-user authorization policies exist yet.
+- Refer to https://supabase.com/docs/guides/database/functions for function-grant and search-path guidance.
+
 ## Known limitations; technical PASS is not signed UAT
 
 - Preseed gate **PASSED technically**; independent lab design/side-effect isolation approval and actual approved synthetic seeding remain separate requirements.
