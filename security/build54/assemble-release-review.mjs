@@ -130,6 +130,8 @@ const manifest={
  candidate_rpc_count:4,
  source_sha256:Object.fromEntries(inputs.map((name,i)=>[name,hash(sourceText[i])])),
  review_bundle_sha256:hash(reviewSql),
+ review_document_sha256:hash(reviewDoc),
+ sql_hold_contains_no_migration_ddl:true,
  rollback_rehearsal_only:true,
  no_release_authorization:true
 };
