@@ -1,0 +1,34 @@
+name: Build65 hosted UAT safety contracts - fast feedback
+on:
+  push:
+    branches:
+      - security/build34-guarded-sync-review-20261111
+    paths:
+      - 'security/build41/signed-http-135-read-matrix.json'
+      - 'security/build64/**'
+      - 'security/build65/**'
+      - '.github/workflows/security-build65-fast.yml'
+  pull_request:
+    paths:
+      - 'security/build41/signed-http-135-read-matrix.json'
+      - 'security/build64/**'
+      - 'security/build65/**'
+      - '.github/workflows/security-build65-fast.yml'
+permissions:
+  contents: read
+jobs:
+  hosted-uat-offline-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run historic read-matrix, exact-role fixture, scope-gap and CI integrity tests
+        run: |
+          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs
+      - name: Preserve no-secret, offline-only run scope
+        run: |
+          test -f security/build65/production-hosted-coverage.json
+          ! grep -E 'AMF_UAT_CASE_[0-9]+_(EMAIL|PASSWORD):' .github/workflows/security-build65-fast.yml
