@@ -134,6 +134,7 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
   if(!userResponse.ok)stop("GoTrue subject verification failed");
   const user=await userResponse.json().catch(()=>stop("malformed GoTrue subject"));
   if(user?.id!==session.user.id||ids.has(user.id))stop("GoTrue subject mismatch or reused identity");
+  if(user.id!==subjects[i])stop("GoTrue user UUID does not match pinned historical fixture slot "+String(i+1));
   ids.add(user.id);
   hostedIds.push(user.id);
   bearer.push(session.access_token);
