@@ -4,6 +4,12 @@
 BEGIN;
 SET LOCAL statement_timeout='60s';
 SET LOCAL search_path=public,pg_catalog;
+DO $b73_disposable_guard$
+BEGIN
+ IF current_database()<>'amf_build73_permissions_lab' THEN
+  RAISE EXCEPTION 'Build73 refuses anything except exact disposable CI database';
+ END IF;
+END $b73_disposable_guard$;
 CREATE ROLE b73_anon NOLOGIN;
 CREATE ROLE b73_authenticated NOLOGIN;
 CREATE TYPE public.app_role AS ENUM('admin','recruiter','operations','finance','viewer');
