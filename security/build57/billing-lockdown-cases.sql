@@ -7,6 +7,12 @@ DECLARE
   v_role name;
   v_action text;
 BEGIN
+  IF NOT EXISTS(SELECT 1 FROM pg_policies
+   WHERE schemaname='public' AND tablename='billing'
+     AND policyname='billing_admin_write'
+     AND qual='false' AND with_check='false') THEN
+     RAISE EXCEPTION 'Permissive invoice write RLS policy was not denied';
+  END IF;
   SELECT count(*) INTO v_initial FROM public.billing;
   IF v_initial<>2 THEN
     RAISE EXCEPTION 'Expected exactly two existing synthetic source-risk invoices, found %',v_initial;

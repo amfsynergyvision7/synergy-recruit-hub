@@ -34,3 +34,7 @@ The full Build54/55/56 release composer will also pin this source with
 its SHA256 and test it under the original 67→35 policy transition.
 
 No production/staging writes, real invoice reads or external messages.
+
+## Build57 RLS policy hard-denial
+
+The review source also changes the existing `billing_admin_write` RLS policy to `USING (false) WITH CHECK (false)`, preserving the 35-policy count and the independent admin/finance read policy. This protects against accidentally restored authenticated grants; it does not stop Supabase service-role RLS bypass or privileged owner writes by itself, so both revoked DML privileges and the two billing triggers remain required. Synthetic tests assert the false write policy and unchanged existing invoice rows.

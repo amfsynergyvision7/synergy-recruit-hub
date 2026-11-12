@@ -7,6 +7,12 @@ DECLARE
  v_after bigint;
  v_role name;
 BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_policies
+    WHERE schemaname='public' AND tablename='billing'
+      AND policyname='billing_admin_write'
+      AND qual='false' AND with_check='false') THEN
+     RAISE EXCEPTION 'Full-policy invoice write RLS was not fail-closed';
+ END IF;
  SELECT count(*) INTO v_previous FROM public.billing;
  IF (SELECT count(*) FROM pg_trigger
     WHERE tgrelid='public.billing'::regclass

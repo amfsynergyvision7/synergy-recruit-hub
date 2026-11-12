@@ -13,6 +13,9 @@ if(base.split(anchor).length!==2 || base.split(end).length!==2
 const fixture=base.replace(anchor,()=>`
 -- Reproduce the original risky 3-API-role grants within disposable fixture.
 GRANT ALL ON public.billing TO anon,authenticated,service_role;
+ALTER TABLE public.billing ENABLE ROW LEVEL SECURITY;
+CREATE POLICY billing_admin_write ON public.billing FOR ALL TO authenticated
+ USING (true) WITH CHECK (true);
 `+guard+"\n"+anchor)
  .replace(end,()=>cases+"\n"+end);
 if((fixture.match(/^BEGIN;$/gm)||[]).length!==1

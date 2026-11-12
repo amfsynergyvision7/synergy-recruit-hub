@@ -10,6 +10,11 @@
 REVOKE INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER
   ON TABLE public.billing FROM PUBLIC,anon,authenticated,service_role;
 
+-- Preserve 35 policies, but explicitly deny the existing ALL/write RLS policy.
+-- Its false clause cannot authorize writes even if authenticated grants return.
+ALTER POLICY billing_admin_write ON public.billing
+  USING (false) WITH CHECK (false);
+
 -- A table-level REVOKE alone may not remove explicit COLUMN grants inherited
 -- from the original catalog. Remove every column-level INSERT/UPDATE/REFERENCES
 -- grant from API roles and fail the combined postflight if inheritance remains.

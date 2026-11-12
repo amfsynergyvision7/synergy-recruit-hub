@@ -6,6 +6,8 @@ const cases=readFileSync("security/build57/billing-lockdown-cases.sql","utf8");
 const wf=readFileSync(".github/workflows/security-build34-review.yml","utf8");
 test("financial privilege lockdown is always-on and restricts all 3 API roles",()=>{
  assert.match(sql,/REVOKE INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER/);
+ assert.match(sql,/ALTER POLICY billing_admin_write ON public\.billing/);
+ assert.match(sql,/USING \(false\) WITH CHECK \(false\)/);
  assert.match(sql,/FROM PUBLIC,anon,authenticated,service_role/);
  assert.match(sql,/REVOKE INSERT\(%s\),UPDATE\(%s\),REFERENCES\(%s\)/);
  assert.match(sql,/pg_attribute/);
