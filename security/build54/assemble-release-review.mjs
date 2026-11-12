@@ -19,15 +19,17 @@ const inputs=[
  "security/build51/candidate-stage-rpc-review-only.sql",
  "security/build52/candidate-write-rpc-review-only.sql",
  "security/build53/atomic-import-rpc-review-only.sql",
- "security/build55/candidate-delete-impact-review-only.sql"
+ "security/build55/candidate-delete-impact-review-only.sql",
+ "security/build56/financial-joined-transition-hold-review-only.sql"
 ];
 const testFixture="security/build49/67-policy-admin-profile-compat.integration.sql";
 const combinedCases="security/build53/consolidated-cases.sql";
 const impactCases="security/build55/combined-release-impact-cases.sql";
+const financeCases="security/build56/full-release-financial-cases.sql";
 const hash=(s)=>createHash("sha256").update(s).digest("hex");
 const read=(p)=>readFileSync(resolve(root,p),"utf8");
 const sourceText=inputs.map(read);
-const [baseline,stage,candidate,atomic,assessment]=sourceText;
+const [baseline,stage,candidate,atomic,assessment,finance]=sourceText;
 const fail=(reason)=>{throw new Error("BUILD54 RELEASE CANDIDATE REFUSED: "+reason)};
 if((baseline.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (baseline.match(/^COMMIT;$/gm)||[]).length!==1 ||
@@ -38,7 +40,7 @@ if((baseline.match(/^BEGIN;$/gm)||[]).length!==1 ||
    !baseline.includes("crm_update_own_profile"))
  fail("Build49 baseline/approval-RPC source changed or lacks exact fingerprints");
 for(const [i,sig] of [
- [1,"crm_change_candidate_stage"],[2,"crm_write_candidate"],[3,"crm_import_candidates_atomic"],[4,"crm_candidate_delete_impact"]]) {
+ [1,"crm_change_candidate_stage"],[2,"crm_write_candidate"],[3,"crm_import_candidates_atomic"],[4,"crm_candidate_delete_impact"],[5,"crm_hold_unapproved_joined_transitions"]]) {
  if(!sourceText[i].includes("CREATE OR REPLACE FUNCTION public."+sig+"(") ||
     sourceText[i].includes("\nCOMMIT;"))
   fail("Unsafe candidate SQL fragment or unexpected COMMIT in "+inputs[i]);
@@ -87,9 +89,14 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.candidates'::regclass
     AND tgname='zz_crm_candidate_monotonic_version' AND NOT tgisinternal)
  THEN RAISE EXCEPTION 'Strict candidate monotonic-version trigger absent'; END IF;
+ IF (SELECT count(*) FROM pg_trigger t
+     WHERE t.tgname IN ('zz_crm_hold_joined_candidate','zz_crm_hold_joined_offer')
+       AND t.tgenabled='O' AND NOT t.tgisinternal)<>2 THEN
+   RAISE EXCEPTION 'Unapproved joined financial transition guards absent';
+ END IF;
 END $build54_postflight$;
 `;
-const appended=[body,stage,candidate,atomic,assessment,enforce].join("\n\n");
+const appended=[body,stage,candidate,atomic,assessment,finance,enforce].join("\n\n");
 const reviewGuard=`-- Build54 REVIEW ONLY, never executable on any database.
 -- This refusal intentionally comes BEFORE the first BEGIN/DDL statement.
 DO $build54_release_hold$
@@ -128,6 +135,7 @@ const manifest={
  old_policy_fingerprint:"a70190f31ed8436b2989082898a02b51",
  replacement_policy_count:35,
  candidate_rpc_count:4,
+ financial_hold_trigger_count:2,
  source_sha256:Object.fromEntries(inputs.map((name,i)=>[name,hash(sourceText[i])])),
  review_bundle_sha256:hash(reviewSql),
  review_document_sha256:hash(reviewDoc),
@@ -154,7 +162,7 @@ UPDATE public.candidates SET updated_at=clock_timestamp() WHERE updated_at IS NU
 UPDATE public.candidates SET stage='lead_received' WHERE stage IS NULL;
 `;
 const rehearsal=fixturePrefix+"\n"+fixtureAdjustment+"\n"+appended+
- "\n"+read(combinedCases)+"\n"+read(impactCases)+"\n"+fixtureSuffix;
+ "\n"+read(combinedCases)+"\n"+read(impactCases)+"\n"+read(financeCases)+"\n"+fixtureSuffix;
 if((rehearsal.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (rehearsal.match(/^ROLLBACK;$/gm)||[]).length!==1 ||
    (rehearsal.match(/^COMMIT;$/gm)||[]).length!==0)

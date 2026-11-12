@@ -28,3 +28,7 @@ A `psql` client that does **not** stop on SQL errors can continue executing late
 ## Build55 readonly deletion-impact addition
 
 The review release candidate now includes a fourth candidate RPC: `crm_candidate_delete_impact(uuid)` (admin-only, count-only, no DML). It is **not** an authorization to delete. The generated source manifest now contains five SHA256-pinned fragments and the disposable full combined migration includes additional administrator/recruiter role tests. This does not alter the strict release hold.
+
+## Build56: finance HOLD on two source-verified joined paths
+
+The human-review release package now includes a sixth SHA256-pinned source fragment: `security/build56/financial-joined-transition-hold-review-only.sql`. It adds a BEFORE guard function plus two enabled triggers, blocking joined candidate/offer transitions and reversals before the existing legacy AFTER triggers can automatically bill. A new exact-source synthetic fixture reproduces the two-bills-from-one-offer risk and demonstrates that the guard prevents both routes. Full 67→35 policy replay includes further blocking tests. This is **review-only**; finance/legal review and hosted-user UAT remain mandatory. No financial workflow is enabled.

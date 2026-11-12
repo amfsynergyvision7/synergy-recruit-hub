@@ -21,7 +21,7 @@ test("actual source-shaped financial fixture proves legacy duplicate risk and ho
  assert.match(testSource,/DO \$b56_legacy_double_billing\$/);
  assert.match(testSource,/DO \$b56_guard_assertions\$/);
  assert.match(testSource,/expected exactly TWO invoices/i);
- assert.match(testSource,/candidate_uuid=NEW\.id/);
+ assert.match(testSource,/candidate_uuid\s*=\s*NEW\.id/);
  assert.match(testSource,/ROUND\(COALESCE\(NEW\.salary, NEW\.ctc, 0\) \* 0\.0833/);
  assert.match(testSource,/ROLLBACK;/);
  assert.equal((testSource.match(/^COMMIT;$/gm)||[]).length,0);
