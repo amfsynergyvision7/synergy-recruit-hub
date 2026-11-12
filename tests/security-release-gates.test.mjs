@@ -51,3 +51,16 @@ test("SEC-11 and SEC-12 require literal string approval", () => {
   }
   assert.equal(isExplicitlyApproved("true"), true);
 });
+
+test("SEC-01 rejects noncanonical Supabase URLs even with the correct hostname", () => {
+  const project = "dhlhlasnaapzckjyvffn";
+  assert.doesNotThrow(() => assertMatchingSupabaseProject(`https://${project}.supabase.co/`, project));
+  for (const url of [
+    `http://${project}.supabase.co`,
+    `https://user:pass@${project}.supabase.co`,
+    `https://${project}.supabase.co:8443`,
+    `https://${project}.supabase.co/rest/v1`,
+    `https://${project}.supabase.co/?redirect=evil`,
+    `https://${project}.supabase.co/#fragment`,
+  ]) assert.throws(() => assertMatchingSupabaseProject(url, project), /SEC-01/);
+});
