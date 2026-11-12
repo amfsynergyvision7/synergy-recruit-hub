@@ -911,7 +911,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate exactly 13 source-verified views, invoker mode and no write grants
-        run: node --test security/build59/source-contract.test.mjs
+        run: node --test security/build59/source-contract.test.mjs security/build59/view-consumer-contract.test.mjs
       - name: Rehearse independent 13-view / 19-table source-shaped ACL and privilege isolation
         env:
           PGPASSWORD: postgres
