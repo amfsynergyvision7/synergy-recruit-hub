@@ -275,6 +275,15 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       return;
     }
 
+    // PR11 salvage: do not convert malformed numeric fields into NaN writes.
+    const invalidNumber = formFields.find((f) => f.type === "number" &&
+      form[f.name] !== "" && form[f.name] !== undefined && form[f.name] !== null &&
+      !Number.isFinite(Number(form[f.name])));
+    if (invalidNumber) {
+      toast.error(`${invalidNumber.label} must be a valid number.`);
+      return;
+    }
+
     const payload: any = {};
     formFields.forEach((f) => {
       let v = form[f.name];
@@ -315,26 +324,54 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       load();
       return;
     }
-    if (editing) {
-      const { error } = await supabase.from(table as any).update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-      toast.success("Updated");
-    } else {
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) payload.created_by = u.user.id;
-      const { error } = await supabase.from(table as any).insert(payload);
-      if (error) return toast.error(error.message);
-      toast.success("Created");
+    // Safe PR11 behavior-only reconciliation for NON-CANDIDATE modules:
+    // RLS can affect zero rows without a PostgREST error. Do not claim a
+    // mutation succeeded until the server returns the affected record ID.
+    // Candidates still use the independently held/audited RPC path above.
+    try {
+      if (editing) {
+        if (!Object.keys(payload).length) { setOpen(false); return; }
+        const { data, error } = await supabase.from(table as any)
+          .update(payload).eq("id", editing.id).select("id").maybeSingle();
+        if (error || (data as unknown as { id?: string } | null)?.id !== editing.id) {
+          if (!error) await load();
+          return toast.error(error?.message ?? "Update not confirmed; check permissions and refresh before retrying.");
+        }
+        toast.success("Updated");
+      } else {
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) payload.created_by = u.user.id;
+        const { data, error } = await supabase.from(table as any)
+          .insert(payload).select("id").maybeSingle();
+        if (error || !(data as unknown as { id?: string } | null)?.id) {
+          if (!error) await load();
+          return toast.error(error?.message ?? "Creation not confirmed; inspect records before retrying.");
+        }
+        toast.success("Created");
+      }
+      setOpen(false); load();
+    } catch {
+      // A network exception is NOT proof the server rolled back.
+      toast.error("Write outcome unknown; inspect refreshed records before retrying.");
+      await load();
     }
-    setOpen(false); load();
   };
 
   const remove = async (row: any) => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (!confirm("Delete this record?")) return;
-    const { error } = await supabase.from(table as any).delete().eq("id", row.id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted"); load();
+    try {
+      const { data, error } = await supabase.from(table as any)
+        .delete().eq("id", row.id).select("id").maybeSingle();
+      if (error || (data as unknown as { id?: string } | null)?.id !== row.id) {
+        if (!error) await load();
+        return toast.error(error?.message ?? "Deletion not confirmed; check permissions before retrying.");
+      }
+      toast.success("Deleted"); load();
+    } catch {
+      toast.error("Deletion outcome unknown; inspect refreshed records before retrying.");
+      await load();
+    }
   };
 
   // Filtering used to be scoped to `tableFields` — whatever columns the
