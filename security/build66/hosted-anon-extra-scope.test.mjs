@@ -12,27 +12,31 @@ const fake=(override={})=>{
   const u=new URL(url);
   calls.push({url,method:opts.method,redirect:opts.redirect});
   assert.equal(u.origin,"https://dhlhlasnaapzckjyvffn.supabase.co");
-  assert.equal(opts.method,"GET");
+  assert.equal(opts.method,"HEAD");
+  assert.equal(opts.headers.Prefer,"count=exact");
   assert.equal(opts.redirect,"error");
   assert.ok(!opts.headers.Authorization,"no token or service role bearer");
   assert.equal(opts.headers.apikey,config.anonKey);
   const name=u.pathname.split("/").at(-1);
   assert.ok([...PRIVATE_EXTRA_TABLES,...PUBLIC_VIEWS,"app_settings"].includes(name));
   const cols=u.searchParams.get("select");
-  let body=[],status=200;
+  let count=0,status=200,range=null;
   if(name==="app_settings"&&cols===PUBLIC_BRANDING_COLUMNS.join(",")){
-   body=[{logo_url:"synthetic-only",default_color_theme:"mock"}];
+   count=1;
   }else if(name==="app_settings"&&PRIVATE_BRANDING_COLUMNS.includes(cols)){
    status=403;
   }
   if(override.name===name && (!override.select||override.select===cols)){
-   if(override.kind==="expose"){status=200;body=[{id:"synthetic-only"}]}
-   if(override.kind==="empty-private"){status=200;body=[]}
-   if(override.kind==="missing"){status=404;body={error:"not found"}}
-   if(override.kind==="server-error"){status=500;body={error:"offline simulated"}}
-   if(override.kind==="malformed"){status=200;body={unexpected:"not an array"}}
+   if(override.kind==="expose"){status=200;count=1}
+   if(override.kind==="empty-private"){status=200;count=0}
+   if(override.kind==="missing"){status=404}
+   if(override.kind==="server-error"){status=500}
+   if(override.kind==="malformed"){status=200;range="unparseable"}
   }
-  return {status,ok:status===200,json:async()=>body};
+  if(!range&&status===200)range=count===0?"*/0":"0-"+(Math.min(count,2)-1)+"/"+count;
+  return {status,ok:status===200,
+    headers:{get:key=>key==="content-range"?range:null},
+    json:async()=>{throw Error("HEAD response body must never be accessed")}};
  }
  return {http,calls};
 };
@@ -44,7 +48,7 @@ test("all 20 unnamed anonymous surface probes complete without real records or w
  assert.equal(result.failed,0);
  assert.equal(result.formal_hosted_acceptance,0);
  assert.equal(calls.length,20);
- assert.ok(calls.every(c=>c.method==="GET"&&c.redirect==="error"));
+ assert.ok(calls.every(c=>c.method==="HEAD"&&c.redirect==="error"));
  assert.equal(result.case_results.filter(x=>x.case_id.startsWith("table:")).length,3);
  assert.equal(result.case_results.filter(x=>x.case_id.startsWith("view:")).length,13);
  assert.equal(result.case_results.filter(x=>x.case_id.startsWith("branding-private:")).length,3);
@@ -93,4 +97,12 @@ test("production host, unseeded fixture and privileged key are rejected before H
   await assert.rejects(runAnonymousSurfacePreflight(invalid,fail));
  }
  assert.equal(calls,0);
+});
+
+test("anonymous inspection refuses success without a trustworthy exact Content-Range",async()=>{
+ for(const name of [...PRIVATE_EXTRA_TABLES,...PUBLIC_VIEWS]){
+  const base=fake({name,kind:"malformed"});
+  const result=await runAnonymousSurfacePreflight(config,base.http);
+  assert.equal(result.failed,1,name);
+ }
 });
