@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { scanForDuplicateCandidates } from "@/lib/duplicates.functions";
+import { buildDuplicateReviewCSV } from "@/lib/duplicate-review-export";
 import type { DuplicateCluster, DuplicateMatchReason } from "@/lib/duplicates.server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
-  ArrowLeft, TriangleAlert, RefreshCw, Users2, Copy, Trash2, ExternalLink, ShieldAlert,
+  ArrowLeft, TriangleAlert, RefreshCw, Users2, Copy, Trash2, ExternalLink, ShieldAlert, Download,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/duplicates")({ component: Page });
@@ -150,7 +151,6 @@ function Page() {
   });
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [deletingClusterId, setDeletingClusterId] = useState<string | null>(null);
 
   const summary = query.data;
   const clusters = summary?.clusters ?? [];
@@ -190,6 +190,19 @@ function Page() {
     });
   };
 
+  const exportReview = () => {
+    const csv = buildDuplicateReviewCSV(clusters, selected);
+    if (!csv) { toast.error("Select candidates for a non-destructive review export."); return; }
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "candidate-duplicate-review-NOT-APPROVED.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Review manifest exported. No candidate was modified or deleted.");
+  };
+
   const deleteCluster = async (_cluster: DuplicateCluster) => {
     // Build50: there is no candidate DELETE call in duplicate cleanup.
     // Review-only scanning continues; merge/delete requires audited RPCs.
@@ -204,13 +217,18 @@ function Page() {
             <Users2 className="h-5 w-5 text-primary" />Duplicate Candidates
           </h1>
           <p className="text-sm text-muted-foreground">
-            Scans every candidate in the CRM for likely duplicates — the same email, phone, or full name entered more than once, from any source. Nothing is deleted automatically; review each group and choose what to remove.
+            Flags likely duplicate candidates for administrator review. You may export record IDs for a separate retention and merge decision; no candidate is deleted or modified here.
           </p>
         </div>
-        <Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled={totalSelected === 0} onClick={exportReview}>
+            <Download className="h-3.5 w-3.5 mr-1" />Export review CSV (no deletion)
+          </Button>
+          <Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}>
           <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${query.isFetching ? "animate-spin" : ""}`} />
           {query.isFetching ? "Scanning…" : "Re-scan"}
-        </Button>
+          </Button>
+        </div>
       </div>
 
       {LEGACY_CANDIDATE_WRITES_PAUSED && (
@@ -244,7 +262,7 @@ function Page() {
               <div><span className="text-2xl font-semibold">{clusters.length}</span><p className="text-muted-foreground">Duplicate group{clusters.length === 1 ? "" : "s"} found</p></div>
               <div><span className="text-2xl font-semibold">{summary.candidatesInvolved}</span><p className="text-muted-foreground">Records involved</p></div>
               {totalSelected > 0 && (
-                <div className="ml-auto"><span className="text-2xl font-semibold text-destructive">{totalSelected}</span><p className="text-muted-foreground">Selected to delete</p></div>
+                <div className="ml-auto"><span className="text-2xl font-semibold text-destructive">{totalSelected}</span><p className="text-muted-foreground">Flagged for review</p></div>
               )}
             </CardContent>
           </Card>
@@ -266,7 +284,7 @@ function Page() {
                   onToggleMember={toggleMember}
                   onSelectAllButOldest={selectAllButOldest}
                   onDelete={deleteCluster}
-                  deleting={deletingClusterId === cluster.clusterId}
+                  deleting={false}
                 />
               ))}
             </div>
