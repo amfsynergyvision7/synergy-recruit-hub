@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
+import {createHash} from "node:crypto";
 const sql=readFileSync("security/build70/five-recruiter-view-semantics.rollback.sql","utf8");
 const prior=JSON.parse(readFileSync("security/build69/recruiter-view-scope-audit.json","utf8"));
 test("five live view definitions retain their independent source MD5s before proposed patch",()=>{
@@ -48,4 +49,17 @@ test("actual synthetic RLS uses nine distinct actor contexts and invoker view gr
  assert.match(sql,/synthetic recruiter A: view % expected 1/);
  assert.match(sql,/synthetic recruiter B: view % expected 1/);
  assert.match(sql,/RESET ROLE/);
+});
+
+test("exact source replay SQL is cryptographically tied to live PostgreSQL definitions",()=>{
+ const current=JSON.parse(readFileSync("security/build70/exact-live-five-view-sources.json","utf8"));
+ assert.equal(current.views.length,5);
+ assert.equal(current.source_live_modified,false);
+ assert.deepEqual(current.views.map(x=>x.name),prior.views.map(x=>x.view_name));
+ for(const view of current.views){
+  assert.equal(createHash("md5").update(view.source_sql).digest("hex"),view.source_md5);
+  assert.equal(view.source_md5,prior.views.find(x=>x.view_name===view.name).definition_md5);
+  assert.ok(sql.includes("CREATE VIEW public."+view.name+" AS\n"+view.source_sql.trim().replace(/;\s*$/,"")+";"),
+   "disposable baseline SQL drift for "+view.name);
+ }
 });
