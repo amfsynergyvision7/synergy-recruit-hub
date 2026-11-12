@@ -53,7 +53,15 @@ To execute in an approved isolated server environment with the repository's depe
 
 `provision-nine-auth-users.test.mjs` and `source-contract.test.mjs` test safe execution and rollback behavior without credentials or network; wired into the fast and full security CI. CI is not signed hosted acceptance.
 
-## D. Remaining release gates / forecast
+## D. Additional guarded 8/8/2 inert fixture seeder — prepared, not executed
+
+`seed-inert-base-fixture.mjs` and `seed-inert-base-fixture.test.mjs` are a separate server-only stage **after** supported GoTrue user creation. The helper reads the protected nine-ID mapping from `AMF_UAT_MAPPING_FILE`, checks the Auth Admin tenant contains exactly those nine synthetic identities, refuses nonempty target tables, and inserts **eight invented profiles, eight corresponding roles, and two invented recruiter-owned candidates**. Role/status/active combinations exactly match the source-blueprinted nine slots; the ninth user is deliberately left with no profile or role. The two candidate IDs intentionally equal the generated Auth user IDs of recruiter slots 02 and 03, as pinned in Build64's historical 135-case runner. All candidate stages are `lead_received`; no offer, joined, billing, sync, workflow or email rows are created.
+
+All three insert operations explicitly supply otherwise defaultless source columns, verify exact IDs and read back 8/8/2 role/status integrity; on error, the code attempts reverse-order ID-scoped cleanup. It never writes `auth.users`, never changes financial functions, never enables source triggers and never includes candidate or personal production data. Separate `AMF_UAT_SEED_MODE=EXECUTE` and `AMF_UAT_SEED_ACK=I_ACCEPT_INERT_HOSTED_PROFILE_ROLE_CANDIDATE_FIXTURE_ONLY` are mandatory in the approved protected execution environment, alongside the prior nonproduction Auth Admin variables. Run `node security/build78/seed-inert-base-fixture.mjs` only after successfully verifying the nine Auth users and the disabled-trigger state; then perform the separate Build75 postseed count-only check.
+
+**Not executed in this build:** Auth users remain 0/9 and all application fixture row counts remain zero. This is a limited 8/8/2 base fixture, not the full 19-table synthetic acceptance dataset; source-shaped remainder and functional RLS policies must be independently prepared and tested before any 135-case UAT attempt.
+
+## E. Remaining release gates / forecast
 
 - Hosted UAT blocker #13: protected Auth Admin execution; 9 Auth identities; approved inert row fixture; 8 profile/role links and one unprofiled subject; reviewed RLS access policies; exact hosted signed-session 135 reads, five separately governed writes and expanded 19-table view/anonymous/browser/API checks; independent acceptance.
 - Governance blocker #14: `main` protection, independent PR review, actual recovery/PITR, recruitment/HR, finance and privacy/legal decisions, nine authorized release signatures.
