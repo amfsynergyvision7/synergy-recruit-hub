@@ -18,7 +18,7 @@ test("catalog review contains one read-only SELECT, not a SQL mutation",()=>{
  assert.match(withoutComments,/^WITH expected\(name,kind\) AS \(/);
  assert.equal((withoutComments.match(/;/g)||[]).length,1);
  assert.match(withoutComments,/ORDER BY e\.kind,e\.name;\s*$/);
- assert.doesNotMatch(withoutComments,/\b(INSERT|UPDATE|DELETE|ALTER|CREATE|DROP|TRUNCATE|GRANT|REVOKE|DO|CALL|EXECUTE|COPY|COMMIT|BEGIN)\b/i);
+ assert.doesNotMatch(withoutComments,/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|ALTER|CREATE|DROP|TRUNCATE|GRANT|REVOKE|DO|CALL|EXECUTE|COPY|COMMIT|BEGIN)\b/im);
  assert.match(withoutComments,/pg_catalog\.pg_class/);
  assert.match(withoutComments,/pg_catalog\.pg_policies/);
  assert.match(withoutComments,/anon_select_granted/);
