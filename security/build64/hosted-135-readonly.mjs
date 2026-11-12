@@ -120,12 +120,11 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
   // GoTrue issued JWT must represent a normal authenticated user, never
   // a service_role or a different subject. Signature/issuer are enforced
   // by hosted GoTrue /user and PostgREST, not by this payload inspection.
+  const sections=session.access_token.split(".");
+  if(sections.length!==3)stop("invalid hosted JWT structure");
   let claims;
-  try{
-   const sections=session.access_token.split(".");
-   if(sections.length!==3)stop("invalid hosted JWT structure");
-   claims=JSON.parse(Buffer.from(sections[1],"base64url").toString("utf8"));
-  }catch{stop("invalid hosted JWT claims");}
+  try{claims=JSON.parse(Buffer.from(sections[1],"base64url").toString("utf8"));}
+  catch{stop("invalid hosted JWT claims");}
   if(claims?.role!=="authenticated"||claims?.sub!==session.user.id||
      !Number.isSafeInteger(claims?.exp)||claims.exp<=Math.floor(Date.now()/1000))
    stop("hosted JWT role, subject or expiry mismatch");
