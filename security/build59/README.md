@@ -9,3 +9,7 @@ New source `13-view-write-acl-review-only.sql` checks exact source SQL, refuses 
 Security note: `security_invoker` can make an existing view start returning permission errors if base-table grants are missing. This is correct fail-closed security; browser consumers must be reconciled before release.
 
 Official docs: https://supabase.com/docs/guides/database/views (security_invoker), https://supabase.com/docs/guides/database/postgres/row-level-security (grant/RLS relationship).
+
+## Independent 13-view source-shaped regression
+
+`compose-13-view-review.mjs` injects the new view ACL hardening after the existing Build40 source-derived 19-table/13-view security-invoker and owner/role fixture, before its final transaction ROLLBACK. This standalone test is independent of the full nine-source release integration, giving an additional validation of the exact original view SQL and the 13×3 ACL postflight. It performs zero persistent writes.
