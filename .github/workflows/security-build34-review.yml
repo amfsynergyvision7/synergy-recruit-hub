@@ -70,7 +70,7 @@ permissions:
 # Supersede stale review-branch workflows when many approved edits land in bulk.
 # This never disables the latest production-release hold.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   offline-authorization-tests:
