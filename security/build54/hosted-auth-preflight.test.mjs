@@ -148,8 +148,8 @@ test("anonymous denial is accepted only as empty 200 or explicit 401/403",async(
  }
 });
 test("preflight source never bypasses the redirect-safe transport wrapper",()=>{
- const directCalls=[...src.matchAll(/\\bhttp\\s*\\(/g)];
+ const directCalls=[...src.matchAll(/\bhttp\s*\(/g)];
  assert.equal(directCalls.length,1,"only the safeHttp wrapper may call injected http directly");
- assert.match(src,/const response=await jsonResponse\\(await safeHttp\\(/);
+ assert.match(src,/const response=await jsonResponse\(await safeHttp\(/);
  assert.match(src,/redirect:"error"/);
 });
