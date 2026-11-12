@@ -94,6 +94,8 @@ test("one rollback-only transaction, exact disposable DB guard and verified befo
  assert.match(replay,/p\.authenticated_executable_functions <> 3/);
  assert.match(replay,/pg_catalog\.pg_policies WHERE schemaname='public'/);
  assert.match(replay,/PERMISSIONS_POSTFLIGHT_PASS_NOT_A_RELEASE_APPROVAL/);
- assert.ok(replay.includes(gate.trim().slice(0,200))===false,"The embedded query must be translated only for disposable roles");
+ assert.match(replay,/has_table_privilege\('b73_anon',c\.oid,'TRUNCATE'\)/);
+ assert.match(replay,/has_function_privilege\('b73_authenticated',p\.oid,'EXECUTE'\)/);
+ assert.doesNotMatch(replay,/has_table_privilege\('anon',c\.oid,'TRUNCATE'\)/);
  assert.ok(replay.includes("REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC,b73_fn_anon")===false);
 });
