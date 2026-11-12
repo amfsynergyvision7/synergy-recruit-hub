@@ -39,5 +39,6 @@ test("fault cases use only invented schema, no live Supabase host or deployable 
  assert.doesNotMatch(src,/wusntntcqgtpgokggdzv|dhlhlasnaapzckjyvffn/);
  assert.doesNotMatch(src,/SUPABASE_SERVICE_ROLE_KEY|SERVICE_ROLE_SECRET/);
  assert.match(src,/DISPOSABLE_EXPECTED_FAILURE_ONLY/);
- assert.match(src,/negative-anonymous_candidate_rpc/);
+ assert.match(src,/anonymous_candidate_rpc/);
+ assert.match(src,/anonymous_table_truncate/);
 });
