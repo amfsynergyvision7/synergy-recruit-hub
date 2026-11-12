@@ -35,6 +35,9 @@ test("no UAT tests call live production or place service-role keys in workflows"
   assert.doesNotMatch(src,/AMF_UAT_CASE_[0-9]{2}_PASSWORD:/);
   assert.doesNotMatch(src,/sb_secret_[A-Za-z0-9]{20}/);
   assert.doesNotMatch(src,/supabase\.co\/rest\/v1/);
+  assert.match(src,/concurrency:/);
+  assert.match(src,/cancel-in-progress: true/);
+  assert.match(src,/github\.event_name/);
  }
  const scope=readFileSync("security/build66/hosted-anon-extra-scope.mjs","utf8");
  assert.match(scope,/dhlhlasnaapzckjyvffn\.supabase\.co/);
