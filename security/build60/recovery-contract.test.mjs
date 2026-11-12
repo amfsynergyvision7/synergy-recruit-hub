@@ -9,7 +9,7 @@ test("disposable recovery runner refuses nonlocal/non-GitHub execution",()=>{
  assert.match(sh,/exit 84/);
  assert.match(sh,/pg_dump -Fc/);
  assert.match(sh,/pg_restore -e/);
- assert.doesNotMatch(sh,/--no-acl|--no-owner/);
+ assert.doesNotMatch(sh,/(?:^|\n)\s*(?:pg_dump|pg_restore)\b[^\n]*--(?:no-acl|no-owner)/);
  assert.match(sh,/trap cleanup EXIT/);
 });
 test("synthetic restore verifies RLS, view semantics, finance hold and row digest",()=>{

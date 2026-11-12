@@ -265,8 +265,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const openView = (row: any) => setViewing(row);
 
   const save = async () => {
-    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     // Joined offers currently trigger BOTH legacy billing handlers. This
     // checks the submitted form and stored record, not just changed fields:
@@ -373,8 +373,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const remove = async (row: any) => {
-    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
         row.joining_status === "joined") {
