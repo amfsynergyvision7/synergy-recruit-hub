@@ -90,7 +90,28 @@ BEGIN
  USING ERRCODE='42501';
 END $build54_release_hold$;
 `;
-const reviewSql=reviewGuard+"\nBEGIN;\n"+appended+"\nROLLBACK;\n";
+// A SQL client without ON_ERROR_STOP can execute statements AFTER a failure.
+// A first-statement RAISE is therefore NOT an adequate guard if destructive
+// DDL follows it. Never write runnable migration DDL to any .sql review file.
+const reviewSql=reviewGuard+"\n-- END OF NON-EXECUTABLE HOLD FILE.\n";
+const reviewDoc=[
+ "# Build54/55 — HUMAN REVIEW MIGRATION TEXT — NOT A DEPLOYABLE SQL FILE",
+ "",
+ "**HOLD: no authorization to execute this content or remove the review stop.**",
+ "Only the separate synthetic full-release-rollback.integration.sql is runnable",
+ "against a disposable PostgreSQL 17 fixture, and it always rolls back.",
+ "",
+ "The following source-shaped migration is a review artifact in Markdown.",
+ "Do NOT extract/apply it until the formal nine-gate release, finance/retention",
+ "review, actual hosted Auth acceptance, backup/restore and approval:",
+ "",
+ "```sql",
+ "BEGIN;",
+ appended,
+ "ROLLBACK;",
+ "```",
+ ""
+].join("\n");
 const manifest={
  schema_version:1,
  build:"54",
@@ -107,6 +128,7 @@ const manifest={
 const outDir="/tmp/build54-release-review";
 mkdirSync(outDir,{recursive:true});
 writeFileSync(outDir+"/release-review-hold.sql",reviewSql);
+writeFileSync(outDir+"/release-candidate-HUMAN-REVIEW.md",reviewDoc);
 writeFileSync(outDir+"/manifest.json",JSON.stringify(manifest,null,2)+"\n");
 const fixture=read(testFixture);
 const negEnd="ROLLBACK TO SAVEPOINT b48_policy_drift;\n";

@@ -20,3 +20,7 @@ A cryptographic manifest records the SHA256 of each source and composed SQL. Any
 - PR #11 behavior-level integration, independent reviewers and branch protection.
 
 **Policy:** draft-only and isolated rollback tests. Do not remove the release stop, write to production/staging, publish, merge to main or activate billing.
+
+## Build55 safety correction — no executable DDL after a failed guard
+
+A `psql` client that does **not** stop on SQL errors can continue executing later statements. Therefore a `DO RAISE EXCEPTION` followed by executable policy changes is **not** truly non-executable. Build55 corrected the output: `release-review-hold.sql` contains **only** the unconditional refusal plus comments—**zero migration DDL/BEGIN/COMMIT/ROLLBACK**. The full proposed migration is separately written to `release-candidate-HUMAN-REVIEW.md` as a fenced code block with prominent HOLD markings, and CI hashes it. The sole runnable SQL is the disposable rollback-only PostgreSQL fixture. This correction reduces accidental execution risk without authorizing deployment.
