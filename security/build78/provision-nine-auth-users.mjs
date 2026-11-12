@@ -14,12 +14,6 @@ export const slotEmail = (index) =>
   `amf-uat-${String(index).padStart(2,'0')}@example.invalid`;
 const uuidRE = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const secretRE = /^(?:sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/;
-const safeProblem = (error) => {
-  const status = Number(error?.status);
-  return Number.isInteger(status) && status >= 400 && status < 600
-    ? `provider status ${status}` : 'provider operation failed';
-};
-
 export function planFromEnv(env, cwd = process.cwd()) {
   if (env.AMF_UAT_MODE !== 'EXECUTE' || env.AMF_UAT_ACK !== ACK)
     throw new Error('Explicit isolated synthetic execution acknowledgement required');
@@ -79,7 +73,10 @@ export async function provisionNine(plan, admin, saveMapping) {
         // Explicitly no privileged app_metadata, role or user_metadata.
       });
       const u = response?.data?.user;
-      if (u && uuidRE.test(u.id) && u.email === entry.email) {
+      // Record any valid returned UUID for compensation, even if the provider
+      // unexpectedly changed the email or role. We may only delete IDs created
+      // in this invocation, after confirming the tenant started empty.
+      if (u && uuidRE.test(u.id)) {
         created.push({slot: entry.slot, id: u.id, email: u.email});
       }
       if (response?.error || !u || !uuidRE.test(u.id) ||
