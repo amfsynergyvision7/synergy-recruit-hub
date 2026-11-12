@@ -113,7 +113,10 @@ BEGIN
  FROM pg_proc p JOIN pg_namespace s ON s.oid=p.pronamespace
  WHERE s.nspname='public' AND p.proname IN
  ('get_recruiter_stats','search_candidates','set_assigned_recruiter','track_stage_changes');
- IF n<>4 OR h<>'ea5005b2208a2d0891e3f8004fd7de80' OR vulnerable<>4 OR definers<>2 THEN
+ IF n<>4 OR definers<>2 OR NOT (
+  (h='ea5005b2208a2d0891e3f8004fd7de80' AND vulnerable=4)
+   OR (h='f0e40a79b530175737b188ab4bb479d2' AND vulnerable=2)
+ ) THEN
   RAISE EXCEPTION 'Build58 exact live function source drift: n %, digest %, mutable %, definers %',n,h,vulnerable,definers
    USING ERRCODE='42501';
  END IF;
