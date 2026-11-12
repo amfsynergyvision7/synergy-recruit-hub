@@ -8,6 +8,7 @@
  * finance row contents are read, returned or logged.
  */
 import {pathToFileURL} from "node:url";
+import {parseExactCount} from "./exact-content-range.mjs";
 import {assertUnprivilegedUatKey} from "../build66/uat-key-gate.mjs";
 import {PRIVATE_EXTRA_TABLES,PUBLIC_VIEWS,runAnonymousSurfacePreflight}
  from "../build66/hosted-anon-extra-scope.mjs";
@@ -16,13 +17,7 @@ const ACK="I_CONFIRM_NINE_SYNTHETIC_HOSTED_IDENTITIES_AND_EXACT_135_CASE_FIXTURE
 const UUID=/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 export const CONTROL_SURFACES=Object.freeze([...PRIVATE_EXTRA_TABLES,...PUBLIC_VIEWS]);
 const stop=message=>{throw new Error("Build68 positive-control STOP: "+message)};
-export function parseExactRange(value){
- if(typeof value!=="string")return null;
- const m=/^(?:\*|\d+-\d+)\/(\d+)$/.exec(value.trim());
- if(!m)return null;
- const count=Number(m[1]);
- return Number.isSafeInteger(count)&&count>=0?count:null;
-}
+export const parseExactRange=parseExactCount;
 export async function runHostedPositiveControls(config,http=fetch){
  let url;
  try{url=new URL(config?.url)}catch{stop("missing or invalid UAT URL")}
