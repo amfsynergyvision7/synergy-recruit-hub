@@ -128,3 +128,28 @@ test("malformed anonymous response cannot count as safe denial",async()=>{
  await assert.rejects(runHostedReadOnlyPreflight(conf,corrupt),
   /anonymous candidate visibility/);
 });
+
+test("anonymous denial is accepted only as empty 200 or explicit 401/403",async()=>{
+ const original=fetchStub();
+ for(const status of [401,403,404,500]){
+  const overridden=async(url,opts)=>{
+   if(new URL(url).pathname==="/rest/v1/candidates" &&
+      opts.headers.Authorization==="Bearer "+conf.anonKey)
+    return {ok:false,status,json:async()=>({code:"synthetic"})};
+   return original(url,opts);
+  };
+  if(status===401||status===403){
+   const result=await runHostedReadOnlyPreflight(conf,overridden);
+   assert.equal(result.read_only_checks,19);
+  }else{
+   await assert.rejects(runHostedReadOnlyPreflight(conf,overridden),
+    /anonymous candidate check unavailable HTTP/);
+  }
+ }
+});
+test("preflight source never bypasses the redirect-safe transport wrapper",()=>{
+ const directCalls=[...src.matchAll(/\\bhttp\\s*\\(/g)];
+ assert.equal(directCalls.length,1,"only the safeHttp wrapper may call injected http directly");
+ assert.match(src,/const response=await jsonResponse\\(await safeHttp\\(/);
+ assert.match(src,/redirect:"error"/);
+});
