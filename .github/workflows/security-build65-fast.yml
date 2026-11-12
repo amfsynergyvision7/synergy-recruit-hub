@@ -29,7 +29,7 @@ jobs:
           node-version: '22'
       - name: Run historic read-matrix, exact-role fixture, scope-gap and CI integrity tests
         run: |
-          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs
+          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs
       - name: Preserve no-secret, offline-only run scope
         run: |
           test -f security/build65/production-hosted-coverage.json
