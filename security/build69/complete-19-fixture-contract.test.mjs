@@ -30,8 +30,10 @@ test("all 32 source triggers and 26 foreign keys stay under review-only isolatio
  assert.equal(full.production_source_foreign_key_count,26);
  assert.equal(base.foreign_keys.length,26);
  assert.equal(extra.foreign_keys.length,0);
- const all=[...base.triggers.map(x=>x.trigger_name),
-  ...extra.noninternal_triggers.map(x=>x.trigger_name)];
+ // Trigger names are only unique within each table; workflow_rules_trigger
+ // legitimately exists on several different production tables.
+ const all=[...base.triggers,...extra.noninternal_triggers]
+  .map(x=>x.table_name+"."+x.trigger_name);
  assert.equal(all.length,32);
  assert.equal(new Set(all).size,32);
  assert.ok(full.planned_all_suppressed_controls.some(x=>x.includes("all 32 application triggers")));
