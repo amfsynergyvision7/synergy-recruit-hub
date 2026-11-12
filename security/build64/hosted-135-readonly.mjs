@@ -78,6 +78,18 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
   origin=u.origin;
  }catch{stop("invalid or unauthorized nonproduction host");}
  const key=mandatory(config?.anonKey,"AMF_UAT_ANON_KEY");
+ // A privileged API key can invalidate a row-level authorization test.
+ // Modern publishable keys and legacy JWTs with the exact "anon" role only.
+ if(!key.startsWith("sb_publishable_")){
+  if(key.startsWith("sb_secret_")||key.startsWith("sb_service_role_"))
+   stop("privileged UAT API key forbidden");
+  const parts=key.split(".");
+  if(parts.length!==3)stop("unrecognized nonproduction publishable key");
+  let role;
+  try{role=JSON.parse(Buffer.from(parts[1],"base64url").toString("utf8")).role;}
+  catch{stop("invalid legacy nonproduction key");}
+  if(role!=="anon")stop("non-anonymous JWT API key forbidden");
+ }
  if(config?.fixtureAck!==fixtureAck)stop("pre-seeded synthetic hosted fixture acknowledgment required");
  const creds=Array.from({length:9},(_,i)=>{
   const idx=String(i+1).padStart(2,"0");
