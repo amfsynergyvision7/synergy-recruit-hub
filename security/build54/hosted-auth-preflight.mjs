@@ -76,7 +76,7 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
   checks+=2;
   const h={apikey:key,Authorization:"Bearer "+token.access_token};
   const fetchRows=async(table,params,reason)=>{
-    const response=await jsonResponse(await http(
+    const response=await jsonResponse(await safeHttp(
       base+"/rest/v1/"+table+"?"+params,
       {method:"GET",headers:h}
     ),reason);
