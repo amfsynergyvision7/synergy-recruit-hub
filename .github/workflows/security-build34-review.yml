@@ -35,6 +35,9 @@ on:
       - 'security/build57/**'
       - 'security/build58/**'
       - 'security/build59/**'
+      - 'security/build60/**'
+      - 'src/lib/confirmed-bulk-mutation.ts'
+      - 'src/routes/_app.candidates.tsx'
       - 'src/routes/_app.offers.tsx'
       - 'src/lib/candidate-batch-import.ts'
       - 'src/lib/duplicate-review-export.ts'
@@ -923,6 +926,45 @@ jobs:
           PGPASSWORD: postgres
         run: |
           test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v'")" = "0"
+
+  build60-pr-reconciliation-and-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test confirmed batch writes, unknown outcomes and PR11 safety reconciliation
+        run: node --experimental-strip-types --test security/build60/confirmed-bulk-recovery.test.mjs security/build60/recovery-contract.test.mjs
+      - name: Run true synthetic pg_dump backup, simulated damage, pg_restore and authorization/financial guard verification
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: postgres
+          B60_DISPOSABLE_ONLY: 'yes'
+        run: bash security/build60/recovery-disposable-ci.sh
+      - name: Ensure disposable source and recovery databases were removed
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_database WHERE datname IN ('b60_synthetic_source','b60_synthetic_restored')")" = "0"
 
   production-release-hold:
     if: github.event_name == 'pull_request'
