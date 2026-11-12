@@ -1,0 +1,22 @@
+{
+  "observation_type": "ACTUAL_DEDICATED_NONPRODUCTION_SUPABASE_READONLY_SCHEMA_GATE",
+  "date": "2026-11-12",
+  "project_ref": "dhlhlasnaapzckjyvffn",
+  "source_sql": "security/build69/hosted-fixture-readiness.readonly.sql",
+  "source_sql_blob_sha": "e7823af99fbd3b3f6dacbcafb16ac7e31e4ddd67",
+  "executed_readonly": true,
+  "production_or_staging_modified": false,
+  "auth_user_count": 0,
+  "actual_public_tables": 0,
+  "actual_public_views": 0,
+  "expected_tables_found": 0,
+  "expected_tables_rls": 0,
+  "expected_anon_truncate_grants": 0,
+  "expected_views_found": 0,
+  "expected_security_invoker_views": 0,
+  "expected_anon_readable_views": 0,
+  "candidate_history_policy_count": 0,
+  "schema_preflight_status": "HOLD_NONPRODUCTION_SCHEMA_OR_SECURITY_PREREQUISITES_ABSENT",
+  "confirmed_real_hosted_140_case_acceptance": 0,
+  "notes": "Count-only catalog/auth-user count; no personal rows, user identifiers, business rows, secrets, writes, hosted fixture setup or formal signoff. Future schema changes require fresh readback."
+}
