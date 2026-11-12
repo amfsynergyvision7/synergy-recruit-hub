@@ -62,16 +62,16 @@ BEGIN
 END $build53_combined$;
 RESET ROLE;
 DO $build53_combined_owner$
-DECLARE candidate_id uuid; n integer;
+DECLARE v_candidate_id uuid; n integer;
 BEGIN
- SELECT candidate_ids[1] INTO candidate_id
+ SELECT candidate_ids[1] INTO v_candidate_id
  FROM crm_private.candidate_import_batches
  WHERE request_id='77777777-7777-4777-8777-777777777771';
- IF candidate_id IS NULL THEN RAISE EXCEPTION 'Combined import ledger absent'; END IF;
+ IF v_candidate_id IS NULL THEN RAISE EXCEPTION 'Combined import ledger absent'; END IF;
  SELECT count(*) INTO n FROM public.candidates
-  WHERE id=candidate_id AND stage='contacted' AND notes='safe edit';
+  WHERE id=v_candidate_id AND stage='contacted' AND notes='safe edit';
  IF n<>1 THEN RAISE EXCEPTION 'Combined final candidate state incorrect'; END IF;
- SELECT count(*) INTO n FROM public.audit_logs WHERE record_id=candidate_id::text
+ SELECT count(*) INTO n FROM public.audit_logs WHERE record_id=v_candidate_id::text
   AND action IN('crm_candidate_create','crm_candidate_stage_change','crm_candidate_update');
  IF n<>3 THEN RAISE EXCEPTION 'Combined candidate audit count incorrect: %',n; END IF;
  SELECT count(*) INTO n FROM public.audit_logs
@@ -79,6 +79,6 @@ BEGIN
   AND record_id='77777777-7777-4777-8777-777777777771';
  IF n<>1 THEN RAISE EXCEPTION 'Batch audit missing or repeated'; END IF;
  -- The test's original synthetic billing row must stay isolated.
- IF EXISTS(SELECT 1 FROM public.billing b WHERE b.candidate_uuid=candidate_id)
+ IF EXISTS(SELECT 1 FROM public.billing b WHERE b.candidate_uuid=v_candidate_id)
  THEN RAISE EXCEPTION 'A synthetic candidate triggered financial billing'; END IF;
 END $build53_combined_owner$;
