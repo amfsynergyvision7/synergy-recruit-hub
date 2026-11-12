@@ -34,6 +34,7 @@ on:
       - 'security/build56/**'
       - 'security/build57/**'
       - 'security/build58/**'
+      - 'security/build59/**'
       - 'src/routes/_app.offers.tsx'
       - 'src/lib/candidate-batch-import.ts'
       - 'src/lib/duplicate-review-export.ts'
@@ -886,6 +887,42 @@ jobs:
           PGPASSWORD: postgres
         run: |
           test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','profiles','candidate_stage_history')")" = "0"
+
+  build59-exact-13-view-dml-lockdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate exactly 13 source-verified views, invoker mode and no write grants
+        run: node --test security/build59/source-contract.test.mjs
+      - name: Rehearse independent 13-view / 19-table source-shaped ACL and privilege isolation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build59/compose-13-view-review.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build59-13-view-security.integration.sql
+      - name: Prove all source-shaped views rolled back
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v'")" = "0"
 
   production-release-hold:
     if: github.event_name == 'pull_request'
