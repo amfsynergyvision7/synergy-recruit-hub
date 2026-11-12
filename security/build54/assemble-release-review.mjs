@@ -21,17 +21,19 @@ const inputs=[
  "security/build53/atomic-import-rpc-review-only.sql",
  "security/build55/candidate-delete-impact-review-only.sql",
  "security/build56/financial-joined-transition-hold-review-only.sql",
- "security/build57/billing-write-lockdown-review-only.sql"
+ "security/build57/billing-write-lockdown-review-only.sql",
+ "security/build58/function-search-path-review-only.sql"
 ];
 const testFixture="security/build49/67-policy-admin-profile-compat.integration.sql";
 const combinedCases="security/build53/consolidated-cases.sql";
 const impactCases="security/build55/combined-release-impact-cases.sql";
 const financeCases="security/build56/full-release-financial-cases.sql";
 const billingCases="security/build57/full-release-billing-cases.sql";
+const legacyFunctionFixture="security/build58/exact-four-function-replay.integration.sql";
 const hash=(s)=>createHash("sha256").update(s).digest("hex");
 const read=(p)=>readFileSync(resolve(root,p),"utf8");
 const sourceText=inputs.map(read);
-const [baseline,stage,candidate,atomic,assessment,finance,billing]=sourceText;
+const [baseline,stage,candidate,atomic,assessment,finance,billing,legacySearch]=sourceText;
 const fail=(reason)=>{throw new Error("BUILD54 RELEASE CANDIDATE REFUSED: "+reason)};
 if((baseline.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (baseline.match(/^COMMIT;$/gm)||[]).length!==1 ||
@@ -47,6 +49,9 @@ for(const [i,sig] of [
     sourceText[i].includes("\nCOMMIT;"))
   fail("Unsafe candidate SQL fragment or unexpected COMMIT in "+inputs[i]);
 }
+if(!legacySearch.includes("ea5005b2208a2d0891e3f8004fd7de80") ||
+ !legacySearch.includes("ALTER FUNCTION public.track_stage_changes()") ||
+ legacySearch.includes("\nCOMMIT;")) fail("Build58 frozen function source drift");
 const body=baseline.replace(/^BEGIN;\n/m,"").replace(/^COMMIT;\n/m,"");
 if(body.includes("\nCOMMIT;"))fail("Unexpected extra COMMIT in migration");
 const enforce=`
@@ -121,9 +126,21 @@ BEGIN
      OR has_any_column_privilege(r.oid,'public.billing','UPDATE'))) THEN
    RAISE EXCEPTION 'Financial API direct DML grants remain after billing lockdown';
  END IF;
+ IF (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname='public'
+     AND p.proname IN ('get_recruiter_stats','search_candidates',
+       'set_assigned_recruiter','track_stage_changes')
+     AND p.proconfig @> ARRAY['search_path=pg_catalog, public']::text[])<>4 THEN
+   RAISE EXCEPTION 'Legacy source function search paths not fixed';
+ END IF;
+ IF has_function_privilege('anon','public.get_recruiter_stats(date,date)','EXECUTE')
+ OR has_function_privilege('anon','public.search_candidates(text)','EXECUTE')
+ OR has_function_privilege('anon','public.set_assigned_recruiter()','EXECUTE')
+ OR has_function_privilege('anon','public.track_stage_changes()','EXECUTE')
+ THEN RAISE EXCEPTION 'Anonymous legacy function RPC access remains'; END IF;
 END $build54_postflight$;
 `;
-const appended=[body,stage,candidate,atomic,assessment,finance,billing,enforce].join("\n\n");
+const appended=[body,stage,candidate,atomic,assessment,finance,billing,legacySearch,enforce].join("\n\n");
 const reviewGuard=`-- Build54 REVIEW ONLY, never executable on any database.
 -- This refusal intentionally comes BEFORE the first BEGIN/DDL statement.
 DO $build54_release_hold$
@@ -164,6 +181,7 @@ const manifest={
  candidate_rpc_count:4,
  financial_hold_trigger_count:2,
  billing_hold_trigger_count:2,
+ hardened_legacy_function_count:4,
  source_sha256:Object.fromEntries(inputs.map((name,i)=>[name,hash(sourceText[i])])),
  review_bundle_sha256:hash(reviewSql),
  review_document_sha256:hash(reviewDoc),
@@ -183,13 +201,26 @@ if(fixture.split(negEnd).length!==2 || fixture.split(suffixStart).length!==2)
  fail("Build49 fixture anchors drifted: refuse to generate the rehearsal");
 const fixturePrefix=fixture.split(negEnd)[0]+negEnd;
 const fixtureSuffix=fixture.slice(fixture.indexOf(suffixStart));
+const functionSourceFixture=read(legacyFunctionFixture);
+const startFun="CREATE OR REPLACE FUNCTION public.get_recruiter_stats";
+const endFun="CREATE TRIGGER b58_assign";
+const sourceAt=functionSourceFixture.indexOf(startFun);
+const endAt=functionSourceFixture.indexOf(endFun);
+if(sourceAt<0||endAt<=sourceAt||functionSourceFixture.split(startFun).length!==2)
+ fail("Build58 source-shaped function fixture missing/changed");
+const actualLiveFunctionBodies=functionSourceFixture.slice(sourceAt,endAt);
+if((actualLiveFunctionBodies.match(/CREATE OR REPLACE FUNCTION public\\./g)||[]).length!==4)
+ fail("Build58 missing one or more exact production function bodies");
 const fixtureAdjustment=`
 -- Synthetic fixture compatibility only; these defaults exist in production.
 ALTER TABLE public.candidates ALTER COLUMN id SET DEFAULT gen_random_uuid();
 UPDATE public.candidates SET updated_at=clock_timestamp() WHERE updated_at IS NULL;
 UPDATE public.candidates SET stage='lead_received' WHERE stage IS NULL;
 `;
-const rehearsal=fixturePrefix+"\n"+fixtureAdjustment+"\n"+appended+
+const syntheticLiveFunctionAdjustment=actualLiveFunctionBodies+
+ "\nALTER FUNCTION public.set_assigned_recruiter() RESET search_path;"+
+ "\nALTER FUNCTION public.track_stage_changes() RESET search_path;\n";
+const rehearsal=fixturePrefix+"\n"+fixtureAdjustment+"\n"+syntheticLiveFunctionAdjustment+"\n"+appended+
  "\n"+read(combinedCases)+"\n"+read(impactCases)+"\n"+read(financeCases)+"\n"+read(billingCases)+"\n"+fixtureSuffix;
 if((rehearsal.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (rehearsal.match(/^ROLLBACK;$/gm)||[]).length!==1 ||
