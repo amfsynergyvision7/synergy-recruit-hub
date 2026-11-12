@@ -37,3 +37,8 @@ This complements, but does **not** count toward, the existing historical 135 sig
 4. Complete production security remediation, financial/legal/retention decisions, genuine disaster recovery/PITR, branch protection and nine release gates before any `main` merge or deployment.
 
 **Conditional forecast, not a guarantee:** 6–10+ substantive builds before secured CRM `main` merge and 16–28+ further builds for full six-workstream Command Center closure. These are approximate engineering iteration counts, not monetary bills or calendar dates.
+
+
+## Shared exact-count HEAD integrity guard (Build68 follow-up)
+
+All three nonproduction hosted UAT readers now import `security/build68/exact-content-range.mjs`. An exact-count header must contain a nonnegative safe-integer total, and any explicit start/end interval must be coherent (`start <= end < total`). A malformed, impossible or overlarge interval is rejected instead of being interpreted as acceptable zero visibility. `exact-content-range.test.mjs` exercises good/bad examples and checks that historical, anonymous and positive-control runners use this same validator. No real hosted API requests or schema/data writes were made by these changes.
