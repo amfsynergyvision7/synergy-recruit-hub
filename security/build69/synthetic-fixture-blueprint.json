@@ -12,7 +12,7 @@
     {
       "table": "profiles",
       "sequence": 1,
-      "minimum_illustrative_rows": 9,
+      "minimum_illustrative_rows": 8,
       "required_no_default_columns": [
         "id",
         "full_name",
@@ -23,7 +23,7 @@
         "t_profiles_u"
       ],
       "high_risk_triggers": [],
-      "requirements": "Nine independently generated GoTrue test users; slot roles/statuses must exactly match the 135-case source fixture; all email addresses in example.invalid"
+      "requirements": "Exactly eight synthetic profile rows for nine invented GoTrue users: slots 01–08 have the role/status/active combinations in hosted_account_slots, while slot 09 MUST have no profile and no user_role row; invalid-domain addresses only"
     },
     {
       "table": "clients",
@@ -253,5 +253,108 @@
     "Run only on an independently approved disposable synthetic lab after source DDL and exact RLS/view/function policy reconciliation",
     "Never copy production employee/candidate/client/customer/billing records or contacts to the fixture environment",
     "Do not disable/re-enable triggers on production or staging; any synthetic trigger isolation requires separate reviewed gate"
-  ]
+  ],
+  "hosted_account_slots": [
+    {
+      "slot": 1,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "admin",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_01_EXPECTED_UUID"
+    },
+    {
+      "slot": 2,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_02_EXPECTED_UUID"
+    },
+    {
+      "slot": 3,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_03_EXPECTED_UUID"
+    },
+    {
+      "slot": 4,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "finance",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_04_EXPECTED_UUID"
+    },
+    {
+      "slot": 5,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "operations",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_05_EXPECTED_UUID"
+    },
+    {
+      "slot": 6,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "pending",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_06_EXPECTED_UUID"
+    },
+    {
+      "slot": 7,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "approved",
+      "profile_active": false,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_07_EXPECTED_UUID"
+    },
+    {
+      "slot": 8,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "viewer",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_08_EXPECTED_UUID"
+    },
+    {
+      "slot": 9,
+      "go_true_account_required": true,
+      "profile_record_required": false,
+      "user_role_record_required": false,
+      "expected_role": null,
+      "profile_status": null,
+      "profile_active": null,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_09_EXPECTED_UUID"
+    }
+  ],
+  "minimum_planned_profiles": 8,
+  "proposed_minimum_fixture_rows_across_twelve_tables": 20
 }
