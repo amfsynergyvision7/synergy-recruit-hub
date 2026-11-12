@@ -7,7 +7,7 @@ const source=JSON.parse(readFileSync("security/build41/signed-http-135-read-matr
 const {subjects,cases,tables}=validateReadMatrix();
 const config={
  url:"https://dhlhlasnaapzckjyvffn.supabase.co/",
- anonKey:"offline-test-publishable-key-no-secret",
+ anonKey:"sb_publishable_offline_synthetic_only",
  fixtureAck:"I_CONFIRM_NINE_SYNTHETIC_HOSTED_IDENTITIES_AND_EXACT_135_CASE_FIXTURES",
  credentials:subjects.map((_,i)=>({
   email:"synthetic-"+String(i+1)+"@example.invalid",password:"invented-password-only"
@@ -118,6 +118,10 @@ test("production endpoint, missing fixture ACK, duplicate login and malformed ma
  const never=async()=>{calls++;throw Error("should not be dispatched")};
  await assert.rejects(runHostedReadOnlyMatrix({...config,url:"https://wusntntcqgtpgokggdzv.supabase.co/"},never),/host/);
  await assert.rejects(runHostedReadOnlyMatrix({...config,fixtureAck:""},never),/acknowledgment/);
+ const legacyKey=(role)=>["synthetic",Buffer.from(JSON.stringify({role})).toString("base64url"),"synthetic"].join(".");
+ await assert.rejects(runHostedReadOnlyMatrix({...config,anonKey:"sb_secret_never_accepted"},never),/privileged UAT API key/);
+ await assert.rejects(runHostedReadOnlyMatrix({...config,anonKey:legacyKey("service_role")},never),/non-anonymous JWT API key/);
+ await assert.rejects(runHostedReadOnlyMatrix({...config,anonKey:"unexpected-key"},never),/unrecognized nonproduction publishable key/);
  await assert.rejects(runHostedReadOnlyMatrix({...config,credentials:config.credentials.map((x,i)=>i===1?config.credentials[0]:x)},never),/distinct/);
  const duplicated=structuredClone(source);
  duplicated.read_cases[3].table=duplicated.read_cases[2].table;
@@ -150,4 +154,12 @@ test("hosted role/status ownership fixtures reject false-positive read-count con
   const {http}=fake(setting);
   await assert.rejects(runHostedReadOnlyMatrix(config,http),/test identity fixture role\/profile mismatch/);
  }
+});
+
+test("legacy anon JWT API key is permitted for synthetic hosted role checks only",async()=>{
+ const key=["synthetic",Buffer.from(JSON.stringify({role:"anon"})).toString("base64url"),"synthetic"].join(".");
+ const {http}=fake();
+ const result=await runHostedReadOnlyMatrix({...config,anonKey:key},http);
+ assert.equal(result.read_case_passed,135);
+ assert.equal(result.formally_accepted_cases,0);
 });
