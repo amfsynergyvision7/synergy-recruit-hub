@@ -6,6 +6,7 @@
  */
 import {pathToFileURL} from "node:url";
 import {assertUnprivilegedUatKey} from "./uat-key-gate.mjs";
+import {parseExactCount} from "../build68/exact-content-range.mjs";
 const HOST="dhlhlasnaapzckjyvffn.supabase.co";
 const ACK="I_CONFIRM_NINE_SYNTHETIC_HOSTED_IDENTITIES_AND_EXACT_135_CASE_FIXTURES";
 export const PRIVATE_EXTRA_TABLES=Object.freeze(["candidate_stage_history","email_log","workflow_rules"]);
@@ -52,11 +53,8 @@ export async function runAnonymousSurfacePreflight(config,http=fetch){
     headers:{apikey:key,Prefer:"count=exact",Accept:"application/json"}});
   }catch{stop("hosted test network failure or redirect")}
   const status=response?.status;
-  const rawRange=response?.headers?.get?.("content-range");
-  const range=typeof rawRange==="string"?
-    /^(?:\*|\d+-\d+)\/(\d+)$/.exec(rawRange.trim()):null;
-  const count=range?Number(range[1]):null;
-  const validCount=Number.isSafeInteger(count)&&count>=0;
+  const count=parseExactCount(response?.headers?.get?.("content-range"));
+  const validCount=count!==null;
   const observed=validCount&&[200,206].includes(status)?count:null;
   const pass=c.expect==="empty-or-denied"?
     (([200,206].includes(status)&&validCount&&count===0)||[401,403].includes(status)):
