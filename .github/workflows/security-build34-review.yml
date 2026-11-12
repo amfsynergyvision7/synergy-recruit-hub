@@ -36,6 +36,8 @@ on:
       - 'security/build58/**'
       - 'security/build59/**'
       - 'security/build60/**'
+      - 'security/build61/**'
+      - 'security/build62/**'
       - 'src/lib/confirmed-bulk-mutation.ts'
       - 'src/routes/_app.candidates.tsx'
       - 'src/routes/_app.offers.tsx'
