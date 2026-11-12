@@ -1029,11 +1029,31 @@ jobs:
           jobs=json.loads(os.environ["NEEDS_JSON"])
           results={name:obj.get('result') for name,obj in jobs.items()}
           failed={name:state for name,state in results.items() if state!='success'}
-          print("Substantive security CI: "+str(len(results)-len(failed))+"/"+str(len(results))+" jobs succeeded")
+          summary={
+              "source_sha": os.environ.get("GITHUB_SHA",""),
+              "expected_substantive_jobs": 32,
+              "observed_substantive_jobs": len(results),
+              "passed_jobs": len(results)-len(failed),
+              "all_substantive_pass": len(results)==32 and not failed,
+              "job_outcomes": results,
+              "release_hold_excluded": True,
+              "hosted_formal_acceptance": False
+          }
+          with open("build65-substantive-ci-summary.json","w") as target:
+              json.dump(summary,target,sort_keys=True,indent=2)
+          print("Substantive security CI: "+str(summary["passed_jobs"])+"/"+str(summary["observed_substantive_jobs"])+" jobs succeeded")
           if len(results)!=32 or failed:
               print("Substantive CI failures or missing jobs: "+str(failed),file=sys.stderr)
               sys.exit(1)
           PY
+      - name: Archive 32-job substantive CI evidence without secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build65-substantive-ci-summary
+          path: build65-substantive-ci-summary.json
+          if-no-files-found: error
+          retention-days: 30
 
   production-release-hold:
     if: github.event_name == 'pull_request'
