@@ -11,7 +11,8 @@ const config={
  fixtureAck:"I_CONFIRM_NINE_SYNTHETIC_HOSTED_IDENTITIES_AND_EXACT_135_CASE_FIXTURES",
  credentials:subjects.map((_,i)=>({
   email:"synthetic-"+String(i+1)+"@example.invalid",password:"invented-password-only"
- }))
+ })),
+ expectedHostedUserIds:subjects
 };
 const fake=(options={})=>{
  const calls=[];
@@ -145,6 +146,10 @@ test("production endpoint, missing fixture ACK, duplicate login and malformed ma
  const duplicated=structuredClone(source);
  duplicated.read_cases[3].table=duplicated.read_cases[2].table;
  await assert.rejects(runHostedReadOnlyMatrix(config,never,duplicated),/duplicate|coverage|order/);
+ await assert.rejects(runHostedReadOnlyMatrix({...config,expectedHostedUserIds:null},never),
+  /nine distinct approved hosted fixture UUID mappings/);
+ await assert.rejects(runHostedReadOnlyMatrix({...config,expectedHostedUserIds:[...subjects.slice(0,8),subjects[0]]},never),
+  /nine distinct approved hosted fixture UUID mappings/);
  const altered=structuredClone(source);
  altered.read_cases[0].case_id="B41-UNAPPROVED-000";
  await assert.rejects(runHostedReadOnlyMatrix(config,never,altered),/invalid case ID/);
@@ -196,7 +201,7 @@ test("hosted GoTrue token claims must be signed-user shaped, current and exact-s
 test("a valid GoTrue session for the wrong historical slot cannot pass",async()=>{
  const {http}=fake({wrongPinnedSubject:0});
  await assert.rejects(runHostedReadOnlyMatrix(config,http),
-  /GoTrue user UUID does not match pinned historical fixture slot/);
+  /GoTrue user UUID does not match approved hosted fixture slot/);
 });
 
 test("signed historical matrix fails closed on missing exact-count HEAD metadata",async()=>{
@@ -205,4 +210,11 @@ test("signed historical matrix fails closed on missing exact-count HEAD metadata
  assert.equal(result.read_case_failed,1);
  assert.equal(result.case_results.find(x=>x.case_id==="B41-SIGNED-READ-002")?.observed_count,null);
  assert.equal(calls.filter(x=>x.method==="HEAD").length,132);
+});
+
+test("approved hosted fixture UUID mapping refuses a different signed-in user",async()=>{
+ const altered=[...subjects];altered[0]="99999999-9999-4999-8999-999999999999";
+ const {http}=fake();
+ await assert.rejects(runHostedReadOnlyMatrix({...config,expectedHostedUserIds:altered},http),
+  /GoTrue user UUID does not match approved hosted fixture slot/);
 });
