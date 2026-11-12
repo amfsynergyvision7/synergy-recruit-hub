@@ -32,3 +32,20 @@ test("role and active predicates narrow all five and retain projection structure
  assert.match(sql,/IF EXISTS \(/);
  assert.match(sql,/Changed public view output schema/);
 });
+
+test("actual synthetic RLS uses nine distinct actor contexts and invoker view grants",()=>{
+ assert.equal((sql.match(/SET LOCAL app\.synthetic_actor =/g)||[]).length,9);
+ assert.equal((sql.match(/CREATE POLICY (profiles_actor_read|roles_actor_read|candidates_actor_read)/g)||[]).length,3);
+ assert.match(sql,/SET LOCAL ROLE authenticated/);
+ assert.match(sql,/GRANT SELECT ON public\.profiles,public\.user_roles,public\.candidates TO authenticated/);
+ assert.match(sql,/ALTER TABLE public\.profiles ENABLE ROW LEVEL SECURITY/);
+ assert.match(sql,/ALTER TABLE public\.user_roles ENABLE ROW LEVEL SECURITY/);
+ assert.match(sql,/ALTER TABLE public\.candidates ENABLE ROW LEVEL SECURITY/);
+ assert.match(sql,/synthetic pending recruiter: view % expected 0/);
+ assert.match(sql,/synthetic inactive recruiter: view % expected 0/);
+ assert.match(sql,/synthetic missing profile: view % expected 0/);
+ assert.match(sql,/synthetic admin: view % expected 2/);
+ assert.match(sql,/synthetic recruiter A: view % expected 1/);
+ assert.match(sql,/synthetic recruiter B: view % expected 1/);
+ assert.match(sql,/RESET ROLE/);
+});
