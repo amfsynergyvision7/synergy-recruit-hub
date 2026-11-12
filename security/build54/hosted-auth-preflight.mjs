@@ -70,7 +70,7 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
   const profile=await fetchRows("profiles",
     "select=id,status,is_active&id=eq."+token.user.id,
     "profile policy did not permit own-row read");
-  if(profile.length!==1)fail("one scoped self-profile required for "+role.name);
+  if(profile.length!==1 || profile[0]?.id!==token.user.id)fail("exact scoped self-profile required for "+role.name);
   const approved=profile[0].status==="approved" && profile[0].is_active===true;
   if(approved !== (role.expect!==null))fail("test profile status wrong for "+role.name);
   checks++;
@@ -82,6 +82,7 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
     if(declaredRoles.has("admin")||declaredRoles.has("recruiter"))
      fail("pending test account has a privileged role");
   }else if(!declaredRoles.has(role.expect))fail("missing approved "+role.expect+" role");
+  if(role.expect==="recruiter" && declaredRoles.has("admin"))fail("recruiter test account has admin privilege");
   checks++;
   sessions[role.name]={headers:h,approved};
  }
@@ -93,10 +94,11 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
   if(!Array.isArray(res))fail("candidate list response not array");
   return res;
  };
- if((await list("recruiter",ownedId)).length!==1)fail("recruiter cannot read owned synthetic row");
+ const exactOne=(rows,id)=>rows.length===1 && rows[0]?.id===id;
+ if(!exactOne(await list("recruiter",ownedId),ownedId))fail("recruiter cannot read exact owned synthetic row");
  if((await list("recruiter",otherId)).length!==0)fail("recruiter can read another synthetic candidate");
- if((await list("admin",ownedId)).length!==1||(await list("admin",otherId)).length!==1)
-  fail("administrator cannot read both synthetic candidate fixtures");
+ if(!exactOne(await list("admin",ownedId),ownedId)||!exactOne(await list("admin",otherId),otherId))
+  fail("administrator cannot read both exact synthetic candidate fixtures");
  if((await list("pending",ownedId)).length!==0||(await list("pending",otherId)).length!==0)
   fail("pending account can read candidate data");
  checks+=6;
