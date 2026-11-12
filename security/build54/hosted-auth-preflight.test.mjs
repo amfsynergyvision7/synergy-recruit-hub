@@ -72,3 +72,28 @@ test("source contract has no table writes, service key or log of secrets",()=>{
  assert.match(src,/method:"GET"/);
  assert.match(src,/dedicated nonproduction Supabase project/);
 });
+
+test("wrong profile row, wrong candidate ID and unexpected recruiter admin role all fail closed",async()=>{
+ for(const scenario of ["profile","candidate","privilege"]){
+  const base=fetchStub();
+  const tampered=async(url,opts)=>{
+   const response=await base(url,opts);
+   const parsed=new URL(url);
+   const original=await response.json();
+   let result=original;
+   if(scenario==="profile" && parsed.pathname==="/rest/v1/profiles" &&
+      parsed.searchParams.get("id")==="eq."+users.admin)
+     result=[{...original[0],id:users.pending}];
+   if(scenario==="candidate" && parsed.pathname==="/rest/v1/candidates" &&
+      opts.headers.Authorization==="Bearer simulated-token-recruiter" &&
+      parsed.searchParams.get("id")==="eq."+UUID[0])
+     result=[{id:UUID[1]}];
+   if(scenario==="privilege" && parsed.pathname==="/rest/v1/user_roles" &&
+      parsed.searchParams.get("user_id")==="eq."+users.recruiter)
+     result=[{role:"recruiter"},{role:"admin"}];
+   return {...response,json:async()=>result};
+  };
+  await assert.rejects(runHostedReadOnlyPreflight(conf,tampered),
+   /exact scoped self-profile|exact owned synthetic row|admin privilege/);
+ }
+});
