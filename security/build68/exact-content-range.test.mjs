@@ -25,6 +25,6 @@ test("all three hosted count readers use one verified parser, not permissive dup
   const source=readFileSync(file,"utf8");
   assert.match(source,/exact-content-range\.mjs/);
   assert.match(source,/parseExactCount/);
-  assert.doesNotMatch(source,/\/\^\(\?:\\\*\|\\d\+-\\d\+\)/);
+  assert.doesNotMatch(source,/const matched=typeof range/);
  }
 });
