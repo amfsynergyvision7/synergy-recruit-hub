@@ -96,10 +96,9 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
    (u.pathname==="/auth/v1/token" && !(options.method==="POST"&&u.search==="?grant_type=password"))||
    (u.pathname==="/auth/v1/user" && !(options.method==="GET"&&u.search===""))||
    (u.pathname.startsWith("/rest/v1/") && !(
-     options.method==="GET"&&(
-       u.search==="?select=id" ||
-       (/^\?(?:select=id,status,is_active&id|select=user_id,role&user_id)=eq\.[0-9a-f-]{36}$/i).test(u.search)
-     )
+     (options.method==="HEAD"&&u.search==="?select=id") ||
+     (options.method==="GET"&&u.pathname==="/rest/v1/candidates"&&u.search==="?select=id") ||
+     (options.method==="GET"&&(/^\?(?:select=id,status,is_active&id|select=user_id,role&user_id)=eq\.[0-9a-f-]{36}$/i).test(u.search))
    )))
    stop("unexpected request method, path or host");
   try{return await http(url,{...options,redirect:"error",signal:AbortSignal.timeout(10000)});}
@@ -170,29 +169,37 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
  const outcomes=[];
  for(let i=0;i<cases.length;i++){
   const c=cases[i],index=Math.floor(i/15);
+  // HEAD gets an exact row count without downloading any CRM record.
+  // The three synthetic candidate ownership cases require GET of IDs only.
+  const checkIds=c.table==="candidates"&&index<=2;
   const response=await call(origin+"/rest/v1/"+c.table+"?select=id",{
-   method:"GET",
-   headers:{apikey:key,Authorization:"Bearer "+bearer[index],Accept:"application/json"}
+   method:checkIds?"GET":"HEAD",
+   headers:{apikey:key,Authorization:"Bearer "+bearer[index],
+    Accept:"application/json",...(checkIds?{}:{Prefer:"count=exact"})}
   });
   let count=null;
   let exactCandidateOwnership=true;
-  if(response.status===200){
+  if(checkIds&&response.status===200){
    const rows=await response.json().catch(()=>null);
    if(Array.isArray(rows)){
     count=rows.length;
-    // The source-shaped synthetic fixture sets recruiter A/B candidate IDs
-    // to their GoTrue user IDs. Counting one visible row alone is insufficient:
-    // an unauthorized recruiter's row could be returned instead.
-    if(c.table==="candidates" && index<=2){
-     const expectedIds=index===0?[hostedIds[1],hostedIds[2]]:[hostedIds[index]];
-     const found=rows.map(row=>row?.id);
-     exactCandidateOwnership=found.length===expectedIds.length &&
-       new Set(found).size===expectedIds.length &&
-       expectedIds.every(id=>found.includes(id));
-    }
+    const expectedIds=index===0?[hostedIds[1],hostedIds[2]]:[hostedIds[index]];
+    const found=rows.map(row=>row?.id);
+    exactCandidateOwnership=found.length===expectedIds.length &&
+      new Set(found).size===expectedIds.length &&
+      expectedIds.every(id=>found.includes(id));
+   }
+  }else if(!checkIds&&[200,206].includes(response.status)){
+   const range=response?.headers?.get?.("content-range");
+   const matched=typeof range==="string"?
+     /^(?:\*|\d+-\d+)\/(\d+)$/.exec(range.trim()):null;
+   if(matched){
+    const total=Number(matched[1]);
+    if(Number.isSafeInteger(total)&&total>=0)count=total;
    }
   }
-  const passed=response.status===200&&count===c.expected&&exactCandidateOwnership;
+  const passed=(checkIds?response.status===200:[200,206].includes(response.status))&&
+    count===c.expected&&exactCandidateOwnership;
   outcomes.push({case_id:c.case_id,expected:c.expected,observed_count:count,
    response_status:response.status,pass:passed});
  }
