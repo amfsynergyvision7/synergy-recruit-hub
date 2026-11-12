@@ -124,7 +124,7 @@ EXCEPTION WHEN OTHERS THEN
   VALUES (NEW.id, NEW.full_name, 'automation_error', SQLERRM);
   RETURN NEW;
 END;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.on_offer_change()
@@ -160,7 +160,7 @@ BEGIN
     WHERE NOT EXISTS (SELECT 1 FROM public.billing b WHERE b.offer_uuid = NEW.id);
   END IF;
   RETURN NEW;
-END $function$
+END $function$;
 
 CREATE TRIGGER trg_candidate_stage_change AFTER UPDATE OF stage
  ON public.candidates FOR EACH ROW
