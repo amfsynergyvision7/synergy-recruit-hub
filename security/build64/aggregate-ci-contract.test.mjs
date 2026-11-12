@@ -16,6 +16,12 @@ test("CI summary depends on EVERY substantive job, not the deliberate hold",()=>
  assert.ok(!needed.includes("production-release-hold"));
  assert.match(chunk,/if: always\(\)/);
  assert.match(chunk,/len\(results\)!=32 or failed/);
+ assert.match(chunk,/build65-substantive-ci-summary\.json/);
+ assert.match(chunk,/source_sha/);
+ assert.match(chunk,/expected_substantive_jobs/);
+ assert.match(chunk,/all_substantive_pass/);
+ assert.match(chunk,/release_hold_excluded/);
+ assert.match(chunk,/uses: actions\/upload-artifact@v4/);
  const hold=workflow.split("  production-release-hold:\n")[1];
  assert.match(hold,/exit 1/);
 });
