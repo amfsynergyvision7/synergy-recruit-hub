@@ -58,3 +58,17 @@ test("current UI retains candidate, finance and joined holds and clears selectio
  assert.match(c,/setSelected\(new Set\(\)\)/);
  assert.doesNotMatch(c,/toast\.success\(`Deleted \$\{ids\.length\}/);
 });
+
+test("both selection controls locked during bulk mutation",()=>{
+ const c=readFileSync("src/components/CrudModule.tsx","utf8");
+ assert.match(c,/const toggleAll = \(checked: boolean\) => \{\n    if \(bulkMutationPending\.current\) return;/);
+ assert.match(c,/const toggleRow = \(id: string, checked: boolean\) => \{\n    if \(bulkMutationPending\.current\) return;/);
+});
+test("PR11 active-only recruiter selection safely ported; no candidate DML bypass",()=>{
+ const route=readFileSync("src/routes/_app.candidates.tsx","utf8");
+ const board=readFileSync("src/components/CandidateBoard.tsx","utf8");
+ assert.match(route,/\.eq\('status', 'approved'\)\s*\.eq\('is_active', true\)/);
+ assert.match(board,/LEGACY_CANDIDATE_WRITES_PAUSED/);
+ assert.match(board,/changeCandidateStage/);
+ assert.doesNotMatch(board,/\.update\(\{ stage: newStage \}\)/);
+});

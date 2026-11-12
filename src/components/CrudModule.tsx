@@ -470,6 +470,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const someSelected = !allSelected && filteredIds.some((id) => selected.has(id));
 
   const toggleAll = (checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       filteredIds.forEach((id) => (checked ? next.add(id) : next.delete(id)));
