@@ -209,7 +209,7 @@ const endAt=functionSourceFixture.indexOf(endFun);
 if(sourceAt<0||endAt<=sourceAt||functionSourceFixture.split(startFun).length!==2)
  fail("Build58 source-shaped function fixture missing/changed");
 const actualLiveFunctionBodies=functionSourceFixture.slice(sourceAt,endAt);
-if((actualLiveFunctionBodies.match(/CREATE OR REPLACE FUNCTION public\\./g)||[]).length!==4)
+if((actualLiveFunctionBodies.match(/CREATE OR REPLACE FUNCTION public\./g)||[]).length!==4)
  fail("Build58 missing one or more exact production function bodies");
 const fixtureAdjustment=`
 -- Synthetic fixture compatibility only; these defaults exist in production.
