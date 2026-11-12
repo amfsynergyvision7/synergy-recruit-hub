@@ -70,7 +70,8 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
    (u.pathname==="/auth/v1/user" && !(options.method==="GET"&&u.search===""))||
    (u.pathname.startsWith("/rest/v1/") && !(options.method==="GET"&&u.search==="?select=id")))
    stop("unexpected request method, path or host");
-  return http(url,{...options,redirect:"error",signal:AbortSignal.timeout(10000)});
+  try{return await http(url,{...options,redirect:"error",signal:AbortSignal.timeout(10000)});}
+  catch{stop("hosted connection refused, timed out or redirected");}
  };
  const bearer=[];
  const ids=new Set();
