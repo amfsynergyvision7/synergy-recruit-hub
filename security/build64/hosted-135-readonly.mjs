@@ -89,6 +89,14 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
   };
  });
  if(new Set(creds.map(c=>c.email)).size!==9)stop("test email identities must be distinct");
+ // Live GoTrue user UUIDs are generated at fixture creation. Pin each slot
+ // to its separately approved, explicit synthetic UUID instead of allowing
+ // the runner to trust whichever user happened to authenticate.
+ const expectedHostedIds=config?.expectedHostedUserIds;
+ if(!Array.isArray(expectedHostedIds)||expectedHostedIds.length!==9||
+    expectedHostedIds.some(id=>typeof id!=="string"||!uuid.test(id))||
+    new Set(expectedHostedIds).size!==9)
+   stop("nine distinct approved hosted fixture UUID mappings are required");
  const allowed=new Set(["/auth/v1/token","/auth/v1/user",...expectedTables.map(x=>"/rest/v1/"+x)]);
  const call=async(url,options)=>{
   const u=new URL(url);
@@ -133,7 +141,7 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
   if(!userResponse.ok)stop("GoTrue subject verification failed");
   const user=await userResponse.json().catch(()=>stop("malformed GoTrue subject"));
   if(user?.id!==session.user.id||ids.has(user.id))stop("GoTrue subject mismatch or reused identity");
-  if(user.id!==subjects[i])stop("GoTrue user UUID does not match pinned historical fixture slot "+String(i+1));
+  if(user.id!==expectedHostedIds[i])stop("GoTrue user UUID does not match approved hosted fixture slot "+String(i+1));
   ids.add(user.id);
   hostedIds.push(user.id);
   bearer.push(session.access_token);
@@ -220,7 +228,9 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   credentials:Array.from({length:9},(_,i)=>{
    const p="AMF_UAT_CASE_"+String(i+1).padStart(2,"0");
    return {email:process.env[p+"_EMAIL"],password:process.env[p+"_PASSWORD"]};
-  })
+  }),
+  expectedHostedUserIds:Array.from({length:9},(_,i)=>
+    process.env["AMF_UAT_CASE_"+String(i+1).padStart(2,"0")+"_EXPECTED_UUID"])
  };
  runHostedReadOnlyMatrix(config).then(result=>{
   process.stdout.write(JSON.stringify(result)+"\n");
