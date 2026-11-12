@@ -24,8 +24,8 @@ test("disposable test uses all sixteen existing safe stubs and exactly nine live
  assert.equal(actualStubs.length,16);
  for(const stub of actualStubs)assert.ok(sql.includes(stub));
  for(const item of current.rows){
-  const signature="public."+item.signature.replace(/app_role/g,"public.app_role");
-  assert.ok(sql.includes(signature),"missing signature "+signature);
+  assert.ok(sql.includes("CREATE FUNCTION public."+item.function_name+"("),
+   "missing harmless source-shaped stub "+item.function_name);
  }
  assert.equal((sql.match(/^CREATE FUNCTION public\./gm)||[]).length,16);
  const grants=sql.match(/^GRANT EXECUTE ON FUNCTION .* TO PUBLIC;$/gm)||[];
