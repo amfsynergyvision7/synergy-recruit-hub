@@ -24,3 +24,7 @@ A cryptographic manifest records the SHA256 of each source and composed SQL. Any
 ## Build55 safety correction — no executable DDL after a failed guard
 
 A `psql` client that does **not** stop on SQL errors can continue executing later statements. Therefore a `DO RAISE EXCEPTION` followed by executable policy changes is **not** truly non-executable. Build55 corrected the output: `release-review-hold.sql` contains **only** the unconditional refusal plus comments—**zero migration DDL/BEGIN/COMMIT/ROLLBACK**. The full proposed migration is separately written to `release-candidate-HUMAN-REVIEW.md` as a fenced code block with prominent HOLD markings, and CI hashes it. The sole runnable SQL is the disposable rollback-only PostgreSQL fixture. This correction reduces accidental execution risk without authorizing deployment.
+
+## Build55 readonly deletion-impact addition
+
+The review release candidate now includes a fourth candidate RPC: `crm_candidate_delete_impact(uuid)` (admin-only, count-only, no DML). It is **not** an authorization to delete. The generated source manifest now contains five SHA256-pinned fragments and the disposable full combined migration includes additional administrator/recruiter role tests. This does not alter the strict release hold.
