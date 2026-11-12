@@ -67,6 +67,11 @@ on:
       - '.github/workflows/security-build34-review.yml'
 permissions:
   contents: read
+# Supersede stale review-branch workflows when many approved edits land in bulk.
+# This never disables the latest production-release hold.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   offline-authorization-tests:
     runs-on: ubuntu-latest
