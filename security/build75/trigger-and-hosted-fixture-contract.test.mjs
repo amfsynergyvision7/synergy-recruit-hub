@@ -29,7 +29,7 @@ test("production catalog source pins all thirty-two table-qualified triggers inc
  assert.deepEqual(new Set(source.application_triggers.map(tuple)),new Set(planned));
  assert.ok(source.application_triggers.every(t=>t.enabled_mode==="O"&&
   /^[0-9a-f]{32}$/.test(t.trigger_md5)&&/^[0-9a-f]{32}$/.test(t.function_md5)));
- assert.equal(source.application_triggers.filter(t=>t.privileged_function).length,10);
+ assert.equal(source.application_triggers.filter(t=>t.privileged_function).length,12);
 });
 test("auth user creation hook is source verified and its hardcoded privileged email is NOT exported",()=>{
  assert.equal(source.auth_user_trigger_count,1);
