@@ -815,6 +815,21 @@ jobs:
           node security/build74/compose-postrelease-permission-check.mjs
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build54-release-review/build74-22-function-rollback.integration.sql
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef")" = "0"
+      - name: Prove exact combined release rejects reintroduced anon candidate-import RPC and destructive TRUNCATE grants
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build74/compose-negative-release-replays.mjs
+          for case in anonymous_candidate_rpc anonymous_table_truncate; do
+            if psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f "/tmp/build54-release-review/build74-negative-${case}.integration.sql" > "/tmp/build74-negative-${case}.log" 2>&1; then
+              echo "FAIL: expected Build74 postflight to reject unsafe grant in ${case}"
+              exit 1
+            fi
+            grep -Fq "Build74 22-function permission postflight failed" "/tmp/build74-negative-${case}.log"
+          done
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef")" = "0"
+
 
       - name: Confirm no schema changes persisted from rollback-only rehearsal
         env:
@@ -1048,7 +1063,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate historical 135-case source and read-only hosted runner with invented users
-        run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs
+        run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs
 
   substantive-security-summary:
     if: always()
