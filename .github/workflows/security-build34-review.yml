@@ -42,6 +42,7 @@ on:
       - 'security/build64/**'
       - 'security/build65/**'
       - 'security/build66/**'
+      - 'security/build67/**'
       - 'src/lib/confirmed-bulk-mutation.ts'
       - 'src/routes/_app.candidates.tsx'
       - 'src/routes/_app.offers.tsx'
@@ -981,7 +982,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate historical 135-case source and read-only hosted runner with invented users
-        run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs
+        run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs
 
   substantive-security-summary:
     if: always()
