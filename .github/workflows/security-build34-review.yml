@@ -981,6 +981,59 @@ jobs:
       - name: Validate historical 135-case source and read-only hosted runner with invented users
         run: node --test security/build64/hosted-135-readonly.test.mjs
 
+  substantive-security-summary:
+    if: always()
+    needs:
+      - offline-authorization-tests
+      - application-compile
+      - synthetic-lease-mechanics
+      - source-shaped-rls-and-grants
+      - expanded-public-security-contracts
+      - admin-settings-rpc-compatibility
+      - signed-jwt-http-rls
+      - gotrue-issued-signed-http
+      - fenced-atomic-sync-row-contract
+      - atomic-concurrency-and-snapshot-recovery
+      - production-derived-trigger-and-manual-sync
+      - recruiter-assignment-and-financial-hold-review
+      - drive-resume-atomic-ledger-review
+      - drive-import-concurrency-and-restore
+      - security-48-object-catalog-lockdown
+      - security-48-plus-31-rls-integration
+      - exact-67-live-policy-replacement
+      - unsafe-legacy-restoration-rehearsal-only
+      - audited-account-and-profile-transaction-review
+      - account-compatibility-under-67-policy-lockdown
+      - build50-browser-write-safety
+      - build51-stage-transaction-review
+      - build52-candidate-write-review
+      - build53-candidate-atomic-import-review
+      - build54-guarded-candidate-release
+      - build55-deletion-impact-review
+      - build56-financial-joined-hold-review
+      - build57-billing-lockdown-review
+      - build58-exact-function-security
+      - build59-exact-13-view-dml-lockdown
+      - build60-pr-reconciliation-and-recovery
+      - build64-hosted-readonly-135-case-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail if any substantive security or application job did not succeed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          jobs=json.loads(os.environ["NEEDS_JSON"])
+          results={name:obj.get('result') for name,obj in jobs.items()}
+          failed={name:state for name,state in results.items() if state!='success'}
+          print("Substantive security CI: "+str(len(results)-len(failed))+"/"+str(len(results))+" jobs succeeded")
+          if len(results)!=32 or failed:
+              print("Substantive CI failures or missing jobs: "+str(failed),file=sys.stderr)
+              sys.exit(1)
+          PY
+
   production-release-hold:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
