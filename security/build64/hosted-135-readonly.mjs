@@ -117,6 +117,18 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
   const session=await response.json().catch(()=>stop("malformed GoTrue login"));
   if(typeof session?.access_token!=="string"||!uuid.test(session?.user?.id))
    stop("GoTrue session integrity missing");
+  // GoTrue issued JWT must represent a normal authenticated user, never
+  // a service_role or a different subject. Signature/issuer are enforced
+  // by hosted GoTrue /user and PostgREST, not by this payload inspection.
+  let claims;
+  try{
+   const sections=session.access_token.split(".");
+   if(sections.length!==3)stop("invalid hosted JWT structure");
+   claims=JSON.parse(Buffer.from(sections[1],"base64url").toString("utf8"));
+  }catch{stop("invalid hosted JWT claims");}
+  if(claims?.role!=="authenticated"||claims?.sub!==session.user.id||
+     !Number.isSafeInteger(claims?.exp)||claims.exp<=Math.floor(Date.now()/1000))
+   stop("hosted JWT role, subject or expiry mismatch");
   const userResponse=await call(origin+"/auth/v1/user",{
    method:"GET",headers:{apikey:key,Authorization:"Bearer "+session.access_token}
   });
