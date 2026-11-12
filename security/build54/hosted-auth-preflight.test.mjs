@@ -97,3 +97,34 @@ test("wrong profile row, wrong candidate ID and unexpected recruiter admin role 
    /exact scoped self-profile|exact owned synthetic row|admin privilege/);
  }
 });
+
+test("all credential-bearing hosted calls prohibit redirects and use approved read-only routes",async()=>{
+ const requests=[];
+ const original=fetchStub();
+ const result=await runHostedReadOnlyPreflight(conf,async(url,opts)=>{
+  requests.push({url,method:opts.method,redirect:opts.redirect});
+  return original(url,opts);
+ });
+ assert.equal(result.read_only_checks,19);
+ assert.ok(requests.length>0);
+ for(const req of requests){
+  const u=new URL(req.url);
+  assert.equal(u.origin,"https://dhlhlasnaapzckjyvffn.supabase.co");
+  assert.equal(req.redirect,"error");
+  assert.ok(["/auth/v1/token","/auth/v1/user","/rest/v1/profiles",
+   "/rest/v1/user_roles","/rest/v1/candidates"].includes(u.pathname));
+  assert.equal(req.method,u.pathname==="/auth/v1/token"?"POST":"GET");
+ }
+});
+test("malformed anonymous response cannot count as safe denial",async()=>{
+ const base=fetchStub();
+ const corrupt=async(url,opts)=>{
+  const response=await base(url,opts);
+  if(new URL(url).pathname==="/rest/v1/candidates" &&
+     opts.headers.Authorization==="Bearer "+conf.anonKey)
+    return {...response,json:async()=>({unexpected:"not-an-array"})};
+  return response;
+ };
+ await assert.rejects(runHostedReadOnlyPreflight(conf,corrupt),
+  /anonymous candidate visibility/);
+});
