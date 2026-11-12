@@ -36,6 +36,23 @@ const fake=(options={})=>{
   const table=u.pathname.replace("/rest/v1/","");
   const idx=Number(init.headers.Authorization.replace("Bearer sim-token-",""));
   assert.ok(tables.includes(table));
+  if(u.search.startsWith("?select=id,status,is_active&id=eq.")){
+   assert.equal(table,"profiles");
+   const profile=idx===8?[]:[{id:subjects[idx],
+     status:idx===5?"pending":"approved",is_active:idx!==6}];
+   if(options.badProfileStatus===idx&&profile.length)profile[0].status="rejected";
+   if(options.badProfileOwner===idx&&profile.length)profile[0].id=subjects[(idx+1)%9];
+   return {ok:true,status:200,json:async()=>profile};
+  }
+  if(u.search.startsWith("?select=user_id,role&user_id=eq.")){
+   assert.equal(table,"user_roles");
+   const slotRoles=["admin","recruiter","recruiter","finance","operations",
+    "recruiter","recruiter","viewer",null];
+   const rows=idx===8?[]:[{user_id:subjects[idx],role:slotRoles[idx]}];
+   if(options.badRole===idx&&rows.length)rows[0].role="admin";
+   if(options.badRoleOwner===idx&&rows.length)rows[0].user_id=subjects[(idx+1)%9];
+   return {ok:true,status:200,json:async()=>rows};
+  }
   assert.equal(init.method,"GET");
   assert.equal(u.search,"?select=id");
   const entry=cases[idx*15+tables.indexOf(table)];
@@ -66,15 +83,16 @@ test("matrix is exactly nine subject roles by fifteen named tables, 135 unique r
 test("full nine-user hosted read suite returns 135 anonymous-safe case outcomes with zero write cases",async()=>{
  const {http,calls}=fake();
  const result=await runHostedReadOnlyMatrix(config,http);
+ assert.equal(result.fixture_integrity_checks,18);
  assert.equal(result.read_case_passed,135);
  assert.equal(result.read_case_failed,0);
  assert.equal(result.formally_accepted_cases,0);
  assert.equal(result.write_cases_executed,0);
  assert.equal(result.write_cases_deferred,5);
- assert.equal(calls.length,153);
+ assert.equal(calls.length,171);
  assert.ok(calls.every(c=>c.redirect==="error"));
  assert.equal(calls.filter(c=>c.method==="POST").length,9);
- assert.equal(calls.filter(c=>c.method==="GET").length,144);
+ assert.equal(calls.filter(c=>c.method==="GET").length,162);
  const serialized=JSON.stringify(result);
  assert.doesNotMatch(serialized,/sim-token|@example\.invalid|synthetic-row-never-exported/);
  for(const subject of subjects)assert.ok(!serialized.includes(subject));
@@ -107,6 +125,12 @@ test("production endpoint, missing fixture ACK, duplicate login and malformed ma
  const altered=structuredClone(source);
  altered.read_cases[0].case_id="B41-UNAPPROVED-000";
  await assert.rejects(runHostedReadOnlyMatrix(config,never,altered),/invalid case ID/);
+ const tamperedExpected=structuredClone(source);
+ tamperedExpected.read_cases[12].expected=7;
+ await assert.rejects(runHostedReadOnlyMatrix(config,never,tamperedExpected),/expected row count drift/);
+ const tamperedSubject=structuredClone(source);
+ tamperedSubject.read_cases.filter(x=>x.sub===subjects[4]).forEach(x=>x.sub="99999999-9999-4999-8999-999999999999");
+ await assert.rejects(runHostedReadOnlyMatrix(config,never,tamperedSubject),/subject identity fingerprint drift/);
  assert.equal(calls,0);
 });
 test("same GoTrue identity across two fixtures blocks the runner before row reads",async()=>{
@@ -117,4 +141,13 @@ test("same GoTrue identity across two fixtures blocks the runner before row read
    return {ok:true,status:200,json:async()=>({id:subjects[0]})};
   return o;
  }),/subject mismatch or reused identity/);
+});
+
+test("hosted role/status ownership fixtures reject false-positive read-count configurations",async()=>{
+ for(const setting of [
+  {badProfileStatus:5},{badProfileOwner:2},{badRole:3},{badRoleOwner:4}
+ ]){
+  const {http}=fake(setting);
+  await assert.rejects(runHostedReadOnlyMatrix(config,http),/test identity fixture role\/profile mismatch/);
+ }
 });
