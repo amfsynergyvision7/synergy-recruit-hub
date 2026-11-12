@@ -32,3 +32,9 @@ No production/staging writes, merge, deployment, financial activation, hard dele
 
 ## Complete substantive CI evidence (Build65 addition)
 The guarded security workflow archives `build65-substantive-ci-summary.json` (GitHub artifact `build65-substantive-ci-summary`) from the aggregate job after evaluating all **32 substantive jobs**. The JSON records each job's actual `needs.result`, commit SHA and a single all-substantive-pass flag, excluding only the intentionally failing `production-release-hold`. The archive attempt runs even when a substantive job fails. This avoids mistaking GitHub's first-page 30-job listing for the complete workflow. Read the artifact and its commit before stating a full 32/32 pass; it is **engineering evidence**, not authorization to deploy.
+
+
+## Additional Build65 safety and faster feedback
+- The live hosted runner refuses modern `sb_secret_` / privileged keys and any legacy JWT API key whose role is not precisely `anon`; only modern `sb_publishable_` or legacy `anon` JWT keys are accepted. This prevents accidentally testing RLS using privileged credentials. Offline tests cover rejected service-role/secret keys and accepted synthetic anonymous-key examples.
+- `.github/workflows/security-build65-fast.yml` provides a separate small Node-only test job for the exact 135-case matrix, 18 identity fixture checks, four-table/13-view gap manifest and complete-CI contract. It does not connect to Supabase, create users, run SQL or replace the 32-job release review.
+- The latest full 32-job CI workflow and the dedicated fast feedback workflow must be checked against their own exact commit SHA; green tests do NOT remove `production-release-hold` or certify hosted UAT.
