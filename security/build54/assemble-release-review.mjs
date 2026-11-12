@@ -22,7 +22,8 @@ const inputs=[
  "security/build55/candidate-delete-impact-review-only.sql",
  "security/build56/financial-joined-transition-hold-review-only.sql",
  "security/build57/billing-write-lockdown-review-only.sql",
- "security/build58/function-search-path-review-only.sql"
+ "security/build58/function-search-path-review-only.sql",
+ "security/build59/13-view-write-acl-review-only.sql"
 ];
 const testFixture="security/build49/67-policy-admin-profile-compat.integration.sql";
 const combinedCases="security/build53/consolidated-cases.sql";
@@ -30,10 +31,11 @@ const impactCases="security/build55/combined-release-impact-cases.sql";
 const financeCases="security/build56/full-release-financial-cases.sql";
 const billingCases="security/build57/full-release-billing-cases.sql";
 const legacyFunctionFixture="security/build58/exact-four-function-replay.integration.sql";
+const viewCases="security/build59/full-policy-view-cases.sql";
 const hash=(s)=>createHash("sha256").update(s).digest("hex");
 const read=(p)=>readFileSync(resolve(root,p),"utf8");
 const sourceText=inputs.map(read);
-const [baseline,stage,candidate,atomic,assessment,finance,billing,legacySearch]=sourceText;
+const [baseline,stage,candidate,atomic,assessment,finance,billing,legacySearch,viewsAcl]=sourceText;
 const fail=(reason)=>{throw new Error("BUILD54 RELEASE CANDIDATE REFUSED: "+reason)};
 if((baseline.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (baseline.match(/^COMMIT;$/gm)||[]).length!==1 ||
@@ -52,6 +54,10 @@ for(const [i,sig] of [
 if(!legacySearch.includes("ea5005b2208a2d0891e3f8004fd7de80") ||
  !legacySearch.includes("ALTER FUNCTION public.track_stage_changes()") ||
  legacySearch.includes("\nCOMMIT;")) fail("Build58 frozen function source drift");
+if(!viewsAcl.includes("a90d4a1fab9552d47697127888e10d19") ||
+ !viewsAcl.includes("DO $b59_views_postflight$") ||
+ viewsAcl.includes("\nCOMMIT;"))
+ fail("Build59 frozen 13-view source/grant policy drift");
 const body=baseline.replace(/^BEGIN;\n/m,"").replace(/^COMMIT;\n/m,"");
 if(body.includes("\nCOMMIT;"))fail("Unexpected extra COMMIT in migration");
 const enforce=`
@@ -140,7 +146,7 @@ BEGIN
  THEN RAISE EXCEPTION 'Anonymous legacy function RPC access remains'; END IF;
 END $build54_postflight$;
 `;
-const appended=[body,stage,candidate,atomic,assessment,finance,billing,legacySearch,enforce].join("\n\n");
+const appended=[body,stage,candidate,atomic,assessment,finance,billing,legacySearch,viewsAcl,enforce].join("\n\n");
 const reviewGuard=`-- Build54 REVIEW ONLY, never executable on any database.
 -- This refusal intentionally comes BEFORE the first BEGIN/DDL statement.
 DO $build54_release_hold$
@@ -182,6 +188,7 @@ const manifest={
  financial_hold_trigger_count:2,
  billing_hold_trigger_count:2,
  hardened_legacy_function_count:4,
+ protected_view_count:13,
  source_sha256:Object.fromEntries(inputs.map((name,i)=>[name,hash(sourceText[i])])),
  review_bundle_sha256:hash(reviewSql),
  review_document_sha256:hash(reviewDoc),
@@ -221,7 +228,7 @@ const syntheticLiveFunctionAdjustment=actualLiveFunctionBodies+
  "\nALTER FUNCTION public.set_assigned_recruiter() RESET search_path;"+
  "\nALTER FUNCTION public.track_stage_changes() RESET search_path;\n";
 const rehearsal=fixturePrefix+"\n"+fixtureAdjustment+"\n"+syntheticLiveFunctionAdjustment+"\n"+appended+
- "\n"+read(combinedCases)+"\n"+read(impactCases)+"\n"+read(financeCases)+"\n"+read(billingCases)+"\n"+fixtureSuffix;
+ "\n"+read(viewCases)+"\n"+read(combinedCases)+"\n"+read(impactCases)+"\n"+read(financeCases)+"\n"+read(billingCases)+"\n"+fixtureSuffix;
 if((rehearsal.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (rehearsal.match(/^ROLLBACK;$/gm)||[]).length!==1 ||
    (rehearsal.match(/^COMMIT;$/gm)||[]).length!==0)

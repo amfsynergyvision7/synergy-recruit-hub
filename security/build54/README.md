@@ -40,3 +40,7 @@ The combined review-only migration now SHA256-pins a seventh source: `security/b
 ## Build58: 8th source-pinned legacy function hardening
 
 The latest combined review migration now includes eight SHA256-pinned SQL fragments. Build58 validates production source fingerprint `ea5005b2208a2d0891e3f8004fd7de80` and the exact post-Build49 intermediate fingerprint `f0e40a79b530175737b188ab4bb479d2`, then fixes all four mutable-search-path function configurations while removing anonymous direct execution privileges. The combined synthetic original 67→35 policy rehearsal PASSED in a single transaction that ROLLS BACK. This does not mean the live security advisor's four issues have been remediated; production remains unchanged.
+
+## Build59 — Ninth SHA256-pinned review fragment: 13 view source integrity and DML grants
+
+The full review composer now includes `security/build59/13-view-write-acl-review-only.sql` as the **ninth** protected source. It fingerprints all 13 original production view SQL definitions (`a90d4a1fab9552d47697127888e10d19`), requires the already-proposed `security_invoker=true` and anonymous read revocation from Build49, then removes all authenticated/service-role view DML and explicit column write grants, restoring SELECT only. It verifies the 13×3 role DML matrix and signed-in vs inactive/anonymous views in the same rollback-only original 67→35 policy rehearsal. It is review-only and not an active production ACL change.
