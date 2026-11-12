@@ -38,3 +38,7 @@ No production/staging writes, real invoice reads or external messages.
 ## Build57 RLS policy hard-denial
 
 The review source also changes the existing `billing_admin_write` RLS policy to `USING (false) WITH CHECK (false)`, preserving the 35-policy count and the independent admin/finance read policy. This protects against accidentally restored authenticated grants; it does not stop Supabase service-role RLS bypass or privileged owner writes by itself, so both revoked DML privileges and the two billing triggers remain required. Synthetic tests assert the false write policy and unchanged existing invoice rows.
+
+## Live read-only privilege fingerprint & source-level bypass inventory
+
+The source-checked production role catalog has **three API roles** with table-level billing INSERT/UPDATE/DELETE/TRUNCATE and offer INSERT/UPDATE/DELETE grants. `service_role` has `BYPASSRLS`, making RLS alone insufficient for that role. The observed deterministic grant digest is `6e19f3552ee067cf31763535f0076540`. `live-financial-grants-preflight.sql` returns `LEGACY_GRANT_SURFACE_MATCH_REVIEW_ONLY` only for that exact live surface; it reads no invoice rows. It will return `DRIFT_BLOCK_RELEASE` if the catalog differs. `financial-write-surface.test.mjs` checks current source for direct literal billing DML and enforces the generic CrudModule hold, but cannot prove the absence of dynamic, indirect or off-repository writers. Real hosted acceptance and a complete dependency review are still essential.
