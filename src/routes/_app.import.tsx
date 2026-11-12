@@ -301,6 +301,10 @@ function Page() {
       });
       setStep("result");
       toast.success(data.status === "replayed" ? "Previously committed batch confirmed" : "Atomic candidate batch committed");
+    } catch {
+      // An HTTP timeout is not proof that the database rolled back.
+      // Keep importRequestId.current unchanged so a retry is idempotent.
+      toast.error("Import outcome unknown. Retry this same batch without changing its request ID.");
     } finally {
       setRunning(false);
     }
