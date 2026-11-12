@@ -45,3 +45,9 @@ Do not provide this acknowledgement unless all nine users and the **exact synthe
 The Build64 GitHub CI job uses only mock HTTP, with invented identities and no credentials. It checks complete 135-case evidence, bad row counts, 404/500/malformed API replies, forbidden hosts, missing test-fixture authorization and duplicate/misidentified sessions. CI success is **not** live hosted testing. Retain \`production-release-hold\`, DRAFT PR #12 and no \`main\` merge, production/staging SQL writes, new financial operations, external communications, or candidate-data download.
 
 **Forecast from Build63 carried forward:** 6–10+ additional substantive builds to a secured CRM \`main\` merge; 16–28+ additional builds for the six-workstream Command Center, conditional on genuine UAT fixtures, decisions, recovery sign-off, reviewers and nine release gates. Counts are not financial bills or committed dates.
+
+
+## Build65 guardrails added after this runbook
+The hosted read-only runner now performs **18 identity fixture integrity checks** (own profile status/active plus role) before the historical 135 reads and pins historical source IDs and expected row counts. A correct row count is not enough when the subject has the wrong role/status. The new `security/build65/production-hosted-coverage.json` also records the four current production tables and 13 public views omitted from this historical 15-table runner. That coverage register must be evaluated before any formal acceptance claim.
+
+These checks remain **offline mock-tested until actual dedicated nonproduction identities and approved exact synthetic fixtures exist**. The five historical hosted write cases remain disabled. All release holds and acceptance counters remain unchanged.
