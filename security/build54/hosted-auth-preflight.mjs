@@ -44,16 +44,32 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
  if(!uuid.test(ownedId)||!uuid.test(otherId)||ownedId===otherId)
   fail("two distinct synthetic UUID candidate fixtures required");
  const base=parsed.origin;
+ // Credential-bearing transport is restricted to an allowlist. Redirects
+ // MUST NOT forward bearer tokens or publishable keys to another endpoint.
+ const safeHttp=(target,options)=>{
+  const destination=new URL(target);
+  const allowed=destination.origin===base && (
+    (destination.pathname==="/auth/v1/token" &&
+      destination.search==="?grant_type=password" && options.method==="POST") ||
+    (destination.pathname==="/auth/v1/user" &&
+      destination.search==="" && options.method==="GET") ||
+    (["/rest/v1/profiles","/rest/v1/user_roles","/rest/v1/candidates"].includes(destination.pathname) &&
+      options.method==="GET")
+  );
+  if(!allowed || destination.hash || destination.username || destination.password)
+    fail("unexpected hosted preflight API request");
+  return http(target,{...options,redirect:"error"});
+ };
  const headers={apikey:key,"Content-Type":"application/json"};
  let checks=0;
  const sessions={};
  for(const role of roles){
-  const token=await jsonResponse(await http(base+"/auth/v1/token?grant_type=password",{
+  const token=await jsonResponse(await safeHttp(base+"/auth/v1/token?grant_type=password",{
    method:"POST",headers,body:JSON.stringify({email:role.email,password:role.password})
   }),"real GoTrue login unavailable for "+role.name);
   if(!token.access_token || !uuid.test(token.user?.id))
    fail("GoTrue token/user integrity missing for "+role.name);
-  const user=await jsonResponse(await http(base+"/auth/v1/user",{
+  const user=await jsonResponse(await safeHttp(base+"/auth/v1/user",{
    method:"GET",headers:{apikey:key,Authorization:"Bearer "+token.access_token}
   }),"GoTrue user lookup failed for "+role.name);
   if(user.id!==token.user.id)fail("GoTrue token identity mismatch");
@@ -88,7 +104,7 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
  }
  const query=(id)=>"select=id&id=eq."+id;
  const list=async(session,id)=>{
-  const res=await jsonResponse(await http(base+"/rest/v1/candidates?"+query(id),
+  const res=await jsonResponse(await safeHttp(base+"/rest/v1/candidates?"+query(id),
    {method:"GET",headers:sessions[session].headers}
   ),"candidate RLS read failed");
   if(!Array.isArray(res))fail("candidate list response not array");
@@ -102,7 +118,7 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
  if((await list("pending",ownedId)).length!==0||(await list("pending",otherId)).length!==0)
   fail("pending account can read candidate data");
  checks+=6;
- const anonResponse=await http(base+"/rest/v1/candidates?"+query(ownedId),
+ const anonResponse=await safeHttp(base+"/rest/v1/candidates?"+query(ownedId),
   {method:"GET",headers:{apikey:key,Authorization:"Bearer "+key}});
  if(anonResponse.ok){
   const anonRows=await anonResponse.json();
