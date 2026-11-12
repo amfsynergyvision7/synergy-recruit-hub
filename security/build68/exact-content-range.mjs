@@ -1,7 +1,7 @@
 /**
  * Strict Content-Range total parser for synthetic-only PostgREST HEAD checks.
  * The total must be a nonnegative safe integer. For an explicit row interval,
- * start <= end < total; a zero total must be represented by */0.
+ * start <= end < total; a zero total must be represented by a star followed by slash zero.
  * Never trust a syntactically matched but impossible HTTP range as UAT proof.
  */
 export function parseExactCount(value){
