@@ -38,6 +38,7 @@ on:
       - 'security/build60/**'
       - 'security/build61/**'
       - 'security/build62/**'
+      - 'security/build63/**'
       - 'src/lib/confirmed-bulk-mutation.ts'
       - 'src/routes/_app.candidates.tsx'
       - 'src/routes/_app.offers.tsx'
@@ -732,7 +733,7 @@ jobs:
       - name: Generate deterministic non-executable review bundle and isolated rollback-only migration
         run: node security/build54/assemble-release-review.mjs
       - name: Verify release hold, exact source SHA256, and hosted Auth mock preflight
-        run: node --test security/build54/source-contract.test.mjs security/build54/hosted-auth-preflight.test.mjs security/build54/pr-reconciliation-contract.test.mjs
+        run: node --test security/build54/source-contract.test.mjs security/build54/hosted-auth-preflight.test.mjs security/build54/pr-reconciliation-contract.test.mjs security/build63/readback-contract.test.mjs
       - name: Simulate a SQL client that continues on error; release refusal must have no executable DDL
         env:
           PGPASSWORD: postgres
