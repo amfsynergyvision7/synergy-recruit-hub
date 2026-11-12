@@ -46,7 +46,8 @@ test("browser offer joined status remains disabled and bulk guarded without back
  assert.doesNotMatch(offers,/\{ value:"joined", label:"Joined" \}/);
  assert.match(offers,/Joined transitions and automatic billing require separate financial approval/);
 });
-\ntest("billing UI remains read-only until separate finance approval",()=>{
+
+test("billing UI remains read-only until separate finance approval",()=>{
  const safety=read("src/lib/release-safety.ts");
  const crud=read("src/components/CrudModule.tsx");
  const billing=read("src/routes/_app.billing.tsx");
