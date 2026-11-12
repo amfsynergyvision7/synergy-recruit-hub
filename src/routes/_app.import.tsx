@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_BULK_IMPORT_WRITES_PAUSED, BULK_IMPORT_HOLD_REASON } from "@/lib/release-safety";
+import { commitCandidateImport } from "@/lib/candidate-batch-import";
 import { IMPORT_SCHEMAS, type ImportSchema, type ImportFieldDef } from "@/lib/import-schemas";
 import { toast } from "sonner";
 import { Download, Upload, FileSpreadsheet, ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -133,9 +134,31 @@ function Page() {
   const [skipInvalid, setSkipInvalid] = useState(true);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(false);
+  const [assignedRecruiter, setAssignedRecruiter] = useState("");
+  const [approvedRecruiters, setApprovedRecruiters] = useState<{ id: string; label: string }[]>([]);
+  // An uncertain network result is retried with the SAME request ID and payload.
+  // A different file must use a deliberate reset before getting a new ID.
+  const importRequestId = useRef<string | null>(null);
   const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
 
   const schema = IMPORT_SCHEMAS[moduleKey];
+
+  useEffect(() => {
+    // Selection is only UX. The RPC must independently check the assignee's
+    // approved, active recruiter role from the live database.
+    let current = true;
+    Promise.all([
+      supabase.from("user_roles").select("user_id,role").eq("role", "recruiter"),
+      supabase.from("profiles").select("id,full_name,email").eq("status", "approved").eq("is_active", true),
+    ]).then(([roleRes, profileRes]) => {
+      if (!current || roleRes.error || profileRes.error) return;
+      const recruiterIds = new Set((roleRes.data ?? []).map((r) => r.user_id));
+      setApprovedRecruiters((profileRes.data ?? [])
+        .filter((p) => recruiterIds.has(p.id))
+        .map((p) => ({ id: p.id, label: p.full_name || p.email })));
+    }).catch(() => { /* Fail closed: no assignee can be selected. */ });
+    return () => { current = false; };
+  }, []);
 
   if (role !== "admin") {
     return (
@@ -153,10 +176,12 @@ function Page() {
   const reset = () => {
     setStep("upload"); setFile(null); setFileHeaders([]); setRawRows([]);
     setMapping({}); setMappedRows([]); setExistingKeys(new Set()); setProgress(0); setResult(null);
+    setAssignedRecruiter(""); importRequestId.current = null;
   };
 
   const onFile = async (f: File) => {
     setFile(f);
+    importRequestId.current = null;
     try {
       const { headers, rows } = await parseFile(f);
       if (!rows.length) { toast.error("No rows found in file"); return; }
@@ -228,13 +253,57 @@ function Page() {
     setStep("preview");
   };
 
-  // Build50: preview stays useful, but there is deliberately NO import writer.
-  // A future atomic import RPC requires separate review and hosted acceptance.
+  // Build53: candidate create-only import has a single audited SQL transaction.
+  // The unconditional release hold remains ON, including this future RPC.
   const runImport = async () => {
-    setRunning(false);
-    setProgress(0);
-    setResult(null);
-    toast.error(BULK_IMPORT_HOLD_REASON);
+    if (LEGACY_BULK_IMPORT_WRITES_PAUSED) {
+      toast.error(BULK_IMPORT_HOLD_REASON);
+      return;
+    }
+    if (moduleKey !== "candidates") {
+      toast.error("Other module imports require independently reviewed server write commands.");
+      return;
+    }
+    if (!assignedRecruiter || mappedRows.length === 0 || mappedRows.length > 50) {
+      toast.error("Select an approved recruiter and use a batch of 1–50 rows.");
+      return;
+    }
+    if (updateExisting || skipInvalid || mappedRows.some((r) => r.errors.length || r.isDuplicate)) {
+      toast.error("Candidate import is create-only and atomic: do not update, skip or import invalid/duplicate rows.");
+      return;
+    }
+    if (mappedRows.some((r) => r.data.stage && r.data.stage !== "lead_received")) {
+      toast.error("Imported candidates must start at lead_received; stage automation is not authorized.");
+      return;
+    }
+    const rows = mappedRows.map((r) => {
+      const { stage: _initialStage, ...ordinaryFields } = r.data;
+      return ordinaryFields;
+    });
+    if (!importRequestId.current) importRequestId.current = crypto.randomUUID();
+    setRunning(true); setProgress(0); setResult(null);
+    try {
+      const { data, error } = await commitCandidateImport({
+        requestId: importRequestId.current,
+        assignedRecruiter,
+        rows,
+      });
+      if (error || !data) {
+        toast.error(error?.message || "Import result not confirmed; retry using the same request ID.");
+        return;
+      }
+      setProgress(100);
+      setResult({
+        created: data.status === "created" ? data.count : 0,
+        updated: 0,
+        skipped: data.status === "replayed" ? data.count : 0,
+        errors: [],
+      });
+      setStep("result");
+      toast.success(data.status === "replayed" ? "Previously committed batch confirmed" : "Atomic candidate batch committed");
+    } finally {
+      setRunning(false);
+    }
   };
 
   const validCount = useMemo(() => mappedRows.filter((r) => r.errors.length === 0).length, [mappedRows]);
@@ -264,7 +333,7 @@ function Page() {
           <CardDescription>Select what kind of data you want to import.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={moduleKey} onValueChange={(v) => { setModuleKey(v); reset(); }}>
+          <Tabs value={moduleKey} onValueChange={(v) => { setModuleKey(v); reset(); setUpdateExisting(v !== "candidates"); setSkipInvalid(v !== "candidates"); }}>
             <TabsList className="flex flex-wrap h-auto">
               {Object.values(IMPORT_SCHEMAS).map((s) => (
                 <TabsTrigger key={s.key} value={s.key}>{s.label}</TabsTrigger>
@@ -342,7 +411,7 @@ function Page() {
         <Card>
           <CardHeader>
             <CardTitle>4. Preview</CardTitle>
-            <CardDescription>Review before importing. Invalid rows can be skipped.</CardDescription>
+            <CardDescription>{moduleKey === "candidates" ? "Create-only preview; all 1–50 rows must be valid. No stage changes or existing-record updates." : "Review before importing. Writes remain paused."}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -353,15 +422,32 @@ function Page() {
             </div>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={updateExisting} onCheckedChange={(v) => setUpdateExisting(!!v)} />
+                <Checkbox checked={updateExisting} disabled={moduleKey === "candidates"} onCheckedChange={(v) => setUpdateExisting(!!v)} />
                 Update existing records (matched by {schema.uniqueField})
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={skipInvalid} onCheckedChange={(v) => setSkipInvalid(!!v)} />
+                <Checkbox checked={skipInvalid} disabled={moduleKey === "candidates"} onCheckedChange={(v) => setSkipInvalid(!!v)} />
                 Skip invalid rows
               </label>
             </div>
 
+            {moduleKey === "candidates" && (
+              <div className="space-y-2 rounded-md border p-3">
+                <Label htmlFor="import-recruiter">Approved recruiter to receive every new candidate</Label>
+                <Select value={assignedRecruiter} onValueChange={setAssignedRecruiter}>
+                  <SelectTrigger id="import-recruiter"><SelectValue placeholder="Choose an approved recruiter" /></SelectTrigger>
+                  <SelectContent>
+                    {approvedRecruiters.map((r) =>
+                      <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Atomic create-only import: maximum 50 rows, no partial success, no duplicate updates.
+                  Backend checks all rows and recruiter status again before writing. Import remains paused until release approval.
+                </p>
+              </div>
+            )}
             <div className="border rounded-md max-h-96 overflow-auto">
               <Table>
                 <TableHeader>
