@@ -22,6 +22,9 @@ test("fixture verifies billing data survives rejected owner and API writes",()=>
  for(const role of ["authenticated","service_role","anon"])
    assert.match(cases,new RegExp("SET ROLE "+role));
  assert.match(cases,/has_any_column_privilege/);
+ assert.match(cases,/rolbypassrls/);
+ const compose=readFileSync("security/build57/compose-billing-lockdown.mjs","utf8");
+ assert.match(compose,/ALTER ROLE service_role BYPASSRLS/);
  assert.match(cases,/v_final<>v_initial/);
  assert.match(wf,/build57-billing-lockdown-review/);
 });

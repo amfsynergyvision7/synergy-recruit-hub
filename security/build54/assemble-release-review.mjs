@@ -96,6 +96,15 @@ BEGIN
        AND t.tgenabled='O' AND NOT t.tgisinternal)<>2 THEN
    RAISE EXCEPTION 'Unapproved joined financial transition guards absent';
  END IF;
+ IF NOT EXISTS(SELECT 1 FROM pg_policies p WHERE
+    p.schemaname='public' AND p.tablename='billing'
+    AND p.policyname='billing_admin_write'
+    AND p.qual='false' AND p.with_check='false')
+    OR NOT EXISTS(SELECT 1 FROM pg_policies p WHERE
+    p.schemaname='public' AND p.tablename='billing'
+    AND p.policyname='billing_admin_read') THEN
+   RAISE EXCEPTION 'Invoice write policy not denied or invoice read policy missing';
+ END IF;
  IF (SELECT count(*) FROM pg_trigger t WHERE
     t.tgrelid='public.billing'::regclass AND
     t.tgname IN ('zz_crm_billing_write_hold','zz_crm_billing_truncate_hold')

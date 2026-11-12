@@ -13,6 +13,9 @@ BEGIN
      AND qual='false' AND with_check='false') THEN
      RAISE EXCEPTION 'Permissive invoice write RLS policy was not denied';
   END IF;
+  IF NOT (SELECT r.rolbypassrls FROM pg_roles r WHERE r.rolname='service_role') THEN
+    RAISE EXCEPTION 'Synthetic service role must reproduce BYPASSRLS';
+  END IF;
   SELECT count(*) INTO v_initial FROM public.billing;
   IF v_initial<>2 THEN
     RAISE EXCEPTION 'Expected exactly two existing synthetic source-risk invoices, found %',v_initial;
