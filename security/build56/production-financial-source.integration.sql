@@ -11,7 +11,7 @@ CREATE TABLE public.profiles(id uuid PRIMARY KEY,full_name text);
 CREATE TABLE public.candidates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  stage public.candidate_stage NOT NULL DEFAULT 'lead_received',
  assigned_recruiter uuid,full_name text,position_applied text,notes text,
- expected_salary numeric,current_salary numeric);
+ expected_salary numeric,current_salary numeric,updated_at timestamptz);
 CREATE TABLE public.offers(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  candidate_uuid uuid,candidate_id uuid,client_uuid uuid,client_id uuid,
  offer_status text,joining_status text,salary numeric,ctc numeric,created_by uuid);
