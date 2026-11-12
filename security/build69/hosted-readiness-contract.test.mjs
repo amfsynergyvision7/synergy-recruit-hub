@@ -44,3 +44,21 @@ test("readiness preflight is one nonmutating catalog/count SELECT, never a fixtu
  assert.doesNotMatch(strip,/\bSELECT\s+\*\s+FROM\s+(?:public|auth)\./i);
  assert.doesNotMatch(strip,/\bto_email\b|\bfull_name\b|\bpassword\b/i);
 });
+
+
+test("stored real hosted metadata observation is a HOLD, never confused with offline mock success",()=>{
+ const observed=JSON.parse(read("security/build69/hosted-readiness-observation.json"));
+ assert.equal(observed.project_ref,"dhlhlasnaapzckjyvffn");
+ assert.equal(observed.source_sql,"security/build69/hosted-fixture-readiness.readonly.sql");
+ assert.equal(observed.executed_readonly,true);
+ assert.equal(observed.production_or_staging_modified,false);
+ assert.equal(observed.auth_user_count,0);
+ assert.equal(observed.actual_public_tables,0);
+ assert.equal(observed.actual_public_views,0);
+ assert.equal(observed.expected_tables_rls,0);
+ assert.equal(observed.expected_security_invoker_views,0);
+ assert.equal(observed.schema_preflight_status,
+  "HOLD_NONPRODUCTION_SCHEMA_OR_SECURITY_PREREQUISITES_ABSENT");
+ assert.equal(observed.confirmed_real_hosted_140_case_acceptance,0);
+ assert.match(observed.source_sql_blob_sha,/^[0-9a-f]{40}$/);
+});
