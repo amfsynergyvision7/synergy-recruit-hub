@@ -11,6 +11,7 @@ on:
       - 'security/build67/**'
       - 'security/build68/**'
       - 'security/build69/**'
+      - 'security/build70/**'
       - '.github/workflows/security-build65-fast.yml'
   pull_request:
     paths:
@@ -21,6 +22,7 @@ on:
       - 'security/build67/**'
       - 'security/build68/**'
       - 'security/build69/**'
+      - 'security/build70/**'
       - '.github/workflows/security-build65-fast.yml'
 permissions:
   contents: read
@@ -40,7 +42,7 @@ jobs:
           node-version: '22'
       - name: Run historic read-matrix, exact-role fixture, scope-gap and CI integrity tests
         run: |
-          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs
+          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs
       - name: Preserve no-secret, offline-only run scope
         run: |
           test -f security/build65/production-hosted-coverage.json
