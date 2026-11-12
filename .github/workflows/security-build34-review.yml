@@ -30,6 +30,7 @@ on:
       - 'security/build52/**'
       - 'security/build53/**'
       - 'security/build54/**'
+      - 'security/build55/**'
       - 'src/lib/candidate-batch-import.ts'
       - 'src/lib/duplicate-review-export.ts'
       - 'src/routes/_app.duplicates.tsx'
@@ -722,6 +723,14 @@ jobs:
         run: node security/build54/assemble-release-review.mjs
       - name: Verify release hold, exact source SHA256, and hosted Auth mock preflight
         run: node --test security/build54/source-contract.test.mjs security/build54/hosted-auth-preflight.test.mjs security/build54/pr-reconciliation-contract.test.mjs
+      - name: Simulate a SQL client that continues on error; release refusal must have no executable DDL
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=0 -h localhost -U postgres -d postgres -f /tmp/build54-release-review/release-review-hold.sql > /tmp/build54-refusal.log 2>&1 || true
+          grep -Fq 'Build54 release BLOCKED' /tmp/build54-refusal.log
+          ! grep -Eq '^((CREATE|ALTER|DROP|INSERT|UPDATE|DELETE|TRUNCATE|COMMIT|BEGIN|ROLLBACK)[[:space:];])' /tmp/build54-release-review/release-review-hold.sql
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename='candidates'")" = "0"
       - name: Execute exact source-composed policy, account and candidate migration inside disposable rollback
         env:
           PGPASSWORD: postgres
@@ -731,6 +740,42 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','profiles','billing');" | grep -x 0
+
+  build55-deletion-impact-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate non-destructive candidate impact RPC and exact live FK/trigger catalog source
+        run: node --test security/build55/source-contract.test.mjs security/build55/catalog-contract.test.mjs
+      - name: Rehearse administrative read-only deletion impact, cascade loss and billing detach in disposable rollback
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build55/compose-delete-impact.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build55-candidate-delete-impact.integration.sql
+      - name: Prove rollback retained no synthetic candidate or dependent records
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','billing','offers','submissions','interviews')")" = "0"
 
   production-release-hold:
     if: github.event_name == 'pull_request'
