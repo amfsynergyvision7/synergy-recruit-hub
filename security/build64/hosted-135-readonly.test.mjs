@@ -15,6 +15,12 @@ const config={
 };
 const fake=(options={})=>{
  const calls=[];
+ const tokens=subjects.map((subject,i)=>{
+  const claims={role:options.badTokenRole===i?"service_role":"authenticated",
+   sub:options.badTokenSub===i?subjects[(i+1)%9]:subject,
+   exp:Math.floor(Date.now()/1000)+(options.expiredToken===i?-50:3600)};
+  return ["synthetic",Buffer.from(JSON.stringify(claims)).toString("base64url"),"test-signature-"+i].join(".");
+ });
  async function http(url,init){
   const u=new URL(url);
   calls.push({path:u.pathname,method:init.method,redirect:init.redirect});
@@ -26,15 +32,17 @@ const fake=(options={})=>{
    const p=JSON.parse(init.body),idx=config.credentials.findIndex(x=>x.email===p.email);
    if(idx<0)throw Error("unrecognized synthetic fixture");
    return {ok:true,status:200,json:async()=>({
-     access_token:"sim-token-"+idx,user:{id:subjects[idx]}
+     access_token:options.badTokenStructure===idx?"malformed-token":tokens[idx],user:{id:subjects[idx]}
    })};
   }
   if(u.pathname==="/auth/v1/user"){
-   const idx=Number(init.headers.Authorization.replace("Bearer sim-token-",""));
+   const idx=tokens.indexOf(init.headers.Authorization.slice("Bearer ".length));
+   assert.ok(idx>=0,"expected only inventoried synthetic subject JWTs");
    return {ok:true,status:200,json:async()=>({id:subjects[idx]})};
   }
   const table=u.pathname.replace("/rest/v1/","");
-  const idx=Number(init.headers.Authorization.replace("Bearer sim-token-",""));
+  const idx=tokens.indexOf(init.headers.Authorization.slice("Bearer ".length));
+   assert.ok(idx>=0,"expected only inventoried synthetic subject JWTs");
   assert.ok(tables.includes(table));
   if(u.search.startsWith("?select=id,status,is_active&id=eq.")){
    assert.equal(table,"profiles");
@@ -71,7 +79,7 @@ const fake=(options={})=>{
   if(options.malformed===entry.case_id)body={bad:"shape"};
   return {ok:status===200,status,json:async()=>body};
  }
- return {calls,http};
+ return {calls,http,tokens};
 };
 test("matrix is exactly nine subject roles by fifteen named tables, 135 unique read IDs",()=>{
  assert.equal(subjects.length,9);
@@ -138,10 +146,10 @@ test("production endpoint, missing fixture ACK, duplicate login and malformed ma
  assert.equal(calls,0);
 });
 test("same GoTrue identity across two fixtures blocks the runner before row reads",async()=>{
- const {http:original}=fake();
+ const {http:original,tokens}=fake();
  await assert.rejects(runHostedReadOnlyMatrix(config,async(url,opts)=>{
   const o=await original(url,opts),u=new URL(url);
-  if(u.pathname==="/auth/v1/user" && opts.headers.Authorization==="Bearer sim-token-1")
+  if(u.pathname==="/auth/v1/user" && opts.headers.Authorization==="Bearer "+tokens[1])
    return {ok:true,status:200,json:async()=>({id:subjects[0]})};
   return o;
  }),/subject mismatch or reused identity/);
@@ -162,4 +170,14 @@ test("legacy anon JWT API key is permitted for synthetic hosted role checks only
  const result=await runHostedReadOnlyMatrix({...config,anonKey:key},http);
  assert.equal(result.read_case_passed,135);
  assert.equal(result.formally_accepted_cases,0);
+});
+
+test("hosted GoTrue token claims must be signed-user shaped, current and exact-subject",async()=>{
+ for(const failure of [
+  {badTokenRole:2},{badTokenSub:1},{expiredToken:3},{badTokenStructure:4}
+ ]){
+  const {http}=fake(failure);
+  await assert.rejects(runHostedReadOnlyMatrix(config,http),
+   /hosted JWT role, subject or expiry mismatch|invalid hosted JWT structure/);
+ }
 });
