@@ -39,7 +39,7 @@ DO $post$ BEGIN
  IF EXISTS (SELECT 1 FROM pg_proc p WHERE p.oid IN
    ('public.set_assigned_recruiter()'::regprocedure,'public.track_stage_changes()'::regprocedure)
    AND (NOT p.prosecdef OR p.proconfig IS NULL OR
-      NOT 'search_path=' = ANY(p.proconfig) OR
+      NOT 'search_path=""' = ANY(p.proconfig) OR
       has_function_privilege('anon',p.oid,'EXECUTE') OR
       has_function_privilege('authenticated',p.oid,'EXECUTE') OR
       has_function_privilege('service_role',p.oid,'EXECUTE')))
