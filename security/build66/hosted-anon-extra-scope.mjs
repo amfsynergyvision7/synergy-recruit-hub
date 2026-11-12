@@ -41,7 +41,7 @@ export async function runAnonymousSurfacePreflight(config,http=fetch){
   const target=base+"/rest/v1/"+c.path+"?"+c.query;
   const url=new URL(target);
   if(url.origin!==base||url.hash||url.username||url.password||
-     !["GET"].includes("GET")||!url.pathname.startsWith("/rest/v1/"))stop("bad request route");
+     !url.pathname.startsWith("/rest/v1/"))stop("bad request route");
   let response;
   try{
    response=await http(target,{method:"GET",redirect:"error",
