@@ -41,7 +41,7 @@ for(const [i,sig] of [
     sourceText[i].includes("\nCOMMIT;"))
   fail("Unsafe candidate SQL fragment or unexpected COMMIT in "+inputs[i]);
 }
-const body=baseline.replace(/^BEGIN;\n/,"").replace(/^COMMIT;\n/m,"");
+const body=baseline.replace(/^BEGIN;\n/m,"").replace(/^COMMIT;\n/m,"");
 if(body.includes("\nCOMMIT;"))fail("Unexpected extra COMMIT in migration");
 const enforce=`
 -- Build54 postflight: these are asserted *in the same transaction*.
