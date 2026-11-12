@@ -688,6 +688,12 @@ jobs:
         run: |
           node security/build53/compose-full-67-policy-import.mjs
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build53-full-67-policy-atomic-import.integration.sql
+      - name: Integrate stage, candidate CRUD and import under one full 67-policy replacement
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build53/compose-consolidated-candidate-release.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build53-consolidated-candidate-release.integration.sql
 
   production-release-hold:
     if: github.event_name == 'pull_request'
