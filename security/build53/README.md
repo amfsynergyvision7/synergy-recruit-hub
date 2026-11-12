@@ -11,3 +11,7 @@
 
 ## Release limits
 These are **review-only** designs and synthetic acceptance evidence. Test passes cannot authorize production rollout or automatically enable browser imports. Only management-approved migration, hosted GoTrue role UAT, independent review and rollback plan may release the hold.
+
+## Non-destructive duplicate review enhancement
+
+The admin duplicate scan can now export a PII-minimal CSV containing the candidate IDs flagged for human review, a retained record ID for each cluster, the match reason and mandatory `NOT_APPROVED` status. The export writes no database rows, emails nobody and cannot perform deletion. Invalid IDs or a cluster with no retained record block export. Node regression tests enforce these behaviors. **Deletion and merging remain paused until data-retention decisions, linkage/cascade review, explicit approval and audited server commands.**

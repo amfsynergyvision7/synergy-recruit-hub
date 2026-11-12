@@ -30,6 +30,8 @@ on:
       - 'security/build52/**'
       - 'security/build53/**'
       - 'src/lib/candidate-batch-import.ts'
+      - 'src/lib/duplicate-review-export.ts'
+      - 'src/routes/_app.duplicates.tsx'
       - 'src/lib/candidate-write.ts'
       - 'src/lib/candidate-stage.ts'
       - 'src/lib/release-safety.ts'
@@ -673,7 +675,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verify atomic import safety and repair of Build52 full-policy composer
-        run: node --test security/build53/source-contract.test.mjs
+        run: node --experimental-strip-types --test security/build53/source-contract.test.mjs security/build53/duplicates-review.test.mjs
       - name: Rehearse atomic idempotent 50-row-bound candidate batches and failure rollback
         env:
           PGPASSWORD: postgres
