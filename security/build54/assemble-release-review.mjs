@@ -20,16 +20,18 @@ const inputs=[
  "security/build52/candidate-write-rpc-review-only.sql",
  "security/build53/atomic-import-rpc-review-only.sql",
  "security/build55/candidate-delete-impact-review-only.sql",
- "security/build56/financial-joined-transition-hold-review-only.sql"
+ "security/build56/financial-joined-transition-hold-review-only.sql",
+ "security/build57/billing-write-lockdown-review-only.sql"
 ];
 const testFixture="security/build49/67-policy-admin-profile-compat.integration.sql";
 const combinedCases="security/build53/consolidated-cases.sql";
 const impactCases="security/build55/combined-release-impact-cases.sql";
 const financeCases="security/build56/full-release-financial-cases.sql";
+const billingCases="security/build57/full-release-billing-cases.sql";
 const hash=(s)=>createHash("sha256").update(s).digest("hex");
 const read=(p)=>readFileSync(resolve(root,p),"utf8");
 const sourceText=inputs.map(read);
-const [baseline,stage,candidate,atomic,assessment,finance]=sourceText;
+const [baseline,stage,candidate,atomic,assessment,finance,billing]=sourceText;
 const fail=(reason)=>{throw new Error("BUILD54 RELEASE CANDIDATE REFUSED: "+reason)};
 if((baseline.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (baseline.match(/^COMMIT;$/gm)||[]).length!==1 ||
@@ -40,7 +42,7 @@ if((baseline.match(/^BEGIN;$/gm)||[]).length!==1 ||
    !baseline.includes("crm_update_own_profile"))
  fail("Build49 baseline/approval-RPC source changed or lacks exact fingerprints");
 for(const [i,sig] of [
- [1,"crm_change_candidate_stage"],[2,"crm_write_candidate"],[3,"crm_import_candidates_atomic"],[4,"crm_candidate_delete_impact"],[5,"crm_hold_unapproved_joined_transitions"]]) {
+ [1,"crm_change_candidate_stage"],[2,"crm_write_candidate"],[3,"crm_import_candidates_atomic"],[4,"crm_candidate_delete_impact"],[5,"crm_hold_unapproved_joined_transitions"],[6,"crm_block_unapproved_billing_writes"]]) {
  if(!sourceText[i].includes("CREATE OR REPLACE FUNCTION public."+sig+"(") ||
     sourceText[i].includes("\nCOMMIT;"))
   fail("Unsafe candidate SQL fragment or unexpected COMMIT in "+inputs[i]);
@@ -94,9 +96,25 @@ BEGIN
        AND t.tgenabled='O' AND NOT t.tgisinternal)<>2 THEN
    RAISE EXCEPTION 'Unapproved joined financial transition guards absent';
  END IF;
+ IF (SELECT count(*) FROM pg_trigger t WHERE
+    t.tgrelid='public.billing'::regclass AND
+    t.tgname IN ('zz_crm_billing_write_hold','zz_crm_billing_truncate_hold')
+    AND t.tgenabled='O' AND NOT t.tgisinternal)<>2 THEN
+   RAISE EXCEPTION 'Unapproved invoice row/statement DML holds absent';
+ END IF;
+ IF EXISTS(SELECT 1 FROM pg_roles r WHERE
+   r.rolname IN ('anon','authenticated','service_role')
+   AND (has_table_privilege(r.oid,'public.billing','INSERT')
+     OR has_table_privilege(r.oid,'public.billing','UPDATE')
+     OR has_table_privilege(r.oid,'public.billing','DELETE')
+     OR has_table_privilege(r.oid,'public.billing','TRUNCATE')
+     OR has_any_column_privilege(r.oid,'public.billing','INSERT')
+     OR has_any_column_privilege(r.oid,'public.billing','UPDATE'))) THEN
+   RAISE EXCEPTION 'Financial API direct DML grants remain after billing lockdown';
+ END IF;
 END $build54_postflight$;
 `;
-const appended=[body,stage,candidate,atomic,assessment,finance,enforce].join("\n\n");
+const appended=[body,stage,candidate,atomic,assessment,finance,billing,enforce].join("\n\n");
 const reviewGuard=`-- Build54 REVIEW ONLY, never executable on any database.
 -- This refusal intentionally comes BEFORE the first BEGIN/DDL statement.
 DO $build54_release_hold$
@@ -136,6 +154,7 @@ const manifest={
  replacement_policy_count:35,
  candidate_rpc_count:4,
  financial_hold_trigger_count:2,
+ billing_hold_trigger_count:2,
  source_sha256:Object.fromEntries(inputs.map((name,i)=>[name,hash(sourceText[i])])),
  review_bundle_sha256:hash(reviewSql),
  review_document_sha256:hash(reviewDoc),
@@ -162,7 +181,7 @@ UPDATE public.candidates SET updated_at=clock_timestamp() WHERE updated_at IS NU
 UPDATE public.candidates SET stage='lead_received' WHERE stage IS NULL;
 `;
 const rehearsal=fixturePrefix+"\n"+fixtureAdjustment+"\n"+appended+
- "\n"+read(combinedCases)+"\n"+read(impactCases)+"\n"+read(financeCases)+"\n"+fixtureSuffix;
+ "\n"+read(combinedCases)+"\n"+read(impactCases)+"\n"+read(financeCases)+"\n"+read(billingCases)+"\n"+fixtureSuffix;
 if((rehearsal.match(/^BEGIN;$/gm)||[]).length!==1 ||
    (rehearsal.match(/^ROLLBACK;$/gm)||[]).length!==1 ||
    (rehearsal.match(/^COMMIT;$/gm)||[]).length!==0)

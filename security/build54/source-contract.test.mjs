@@ -25,7 +25,8 @@ test("atomic bundle includes EXACT four pinned sources, all grants and counts",(
  assert.equal(m.no_release_authorization,true);
  assert.equal(m.candidate_rpc_count,4);
  assert.equal(m.financial_hold_trigger_count,2);
- assert.equal(Object.keys(m.source_sha256).length,6);
+ assert.equal(m.billing_hold_trigger_count,2);
+ assert.equal(Object.keys(m.source_sha256).length,7);
  const sql=read(dir+"/release-review-hold.sql");
  const review=read(dir+"/release-candidate-HUMAN-REVIEW.md");
  assert.equal(m.review_bundle_sha256,sha(sql));
@@ -34,7 +35,7 @@ test("atomic bundle includes EXACT four pinned sources, all grants and counts",(
  for(const [p,h] of Object.entries(m.source_sha256))
    assert.equal(sha(read(p)),h);
  for(const name of ["crm_admin_manage_user","crm_update_own_profile",
-   "crm_change_candidate_stage","crm_write_candidate","crm_import_candidates_atomic","crm_candidate_delete_impact","crm_hold_unapproved_joined_transitions"])
+   "crm_change_candidate_stage","crm_write_candidate","crm_import_candidates_atomic","crm_candidate_delete_impact","crm_hold_unapproved_joined_transitions","crm_block_unapproved_billing_writes"])
   assert.ok(review.includes("public."+name+"("));
 });
 test("rehearsal contains exact policies, candidate tests, and only ROLLBACK",()=>{
@@ -47,6 +48,7 @@ test("rehearsal contains exact policies, candidate tests, and only ROLLBACK",()=
  assert.ok(sql.includes("DO $build54_postflight$"));
  assert.ok(sql.includes("DO $b55_full_release$"));
  assert.ok(sql.includes("DO $b56_full_finance$"));
+ assert.ok(sql.includes("DO $build57_full_billing$"));
  assert.ok(sql.includes("a70190f31ed8436b2989082898a02b51"));
  assert.equal(sha(sql),read(dir+"/rehearsal-sha256.txt").trim());
 });
