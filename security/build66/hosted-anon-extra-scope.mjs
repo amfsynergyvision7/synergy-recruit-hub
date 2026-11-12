@@ -41,33 +41,30 @@ export async function runAnonymousSurfacePreflight(config,http=fetch){
   const target=base+"/rest/v1/"+c.path+"?"+c.query;
   const url=new URL(target);
   if(url.origin!==base||url.hash||url.username||url.password||
-     !url.pathname.startsWith("/rest/v1/"))stop("bad request route");
+     url.pathname!=="/rest/v1/"+c.path||url.search!=="?"+c.query)
+    stop("bad request route");
+  // Metadata-only PostgREST HEAD with Prefer: count=exact. Never read
+  // the response body: it might contain private rows if RLS fails.
   let response;
   try{
-   response=await http(target,{method:"GET",redirect:"error",
+   response=await http(target,{method:"HEAD",redirect:"error",
     signal:AbortSignal.timeout(10000),
-    headers:{apikey:key,Accept:"application/json"}});
+    headers:{apikey:key,Prefer:"count=exact",Accept:"application/json"}});
   }catch{stop("hosted test network failure or redirect")}
   const status=response?.status;
-  let count=null,validProjection=true;
-  if(status===200){
-   const data=await response.json().catch(()=>null);
-   if(Array.isArray(data)){
-    count=data.length;
-    if(c.expect==="exact-one"){
-     validProjection=count===1 &&
-       data[0]!==null&&typeof data[0]==="object" &&
-       PUBLIC_BRANDING_COLUMNS.every(col=>Object.hasOwn(data[0],col));
-    }
-   }
-  }
+  const rawRange=response?.headers?.get?.("content-range");
+  const range=typeof rawRange==="string"?
+    /^(?:\*|\d+-\d+)\/(\d+)$/.exec(rawRange.trim()):null;
+  const count=range?Number(range[1]):null;
+  const validCount=Number.isSafeInteger(count)&&count>=0;
+  const observed=validCount&&[200,206].includes(status)?count:null;
   const pass=c.expect==="empty-or-denied"?
-    ((status===200&&count===0)||[401,403].includes(status)):
+    (([200,206].includes(status)&&validCount&&count===0)||[401,403].includes(status)):
     c.expect==="explicit-denial"?
       [401,403].includes(status):
-      status===200&&validProjection&&count===1;
+      [200,206].includes(status)&&validCount&&count===1;
   outcomes.push({case_id:c.name,expected:c.expect,http_status:status,
-   observed_row_count:count,pass});
+   observed_row_count:observed,pass});
  }
  const successes=outcomes.filter(x=>x.pass).length;
  return {status:successes===20?"PROVISIONAL_ANON_SURFACE_PASS_NOT_RELEASE":
