@@ -33,3 +33,16 @@ test("live functions and two specific trigger definitions fingerprinted read-onl
  const noComments=fp.replace(/^--.*$/gm,"");
  assert.doesNotMatch(noComments,/\b(?:CREATE|ALTER|DROP|TRUNCATE|INSERT|UPDATE\s+public|DELETE|COMMIT|GRANT|REVOKE)\s+/i);
 });
+
+test("browser offer joined status remains disabled and bulk guarded without backend bypass",()=>{
+ const safety=read("src/lib/release-safety.ts");
+ const crud=read("src/components/CrudModule.tsx");
+ const offers=read("src/routes/_app.offers.tsx");
+ assert.match(safety,/LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED = true as const/);
+ assert.match(crud,/form\.joining_status === "joined" \|\| editing\?\.joining_status === "joined"/);
+ assert.match(crud,/row\.joining_status === "joined"/);
+ assert.match(crud,/field\.name === "joining_status" && bulkEditValue === "joined"/);
+ assert.match(crud,/toast\.error\(FINANCIAL_JOINED_HOLD_REASON\)/);
+ assert.doesNotMatch(offers,/\{ value:"joined", label:"Joined" \}/);
+ assert.match(offers,/Joined transitions and automatic billing require separate financial approval/);
+});

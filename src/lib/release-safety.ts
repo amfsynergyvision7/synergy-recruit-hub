@@ -10,6 +10,12 @@
  */
 export const LEGACY_CANDIDATE_WRITES_PAUSED = true as const;
 export const LEGACY_BULK_IMPORT_WRITES_PAUSED = true as const;
+// Build56: a joined offer can invoke BOTH live billing handlers.
+// This is a presentation hold only; the review SQL adds an independent
+// BEFORE-trigger gate that also protects non-browser and privileged callers.
+export const LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED = true as const;
+export const FINANCIAL_JOINED_HOLD_REASON =
+  "Joined offer transitions and edits are paused pending financial approval and independent authorization testing.";
 
 export const CANDIDATE_MUTATION_HOLD_REASON =
   "Candidate edits, deletes, stage moves and duplicate cleanup are paused pending audited CRM write commands and hosted role acceptance.";

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON, LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED, FINANCIAL_JOINED_HOLD_REASON } from "@/lib/release-safety";
 import { saveCandidateRecord } from "@/lib/candidate-write";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -261,6 +261,14 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const save = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    // Joined offers currently trigger BOTH legacy billing handlers. This
+    // checks the submitted form and stored record, not just changed fields:
+    // the old offer trigger runs on any status-column UPDATE, including an
+    // update that writes the same value again.
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        (form.joining_status === "joined" || editing?.joining_status === "joined")) {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
     // Catch an empty required field here, with a message naming the actual
     // field, instead of letting it reach Supabase and come back as a raw
     // Postgres "null value in column ... violates not-null constraint" —
@@ -359,6 +367,10 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const remove = async (row: any) => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        row.joining_status === "joined") {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
     if (!confirm("Delete this record?")) return;
     try {
       const { data, error } = await supabase.from(table as any)
@@ -466,6 +478,10 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const bulkDelete = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        rows.some((row) => selected.has(row.id) && row.joining_status === "joined")) {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
     const ids = Array.from(selected);
     if (!ids.length) return;
     const warning =
@@ -493,6 +509,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+      ((field.name === "joining_status" && bulkEditValue === "joined") ||
+       (["joining_status","offer_status"].includes(field.name) &&
+        rows.some((row) => selected.has(row.id) && row.joining_status === "joined")))) {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
     let v = bulkEditValue;
     if (v === "" || v === undefined) v = null;
     if (field.type === "number" && v !== null) v = Number(v);
@@ -748,6 +770,8 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       </div>
 
       {candidateMutationPaused && <Badge variant="secondary">{CANDIDATE_MUTATION_HOLD_REASON}</Badge>}
+      {module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        <Badge variant="secondary">{FINANCIAL_JOINED_HOLD_REASON}</Badge>}
       {!editable && !candidateMutationPaused && (
         <Badge variant="secondary">Read-only access</Badge>
       )}
