@@ -32,6 +32,7 @@ on:
       - 'security/build54/**'
       - 'security/build55/**'
       - 'security/build56/**'
+      - 'security/build57/**'
       - 'src/routes/_app.offers.tsx'
       - 'src/lib/candidate-batch-import.ts'
       - 'src/lib/duplicate-review-export.ts'
@@ -809,6 +810,42 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build56/production-financial-source.integration.sql
       - name: Prove no persisted billing or CRM tables in disposable runner
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('billing','offers','candidates')")" = "0"
+
+  build57-billing-lockdown-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate read-only billing source audit and release hold contracts
+        run: node --test security/build57/source-contract.test.mjs security/build57/financial-write-surface.test.mjs
+      - name: Rehearse locked invoice grants, false RLS write policy, and row/statement trigger vetoes
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build57/compose-billing-lockdown.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build57-billing-lockdown.integration.sql
+      - name: Prove full rollback left no invoice or offer tables
         env:
           PGPASSWORD: postgres
         run: |
