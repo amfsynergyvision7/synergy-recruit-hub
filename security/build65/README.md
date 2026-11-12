@@ -28,3 +28,7 @@
 - **Conditional remaining estimate:** approximately 6–10+ substantive builds for secured CRM `main` merge, 16–28+ additional builds for full Command Center including CRM. Dependent on external approvals/test fixtures and therefore not guaranteed or monetary.
 
 No production/staging writes, merge, deployment, financial activation, hard deletion, external communication or release hold removal.
+
+
+## Complete substantive CI evidence (Build65 addition)
+The guarded security workflow archives `build65-substantive-ci-summary.json` (GitHub artifact `build65-substantive-ci-summary`) from the aggregate job after evaluating all **32 substantive jobs**. The JSON records each job's actual `needs.result`, commit SHA and a single all-substantive-pass flag, excluding only the intentionally failing `production-release-hold`. The archive attempt runs even when a substantive job fails. This avoids mistaking GitHub's first-page 30-job listing for the complete workflow. Read the artifact and its commit before stating a full 32/32 pass; it is **engineering evidence**, not authorization to deploy.
