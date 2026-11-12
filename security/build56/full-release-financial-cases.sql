@@ -6,7 +6,9 @@ RESET ROLE;
 DO $b56_full_finance$
 DECLARE
  n bigint;
+ before_billing bigint;
 BEGIN
+ SELECT count(*) INTO before_billing FROM public.billing;
  IF (SELECT count(*) FROM pg_trigger t
     WHERE t.tgname IN ('zz_crm_hold_joined_candidate','zz_crm_hold_joined_offer')
     AND t.tgenabled='O' AND NOT t.tgisinternal)<>2 THEN
@@ -43,5 +45,5 @@ BEGIN
   RAISE EXCEPTION 'Joined candidate insert bypassed financial hold';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
  SELECT count(*) INTO n FROM public.billing;
- IF n<>0 THEN RAISE EXCEPTION 'Financial hold left billing rows: %',n; END IF;
+ IF n<>before_billing THEN RAISE EXCEPTION 'Financial hold created billing rows: before %, after %',before_billing,n; END IF;
 END $b56_full_finance$;
