@@ -33,6 +33,7 @@ on:
       - 'security/build55/**'
       - 'security/build56/**'
       - 'security/build57/**'
+      - 'security/build58/**'
       - 'src/routes/_app.offers.tsx'
       - 'src/lib/candidate-batch-import.ts'
       - 'src/lib/duplicate-review-export.ts'
@@ -850,6 +851,41 @@ jobs:
           PGPASSWORD: postgres
         run: |
           test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('billing','offers','candidates')")" = "0"
+
+  build58-exact-function-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source-frozen function fingerprints and review source safety
+        run: node --test security/build58/source-contract.test.mjs
+      - name: Rehearse all four exact production function bodies, source guard, anon denial and trigger compatibility
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build58/exact-four-function-replay.integration.sql
+      - name: Prove rollback left no public candidate tables
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','profiles','candidate_stage_history')")" = "0"
 
   production-release-hold:
     if: github.event_name == 'pull_request'
