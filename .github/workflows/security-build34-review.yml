@@ -50,6 +50,7 @@ on:
       - 'security/build72/**'
       - 'security/build73/**'
       - 'security/build74/**'
+      - 'security/build75/**'
       - 'src/lib/confirmed-bulk-mutation.ts'
       - 'src/routes/_app.candidates.tsx'
       - 'src/routes/_app.offers.tsx'
@@ -228,6 +229,16 @@ jobs:
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build73_permissions_lab -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef")" = "0"
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build73_permissions_lab -c "SELECT count(*) FROM pg_roles WHERE rolname IN ('b73_anon','b73_authenticated')")" = "0"
           dropdb -h localhost -U postgres amf_build73_permissions_lab
+      - name: Prove live-structure auth auto-profile hazard and 9-user fixture positive/negative integrity with rollback
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build75_auth_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -f security/build75/auth-autoprofile-and-nine-slot.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -c "SELECT count(*) FROM pg_catalog.pg_namespace WHERE nspname='auth'")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='synthetic_auth_autoprofile'")" = "0"
+          dropdb -h localhost -U postgres amf_build75_auth_lab
 
   admin-settings-rpc-compatibility:
     runs-on: ubuntu-latest
@@ -1063,7 +1074,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate historical 135-case source and read-only hosted runner with invented users
-        run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs security/build74/live-release-source-fingerprints.test.mjs
+        run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs security/build74/live-release-source-fingerprints.test.mjs security/build75/trigger-and-hosted-fixture-contract.test.mjs
 
   substantive-security-summary:
     if: always()
