@@ -17,7 +17,11 @@ export function assertSmtpApproved(value) {
 
 export function assertMatchingSupabaseProject(url, projectId) {
   if (!projectId || !url) throw new Error("SEC-01: missing Supabase project configuration.");
-  let host;
-  try { host = new URL(url).hostname; } catch { throw new Error("SEC-01: invalid Supabase URL."); }
-  if (host !== `${projectId}.supabase.co`) throw new Error("SEC-01: Supabase project mismatch.");
+  let parsed;
+  try { parsed = new URL(url); } catch { throw new Error("SEC-01: invalid Supabase URL."); }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port ||
+      parsed.pathname !== "/" || parsed.search || parsed.hash) {
+    throw new Error("SEC-01: unsafe Supabase URL configuration.");
+  }
+  if (parsed.hostname !== `${projectId}.supabase.co`) throw new Error("SEC-01: Supabase project mismatch.");
 }
