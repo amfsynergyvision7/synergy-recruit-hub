@@ -520,9 +520,16 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (!confirm(warning)) return;
     bulkMutationPending.current = true;
     setBulkDeleting(true);
-    let outcome: Awaited<ReturnType<typeof confirmBulk>>;
+    let outcome: Awaited<ReturnType<typeof confirmBulk>> = {
+      complete: false, confirmedCount: 0, requestedCount: ids.length,
+      message: "Operation outcome unknown; verify server records.",
+    };
     try {
       outcome = await confirmBulk(ids, "delete");
+    } catch {
+      // Treat unexpected client exceptions as an unknown commit, never replay.
+      outcome = { complete: false, confirmedCount: 0, requestedCount: ids.length,
+        message: "Unexpected client failure; write outcome unknown." };
     } finally {
       bulkMutationPending.current = false;
       setBulkDeleting(false);
@@ -568,9 +575,16 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     }
     bulkMutationPending.current = true;
     setBulkEditSaving(true);
-    let outcome: Awaited<ReturnType<typeof confirmBulk>>;
+    let outcome: Awaited<ReturnType<typeof confirmBulk>> = {
+      complete: false, confirmedCount: 0, requestedCount: ids.length,
+      message: "Operation outcome unknown; verify server records.",
+    };
     try {
       outcome = await confirmBulk(ids, "update", { [field.name]: value });
+    } catch {
+      // Treat unexpected client exceptions as an unknown commit, never replay.
+      outcome = { complete: false, confirmedCount: 0, requestedCount: ids.length,
+        message: "Unexpected client failure; write outcome unknown." };
     } finally {
       bulkMutationPending.current = false;
       setBulkEditSaving(false);
