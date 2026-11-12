@@ -29,6 +29,7 @@ on:
       - 'security/build51/**'
       - 'security/build52/**'
       - 'security/build53/**'
+      - 'security/build54/**'
       - 'src/lib/candidate-batch-import.ts'
       - 'src/lib/duplicate-review-export.ts'
       - 'src/routes/_app.duplicates.tsx'
@@ -694,6 +695,42 @@ jobs:
         run: |
           node security/build53/compose-consolidated-candidate-release.mjs
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build53-consolidated-candidate-release.integration.sql
+
+  build54-guarded-candidate-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate deterministic non-executable review bundle and isolated rollback-only migration
+        run: node security/build54/assemble-release-review.mjs
+      - name: Verify release hold, exact source SHA256, and hosted Auth mock preflight
+        run: node --test security/build54/source-contract.test.mjs security/build54/hosted-auth-preflight.test.mjs
+      - name: Execute exact source-composed policy, account and candidate migration inside disposable rollback
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build54-release-review/full-release-rollback.integration.sql
+      - name: Confirm no schema changes persisted from rollback-only rehearsal
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','profiles','billing');" | grep -x 0
 
   production-release-hold:
     if: github.event_name == 'pull_request'
