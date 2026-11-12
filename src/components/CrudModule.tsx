@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON, LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED, FINANCIAL_JOINED_HOLD_REASON, LEGACY_BILLING_MUTATIONS_PAUSED, BILLING_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { saveCandidateRecord } from "@/lib/candidate-write";
+import { runConfirmedBulkMutation } from "@/lib/confirmed-bulk-mutation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,6 +160,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [bulkEditField, setBulkEditField] = useState("");
   const [bulkEditValue, setBulkEditValue] = useState<any>("");
   const [bulkEditSaving, setBulkEditSaving] = useState(false);
+  // Synchronous guard: React state updates alone do not prevent a second click
+  // from dispatching another batch before the first request resolves.
+  const bulkMutationPending = useRef(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm && !(module === "candidates" && role !== "admin" && f.name === "assigned_recruiter")), [fields, module, role]);
@@ -261,6 +265,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const openView = (row: any) => setViewing(row);
 
   const save = async () => {
+    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     // Joined offers currently trigger BOTH legacy billing handlers. This
@@ -368,6 +373,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const remove = async (row: any) => {
+    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
@@ -472,6 +478,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const toggleRow = (id: string, checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       checked ? next.add(id) : next.delete(id);
@@ -479,27 +486,55 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     });
   };
 
+  // Salvaged from PR #11 after security review: only return success when the
+  // exact IDs were confirmed by PostgREST; NEVER automatically replay a batch
+  // after a network timeout, because the server may already have committed it.
+  // Candidate and billing mutations still remain unconditionally held above.
+  const confirmBulk = async (
+    ids: string[],
+    action: "delete" | "update",
+    patch?: Record<string, unknown>,
+  ) => runConfirmedBulkMutation(ids, async (batch) => {
+    const query = action === "delete"
+      ? supabase.from(table as any).delete().in("id", batch)
+      : supabase.from(table as any).update(patch ?? {}).in("id", batch);
+    const reply = await query.select("id");
+    return {
+      data: reply.data as { id: string }[] | null,
+      error: reply.error,
+    };
+  });
+
   const bulkDelete = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (bulkMutationPending.current) return;
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
         rows.some((row) => selected.has(row.id) && row.joining_status === "joined")) {
       toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
     }
     const ids = Array.from(selected);
     if (!ids.length) return;
-    const warning =
-      module === "candidates"
-        ? `Delete ${ids.length} candidate(s)? This will also permanently delete their linked submissions, interviews, offers, and stage history.`
-        : `Delete ${ids.length} selected record(s)? This cannot be undone.`;
+    const warning = `Delete ${ids.length} selected record(s)? This cannot be undone.`;
     if (!confirm(warning)) return;
+    bulkMutationPending.current = true;
     setBulkDeleting(true);
-    const { error } = await supabase.from(table as any).delete().in("id", ids);
-    setBulkDeleting(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Deleted ${ids.length} record(s)`);
+    let outcome: Awaited<ReturnType<typeof confirmBulk>>;
+    try {
+      outcome = await confirmBulk(ids, "delete");
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkDeleting(false);
+    }
+    // Even after an unconfirmed response, selection MUST be cleared to avoid
+    // an accidental one-click replay against an already committed batch.
     setSelected(new Set());
-    load();
+    await load();
+    if (!outcome.complete) {
+      toast.error(`Only ${outcome.confirmedCount} of ${ids.length} deletions explicitly confirmed. ${outcome.message} Inspect refreshed records and reselect manually; no automatic retry.`);
+      return;
+    }
+    toast.success(`Deleted ${outcome.confirmedCount} record(s)`);
   };
 
   const closeBulkEdit = () => {
@@ -511,26 +546,42 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const applyBulkEdit = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (bulkMutationPending.current) return;
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
-      ((field.name === "joining_status" && bulkEditValue === "joined") ||
-       (["joining_status","offer_status"].includes(field.name) &&
-        rows.some((row) => selected.has(row.id) && row.joining_status === "joined")))) {
+        ((field.name === "joining_status" && bulkEditValue === "joined") ||
+          (["joining_status","offer_status"].includes(field.name) &&
+           rows.some((row) => selected.has(row.id) && row.joining_status === "joined")))) {
       toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
     }
-    let v = bulkEditValue;
-    if (v === "" || v === undefined) v = null;
-    if (field.type === "number" && v !== null) v = Number(v);
+    let value = bulkEditValue;
+    if (value === "" || value === undefined) value = null;
+    if (field.type === "number" && value !== null) {
+      value = Number(value);
+      if (!Number.isFinite(value)) {
+        toast.error(`${field.label} must be a valid number.`);
+        return;
+      }
+    }
+    bulkMutationPending.current = true;
     setBulkEditSaving(true);
-    const { error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids);
-    setBulkEditSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Updated ${field.label} for ${ids.length} record(s)`);
+    let outcome: Awaited<ReturnType<typeof confirmBulk>>;
+    try {
+      outcome = await confirmBulk(ids, "update", { [field.name]: value });
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkEditSaving(false);
+    }
     setSelected(new Set());
+    await load();
+    if (!outcome.complete) {
+      toast.error(`Only ${outcome.confirmedCount} of ${ids.length} updates explicitly confirmed. ${outcome.message} Inspect refreshed records and reselect manually; no automatic retry.`);
+      return;
+    }
+    toast.success(`Updated ${field.label} for ${outcome.confirmedCount} record(s)`);
     closeBulkEdit();
-    load();
   };
 
   return (
