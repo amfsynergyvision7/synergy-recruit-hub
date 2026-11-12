@@ -470,4 +470,106 @@ BEGIN
  SELECT sum(total_candidates) INTO total FROM public.recruiter_performance;
  IF total<>2 THEN RAISE EXCEPTION 'Invented recruiter metrics mismatch'; END IF;
 END $test$;
+-- Second phase: actual invoker-view behavior under synthetic RLS and a non-owner role.
+CREATE ROLE authenticated;
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT SELECT ON public.profiles,public.user_roles,public.candidates TO authenticated;
+GRANT SELECT ON public.available_recruiters,public.recruiter_performance,public.recruiter_performance_with_names,public.recruiter_stats,public.recruiter_summary TO authenticated;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.candidates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY profiles_actor_read ON public.profiles FOR SELECT TO authenticated
+ USING (id=current_setting('app.synthetic_actor',true)::uuid OR
+ current_setting('app.synthetic_actor',true)::uuid='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+CREATE POLICY roles_actor_read ON public.user_roles FOR SELECT TO authenticated
+ USING (user_id=current_setting('app.synthetic_actor',true)::uuid OR
+ current_setting('app.synthetic_actor',true)::uuid='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+CREATE POLICY candidates_actor_read ON public.candidates FOR SELECT TO authenticated
+ USING (assigned_recruiter=current_setting('app.synthetic_actor',true)::uuid OR
+ current_setting('app.synthetic_actor',true)::uuid='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa');
+-- Every assertion uses an actual non-owner PostgreSQL actor and RLS.
+SET LOCAL ROLE authenticated;
+SET LOCAL app.synthetic_actor = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>2 THEN RAISE EXCEPTION 'synthetic admin: view % expected 2, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '11111111-1111-4111-8111-111111111111';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>1 THEN RAISE EXCEPTION 'synthetic recruiter A: view % expected 1, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '22222222-2222-4222-8222-222222222222';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>1 THEN RAISE EXCEPTION 'synthetic recruiter B: view % expected 1, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '33333333-3333-4333-8333-333333333333';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>0 THEN RAISE EXCEPTION 'synthetic finance: view % expected 0, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '44444444-4444-4444-8444-444444444444';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>0 THEN RAISE EXCEPTION 'synthetic operations: view % expected 0, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '55555555-5555-4555-8555-555555555555';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>0 THEN RAISE EXCEPTION 'synthetic pending recruiter: view % expected 0, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '66666666-6666-4666-8666-666666666666';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>0 THEN RAISE EXCEPTION 'synthetic inactive recruiter: view % expected 0, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '77777777-7777-4777-8777-777777777777';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>0 THEN RAISE EXCEPTION 'synthetic viewer: view % expected 0, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+SET LOCAL app.synthetic_actor = '88888888-8888-4888-8888-888888888888';
+DO $scope$
+DECLARE name text; seen integer;
+BEGIN
+ FOREACH name IN ARRAY ARRAY['available_recruiters','recruiter_performance','recruiter_performance_with_names','recruiter_stats','recruiter_summary'] LOOP
+  EXECUTE format('SELECT count(*) FROM public.%I',name) INTO seen;
+  IF seen<>0 THEN RAISE EXCEPTION 'synthetic missing profile: view % expected 0, got %',name,seen; END IF;
+ END LOOP;
+END $scope$;
+RESET ROLE;
+-- The entire exercise (roles, identities, views, policies, rows) is unconditionally discarded.
 ROLLBACK;
