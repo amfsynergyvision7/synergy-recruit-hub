@@ -13,3 +13,7 @@ Official docs: https://supabase.com/docs/guides/database/views (security_invoker
 ## Independent 13-view source-shaped regression
 
 `compose-13-view-review.mjs` injects the new view ACL hardening after the existing Build40 source-derived 19-table/13-view security-invoker and owner/role fixture, before its final transaction ROLLBACK. This standalone test is independent of the full nine-source release integration, giving an additional validation of the exact original view SQL and the 13×3 ACL postflight. It performs zero persistent writes.
+
+## Browser consumer regression check
+
+The added `view-consumer-contract.test.mjs` checks that all 13 production-derived view names remain covered by Build49's `security_invoker` conversion, then scans checked-in browser code for literal direct `.from('view').insert/update/upsert/delete` writes. It cannot detect dynamic or external writers and is **not genuine hosted Auth acceptance**. It is one more static source guard alongside the independent PostgreSQL 13-view role tests.
