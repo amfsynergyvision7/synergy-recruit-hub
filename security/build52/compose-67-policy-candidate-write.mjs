@@ -60,12 +60,7 @@ BEGIN
  IF a_count<>3 THEN RAISE EXCEPTION 'Expected three candidate audit records, got %',a_count; END IF;
 END $b52_full$;
 `;
-// Use replacer functions: SQL regex literals can contain "
-const output="/tmp/build52-full-policy-candidate-write.integration.sql";
-writeFileSync(output,composed);
-process.stdout.write("Composed Build52 full 67 -> 35 policy transaction with candidate RPC and assertions\n");
-" and MUST NOT
-// be interpreted by JavaScript as String.replace suffix substitutions.
+// Use callback replacements to preserve SQL literal '$' regex operators.
 const composed=prior.replace(anchor,()=>before+"\n"+anchor)
                     .replace(finish,()=>cases+finish);
 const output="/tmp/build52-full-policy-candidate-write.integration.sql";
