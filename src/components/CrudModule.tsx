@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON, LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED, FINANCIAL_JOINED_HOLD_REASON } from "@/lib/release-safety";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON, LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED, FINANCIAL_JOINED_HOLD_REASON, LEGACY_BILLING_MUTATIONS_PAUSED, BILLING_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { saveCandidateRecord } from "@/lib/candidate-write";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -139,8 +139,9 @@ function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
 export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
   const { role } = useAuth();
   const candidateMutationPaused = module === "candidates" && LEGACY_CANDIDATE_WRITES_PAUSED;
-  const editable = canEdit(role, module) && !candidateMutationPaused;
-  const deletable = canDelete(role) && !candidateMutationPaused;
+  const billingMutationPaused = module === "billing" && LEGACY_BILLING_MUTATIONS_PAUSED;
+  const editable = canEdit(role, module) && !candidateMutationPaused && !billingMutationPaused;
+  const deletable = canDelete(role) && !candidateMutationPaused && !billingMutationPaused;
   const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -261,6 +262,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const save = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     // Joined offers currently trigger BOTH legacy billing handlers. This
     // checks the submitted form and stored record, not just changed fields:
     // the old offer trigger runs on any status-column UPDATE, including an
@@ -367,6 +369,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const remove = async (row: any) => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
         row.joining_status === "joined") {
       toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
@@ -478,6 +481,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const bulkDelete = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
         rows.some((row) => selected.has(row.id) && row.joining_status === "joined")) {
       toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
@@ -506,6 +510,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   const applyBulkEdit = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
@@ -770,6 +775,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       </div>
 
       {candidateMutationPaused && <Badge variant="secondary">{CANDIDATE_MUTATION_HOLD_REASON}</Badge>}
+      {billingMutationPaused && <Badge variant="secondary">{BILLING_MUTATION_HOLD_REASON}</Badge>}
       {module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
         <Badge variant="secondary">{FINANCIAL_JOINED_HOLD_REASON}</Badge>}
       {!editable && !candidateMutationPaused && (

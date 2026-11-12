@@ -14,6 +14,10 @@ export const LEGACY_BULK_IMPORT_WRITES_PAUSED = true as const;
 // This is a presentation hold only; the review SQL adds an independent
 // BEFORE-trigger gate that also protects non-browser and privileged callers.
 export const LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED = true as const;
+// A finance policy has not authorized manual invoices or payment edits.
+export const LEGACY_BILLING_MUTATIONS_PAUSED = true as const;
+export const BILLING_MUTATION_HOLD_REASON =
+  "Billing creation, payment changes and deletion are view-only pending independent finance and security approval.";
 export const FINANCIAL_JOINED_HOLD_REASON =
   "Joined offer transitions and edits are paused pending financial approval and independent authorization testing.";
 

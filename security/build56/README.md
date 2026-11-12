@@ -12,3 +12,7 @@ The handlers contain **different deduplication criteria** (candidate UUID vs off
 The new guard is one trigger function plus two trigger attachments. It does NOT replace statutory billing logic or approve any fee/tax rates, and it does not prevent a trusted database administrator from manually bypassing triggers. Review existing joined rows and downstream jobs independently before activation.
 
 This fragment is **NOT deployed** to production or staging. The source-fingerprint query is SELECT-only; it must return `MATCH_SOURCE_ONLY_NOT_APPROVAL` to proceed with *further review*, never to authorize rollout. Synthetic PostgreSQL 17 tests prove original double-bill behavior and held transitions in one outer ROLLBACK. Formal hosted UAT remains 0/140.
+
+## Build56 additional frontend safety: billing view-only
+
+The draft review interface also holds **manual billing create/edit/delete and payment-status updates** behind unconditional `LEGACY_BILLING_MUTATIONS_PAUSED=true`, rendering the Billing screen view-only. The two joined-stage offer and candidate holds remain enabled. These browser flags are **presentation-only**; they are not production authorization and do not alter any live finance grants. A separately approved backend billing ACL and finance workflow decision is a mandatory release gate.

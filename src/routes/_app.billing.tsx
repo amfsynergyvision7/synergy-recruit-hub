@@ -15,7 +15,7 @@ function Page() {
   return (
     <CrudModule
       title="Billing & Invoices"
-      description="Track invoices, placement fees, GST and payment status."
+      description="Review existing invoices and payment status. Financial changes are paused pending separate finance approval."
       table="billing"
       module="billing"
       searchFields={["invoice_number","payment_status"]}

@@ -46,3 +46,14 @@ test("browser offer joined status remains disabled and bulk guarded without back
  assert.doesNotMatch(offers,/\{ value:"joined", label:"Joined" \}/);
  assert.match(offers,/Joined transitions and automatic billing require separate financial approval/);
 });
+\ntest("billing UI remains read-only until separate finance approval",()=>{
+ const safety=read("src/lib/release-safety.ts");
+ const crud=read("src/components/CrudModule.tsx");
+ const billing=read("src/routes/_app.billing.tsx");
+ assert.match(safety,/LEGACY_BILLING_MUTATIONS_PAUSED = true as const/);
+ assert.match(crud,/billingMutationPaused = module === "billing" && LEGACY_BILLING_MUTATIONS_PAUSED/);
+ assert.match(crud,/!candidateMutationPaused && !billingMutationPaused/);
+ assert.match(crud,/if \(billingMutationPaused\) \{ toast\.error\(BILLING_MUTATION_HOLD_REASON\); return; \}/);
+ assert.match(crud,/\{billingMutationPaused && <Badge/);
+ assert.match(billing,/Financial changes are paused pending separate finance approval/);
+});
