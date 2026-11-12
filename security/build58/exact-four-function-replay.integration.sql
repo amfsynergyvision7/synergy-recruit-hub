@@ -138,7 +138,7 @@ BEGIN
  SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace s ON s.oid=p.pronamespace
  WHERE s.nspname='public' AND p.proname IN
  ('get_recruiter_stats','search_candidates','set_assigned_recruiter','track_stage_changes')
- AND p.proconfig @> ARRAY['search_path=pg_catalog,public']::text[];
+ AND p.proconfig @> ARRAY['search_path=pg_catalog, public']::text[];
  IF n<>4 THEN RAISE EXCEPTION 'Build58 not all function search paths fixed'; END IF;
  FOR f IN SELECT p.oid FROM pg_proc p JOIN pg_namespace s ON s.oid=p.pronamespace
  WHERE s.nspname='public' AND p.proname IN
