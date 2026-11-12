@@ -75,6 +75,7 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
  };
  const bearer=[];
  const ids=new Set();
+ const hostedIds=[];
  for(let i=0;i<9;i++){
   const response=await call(origin+"/auth/v1/token?grant_type=password",{
    method:"POST",headers:{apikey:key,"Content-Type":"application/json"},
@@ -91,6 +92,7 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
   const user=await userResponse.json().catch(()=>stop("malformed GoTrue subject"));
   if(user?.id!==session.user.id||ids.has(user.id))stop("GoTrue subject mismatch or reused identity");
   ids.add(user.id);
+  hostedIds.push(user.id);
   bearer.push(session.access_token);
  }
  const outcomes=[];
@@ -101,11 +103,24 @@ export async function runHostedReadOnlyMatrix(config,http=fetch,input=matrix){
    headers:{apikey:key,Authorization:"Bearer "+bearer[index],Accept:"application/json"}
   });
   let count=null;
+  let exactCandidateOwnership=true;
   if(response.status===200){
    const rows=await response.json().catch(()=>null);
-   if(Array.isArray(rows))count=rows.length;
+   if(Array.isArray(rows)){
+    count=rows.length;
+    // The source-shaped synthetic fixture sets recruiter A/B candidate IDs
+    // to their GoTrue user IDs. Counting one visible row alone is insufficient:
+    // an unauthorized recruiter's row could be returned instead.
+    if(c.table==="candidates" && index<=2){
+     const expectedIds=index===0?[hostedIds[1],hostedIds[2]]:[hostedIds[index]];
+     const found=rows.map(row=>row?.id);
+     exactCandidateOwnership=found.length===expectedIds.length &&
+       new Set(found).size===expectedIds.length &&
+       expectedIds.every(id=>found.includes(id));
+    }
+   }
   }
-  const passed=response.status===200&&count===c.expected;
+  const passed=response.status===200&&count===c.expected&&exactCandidateOwnership;
   outcomes.push({case_id:c.case_id,expected:c.expected,observed_count:count,
    response_status:response.status,pass:passed});
  }
