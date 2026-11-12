@@ -121,8 +121,12 @@ export async function runHostedReadOnlyPreflight(config,http=fetch){
  const anonResponse=await safeHttp(base+"/rest/v1/candidates?"+query(ownedId),
   {method:"GET",headers:{apikey:key,Authorization:"Bearer "+key}});
  if(anonResponse.ok){
-  const anonRows=await anonResponse.json();
+  const anonRows=await anonResponse.json().catch(()=>fail("anonymous candidate read malformed"));
   if(!Array.isArray(anonRows)||anonRows.length!==0)fail("anonymous candidate visibility");
+ }else if(anonResponse.status!==401 && anonResponse.status!==403){
+  // A missing table (404), transient server failure (5xx) or other error is
+  // not evidence of anonymous isolation. Require an explicit authorization denial.
+  fail("anonymous candidate check unavailable HTTP "+anonResponse.status);
  }
  checks++;
  // Never return UUIDs, emails, JWTs, raw records or passwords to CI logs.
