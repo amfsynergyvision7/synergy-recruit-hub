@@ -24,3 +24,7 @@ and a surrounding ROLLBACK**.
 
 No hosted staging/production writes, migration activation or candidate deletion
 is approved. Separate legal/retention/finance sign-off is still necessary.
+
+## Production FK and trigger fingerprint
+
+A *read-only* live catalog query on 2026-11-12 found exactly **11 candidate-linked foreign keys**, MD5 `84fe09e127229b017c85b05d9a49da21`; and exactly **7 candidate triggers**, MD5 `b0d55f339dc38c0a2efd61dfe82f0b6a`. `live-dependency-preflight.sql` returns `MATCH_READ_ONLY_NOT_RELEASE_AUTHORIZATION` only for those exact definitions and `DRIFT_BLOCK_RELEASE` otherwise. It is SELECT-only and is not a substitute for approved backup or hosted Auth tests. Regenerate the baseline through fresh read-only production inspection before any later authorized deployment.
