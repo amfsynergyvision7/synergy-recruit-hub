@@ -36,3 +36,7 @@ The human-review release package now includes a sixth SHA256-pinned source fragm
 ## Build57: Server-authoritative invoice write lockdown
 
 The combined review-only migration now SHA256-pins a seventh source: `security/build57/billing-write-lockdown-review-only.sql`. It revokes direct invoice INSERT/UPDATE/DELETE/TRUNCATE plus explicit column grants for all API roles including service_role, and installs separate always-fail BEFORE triggers for row DML and TRUNCATE. The generated postflight insists both triggers are enabled and **no API role retains table/column write grants**. The disposable full 67-to-35 RLS fixture verifies this while retaining pre-existing synthetic invoices. This may break legitimate service-role finance jobs and therefore **requires separate finance/operations approval before any actual deployment**. No production/staging mutation is authorized.
+
+## Build58: 8th source-pinned legacy function hardening
+
+The latest combined review migration now includes eight SHA256-pinned SQL fragments. Build58 validates production source fingerprint `ea5005b2208a2d0891e3f8004fd7de80` and the exact post-Build49 intermediate fingerprint `f0e40a79b530175737b188ab4bb479d2`, then fixes all four mutable-search-path function configurations while removing anonymous direct execution privileges. The combined synthetic original 67→35 policy rehearsal PASSED in a single transaction that ROLLS BACK. This does not mean the live security advisor's four issues have been remediated; production remains unchanged.

@@ -26,7 +26,8 @@ test("atomic bundle includes EXACT four pinned sources, all grants and counts",(
  assert.equal(m.candidate_rpc_count,4);
  assert.equal(m.financial_hold_trigger_count,2);
  assert.equal(m.billing_hold_trigger_count,2);
- assert.equal(Object.keys(m.source_sha256).length,7);
+ assert.equal(m.hardened_legacy_function_count,4);
+ assert.equal(Object.keys(m.source_sha256).length,8);
  const sql=read(dir+"/release-review-hold.sql");
  const review=read(dir+"/release-candidate-HUMAN-REVIEW.md");
  assert.equal(m.review_bundle_sha256,sha(sql));
@@ -49,6 +50,8 @@ test("rehearsal contains exact policies, candidate tests, and only ROLLBACK",()=
  assert.ok(sql.includes("DO $b55_full_release$"));
  assert.ok(sql.includes("DO $b56_full_finance$"));
  assert.ok(sql.includes("DO $build57_full_billing$"));
+ assert.ok(sql.includes("DO $b58_before$"));
+ assert.ok(sql.includes("DO $b58_after$"));
  assert.ok(sql.includes("a70190f31ed8436b2989082898a02b51"));
  assert.equal(sha(sql),read(dir+"/rehearsal-sha256.txt").trim());
 });

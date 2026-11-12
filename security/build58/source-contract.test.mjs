@@ -10,7 +10,8 @@ test("four drift-checked function fixes remove anon and pin qualified paths",()=
   assert.match(sql,new RegExp("ALTER FUNCTION public\\."+x+"\\("));
  assert.equal((sql.match(/SET search_path=pg_catalog,public;/g)||[]).length,4);
  assert.match(sql,/FROM PUBLIC,anon/);
- assert.match(sql,/REVOKE ALL ON FUNCTION public\.set_assigned_recruiter/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION public\.get_recruiter_stats/);
+ assert.match(sql,/public\.set_assigned_recruiter\(\),/);
  assert.match(sql,/p\.proconfig @> ARRAY/);
 });
 test("real source fixture is a single rollback with behavior tests",()=>{
