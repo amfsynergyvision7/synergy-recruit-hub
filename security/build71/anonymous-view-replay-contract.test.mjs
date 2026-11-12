@@ -57,12 +57,14 @@ test("actual current production metadata confirms all thirteen anon-readable, no
  assert.equal(acl.view_count,13);
  assert.equal(acl.anon_select_granted_count,13);
  assert.equal(acl.noninvoker_views,13);
+ assert.equal(acl.all_views_owned_by_postgres,true);
  assert.equal(acl.remediation_accepted,0);
  assert.equal(acl.live_database_modified,false);
  assert.deepEqual(acl.observed_views.map(x=>x.view_name),inventory.production_public_views);
  for(const row of acl.observed_views){
   assert.equal(row.anon_select_granted,true,row.view_name);
   assert.equal(row.security_invoker,false,row.view_name);
+  assert.equal(row.view_owner_role,"postgres",row.view_name);
   assert.match(row.definition_md5,/^[0-9a-f]{32}$/);
   assert.equal(row.definition_md5,source.source_views.find(v=>v.name===row.view_name)?.md5);
  }
