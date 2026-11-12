@@ -26,7 +26,7 @@ const fake=(options={})=>{
   calls.push({path:u.pathname,method:init.method,redirect:init.redirect});
   assert.equal(u.origin,"https://dhlhlasnaapzckjyvffn.supabase.co");
   assert.equal(init.redirect,"error");
-  assert.ok(["GET","POST"].includes(init.method));
+  assert.ok(["GET","HEAD","POST"].includes(init.method));
   if(u.pathname==="/auth/v1/token"){
    assert.equal(init.method,"POST");
    const p=JSON.parse(init.body),idx=config.credentials.findIndex(x=>x.email===p.email);
@@ -63,15 +63,23 @@ const fake=(options={})=>{
    if(options.badRoleOwner===idx&&rows.length)rows[0].user_id=subjects[(idx+1)%9];
    return {ok:true,status:200,json:async()=>rows};
   }
-  assert.equal(init.method,"GET");
+  const candidateIds=table==="candidates"&&idx<=2;
+  assert.equal(init.method,candidateIds?"GET":"HEAD");
+  if(!candidateIds)assert.equal(init.headers.Prefer,"count=exact");
   assert.equal(u.search,"?select=id");
   const entry=cases[idx*15+tables.indexOf(table)];
   if(!entry)throw Error("unexpected case");
   const status=(options.badStatus && options.badStatus.case_id===entry.case_id)?
     options.badStatus.status:200;
   const count=(options.badCount===entry.case_id)?entry.expected+1:entry.expected;
+  if(!candidateIds){
+   const range=options.malformed===entry.case_id?"invalid":
+     count===0?"*/0":"0-"+(Math.min(count,1000)-1)+"/"+count;
+   return {ok:status===200,status,headers:{get:key=>key==="content-range"&&status===200?range:null},
+    json:async()=>{throw Error("HEAD data body must never be parsed")}};
+  }
   let body=Array.from({length:count},()=>({id:"synthetic-row-never-exported"}));
-  if(table==="candidates" && idx<=2 && count===entry.expected){
+  if(count===entry.expected){
    const expectedIds=idx===0?[subjects[1],subjects[2]]:[subjects[idx]];
    body=expectedIds.map(id=>({id}));
   }
@@ -102,7 +110,8 @@ test("full nine-user hosted read suite returns 135 anonymous-safe case outcomes 
  assert.equal(calls.length,171);
  assert.ok(calls.every(c=>c.redirect==="error"));
  assert.equal(calls.filter(c=>c.method==="POST").length,9);
- assert.equal(calls.filter(c=>c.method==="GET").length,162);
+ assert.equal(calls.filter(c=>c.method==="GET").length,30);
+ assert.equal(calls.filter(c=>c.method==="HEAD").length,132);
  const serialized=JSON.stringify(result);
  assert.doesNotMatch(serialized,/sim-token|@example\.invalid|synthetic-row-never-exported/);
  for(const subject of subjects)assert.ok(!serialized.includes(subject));
@@ -188,4 +197,12 @@ test("a valid GoTrue session for the wrong historical slot cannot pass",async()=
  const {http}=fake({wrongPinnedSubject:0});
  await assert.rejects(runHostedReadOnlyMatrix(config,http),
   /GoTrue user UUID does not match pinned historical fixture slot/);
+});
+
+test("signed historical matrix fails closed on missing exact-count HEAD metadata",async()=>{
+ const {http,calls}=fake({malformed:"B41-SIGNED-READ-002"});
+ const result=await runHostedReadOnlyMatrix(config,http);
+ assert.equal(result.read_case_failed,1);
+ assert.equal(result.case_results.find(x=>x.case_id==="B41-SIGNED-READ-002")?.observed_count,null);
+ assert.equal(calls.filter(x=>x.method==="HEAD").length,132);
 });
