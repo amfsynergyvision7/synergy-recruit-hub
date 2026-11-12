@@ -764,7 +764,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validate non-destructive candidate impact RPC and exact live FK/trigger catalog source
-        run: node --test security/build55/source-contract.test.mjs security/build55/catalog-contract.test.mjs
+        run: node --test security/build55/source-contract.test.mjs security/build55/catalog-contract.test.mjs security/build55/pr11-confirmed-ux.test.mjs
       - name: Rehearse administrative read-only deletion impact, cascade loss and billing detach in disposable rollback
         env:
           PGPASSWORD: postgres
