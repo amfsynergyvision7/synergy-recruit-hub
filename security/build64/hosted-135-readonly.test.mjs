@@ -43,8 +43,15 @@ const fake=(options={})=>{
   const status=(options.badStatus && options.badStatus.case_id===entry.case_id)?
     options.badStatus.status:200;
   const count=(options.badCount===entry.case_id)?entry.expected+1:entry.expected;
-  const body=options.malformed===entry.case_id?{bad:"shape"}:
-    Array.from({length:count},()=>({id:"synthetic-row-never-exported"}));
+  let body=Array.from({length:count},()=>({id:"synthetic-row-never-exported"}));
+  if(table==="candidates" && idx<=2 && count===entry.expected){
+   const expectedIds=idx===0?[subjects[1],subjects[2]]:[subjects[idx]];
+   body=expectedIds.map(id=>({id}));
+  }
+  if(options.badCandidateId===entry.case_id && body.length>0){
+   body[0]={id:subjects[4]};
+  }
+  if(options.malformed===entry.case_id)body={bad:"shape"};
   return {ok:status===200,status,json:async()=>body};
  }
  return {calls,http};
@@ -77,7 +84,8 @@ test("wrong row counts, missing table and malformed responses are failed cases, 
   {badCount:"B41-SIGNED-READ-017"},
   {badStatus:{case_id:"B41-SIGNED-READ-023",status:404}},
   {badStatus:{case_id:"B41-SIGNED-READ-024",status:500}},
-  {malformed:"B41-SIGNED-READ-031"}
+  {malformed:"B41-SIGNED-READ-031"},
+  {badCandidateId:"B41-SIGNED-READ-019"}
  ]){
   const {http}=fake(condition);
   const result=await runHostedReadOnlyMatrix(config,http);
