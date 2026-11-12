@@ -61,6 +61,6 @@ To execute in an approved isolated server environment with the repository's depe
 
 **Formal counters remain: 0/48, 0/140, 0/9, 0/6.** Infrastructure progress: two real nonproduction warnings removed, 64 actual denied SQL probes, executable guarded Auth Admin tooling prepared; accepted release progress: zero signed UAT cases.
 
-**Conditional planning range:** approx. 4–9+ substantive CRM iterations to an authorized `main` merge and 14–29+ for the entire six-workstream programme **only if** Auth credentials, independent review and sign-off dependencies become available. This range is uncertain and should not be treated as automatic reduction or a deadline; if they do not, no finite build estimate is defensible.
+**Conditional planning range:** approx. 5–10+ substantive CRM iterations to an authorized `main` merge and 15–30+ for the entire six-workstream programme **only if** Auth credentials, independent review and sign-off dependencies become available. This range is uncertain and should not be treated as automatic reduction or a deadline; if they do not, no finite build estimate is defensible.
 
 Source: PR #12 and issues #13/#14. Production-release-hold intentionally active.
