@@ -1106,6 +1106,33 @@ jobs:
       - name: Validate historical 135-case source and read-only hosted runner with invented users
         run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs security/build74/live-release-source-fingerprints.test.mjs security/build75/trigger-and-hosted-fixture-contract.test.mjs security/build75/auth-bootstrap-hardening-contract.test.mjs security/build75/inert-defaults-contract.test.mjs security/build77/source-contract.test.mjs security/build78/source-contract.test.mjs security/build78/provision-nine-auth-users.test.mjs security/build78/seed-inert-base-fixture.test.mjs security/build79/compose-and-seed-remaining-fixture.test.mjs security/build79/live-source-column-fk-check-contract.test.mjs security/build79/minimal-three-policy-review-only.test.mjs security/build79/full-synthetic-postseed-contract.test.mjs security/build80/role-read-oracle.test.mjs security/build80/15-surface-read-policy.test.mjs security/build80/role-coverage-contract.test.mjs security/build80/pg17-135-read-rehearsal-contract.test.mjs security/build81/server-unique-role-gate.test.mjs security/build81/source-shaped-38-fixture.test.mjs security/build81/candidate-provider-error-redaction.test.mjs security/build81/pg17-full-source-135-rls-addon.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build83/sync-configuration-and-duplicate-privacy.test.mjs security/build84/remote-download-boundary.test.mjs security/build85/core-data-access-privacy.test.mjs security/build86/crm-email-record-scope.test.mjs
 
+  build104-verified-public-application-atomic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse service-only proof and atomic applicant submissions (disposable PostgreSQL 17)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build104/verified-public-application.integration.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace='crm_private'::regnamespace AND c.relname='verified_public_applications'" 2>/dev/null || echo '0')" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
+
   substantive-security-summary:
     if: always()
     needs:
@@ -1141,6 +1168,7 @@ jobs:
       - build59-exact-13-view-dml-lockdown
       - build60-pr-reconciliation-and-recovery
       - build64-hosted-readonly-135-case-contract
+      - build104-verified-public-application-atomic
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -1155,10 +1183,10 @@ jobs:
           failed={name:state for name,state in results.items() if state!='success'}
           summary={
               "source_sha": os.environ.get("GITHUB_SHA",""),
-              "expected_substantive_jobs": 32,
+              "expected_substantive_jobs": 33,
               "observed_substantive_jobs": len(results),
               "passed_jobs": len(results)-len(failed),
-              "all_substantive_pass": len(results)==32 and not failed,
+              "all_substantive_pass": len(results)==33 and not failed,
               "job_outcomes": results,
               "release_hold_excluded": True,
               "hosted_formal_acceptance": False
@@ -1166,11 +1194,11 @@ jobs:
           with open("build65-substantive-ci-summary.json","w") as target:
               json.dump(summary,target,sort_keys=True,indent=2)
           print("Substantive security CI: "+str(summary["passed_jobs"])+"/"+str(summary["observed_substantive_jobs"])+" jobs succeeded")
-          if len(results)!=32 or failed:
+          if len(results)!=33 or failed:
               print("Substantive CI failures or missing jobs: "+str(failed),file=sys.stderr)
               sys.exit(1)
           PY
-      - name: Archive 32-job substantive CI evidence without secrets
+      - name: Archive 33-job substantive CI evidence without secrets
         if: always()
         uses: actions/upload-artifact@v4
         with:
