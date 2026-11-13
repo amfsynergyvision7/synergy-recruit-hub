@@ -54,6 +54,51 @@ export function verifyIndependentReleaseGate({pr,reviews,main,context}){
  return {independentApproved:true,protectedMain:true,approvedPr:EXPECTED_PR};
 }
 
+
+/**
+ * Build90: prior PR approval cannot authorize later changes to executable
+ * bootstrap source, dependency locks, workflow or release evidence.
+ * This read-only SHA comparison runs before the step with lab credentials.
+ */
+export const PINNED_RELEASE_PATHS=Object.freeze([
+  "package.json",
+  "package-lock.json",
+  ".github/workflows/nonprod-synthetic-auth-uat.yml",
+  "security/nonprod-auth-uat/README.md",
+  "security/nonprod-auth-uat/build88-hosted-preflight.readonly.sql",
+  "security/nonprod-auth-uat/build88-live-preflight-observation.json",
+  "security/nonprod-auth-uat/build89-hosted-preseed-two-hardenings.readonly.sql",
+  "security/nonprod-auth-uat/build89-live-hardened-preseed-observation.json",
+  "security/nonprod-auth-uat/compose-and-seed-remaining-fixture.mjs",
+  "security/nonprod-auth-uat/independent-release-approval.mjs",
+  "security/nonprod-auth-uat/provision-nine-auth-users.mjs",
+  "security/nonprod-auth-uat/release-gate.test.mjs",
+  "security/nonprod-auth-uat/run-once.mjs",
+  "security/nonprod-auth-uat/seed-inert-base-fixture.mjs"
+]);
+export function verifyPinnedReviewedSource(approvedTree,currentTree){
+ if(approvedTree?.truncated!==false||currentTree?.truncated!==false||
+    !Array.isArray(approvedTree.tree)||!Array.isArray(currentTree.tree))
+   throw new Error('Complete approved and deployed Git trees required');
+ const extract=tree=>{
+   const found=new Map();
+   for(const item of tree.tree){
+     if(!PINNED_RELEASE_PATHS.includes(item?.path))continue;
+     if(found.has(item.path)||item.type!=='blob'||
+        !/^[a-f0-9]{40}$/.test(item.sha??''))
+       throw new Error('Malformed reviewed release source inventory');
+     found.set(item.path,item.sha);
+   }
+   return found;
+ };
+ const approved=extract(approvedTree),running=extract(currentTree);
+ for(const path of PINNED_RELEASE_PATHS){
+   if(!approved.has(path)||!running.has(path)||approved.get(path)!==running.get(path))
+     throw new Error('Unreviewed change or missing release source file: '+path);
+ }
+ return {reviewedSourceFiles:PINNED_RELEASE_PATHS.length};
+}
+
 async function getGitHubJson(path,token){
  const url='https://api.github.com/repos/'+EXPECTED_REPO+path;
  const res=await fetch(url,{
@@ -88,7 +133,18 @@ export async function assertGitHubReleaseGate(env=process.env){
    getGitHubJson('/pulls/'+EXPECTED_PR+'/reviews?per_page=100',token),
    getGitHubJson('/branches/main',token)
  ]);
- return verifyIndependentReleaseGate({pr,reviews,main,context});
+ const approved=verifyIndependentReleaseGate({pr,reviews,main,context});
+ // GitHub's immutable commit API returns the tree SHA for each exact commit.
+ const getSourceTree=async sha=>{
+   const commit=await getGitHubJson('/git/commits/'+sha,token);
+   if(commit?.sha!==sha||!/^[a-f0-9]{40}$/.test(commit?.tree?.sha??''))
+     throw new Error('Source commit is not independently verifiable');
+   return getGitHubJson('/git/trees/'+commit.tree.sha+'?recursive=1',token);
+ };
+ const [approvedTree,currentTree]=await Promise.all([
+   getSourceTree(pr.head.sha),getSourceTree(context.sha)
+ ]);
+ return {...approved,...verifyPinnedReviewedSource(approvedTree,currentTree)};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  assertGitHubReleaseGate().then(()=>{
