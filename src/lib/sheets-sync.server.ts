@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
-import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR, redactHistoricalIntegrationError, extractApprovedSpreadsheetId, buildSafeSheetValuesPath, approvedCandidateMappingTarget, approvedCandidateHeaderAlias } from "./sync-safety";
+import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR, redactHistoricalIntegrationError, extractApprovedSpreadsheetId, buildSafeSheetValuesPath, approvedCandidateMappingTarget, approvedCandidateHeaderAlias, assertUnambiguousCandidateSheetMapping } from "./sync-safety";
 import { readResponseTextBounded } from "./safe-remote-download.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
@@ -341,6 +341,10 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
     return [[header, normalized]];
   }));
   const mapping: Record<string, string> = { ...autoMap(headers), ...normalizedSaved };
+  // Never consume the atomic row ledger if identity columns are missing
+  // or multiple Sheet labels map to the same candidate database field.
+  // This preflight intentionally precedes all row/RPC writes and cursor moves.
+  assertUnambiguousCandidateSheetMapping(headers, mapping, CANDIDATE_FIELDS);
   if (JSON.stringify(mapping) !== JSON.stringify(savedMapping)) {
     await opts.leaseHeartbeat?.();
     await (supabaseAdmin as any).from("google_integrations").update({ column_mapping: mapping }).eq("id", integ.id).eq("user_id", opts.userId);
