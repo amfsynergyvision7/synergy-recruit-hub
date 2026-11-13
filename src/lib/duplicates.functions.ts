@@ -9,7 +9,9 @@ import { assertApprovedRole } from "./access-gates.server";
 export const scanForDuplicateCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    // Duplicate review returns contact details for up to 5,000 candidates.
+    // Duplicate review returns contact details only for a complete scan of
+    // up to 5,000 admin-visible candidates. Larger or truncated scans fail
+    // closed instead of presenting a misleading partial duplicate review.
     // Only an approved, active, uniquely assigned admin can scan this scope.
     await assertApprovedRole(context.userId, ["admin"]);
     return findDuplicateClusters(context.supabase, context.userId);
