@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {assertExternalEffectReleased,isExternalEffectPaused} from '../../src/lib/external-effects-hold.server.ts';
+import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR} from '../../src/lib/sync-safety.ts';
 
 const file=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const guard=file('src/lib/external-effects-hold.server.ts');
@@ -92,7 +93,13 @@ test('failed sync diagnostics no longer propagate raw provider exception into CR
  const start=sheets.indexOf('export async function runCandidateSync(');
  const end=sheets.indexOf('export async function fetchHeaders(',start);
  const sync=sheets.slice(start,end);
- assert(sync.includes('const message = "Candidate sync failed; review restricted server diagnostics";'));
+ assert(sync.includes('const message = SAFE_CANDIDATE_SYNC_ERROR;'));
+ assert(sheets.includes('message: SAFE_CANDIDATE_SYNC_ERROR }));'));
+ assert(sheets.includes('return sanitizeStoredSyncLogs(data ?? []);'));
+ assert(!sheets.includes('message: e?.message || String(e)'));
+ assert(!sheets.includes('const parts = [error?.message, error?.details, error?.hint, error?.code]'));
+ assert(!sheets.includes('if (error) throw error;'));
+ assert(sheets.includes('const message = SAFE_CANDIDATE_SYNC_ERROR;'));
  assert(!sync.includes('e?.message || String(e)'));
  assert(!sync.includes('console.error("Failed to write sync failure log", logError)'));
 });
@@ -121,4 +128,58 @@ test('Build96 legacy Sheets ownership cannot be inferred from the service-role o
  assert(h.includes('await assertAdminUser(context.userId)'));
  assert(h.includes('user_id: context.userId'));
  assert(h.indexOf('await assertAdminUser(context.userId)')<h.indexOf('saveGoogleIntegrationSettings('));
+});
+
+test('Build97 provider exceptions and historical sync logs cannot expose candidate PII, URLs or credentials',()=>{
+ const secret='Bearer PRIVATE_TOKEN_CANDIDATE_ALICE';
+ const email='candidate.alice@employer.example';
+ const sheet='https://docs.google.com/spreadsheets/d/private-sheet-123/edit';
+ const raw={id:'01234567-89ab-cdef-0123-456789abcdef',module:'candidates',
+  triggered_by:'manual',rows_scanned:7,rows_created:2,rows_updated:1,rows_skipped:4,
+  status:'error',message:'Internal exception for '+email,last_error:secret,
+  errors:[{row:3,message:email+' '+secret+' '+sheet},
+   {row:4,message:sheet}],
+  sheet_url:sheet,user_id:'owner-private',
+  created_at:'2026-11-13T10:00:00.000Z'};
+ const sanitized=sanitizeStoredSyncLogs([raw]);
+ assert.equal(sanitized.length,1);
+ assert.equal(sanitized[0].module,'candidates');
+ assert.equal(sanitized[0].rows_created,2);
+ assert.equal(sanitized[0].status,'error');
+ assert.deepEqual(sanitized[0].errors,[
+  {row:3,message:SAFE_CANDIDATE_SYNC_ERROR},
+  {row:4,message:SAFE_CANDIDATE_SYNC_ERROR}]);
+ const rendered=JSON.stringify(sanitized);
+ for(const secretText of [secret,email,sheet,'owner-private','private-sheet-123'])
+  assert(!rendered.includes(secretText),'Sensitive data escaped redaction');
+ assert.deepEqual(redactSyncErrors(null),[]);
+ assert.deepEqual(redactSyncErrors([{row:-1,message:email}]),
+  [{row:0,message:SAFE_CANDIDATE_SYNC_ERROR}]);
+ assert.throws(()=>redactSyncErrors(Array(1001).fill({row:1,message:secret})),/restricted review/);
+ assert.throws(()=>sanitizeStoredSyncLogs([{errors:Array(1001).fill({row:1})}]),/restricted review/);
+ assert.throws(()=>sanitizeStoredSyncLogs({error:secret}),/readback unavailable/);
+ assert.throws(()=>sanitizeStoredSyncLogs([null]),/readback malformed/);
+});
+test('Build97 unsafe legacy sync error and browser console paths no longer leak account data',()=>{
+ const src=file('src/lib/sheets-sync.server.ts');
+ const unsafe=src.slice(src.indexOf('async function runCandidateSyncUnsafe('),
+   src.indexOf('export async function runCandidateSync('));
+ assert(unsafe.includes('message: SAFE_CANDIDATE_SYNC_ERROR'));
+ assert(!unsafe.includes('result.error_details.push({ row: sheetRowNumber, message: e?.message'));
+ assert(unsafe.includes('last_error: result.error_details.length ? result.error_details[0].message : null'));
+ const logRead=src.slice(src.indexOf('export async function getCandidateSyncLogs()'),
+   src.indexOf('export async function fetchSheetValues('));
+ assert(logRead.includes('return sanitizeStoredSyncLogs(data ?? []);'));
+ assert(logRead.includes('if (error) throw new Error("Sync log retrieval unavailable")'));
+ const format=src.slice(src.indexOf('function formatSupabaseError('),
+   src.indexOf('export interface SyncDiagnostics'));
+ assert(!format.includes('error?.message'));
+ assert(!format.includes('error?.details'));
+ assert(!format.includes('error?.hint'));
+ const ui=file('src/routes/_app.integrations.tsx');
+ assert(!ui.includes('console.info("Google integration save success"'));
+ assert(!ui.includes('console.error("Google integration save error", e)'));
+ assert(!ui.includes('console.error("Google integration save failed", row)'));
+ assert(!ui.includes('toast.error(e?.message'));
+ assert(!ui.includes('row.integration.sheet_url, diagnostics: row.diagnostics'));
 });
