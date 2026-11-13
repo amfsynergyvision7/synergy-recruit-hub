@@ -228,3 +228,27 @@ test('Build106 concurrent public application race harness preserves source-deriv
  assert(careers.includes('assertExternalEffectReleased("public_application")'));
  assert(careers.includes('assertExternalEffectReleased("careers_publication")'));
 });
+
+test('Build107 workflow notification side effects commit only with accepted application and roll back on failure',()=>{
+ const stage=file('security/build105/verified-application-source-trigger.tests.sql');
+ const concurrency=file('security/build106/compose-concurrent-application.mjs');
+ const verify=file('security/build106/verify-concurrent-application.sql');
+ const source=file('security/build44/production-trigger-compat.integration.sql');
+ assert(source.includes('CREATE OR REPLACE FUNCTION public.run_workflow_rules()'));
+ assert(stage.includes('Build107 synthetic stage notification'));
+ assert(stage.includes("INSERT INTO public.workflow_rules("));
+ assert(stage.includes("table_name,field_name,field_value,action_type,notify_target"));
+ assert(stage.includes("'candidates','stage','submitted_to_client','notify','assigned_recruiter'"));
+ assert(stage.includes("FROM public.notifications"));
+ assert(stage.includes("Build107 FAIL: failing application left candidate/submission/history/notification/proof side effects"));
+ assert(stage.includes('ROLLBACK;'));
+ assert(concurrency.includes('Build107 synthetic notification'));
+ assert(concurrency.includes("'candidates','stage','submitted_to_client','notify','assigned_recruiter'"));
+ assert(verify.includes("Build107 FAIL: concurrent claims sent missing/duplicate recruiter notifications"));
+ assert(verify.includes("Build107 FAIL: losing concurrent claims left orphan recruiter notifications"));
+ assert(verify.includes("FROM public.notifications n"));
+ assert(!verify.includes('DELETE FROM public.notifications'));
+ const workflow=file('.github/workflows/security-build34-review.yml');
+ assert(workflow.includes('  build105-source-shaped-public-application:'));
+ assert(workflow.includes('  build106-concurrent-verified-applications:'));
+});
