@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {executionPlan,validateSnapshot,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
+import { verifyIndependentReleaseGate } from './independent-release-approval.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
 const env=()=>{
@@ -156,4 +157,83 @@ test('BUILD88 GitHub manual workflow requires fresh preflight only for write ope
  assert(guard.includes('AMF_UAT_PREFLIGHT_ATTESTATION:'));
  assert(guard.includes('github.ref == '));
  assert(!guard.includes('pull_request:'));
+});
+
+
+const githubGateFixture=()=>{
+ const reviewSha='b'.repeat(40);
+ return {
+  context:{repository:'amfsynergyvision7/synergy-recruit-hub',eventName:'workflow_dispatch',
+   ref:'refs/heads/main',actor:'amfsynergyvision7',sha:'a'.repeat(40)},
+  main:{name:'main',protected:true,commit:{sha:'a'.repeat(40)}},
+  pr:{number:15,merged:true,state:'closed',
+   base:{ref:'main'},head:{ref:'release/nonprod-auth-uat-gate-20261113',sha:reviewSha},
+   user:{login:'amfsynergyvision7'}},
+  reviews:[{user:{login:'independent-approver'},state:'APPROVED',
+   author_association:'COLLABORATOR',commit_id:reviewSha,
+   submitted_at:'2026-11-13T08:00:00Z'}]
+ };
+};
+test('only a protected main branch with current independent approval unlocks real UAT write',()=>{
+ assert.deepEqual(verifyIndependentReleaseGate(githubGateFixture()),
+  {independentApproved:true,protectedMain:true,approvedPr:15});
+});
+test('unprotected or advanced main, wrong actor, nonmanual trigger, wrong repo or branch fail closed',()=>{
+ const x=githubGateFixture();
+ const overrides=[
+  {...x,main:{...x.main,protected:false}},
+  {...x,main:{...x.main,commit:{sha:'c'.repeat(40)}}},
+  {...x,context:{...x.context,actor:'untrusted'}},
+  {...x,context:{...x.context,eventName:'pull_request'}},
+  {...x,context:{...x.context,repository:'other/other'}},
+  {...x,context:{...x.context,ref:'refs/heads/test'}},
+  {...x,context:{...x.context,sha:'invalid'}}
+ ];
+ for(const item of overrides)
+  assert.throws(()=>verifyIndependentReleaseGate(item),/trusted manual|protected/);
+});
+test('unmerged/wrong PR, unreviewed head commit, empty reviewer list are rejected',()=>{
+ const x=githubGateFixture();
+ for(const changes of [
+  {...x,pr:{...x.pr,merged:false}},
+  {...x,pr:{...x.pr,head:{...x.pr.head,sha:'c'.repeat(40)}}},
+  {...x,pr:{...x.pr,number:12}},
+  {...x,pr:{...x.pr,base:{ref:'preview'}}},
+  {...x,reviews:[]},
+  {...x,reviews:Array.from({length:100},()=>x.reviews[0])}
+ ])assert.throws(()=>verifyIndependentReleaseGate(changes),/review|PR|inventory|merged/);
+});
+test('self-review, bot approval, nonmember review and stale SHA do not count as independent',()=>{
+ const x=githubGateFixture();
+ const badReviews=[
+  {...x.reviews[0],user:{login:'amfsynergyvision7'}},
+  {...x.reviews[0],user:{login:'some-bot[bot]'}},
+  {...x.reviews[0],author_association:'NONE'},
+  {...x.reviews[0],commit_id:'c'.repeat(40)}
+ ];
+ for(const review of badReviews)
+  assert.throws(()=>verifyIndependentReleaseGate({...x,reviews:[review]}),/Fresh independent/);
+});
+test('newer CHANGES_REQUESTED or dismissed review invalidates earlier approval',()=>{
+ const x=githubGateFixture();
+ for(const state of ['CHANGES_REQUESTED','DISMISSED']){
+  const later={...x.reviews[0],state,submitted_at:'2026-11-13T09:00:00Z'};
+  assert.throws(()=>verifyIndependentReleaseGate({...x,reviews:[x.reviews[0],later]}),/Fresh independent/);
+ }
+});
+test('source gates require independent PR signature and protected branch BEFORE fixture secret access',()=>{
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
+ assert(workflow.includes('pull-requests: read'));
+ assert(workflow.includes("if: inputs.operation == 'CREATE_NINE_AND_SEED_38'"));
+ assert(workflow.includes('run: node security/nonprod-auth-uat/independent-release-approval.mjs'));
+ assert(workflow.indexOf('run: node security/nonprod-auth-uat/independent-release-approval.mjs') <
+        workflow.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
+ assert(gate.includes("main?.protected"));
+ assert(gate.includes("r.commit_id===pr.head.sha"));
+ assert(gate.includes("r.author_association"));
+ assert(gate.includes("redirect:'error'"));
+ assert(!gate.includes('SUPABASE_SERVICE_ROLE_KEY'));
+ assert(!gate.includes('AMF_NONPROD_SERVICE_ROLE_KEY'));
+ assert(!gate.includes('await fetch(') || gate.includes('method:'));
 });
