@@ -19,6 +19,7 @@ on:
       - 'security/build75/**'
       - 'security/build77/**'
       - 'security/build78/**'
+      - 'security/build79/**'
       - '.github/workflows/security-build65-fast.yml'
   pull_request:
     paths:
@@ -37,6 +38,7 @@ on:
       - 'security/build75/**'
       - 'security/build77/**'
       - 'security/build78/**'
+      - 'security/build79/**'
       - '.github/workflows/security-build65-fast.yml'
 permissions:
   contents: read
@@ -56,7 +58,7 @@ jobs:
           node-version: '22'
       - name: Run historic read-matrix, exact-role fixture, scope-gap and CI integrity tests
         run: |
-          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs security/build74/live-release-source-fingerprints.test.mjs security/build75/trigger-and-hosted-fixture-contract.test.mjs security/build75/auth-bootstrap-hardening-contract.test.mjs security/build75/inert-defaults-contract.test.mjs security/build77/source-contract.test.mjs security/build78/source-contract.test.mjs security/build78/provision-nine-auth-users.test.mjs security/build78/seed-inert-base-fixture.test.mjs
+          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs security/build74/live-release-source-fingerprints.test.mjs security/build75/trigger-and-hosted-fixture-contract.test.mjs security/build75/auth-bootstrap-hardening-contract.test.mjs security/build75/inert-defaults-contract.test.mjs security/build77/source-contract.test.mjs security/build78/source-contract.test.mjs security/build78/provision-nine-auth-users.test.mjs security/build78/seed-inert-base-fixture.test.mjs security/build79/compose-and-seed-remaining-fixture.test.mjs
       - name: Preserve no-secret, offline-only run scope
         run: |
           test -f security/build65/production-hosted-coverage.json
