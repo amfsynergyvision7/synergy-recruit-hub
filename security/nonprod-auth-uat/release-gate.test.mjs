@@ -513,7 +513,7 @@ test('Build93 guarded hosted audit accepts only complete empty or exact 9-user/3
 test('Build95 a complete 9/38 synthetic fixture audit inspects inert billing, sync, email, workflow and owner data',async()=>{
  const {client,tables,writes}=fakeFullInertClient();
  assert.deepEqual(await verifyInertHostedContents(client),
-  {verifiedNonproductionInertTables:16,contentMutations:0});
+  {verifiedNonproductionInertTables:19,contentMutations:0});
  const expected=executionPlan({...env(),AMF_UAT_PASSWORD_MASTER_SECRET:undefined});
  const success=await runGuardedHostUat(expected,client);
  assert.equal(success.fixtureStage,'FULL');
@@ -547,7 +547,16 @@ test('Build95 a complete 9/38 synthetic fixture audit inspects inert billing, sy
   ['profiles','is_active',false],
   ['user_roles','role','viewer'],
   ['candidates','email','real@example.com'],
-  ['candidates','assigned_recruiter','00000000-0000-0000-0000-000000000008']
+  ['candidates','assigned_recruiter','00000000-0000-0000-0000-000000000008'],
+   ['candidate_activities','action_type','actual_contact'],
+   ['candidate_activities','recruiter_id','00000000-0000-0000-0000-000000000008'],
+   ['candidate_activities','notes','Candidate called on phone'],
+   ['candidate_stage_history','new_stage','joined'],
+   ['candidate_stage_history','changed_by','00000000-0000-0000-0000-000000000008'],
+   ['candidate_stage_history','notes','Real candidate stage moved'],
+   ['audit_logs','action','CANDIDATE_DELETE'],
+   ['audit_logs','user_id','00000000-0000-0000-0000-000000000008'],
+   ['audit_logs','details',{fixture_only:false,no_real_action:true}]
  ];
  for(const [table,field,bad] of corruptions){
   const prior=tables[table][0][field];
@@ -572,4 +581,33 @@ test('Build95 content verification fails closed on missing projections and never
  assert(!section.includes('console.log'));
  assert(source.includes("if(fixtureStage==='FULL')await verifyInertHostedContents(client)"));
  assert(source.includes("await verifyInertHostedContents(client);"));
+});
+
+
+test('Build112 completed fixture audit covers all 19 tables, including action/history/audit records',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ assert.deepEqual(await verifyInertHostedContents(client),
+  {verifiedNonproductionInertTables:19,contentMutations:0});
+ const fields=[
+  ['candidate_activities','candidate_id','00000000-0000-0000-0000-000000000009'],
+  ['candidate_stage_history','previous_stage','offer_accepted'],
+  ['audit_logs','table_name','billing'],
+  ['audit_logs','details',{fixture_only:true,no_real_action:true,private_record:'real'}]
+ ];
+ for(const [table,field,invalid] of fields){
+   const prior=tables[table][0][field];
+   tables[table][0][field]=invalid;
+   await assert.rejects(verifyInertHostedContents(client),
+    /Hosted inert fixture HOLD: non-inert or mismatched/,
+    'Expected missing-source-content hold: '+table+'.'+field);
+   tables[table][0][field]=prior;
+ }
+ assert.equal(writes(),0,'Read-only fixture audit must never issue writes');
+ const source=readFileSync(new URL('./run-once.mjs',import.meta.url),'utf8');
+ const section=source.slice(source.indexOf('export async function verifyInertHostedContents('),
+  source.indexOf('export async function runGuardedHostUat('));
+ for(const table of ['candidate_activities','candidate_stage_history','audit_logs']){
+  assert(section.includes("await read('"+table+"'"));
+  assert(section.includes("reject('"+table+"')"));
+ }
 });

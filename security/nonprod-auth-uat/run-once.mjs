@@ -151,6 +151,26 @@ export async function verifyInertHostedContents(client){
      c.stage==='lead_received'&&c.status==='active'&&
      c.created_source==='build78_synthetic_lab').length!==1)
      reject('candidates');
+
+ // Build112: previously unverified action, stage-history and audit rows must
+ // contain only their exact known synthetic inert payloads.
+ const activities=await read('candidate_activities','candidate_id,recruiter_id,action_type,notes',1);
+ if(!activities.every(r=>r.candidate_id===ids[1]&&r.recruiter_id===ids[1]&&
+    r.action_type==='synthetic_noop'&&
+    r.notes==='Invented local fixture; no candidate contacted'))
+   reject('candidate_activities');
+ const stageHistory=await read('candidate_stage_history',
+   'candidate_id,changed_by,previous_stage,new_stage,notes',1);
+ if(!stageHistory.every(r=>r.candidate_id===ids[1]&&r.changed_by===ids[0]&&
+    r.previous_stage===null&&r.new_stage==='lead_received'&&
+    r.notes==='Invented stage unchanged; not a real transition'))
+   reject('candidate_stage_history');
+ const auditEvents=await read('audit_logs','user_id,action,table_name,details',1);
+ if(!auditEvents.every(r=>r.user_id===ids[0]&&
+    r.action==='SYNTHETIC_UAT_NONPROD_NOOP'&&r.table_name==='candidates'&&
+    r.details?.fixture_only===true&&r.details?.no_real_action===true&&
+    Object.keys(r.details).length===2))
+   reject('audit_logs');
  // These are the fixture's security-sensitive activation and egress fields.
  // Exact values are stricter than "not currently active", so a modified lab
  // can never accidentally become an approved source of signed UAT evidence.
@@ -182,7 +202,7 @@ export async function verifyInertHostedContents(client){
    const rows=await read(table,projection,count);
    if(!rows.every(check))reject(table);
  }
- return Object.freeze({verifiedNonproductionInertTables:16,contentMutations:0});
+ return Object.freeze({verifiedNonproductionInertTables:19,contentMutations:0});
 }
 
 export async function runGuardedHostUat(plan,client){
