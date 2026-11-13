@@ -430,6 +430,9 @@ test('Build109 duplicate review never returns a silent partial result beyond or 
  const leaked=build109MockCandidateClient(all.slice(0,10),{errorAt:1});
  await assert.rejects(loadCompleteDuplicateReviewRows(leaked,'id'),e=>
    e.message==='Complete duplicate review unavailable; no partial results returned');
+ const thrown={from(){throw new Error('PRIVATE Supabase URL and bearer token in network exception')}};
+ await assert.rejects(loadCompleteDuplicateReviewRows(thrown,'id'),e=>
+   e.message==='Complete duplicate review unavailable; no partial results returned');
 });
 test('Build109 duplicate reviewer enforces unique admin role before any paginated contacts are read',()=>{
  const source=file('src/lib/duplicates.server.ts');
