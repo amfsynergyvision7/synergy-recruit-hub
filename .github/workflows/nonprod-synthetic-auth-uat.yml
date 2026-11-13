@@ -23,6 +23,10 @@ on:
         description: 'Type the exact nonproduction-only acceptance phrase in the README'
         type: string
         required: true
+      preflight_confirmation:
+        description: 'For CREATE only: attest a fresh reviewed 19-table/triggers/grants SQL preflight PASS'
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -47,7 +51,9 @@ jobs:
       github.event_name == 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
       github.actor == 'amfsynergyvision7' &&
-      inputs.confirmation == 'EXECUTE_9_GO_TRUE_AND_38_INERT_ROWS_ONLY_IN_dhlhlasnaapzckjyvffn'
+      inputs.confirmation == 'EXECUTE_9_GO_TRUE_AND_38_INERT_ROWS_ONLY_IN_dhlhlasnaapzckjyvffn' &&
+      (inputs.operation == 'AUDIT_ONLY' ||
+       inputs.preflight_confirmation == 'I_REVIEWED_FRESH_NONPROD_SQL_19_EMPTY_ZERO_AUTH_TRIGGERS_GRANTS_POLICIES')
     environment:
       name: amf-nonprod-auth-review
     runs-on: ubuntu-latest
@@ -66,6 +72,7 @@ jobs:
         env:
           AMF_UAT_OPERATION: ${{ inputs.operation }}
           AMF_UAT_CONFIRMATION: ${{ inputs.confirmation }}
+          AMF_UAT_PREFLIGHT_ATTESTATION: ${{ inputs.preflight_confirmation }}
           AMF_UAT_MODE: EXECUTE
           AMF_UAT_ACK: I_ACCEPT_ISOLATED_SYNTHETIC_AUTH_ADMIN_NONPROD_ONLY
           AMF_UAT_PROJECT_ID: dhlhlasnaapzckjyvffn
