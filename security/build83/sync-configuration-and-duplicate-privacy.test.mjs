@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {assertExternalEffectReleased,isExternalEffectPaused} from '../../src/lib/external-effects-hold.server.ts';
-import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR} from '../../src/lib/sync-safety.ts';
+import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError} from '../../src/lib/sync-safety.ts';
 
 const file=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const guard=file('src/lib/external-effects-hold.server.ts');
@@ -184,4 +184,49 @@ test('Build97 unsafe legacy sync error and browser console paths no longer leak 
  assert(!ui.includes('console.error("Google integration save failed", row)'));
  assert(!ui.includes('toast.error(e?.message'));
  assert(!ui.includes('row.integration.sheet_url, diagnostics: row.diagnostics'));
+});
+
+test('Build99 legacy integration errors cannot cross the owner-scoped settings readback',()=>{
+ const privateText='Bearer secret-header candidate@example.invalid https://private.example/values';
+ const raw={
+  id:'00000000-0000-0000-0000-000000000001',
+  user_id:'00000000-0000-0000-0000-000000000002',
+  spreadsheet_id:'fictional-spreadsheet',sheet_url:'https://docs.google.com/spreadsheets/d/fictional/edit',
+  last_error:privateText,connection_status:'error',auto_sync_enabled:false
+ };
+ const safe=redactHistoricalIntegrationError(raw);
+ assert.equal(safe.last_error,SAFE_CANDIDATE_SYNC_ERROR);
+ assert.equal(safe.user_id,raw.user_id);
+ assert.equal(safe.sheet_url,raw.sheet_url);
+ assert(!JSON.stringify(safe).includes(privateText));
+ assert.equal(redactHistoricalIntegrationError({...raw,last_error:null}).last_error,null);
+ assert.equal(redactHistoricalIntegrationError({...raw,last_error:''}).last_error,null);
+ assert.throws(()=>redactHistoricalIntegrationError(null),/malformed/);
+ assert.throws(()=>redactHistoricalIntegrationError([]),/malformed/);
+});
+test('Build99 owner settings read uses explicit field allowlist, never historical provider error or raw browser exception',()=>{
+ const src=file('src/lib/sheets-sync.server.ts');
+ const section=src.slice(src.indexOf('export async function getSavedGoogleIntegration('),
+  src.indexOf('export async function saveGoogleIntegrationSettings('));
+ const projection=/\.select\("([^"]+)"\)/.exec(section)?.[1];
+ assert(projection,'Missing explicit integration select');
+ const fields=projection.split(',');
+ assert(fields.includes('user_id'));
+ assert(fields.includes('sheet_url'));
+ assert(fields.includes('column_mapping'));
+ assert(fields.includes('connection_status'));
+ assert(!fields.includes('last_error'));
+ assert.equal(new Set(fields).size,fields.length);
+ assert(!section.includes('.select("*")'));
+ assert(section.includes('return redactHistoricalIntegrationError({...(data as GoogleIntegrationSettings),last_error:null})'));
+ assert(section.includes('.eq("user_id", opts.userId)'));
+ const save=src.slice(src.indexOf('export async function saveGoogleIntegrationSettings('),
+  src.indexOf('export async function saveDetectedHeaders('));
+ assert(save.includes('return redactHistoricalIntegrationError(data as GoogleIntegrationSettings)'));
+ assert(save.includes('assertExternalEffectReleased("integration_configuration")'));
+ const ui=file('src/routes/_app.integrations.tsx');
+ assert(!ui.includes('console.error("integration load error", integQ.error)'));
+ assert(!ui.includes('console.error("sync logs load error", logsQ.error)'));
+ assert(ui.includes('console.error("Integration settings unavailable")'));
+ assert(ui.includes('console.error("Sync log history unavailable")'));
 });
