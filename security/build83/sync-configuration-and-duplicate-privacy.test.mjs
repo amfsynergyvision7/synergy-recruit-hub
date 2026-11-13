@@ -281,6 +281,11 @@ test('Build100 signed gateway range cannot escape spreadsheet path or inject que
 });
 test('Build100 credentialed Sheets gateway has bounded JSON streaming, zero redirects, and explicit owner update fencing',()=>{
  const sheetsSource=file('src/lib/sheets-sync.server.ts');
+ // Keep the exported defense-in-depth admin check used by the API handlers.
+ const adminStart=sheetsSource.indexOf('export async function assertAdminUser(userId: string)');
+ const adminEnd=sheetsSource.indexOf('async function gw(',adminStart);
+ assert(adminStart>0&&adminEnd>adminStart);
+ assert(sheetsSource.slice(adminStart,adminEnd).includes('await assertApprovedRole(userId, ["admin"])'));
  const begin=sheetsSource.indexOf('async function gw(');
  const end=sheetsSource.indexOf('export interface GoogleIntegrationSettings',begin);
  const gateway=sheetsSource.slice(begin,end);
