@@ -344,6 +344,8 @@ test('Build102 fast candidate mapping denies duplicate identity/phone fields and
  const valid={Email:'email',Phone:'mobile',Position:'position_applied'};
  assert.doesNotThrow(()=>assertUnambiguousCandidateSheetMapping(
   ['Email','Phone','Position'],valid,CANDIDATE_FIELDS));
+ assert.doesNotThrow(()=>assertUnambiguousCandidateSheetMapping(['Email','',''],{Email:'email'},CANDIDATE_FIELDS));
+ assert.throws(()=>assertUnambiguousCandidateSheetMapping(['Email',''],{Email:'email','':'mobile'},CANDIDATE_FIELDS),/blank mapped header/);
  assert.throws(()=>assertUnambiguousCandidateSheetMapping(
   ['Email','Email Address'],{Email:'email','Email Address':'email'},CANDIDATE_FIELDS),
   /duplicate mapped field/);
