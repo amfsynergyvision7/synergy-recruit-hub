@@ -7,8 +7,9 @@
 export const CRM_OUTBOUND_EMAIL_RELEASE_HOLD = true as const;
 export const CRM_INTERVIEW_SCHEDULING_RELEASE_HOLD = true as const;
 export const CRM_PUBLIC_APPLICATION_RELEASE_HOLD = true as const;
+export const CRM_PUBLIC_CAREERS_PUBLISH_RELEASE_HOLD = true as const;
 
-export type PausedExternalEffect='crm_email'|'interview_scheduling'|'public_application';
+export type PausedExternalEffect='crm_email'|'interview_scheduling'|'public_application'|'careers_publication';
 export function assertExternalEffectReleased(action:PausedExternalEffect):void {
   switch(action) {
     case 'crm_email':
@@ -20,6 +21,9 @@ export function assertExternalEffectReleased(action:PausedExternalEffect):void {
     case 'public_application':
       if(CRM_PUBLIC_APPLICATION_RELEASE_HOLD)throw new Error('Public job applications are paused pending release approval');
       return;
+    case 'careers_publication':
+      if(CRM_PUBLIC_CAREERS_PUBLISH_RELEASE_HOLD)throw new Error('Public career postings are paused pending publication approval');
+      return;
   }
   // Runtime safety if typed callers or compiled JS bypass the TS union.
   throw new Error('Unapproved external-effect operation');
@@ -27,5 +31,6 @@ export function assertExternalEffectReleased(action:PausedExternalEffect):void {
 export function isExternalEffectPaused(action:PausedExternalEffect):boolean {
   return action==='crm_email'?CRM_OUTBOUND_EMAIL_RELEASE_HOLD:
     action==='interview_scheduling'?CRM_INTERVIEW_SCHEDULING_RELEASE_HOLD:
-    action==='public_application'?CRM_PUBLIC_APPLICATION_RELEASE_HOLD:true;
+    action==='public_application'?CRM_PUBLIC_APPLICATION_RELEASE_HOLD:
+    action==='careers_publication'?CRM_PUBLIC_CAREERS_PUBLISH_RELEASE_HOLD:true;
 }
