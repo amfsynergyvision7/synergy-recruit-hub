@@ -1,0 +1,84 @@
+# Reviewable, standalone NONPRODUCTION fixture workflow.
+# Provisioning is NEVER triggered by pushes, PRs, schedules, or deployments.
+# Configure GitHub Environment "amf-nonprod-auth-review" with independent
+# required reviewers, isolated project secret and 9 distinct test passwords.
+name: Nonprod Synthetic Auth UAT — Manual Only
+
+on:
+  pull_request:
+    paths:
+      - 'security/nonprod-auth-uat/**'
+      - '.github/workflows/nonprod-synthetic-auth-uat.yml'
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Read-only verification or exact 9-user/38-row synthetic setup'
+        type: choice
+        required: true
+        default: AUDIT_ONLY
+        options:
+          - AUDIT_ONLY
+          - CREATE_NINE_AND_SEED_38
+      confirmation:
+        description: 'Type the exact nonproduction-only acceptance phrase in the README'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  safety_contracts:
+    name: Nonprod Auth runner contracts — no secrets
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test security/nonprod-auth-uat/release-gate.test.mjs
+  manual_provisioning:
+    name: Protected isolated Auth Admin and inert fixture
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.actor == 'amfsynergyvision7' &&
+      inputs.confirmation == 'EXECUTE_9_GO_TRUE_AND_38_INERT_ROWS_ONLY_IN_dhlhlasnaapzckjyvffn'
+    environment:
+      name: amf-nonprod-auth-review
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies without access to secrets
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Provision or inspect ONLY the exact isolated nonproduction project
+        env:
+          AMF_UAT_OPERATION: ${{ inputs.operation }}
+          AMF_UAT_CONFIRMATION: ${{ inputs.confirmation }}
+          AMF_UAT_MODE: EXECUTE
+          AMF_UAT_ACK: I_ACCEPT_ISOLATED_SYNTHETIC_AUTH_ADMIN_NONPROD_ONLY
+          AMF_UAT_PROJECT_ID: dhlhlasnaapzckjyvffn
+          AMF_UAT_SUPABASE_URL: https://dhlhlasnaapzckjyvffn.supabase.co
+          AMF_UAT_MAPPING_FILE: /tmp/amf-synthetic-uat-in-memory-mapping.json
+          AMF_UAT_SERVICE_ROLE_KEY: ${{ secrets.AMF_NONPROD_SERVICE_ROLE_KEY }}
+          AMF_UAT_CASE_01_PASSWORD: ${{ secrets.AMF_UAT_CASE_01_PASSWORD }}
+          AMF_UAT_CASE_02_PASSWORD: ${{ secrets.AMF_UAT_CASE_02_PASSWORD }}
+          AMF_UAT_CASE_03_PASSWORD: ${{ secrets.AMF_UAT_CASE_03_PASSWORD }}
+          AMF_UAT_CASE_04_PASSWORD: ${{ secrets.AMF_UAT_CASE_04_PASSWORD }}
+          AMF_UAT_CASE_05_PASSWORD: ${{ secrets.AMF_UAT_CASE_05_PASSWORD }}
+          AMF_UAT_CASE_06_PASSWORD: ${{ secrets.AMF_UAT_CASE_06_PASSWORD }}
+          AMF_UAT_CASE_07_PASSWORD: ${{ secrets.AMF_UAT_CASE_07_PASSWORD }}
+          AMF_UAT_CASE_08_PASSWORD: ${{ secrets.AMF_UAT_CASE_08_PASSWORD }}
+          AMF_UAT_CASE_09_PASSWORD: ${{ secrets.AMF_UAT_CASE_09_PASSWORD }}
+        run: node security/nonprod-auth-uat/run-once.mjs
