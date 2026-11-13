@@ -87,7 +87,7 @@ test('Build84 resume fetch and PDF logo use bounded trusted network paths exclus
  const logo=read('src/lib/resume-pdf.server.ts');
  assert.match(resume,/downloadRemoteBounded\(baseUrl, policy\)/);
  assert.match(resume,/maxBytes: 8 \* 1024 \* 1024/);
- assert.match(resume,/redirects?:?/); // source comment and request rules
+ assert.match(resume,/maxRedirects: 4/); // explicit policy bound
  assert.match(resume,/url\.hostname !== "drive\.google\.com"/);
  assert.doesNotMatch(resume,/fetch\(baseUrl,\s*\{\s*redirect:\s*"follow"/);
  assert.match(logo,/isTrustedSupabaseLogoUrl\(logoUrl, projectUrl\)/);
