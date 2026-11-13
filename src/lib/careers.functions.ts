@@ -17,6 +17,7 @@ function maskCompanyName(row: { is_confidential: boolean; clients?: { company_na
 
 // ---- Public list: every currently-open job, for the /careers index ----
 export const listOpenJobs = createServerFn({ method: "POST" }).handler(async () => {
+  assertExternalEffectReleased("careers_publication");
   // clients is joined the same disambiguated way interviews/offers already
   // do (job_openings has both a legacy client_id and the live client_uuid,
   // both FKs to clients, so a plain embed is ambiguous to PostgREST).
@@ -41,17 +42,19 @@ export const listOpenJobs = createServerFn({ method: "POST" }).handler(async () 
 export const getJobDetail = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    assertExternalEffectReleased("careers_publication");
     const { data: job, error } = await supabaseAdmin
       .from("job_openings")
       .select("id, job_title, location, description, requirements, salary_min, salary_max, open_positions, priority, status, is_confidential, clients!job_openings_client_uuid_fkey(company_name)")
       .eq("id", data.jobId)
+      .eq("status", "open")
       .maybeSingle();
     // Keep the "not found" case generic (a stale/guessed link shouldn't leak
     // anything), but surface the real Postgrest message when the query
     // itself failed (missing column, broken embed, bad env var) — those
     // used to render identically, which made a genuine outage on this page
     // indistinguishable from someone just following an old link.
-    if (error) throw new Error(`This posting isn't available. (${error.message})`);
+    if (error) throw new Error("This posting isn't available.");
     if (!job) throw new Error("This posting isn't available.");
 
     return {
