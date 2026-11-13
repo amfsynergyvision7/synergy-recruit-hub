@@ -30,6 +30,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   safety_contracts:
@@ -68,6 +69,11 @@ jobs:
           cache: npm
       - name: Install locked dependencies without access to secrets
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Require protected main and independent PR approval before any Auth writes
+        if: inputs.operation == 'CREATE_NINE_AND_SEED_38'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node security/nonprod-auth-uat/independent-release-approval.mjs
       - name: Provision or inspect ONLY the exact isolated nonproduction project
         env:
           AMF_UAT_OPERATION: ${{ inputs.operation }}
