@@ -172,6 +172,16 @@ jobs:
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -c "SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='r'")" = "0"
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated')")" = "0"
           dropdb -h localhost -U postgres amf_build80_policy_lab
+      - name: Validate all 38 invented CRM rows against the actual 19-table production-shaped catalog and 75 constraints in disposable PostgreSQL17
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build81_full_fixture_lab
+          node security/build81/generate-pg17-source-38-fixture.mjs > /tmp/amf_build81_source_38_fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build81_full_fixture_lab -f /tmp/amf_build81_source_38_fixture.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build81_full_fixture_lab -c "SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind IN ('r','v','m')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build81_full_fixture_lab -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
+          dropdb -h localhost -U postgres amf_build81_full_fixture_lab
   expanded-public-security-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 14
