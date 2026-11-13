@@ -6,6 +6,11 @@ export function isApprovedActiveWithRole(
   allowedRoles: readonly string[],
 ): boolean {
   if (profile?.status !== 'approved' || profile?.is_active !== true) return false;
-  if (!Array.isArray(memberships) || allowedRoles.length === 0) return false;
-  return memberships.some((record) => typeof record.role === 'string' && allowedRoles.includes(record.role));
+  // Exactly one role row is a release invariant. A duplicate or conflicting
+  // membership must fail closed, matching the source-pinned Build80 RLS helper.
+  // This matters because server-side functions may use a service-role client
+  // after this check and therefore cannot rely on database RLS alone.
+  if (!Array.isArray(memberships) || memberships.length !== 1 || allowedRoles.length === 0) return false;
+  const role = memberships[0]?.role;
+  return typeof role === 'string' && allowedRoles.includes(role);
 }
