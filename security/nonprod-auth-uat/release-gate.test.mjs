@@ -14,9 +14,10 @@ const env=()=>{
   AMF_UAT_PROJECT_ID:project,
   AMF_UAT_SUPABASE_URL:'https://'+project+'.supabase.co',
   AMF_UAT_SERVICE_ROLE_KEY:'sb_secret_'+ 'S'.repeat(24),
+  AMF_UAT_PASSWORD_MASTER_SECRET:'amf_uat_master_'+ 'm'.repeat(70),
   AMF_UAT_MAPPING_FILE:'/tmp/synthetic-uat-in-memory-mapping.json'
  };
- for(let i=1;i<=9;i++)e['AMF_UAT_CASE_'+String(i).padStart(2,'0')+'_PASSWORD']='TestSyntheticOnly-'+i+'-Strong-Pass4';
+ // Passwords are deterministically derived from the protected test-only master.
  return e;
 };
 const expectedTables={...BASE_COUNTS,...EXPECTED_EXTENDED_COUNTS};
@@ -41,6 +42,9 @@ test('release runner accepts only exact project, nine unique passwords and expli
  const ok=executionPlan(env());
  assert.equal(ok.operation,'AUDIT_ONLY');
  assert.equal(ok.credentials.users.length,9);
+ assert.equal(new Set(ok.credentials.users.map(u=>u.password)).size,9);
+ assert.deepEqual(ok.credentials.users.map(u=>u.password),executionPlan(env()).credentials.users.map(u=>u.password));
+ assert(ok.credentials.users.every(u=>u.password.length>=40&&!u.password.includes(env().AMF_UAT_PASSWORD_MASTER_SECRET)));
  for(const variation of [
   {AMF_UAT_PROJECT_ID:'wusntntcqgtpgokggdzv'},
   {AMF_UAT_SUPABASE_URL:'https://wusntntcqgtpgokggdzv.supabase.co'},
@@ -48,7 +52,7 @@ test('release runner accepts only exact project, nine unique passwords and expli
   {AMF_UAT_CONFIRMATION:'yes'},
   {AMF_UAT_SERVICE_ROLE_KEY:'sb_publishable_not_admin'},
   {AMF_UAT_MAPPING_FILE:'./mapping.json'},
-  {AMF_UAT_CASE_03_PASSWORD:'short'}
+  {AMF_UAT_PASSWORD_MASTER_SECRET:'weak'}
  ])assert.throws(()=>executionPlan({...env(),...variation}));
 });
 test('all nineteen source-shaped table cardinalities sum to 38 and support exact stages',()=>{
@@ -86,6 +90,9 @@ test('no public endpoint, automatic schedule, prod secret or prod database sourc
  assert(workflow.includes("github.actor == 'amfsynergyvision7'"));
  assert(workflow.includes('name: amf-nonprod-auth-review'));
  assert(workflow.includes('AMF_NONPROD_SERVICE_ROLE_KEY'));
+ assert(workflow.includes('AMF_UAT_PASSWORD_MASTER_SECRET'));
+ assert(!workflow.includes('secrets.AMF_UAT_CASE_'));
+ assert(!workflow.includes('secrets.SUPABASE_SERVICE_ROLE_KEY'));
  assert(!workflow.includes('secrets.SUPABASE_SERVICE_ROLE_KEY'));
  assert(!workflow.includes('schedule:'));
  assert(!workflow.includes('push:'));
