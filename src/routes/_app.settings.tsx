@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAdminResumeFolder, updateAdminSetting } from "@/lib/admin-settings";
 import { CRM_PROFILE_MUTATIONS_ENABLED, updateOwnCRMProfile } from "@/lib/profile-settings";
+import { LEGACY_BULK_IMPORT_WRITES_PAUSED } from "@/lib/release-safety";
 import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
@@ -41,6 +42,10 @@ function Page() {
   }, [role]);
 
   const saveDriveFolder = async () => {
+    if (LEGACY_BULK_IMPORT_WRITES_PAUSED) {
+      toast.error("Resume folder configuration is paused until restricted Drive access is approved.");
+      return;
+    }
     setSavingFolder(true);
     const { error } = await updateAdminSetting("resume_import_folder_url", driveFolderUrl.trim() || null);
     setSavingFolder(false);
@@ -184,19 +189,20 @@ function Page() {
           <CardHeader>
             <CardTitle>Resume Import Folder</CardTitle>
             <CardDescription>
-              Paste the link to one shared Google Drive folder — set it to "Anyone with the link — Viewer". Drop new resumes into that same folder, then use "Check Google Drive for new resumes" on the Candidates page to pull them in automatically.
+              Resume folders contain applicants' personal information. Do not make them public or enable "Anyone with the link" access. Folder configuration and bulk import remain paused until independently reviewed, permission-scoped Drive access is available.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label>Drive folder URL</Label>
               <Input
+                disabled={LEGACY_BULK_IMPORT_WRITES_PAUSED}
                 value={driveFolderUrl}
                 onChange={(e) => setDriveFolderUrl(e.target.value)}
                 placeholder="https://drive.google.com/drive/folders/..."
               />
             </div>
-            <Button disabled={savingFolder} onClick={saveDriveFolder}>
+            <Button disabled={LEGACY_BULK_IMPORT_WRITES_PAUSED || savingFolder} onClick={saveDriveFolder}>
               <FolderSync className="h-4 w-4 mr-2" />{savingFolder ? "Saving…" : "Save folder"}
             </Button>
           </CardContent>

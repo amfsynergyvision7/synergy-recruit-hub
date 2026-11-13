@@ -14,3 +14,5 @@
 
 Client checks and image signatures are defense-in-depth, not substitutes for server-side storage authorization, content validation, RLS, identity-bound API checks or independent reviewer approval.
 Existing SVG assets are not modified; no real candidate data, external service credentials or financial flows are touched. No production or staging writes, GitHub protected merge, deployment, UAT signature or governance approvals are implied.
+
+6. **Resume privacy guidance:** the admin settings screen no longer tells employees to publish candidate resumes in a link-accessible Drive folder; it disables the folder URL control and rejects saves while the reviewed Drive import remains under hard release hold. A source contract verifies the server import refuses before reading credentials or contacting Google.
