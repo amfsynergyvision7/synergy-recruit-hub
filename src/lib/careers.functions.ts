@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizeEmail, normalizePhone } from "@/lib/dedupe";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 
 function maskCompanyName(row: { is_confidential: boolean; clients?: { company_name?: string } | null }): string | null {
   if (row.is_confidential) return null;
@@ -92,6 +93,9 @@ const applicationSchema = z.object({
 export const submitJobApplication = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => applicationSchema.parse(input))
   .handler(async ({ data }) => {
+    // Anonymous application writes use a service-role database client.
+    // No feature flag or deployment environment can bypass this review hold.
+    assertExternalEffectReleased("public_application");
     const { data: job, error: jobError } = await supabaseAdmin
       .from("job_openings")
       .select("id, job_title, status, assigned_recruiter")
