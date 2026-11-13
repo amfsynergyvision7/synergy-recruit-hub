@@ -38,8 +38,12 @@ export function normalizeSafePublicResumeUrl(input: unknown): string | null {
   if (!value) return null;
   try {
     const parsed = new URL(value);
-    const host = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    const host = parsed.hostname.toLowerCase();
+    // Explicit :443 is normalized away by URL.port but the database's
+    // stricter public-HTTPS pattern intentionally disallows all custom ports.
+    const rawAuthority = value.replace(/^https:\/\//i, "").split(/[/?#]/, 1)[0];
     if (parsed.protocol !== "https:" || parsed.port ||
+        rawAuthority.includes(":") || host.endsWith(".") ||
         parsed.username || parsed.password ||
         !host.includes(".") || host.startsWith(".") ||
         !/^[a-z0-9.-]+$/.test(host) || host.includes("..") ||
