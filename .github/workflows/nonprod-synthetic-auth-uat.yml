@@ -74,8 +74,7 @@ jobs:
           cache: npm
       - name: Install locked dependencies without access to secrets
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Require protected main and independent PR approval before any Auth writes
-        if: inputs.operation == 'CREATE_NINE_AND_SEED_38'
+      - name: Verify protected main, independent PR approval and exact source BEFORE lab-key access
         env:
           GH_TOKEN: ${{ github.token }}
         run: node security/nonprod-auth-uat/independent-release-approval.mjs
