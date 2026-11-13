@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {executionPlan,validateSnapshot,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
-import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS } from './independent-release-approval.mjs';
+import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
 const env=()=>{
@@ -365,4 +365,40 @@ test('Build91 neither AUDIT_ONLY nor CREATE can access lab credentials without i
  assert(section.includes("inputs.operation == 'AUDIT_ONLY'"));
  assert(section.includes("inputs.preflight_confirmation == 'I_REVIEWED_FRESH_NONPROD_SQL_19_EMPTY_ZERO_AUTH_TRIGGERS_GRANTS_POLICIES'"));
  assert(!steps.includes("if: inputs.operation == 'CREATE_NINE_AND_SEED_38'"));
+});
+
+test('Build91 requires a configured GitHub environment with a distinct reviewer and protected branch rule',()=>{
+ const environment=()=>({
+  name:EXPECTED_ENVIRONMENT,
+  protection_rules:[{type:'required_reviewers',prevent_self_review:true,
+    reviewers:[{type:'User',reviewer:{login:'different-human-reviewer'}}]}],
+  deployment_branch_policy:{protected_branches:true,custom_branch_policies:false}
+ });
+ assert.deepEqual(verifyProtectedEnvironment(environment()),
+  {independentEnvironmentReviewer:true,preventSelfReview:true,protectedBranchesOnly:true});
+ const invalid=[
+  {...environment(),name:'production'},
+  {...environment(),protection_rules:[]},
+  {...environment(),protection_rules:[{...environment().protection_rules[0],prevent_self_review:false}]},
+  {...environment(),protection_rules:[{...environment().protection_rules[0],reviewers:[]}]},
+  {...environment(),protection_rules:[{...environment().protection_rules[0],
+    reviewers:[{type:'User',reviewer:{login:'amfsynergyvision7'}}]}]},
+  {...environment(),protection_rules:[{...environment().protection_rules[0],
+    reviewers:[{type:'User',reviewer:{login:'bot[bot]'}}]}]},
+  {...environment(),deployment_branch_policy:{protected_branches:false,custom_branch_policies:true}},
+  {...environment(),deployment_branch_policy:null},
+  {...environment(),protection_rules:null}
+ ];
+ for(const x of invalid)
+  assert.throws(()=>verifyProtectedEnvironment(x),/environment|reviewer|protected/i);
+});
+test('Build91 runtime fetches protected environment metadata and has limited read-only Actions permission',()=>{
+ const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ assert(gate.includes("getGitHubJson('/environments/'+EXPECTED_ENVIRONMENT,token)"));
+ assert(gate.includes('verifyProtectedEnvironment(environment)'));
+ assert(workflow.includes('  actions: read'));
+ assert(!workflow.includes('  actions: write'));
+ const code=workflow.slice(workflow.indexOf('  manual_provisioning:'));
+ assert(code.indexOf('independent-release-approval.mjs')<code.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
 });
