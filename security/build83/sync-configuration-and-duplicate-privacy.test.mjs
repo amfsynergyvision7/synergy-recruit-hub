@@ -388,6 +388,8 @@ function build109MockCandidateClient(rows, opts={}){
        let data=rows.slice(start,Math.min(end+1,start+(opts.serverMaxRows??9999)));
        if(opts.duplicateAt!==undefined&&start>0&&data.length)
         data[0]={...data[0],id:rows[0].id};
+       if(opts.replaceAt===calls.length&&data.length)
+        data[0]={...data[0],id:'changed-same-count-row'};
        return {
         data,
         count:rows.length+(opts.driftAt===calls.length?1:0),
@@ -406,18 +408,18 @@ test('Build109 duplicate paging retrieves every candidate despite PostgREST page
  const result=await loadCompleteDuplicateReviewRows(mock,'id, created_at');
  assert.equal(result.length,1001);
  assert.equal(new Set(result.map(r=>r.id)).size,1001);
- assert.deepEqual(mock.calls,[[0,499],[500,999],[1000,1499]]);
+ assert.deepEqual(mock.calls,[[0,499],[500,999],[1000,1499],[0,499],[500,999],[1000,1499]]);
  assert.equal(DUPLICATE_SCAN_PAGE_SIZE,500);
  assert.equal(MAX_COMPLETE_DUPLICATE_SCAN,5000);
  const blank=build109MockCandidateClient([]);
  assert.deepEqual(await loadCompleteDuplicateReviewRows(blank,'id, created_at'),[]);
- assert.deepEqual(blank.calls,[[0,499]]);
+ assert.deepEqual(blank.calls,[[0,499],[0,499]]);
 });
 test('Build109 duplicate review never returns a silent partial result beyond or below the scan cap',async()=>{
  const all=Array.from({length:5000},(_,i)=>({id:'candidate-'+i}));
  const exact=build109MockCandidateClient(all);
  assert.equal((await loadCompleteDuplicateReviewRows(exact,'id')).length,5000);
- assert.equal(exact.calls.length,10);
+ assert.equal(exact.calls.length,20);
  const over=build109MockCandidateClient([...all,{id:'candidate-over-limit'}]);
  await assert.rejects(loadCompleteDuplicateReviewRows(over,'id'),/no partial results returned/);
  assert.equal(over.calls.length,1,'Do not expose a partial report when over 5000');
@@ -449,13 +451,17 @@ test('Build109 duplicate reviewer enforces unique admin role before any paginate
  assert(helper.includes('count > MAX_COMPLETE_DUPLICATE_SCAN'));
  assert(helper.includes('data.length !== expectedLength'));
  assert(helper.includes('ids.has(row.id)'));
+ assert(helper.includes('pass === 1 && count !== result.length'));
+ assert(helper.includes('result[offset + i]?.id !== row.id'));
  assert(api.includes('await assertApprovedRole(context.userId, ["admin"])'));
  assert(api.includes('return findDuplicateClusters(context.supabase, context.userId)'));
 });
 
 test('Build109 stale duplicate review data cannot be displayed or exported after a failed rescan',()=>{
  const ui=file('src/routes/_app.duplicates.tsx');
- assert(ui.includes('const summary = query.isError ? undefined : query.data;'));
+ assert(ui.includes('const summary = query.isError || query.isFetching ? undefined : query.data;'));
+ assert(ui.includes('selection.scanVersion === query.dataUpdatedAt'));
+ assert(ui.includes('ids: apply(previous.scanVersion === query.dataUpdatedAt'));
  assert(ui.includes('const clusters = summary?.clusters ?? [];'));
  assert(ui.includes('if (!summary || query.isError || query.isFetching)'));
  assert(ui.includes('disabled={!summary || query.isError || query.isFetching || totalSelected === 0}'));
@@ -464,4 +470,29 @@ test('Build109 stale duplicate review data cannot be displayed or exported after
  assert(ui.includes('{summary && !query.isPending && ('));
  assert(ui.includes('buildDuplicateReviewCSV(clusters, selected)'));
  assert(!ui.includes('const summary = query.data;'));
+});
+
+test('Build110 count-preserving pagination shift is rejected during independent ID-only verification',async()=>{
+ const rows=Array.from({length:650},(_,i)=>({id:'synthetic-'+i,created_at:'2026-01-01T00:00:00Z'}));
+ const changed=build109MockCandidateClient(rows,{replaceAt:3});
+ await assert.rejects(loadCompleteDuplicateReviewRows(changed,'id, created_at'),
+  e=>e.message==='Complete duplicate review unavailable; no partial results returned');
+ assert.deepEqual(changed.calls,[[0,499],[500,999],[0,499]]);
+ const stable=build109MockCandidateClient(rows);
+ assert.equal((await loadCompleteDuplicateReviewRows(stable,'id, created_at')).length,650);
+ assert.deepEqual(stable.calls,[[0,499],[500,999],[0,499],[500,999]]);
+});
+
+test('Build110 second-pass provider failure also suppresses incomplete candidate reviews',async()=>{
+ const rows=Array.from({length:600},(_,i)=>({id:'synthetic-'+i}));
+ const failed=build109MockCandidateClient(rows,{errorAt:3});
+ await assert.rejects(loadCompleteDuplicateReviewRows(failed,'id'),
+  e=>e.message==='Complete duplicate review unavailable; no partial results returned');
+ assert.equal(failed.calls.length,3);
+ const ui=file('src/routes/_app.duplicates.tsx');
+ assert(ui.includes('const summary = query.isError || query.isFetching ? undefined : query.data;'));
+ assert(ui.includes('const selected = useMemo('));
+ assert(ui.includes('scanVersion: query.dataUpdatedAt'));
+ assert(ui.includes('const updateSelected = (apply:'));
+ assert(!ui.includes('setSelected((prev)'));
 });

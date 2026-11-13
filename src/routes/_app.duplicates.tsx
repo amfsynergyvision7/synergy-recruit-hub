@@ -150,11 +150,24 @@ function Page() {
     staleTime: 0,
   });
 
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Bind selections to one completed scan. A successful background refetch
+  // invalidates prior review choices even if the candidate IDs are unchanged.
+  const [selection, setSelection] = useState<{ scanVersion: number; ids: Set<string> }>({
+    scanVersion: 0, ids: new Set<string>(),
+  });
+  const selected = useMemo(
+    () => selection.scanVersion === query.dataUpdatedAt ? selection.ids : new Set<string>(),
+    [selection, query.dataUpdatedAt],
+  );
+  const updateSelected = (apply: (previous: Set<string>) => Set<string>) => {
+    setSelection((previous) => ({
+      scanVersion: query.dataUpdatedAt,
+      ids: apply(previous.scanVersion === query.dataUpdatedAt ? previous.ids : new Set<string>()),
+    }));
+  };
 
-  // A failed refetch can retain the last successful TanStack Query data.
-  // Never show or export that stale candidate review as a new complete scan.
-  const summary = query.isError ? undefined : query.data;
+  // No stale review is displayed during a new scan, or after a failed scan.
+  const summary = query.isError || query.isFetching ? undefined : query.data;
   const clusters = summary?.clusters ?? [];
   const totalSelected = useMemo(
     () => clusters.reduce((n, c) => n + c.members.filter((m) => selected.has(m.id)).length, 0),
@@ -162,7 +175,7 @@ function Page() {
   );
 
   const toggleMember = (id: string, clusterMemberIds: string[], checked: boolean) => {
-    setSelected((prev) => {
+    updateSelected((prev) => {
       const next = new Set(prev);
       if (checked) {
         // Never allow every record in a cluster to end up selected — at
@@ -182,7 +195,7 @@ function Page() {
   };
 
   const selectAllButOldest = (cluster: DuplicateCluster) => {
-    setSelected((prev) => {
+    updateSelected((prev) => {
       const next = new Set(prev);
       cluster.members.forEach((m, i) => {
         if (i === 0) next.delete(m.id); // oldest — keep
@@ -223,7 +236,7 @@ function Page() {
             <Users2 className="h-5 w-5 text-primary" />Duplicate Candidates
           </h1>
           <p className="text-sm text-muted-foreground">
-            Flags likely duplicate candidates for administrator review. You may export record IDs for a separate retention and merge decision; no candidate is deleted or modified here.
+            Flags likely duplicate candidates for administrator review. Selections reset after each completed scan. You may export record IDs for a separate retention and merge decision; no candidate is deleted or modified here.
           </p>
         </div>
         <div className="flex gap-2">
