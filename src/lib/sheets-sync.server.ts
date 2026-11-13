@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
 import { assertApprovedRole } from "./access-gates.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor } from "./sync-safety";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
@@ -140,7 +141,9 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
   const { data, error } = await query.maybeSingle();
   if (error) throw new Error(formatSupabaseError("Load Google integration settings failed", error));
   if (data) return data as GoogleIntegrationSettings;
-  if (opts.backfillLegacy === false) return null;
+  // Read paths never silently copy legacy integration settings or enable sync.
+  if (opts.backfillLegacy !== true) return null;
+  assertExternalEffectReleased("integration_configuration");
   if (!opts.userId) return null;
 
   const { data: legacy, error: legacyError } = await supabaseAdmin
@@ -186,6 +189,7 @@ export async function saveGoogleIntegrationSettings(input: {
   column_mapping?: Record<string, string>;
   google_account_email?: string | null;
 }) {
+  assertExternalEffectReleased("integration_configuration");
   if (!input.user_id) throw new Error("Missing user_id for Google integration settings");
   const current = await getSavedGoogleIntegration({ backfillLegacy: true, userId: input.user_id });
   const spreadsheetId = input.sheet_url ? extractSpreadsheetId(input.sheet_url) : null;
@@ -219,6 +223,7 @@ export async function saveGoogleIntegrationSettings(input: {
 }
 
 export async function saveDetectedHeaders(integration: GoogleIntegrationSettings, suggested: Record<string, string>) {
+  assertExternalEffectReleased("integration_configuration");
   const { error } = await (supabaseAdmin as any).from("google_integrations").update({
     column_mapping: { ...suggested, ...(integration.column_mapping ?? {}) },
     connection_status: "headers_detected",
@@ -244,6 +249,8 @@ export async function getCandidateSyncLogs() {
 }
 
 export async function fetchSheetValues(spreadsheetId: string, sheetName: string) {
+  // External connector reads also require an independent privacy release.
+  assertExternalEffectReleased("integration_configuration");
   const safeSheetName = /^[A-Za-z0-9_]+$/.test(sheetName) ? sheetName : `'${sheetName.replace(/'/g, "''")}'`;
   const range = `${safeSheetName}!A1:Z100000`;
   const data = await gw(`/spreadsheets/${spreadsheetId}/values/${range}`);
@@ -456,6 +463,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
 }
 
 export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredBy: string; userId?: string; leaseHeartbeat?: () => Promise<void>; leaseToken?: string; atomicRowWrites?: boolean }): Promise<SyncResult> {
+  assertExternalEffectReleased("candidate_sync");
   if (!opts.userId) throw new Error("Explicit sync owner required");
   if (opts.fullHistory) throw new Error("Full-history sync disabled until ledger reconciliation");
   // Public sync entry points may not bypass the database-backed owner lease.
@@ -465,7 +473,9 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
   try {
     return await runCandidateSyncUnsafe(opts);
   } catch (e: any) {
-    const message = e?.message || String(e) || "Sync failed";
+    // Provider errors can contain sensitive candidate/sheet information.
+    // Never persist or return a raw provider exception in sync diagnostics.
+    const message = "Candidate sync failed; review restricted server diagnostics";
     const result = emptyResult();
     result.errors = 1;
     result.error_details = [{ row: 0, message }];
@@ -490,7 +500,7 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
         message,
       });
     } catch (logError) {
-      console.error("Failed to write sync failure log", logError);
+      console.error("Failed to write sync failure log");
     }
 
     return result;
