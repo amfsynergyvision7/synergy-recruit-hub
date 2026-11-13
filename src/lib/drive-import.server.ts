@@ -121,7 +121,7 @@ async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveF
     const nextToken = data?.nextPageToken;
     if (nextToken !== undefined && nextToken !== null &&
         (typeof nextToken !== "string" || nextToken.length > 2048 ||
-         !/^[A-Za-z0-9._+\\/=-]+$/.test(nextToken))) {
+         !new RegExp("^[A-Za-z0-9._+/=-]+$").test(nextToken))) {
       throw new Error("Drive pagination response is invalid");
     }
     pageToken = nextToken ?? undefined;
