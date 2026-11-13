@@ -42,7 +42,8 @@ function safeSyncRow(value: unknown): number {
 }
 
 export function redactSyncErrors(value: unknown): {row:number; message:string}[] {
-  if (!Array.isArray(value)) return [];
+  if (value === null || value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error('Sync-log errors require restricted review');
   // Preserve error counts for the admin UI without returning original text.
   // Refuse truncated lists instead of showing an incorrect success summary.
   if (value.length > 1000) throw new Error("Sync-log error list requires restricted review");
