@@ -219,7 +219,7 @@ export async function runResumeDriveImport(supabase: any, ownerId: string): Prom
 
   const outcomes = await mapWithConcurrency(toProcess, CONCURRENCY, async (file): Promise<DriveImportFileOutcome> => {
     try {
-      const downloaded = await fetchDriveBytes(file.id);
+      const downloaded = await fetchDriveBytes(file.id, "drive_bulk_import");
       if ("error" in downloaded) return { status: "failed", fileName: file.name, reason: downloaded.error };
       const parsed = await extractText(downloaded.buffer, downloaded.contentType);
       if (!parsed.ok) return { status: "failed", fileName: file.name, reason: parsed.error };
