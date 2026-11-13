@@ -2,7 +2,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
-import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR, redactHistoricalIntegrationError } from "./sync-safety";
+import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR, redactHistoricalIntegrationError, extractApprovedSpreadsheetId, buildSafeSheetValuesPath } from "./sync-safety";
+import { readResponseTextBounded } from "./safe-remote-download.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
@@ -45,34 +46,49 @@ export function autoMap(headers: string[]): Record<string, string> {
 }
 
 export function extractSpreadsheetId(url: string): string | null {
-  const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  return m ? m[1] : null;
+  return extractApprovedSpreadsheetId(url);
 }
 
-export async function assertAdminUser(userId: string) {
-  await assertApprovedRole(userId, ["admin"]);
-}
-
-async function gw(path: string, init?: RequestInit) {
+/**
+ * No caller-provided request headers or redirect handling. The only supported
+ * operation is an exact Sheets values.get path on this fixed gateway host.
+ * Never expose raw remote text, URL, error details, or account metadata.
+ */
+async function gw(path: string) {
+  if (!/^\/spreadsheets\/[A-Za-z0-9_-]{10,160}\/values\//.test(path) ||
+      path.includes("?") || path.includes("#") || path.includes("..")) {
+    throw new Error("Sheets gateway path is not approved");
+  }
   const lk = process.env.LOVABLE_API_KEY;
   const sk = process.env.GOOGLE_SHEETS_API_KEY;
-  if (!lk) throw new Error("LOVABLE_API_KEY not configured");
-  if (!sk) throw new Error("GOOGLE_SHEETS_API_KEY not configured");
-  const res = await fetch(`${GATEWAY_URL}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${lk}`,
-      "X-Connection-Api-Key": sk,
-      "Content-Type": "application/json",
-      ...(init?.headers || {}),
-    },
-  });
-  const text = await res.text();
-  let data: any; try { data = JSON.parse(text); } catch { data = text; }
-  // Never echo provider response bodies. Upstream errors can include CRM
-  // candidate rows, access headers, private sheet identifiers or diagnostics.
-  if (!res.ok) throw new Error(`Sheets API request failed (HTTP ${res.status})`);
-  return data;
+  if (!lk || !sk) throw new Error("Sheets provider credentials are unavailable");
+  try {
+    const res = await fetch(`${GATEWAY_URL}${path}`, {
+      method: "GET",
+      redirect: "error", // Never replay either credential to redirected hosts.
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        Authorization: `Bearer ${lk}`,
+        "X-Connection-Api-Key": sk,
+        Accept: "application/json",
+      },
+    });
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {});
+      throw new Error("Sheets gateway returned an unsuccessful response");
+    }
+    // Previously res.text() materialized unlimited provider data and could
+    // echo private candidate cells; use the shared streaming 1-MiB ceiling.
+    const body = await readResponseTextBounded(res, 1024 * 1024);
+    const data: unknown = JSON.parse(body);
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error("Sheets gateway returned an invalid payload");
+    }
+    return data as {values?:unknown};
+  } catch {
+    // Suppress provider exceptions: some include access keys or sheet data.
+    throw new Error("Sheets gateway request unavailable; check restricted diagnostics");
+  }
 }
 
 export interface GoogleIntegrationSettings {
@@ -229,10 +245,15 @@ export async function getCandidateSyncLogs() {
 export async function fetchSheetValues(spreadsheetId: string, sheetName: string) {
   // External connector reads also require an independent privacy release.
   assertExternalEffectReleased("integration_configuration");
-  const safeSheetName = /^[A-Za-z0-9_]+$/.test(sheetName) ? sheetName : `'${sheetName.replace(/'/g, "''")}'`;
-  const range = `${safeSheetName}!A1:Z100000`;
-  const data = await gw(`/spreadsheets/${spreadsheetId}/values/${range}`);
-  return Array.isArray(data?.values) ? data.values as string[][] : [];
+  const path = buildSafeSheetValuesPath(spreadsheetId, sheetName);
+  const data = await gw(path);
+  if (data.values == null) return [];
+  if (!Array.isArray(data.values) ||
+      data.values.some(row => !Array.isArray(row) || row.length > 26 ||
+        row.some(cell => typeof cell !== "string"))) {
+    throw new Error("Sheets gateway row payload is invalid");
+  }
+  return data.values as string[][];
 }
 
 function num(v: any): number | null {
