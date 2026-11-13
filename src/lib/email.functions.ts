@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { sendEmail, textToHtml } from "./email.server";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
+import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
 
 // Which CrudModule tables can currently send email from their row actions
 // (Candidates, Clients — see emailField on those two route configs). Kept as
@@ -37,6 +38,42 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     // When reviewed for release, use the exact-one-role, approved+active
     // service-side gate rather than the old any-matching-role query.
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
+    // A legitimate admin/recruiter may not use the SMTP relay to address
+    // arbitrary third parties. Bind the recipient to an actually readable
+    // candidate/client record, and bind recruiter access to ownership.
+    const { data: memberships, error: membershipError } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (membershipError || memberships?.length !== 1) {
+      throw new Error("Email recipient authorization denied");
+    }
+    const role = memberships[0]?.role;
+    if (role !== "admin" && role !== "recruiter") {
+      throw new Error("Email recipient authorization denied");
+    }
+
+    let record: { email: string | null; assigned_recruiter?: string | null } | null;
+    if (data.relatedTable === "candidates") {
+      const { data: candidate, error: lookupError } = await context.supabase
+        .from("candidates").select("email,assigned_recruiter")
+        .eq("id", data.relatedId).maybeSingle();
+      if (lookupError) throw new Error("Email recipient authorization denied");
+      record = candidate;
+    } else {
+      const { data: client, error: lookupError } = await context.supabase
+        .from("clients").select("email")
+        .eq("id", data.relatedId).maybeSingle();
+      if (lookupError) throw new Error("Email recipient authorization denied");
+      record = client;
+    }
+    if (!isCrmEmailRecipientBound({
+      relatedTable: data.relatedTable,
+      requestedAddress: data.toEmail,
+      record,
+      actingUserId: context.userId,
+      approvedRole: role,
+    })) throw new Error("Email recipient authorization denied");
 
     const result = await sendEmail({
       to: data.toEmail,
