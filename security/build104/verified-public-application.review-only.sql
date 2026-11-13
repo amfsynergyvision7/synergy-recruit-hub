@@ -119,8 +119,8 @@ BEGIN
     notice_period,resume_url,position_applied,source,assigned_recruiter,stage,status
   ) VALUES (
     pg_catalog.btrim(p_full_name),v_email,p_mobile,
-    pg_catalog.nullif(p_current_company,''),p_experience_years,p_expected_salary,
-    pg_catalog.nullif(p_notice_period,''),pg_catalog.nullif(p_resume_url,''),
+    NULLIF(p_current_company,''),p_experience_years,p_expected_salary,
+    NULLIF(p_notice_period,''),NULLIF(p_resume_url,''),
     v_job.job_title,'career_page',v_job.assigned_recruiter,'lead_received','active'
   ) RETURNING id INTO v_candidate;
 
@@ -128,7 +128,7 @@ BEGIN
     candidate_id,candidate_uuid,job_uuid,role_title,status,remarks
   ) VALUES (
     v_candidate,v_candidate,p_job_id,v_job.job_title,'submitted',
-    pg_catalog.nullif(p_cover_note,'')
+    NULLIF(p_cover_note,'')
   ) RETURNING id INTO v_submission;
 
   UPDATE crm_private.verified_public_applications
