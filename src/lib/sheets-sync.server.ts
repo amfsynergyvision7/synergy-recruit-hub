@@ -189,8 +189,8 @@ export async function saveGoogleIntegrationSettings(input: {
   };
 
   const write = current?.id
-    ? (supabaseAdmin as any).from("google_integrations").update(payload).eq("id", current.id).eq("user_id", input.user_id).select("*").single()
-    : (supabaseAdmin as any).from("google_integrations").insert(payload).select("*").single();
+    ? (supabaseAdmin as any).from("google_integrations").update(payload).eq("id", current.id).eq("user_id", input.user_id).select("id,user_id,sheet_url,spreadsheet_id,sheet_name,header_row,auto_sync_enabled,sync_frequency_minutes,last_sync,last_synced_row,google_account_email,connection_status,column_mapping,created_at,updated_at").single()
+    : (supabaseAdmin as any).from("google_integrations").insert(payload).select("id,user_id,sheet_url,spreadsheet_id,sheet_name,header_row,auto_sync_enabled,sync_frequency_minutes,last_sync,last_synced_row,google_account_email,connection_status,column_mapping,created_at,updated_at").single();
   const { data, error } = await write;
   if (error) throw new Error(formatSupabaseError(current?.id ? "Update Google integration settings failed" : "Insert Google integration settings failed", error));
   if (!data) throw new Error("Save returned no integration settings");
