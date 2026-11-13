@@ -57,6 +57,14 @@ WITH live_counts AS (
          AND c.relkind='r' AND (NOT c.relrowsecurity OR NOT c.relforcerowsecurity))
          AS unprotected_public_tables,
       (SELECT count(*)::int FROM pg_class c WHERE c.relnamespace='public'::regnamespace
+         AND c.relkind='r') AS public_table_count,
+      (SELECT count(*)::int FROM pg_class c WHERE c.relnamespace='public'::regnamespace
+         AND c.relkind='r' AND NOT (
+           has_table_privilege('service_role',c.oid,'SELECT')
+           AND has_table_privilege('service_role',c.oid,'INSERT')
+           AND has_table_privilege('service_role',c.oid,'DELETE')
+         )) AS service_role_tables_missing_fixture_privileges,
+      (SELECT count(*)::int FROM pg_class c WHERE c.relnamespace='public'::regnamespace
          AND c.relkind='r' AND (
            has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
            OR has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
@@ -77,14 +85,17 @@ SELECT
              ORDER BY table_name) FROM live_counts) AS table_counts,
   (SELECT sum(row_count) FROM live_counts) AS total_fixture_rows,
   auth_users, public_rls_policies, enabled_app_triggers, enabled_auth_user_triggers,
-  unprotected_public_tables, public_tables_with_caller_grants,
+  unprotected_public_tables, public_table_count, service_role_tables_missing_fixture_privileges,
+  public_tables_with_caller_grants,
   exposed_public_views, callable_public_functions,
   (
     (SELECT count(*) FROM live_counts)=19
     AND (SELECT coalesce(sum(row_count),-1) FROM live_counts)=0
     AND auth_users=0 AND public_rls_policies=0
     AND enabled_app_triggers=0 AND enabled_auth_user_triggers=0
-    AND unprotected_public_tables=0 AND public_tables_with_caller_grants=0
+    AND unprotected_public_tables=0 AND public_table_count=19
+    AND service_role_tables_missing_fixture_privileges=0
+    AND public_tables_with_caller_grants=0
     AND exposed_public_views=0 AND callable_public_functions=0
   ) AS ready_for_reviewed_synthetic_provisioning
 FROM conditions;
