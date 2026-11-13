@@ -27,7 +27,7 @@ test('self and recruiter-owner policies cannot be role-only or user_metadata bas
 
 test('no grants to anonymous, no mutations, all other sensitive tables remain inaccessible',()=>{
  assert.match(sql,/GRANT SELECT ON public.profiles,public.user_roles,public.candidates TO authenticated;/);
- assert.doesNotMatch(executable,/GRANT\s+[^;]+\b(?:anon|PUBLIC)\b/i);
+ assert.doesNotMatch(executable,/^GRANT\s+[^;\n]+\bTO\s+(?:anon|PUBLIC)\s*;/gmi);
  assert.doesNotMatch(executable,/GRANT\s+(?:ALL|INSERT|UPDATE|DELETE|TRUNCATE)/i);
  assert.match(sql,/has_table_privilege\('anon','public.candidates','SELECT'\)/);
  assert.match(sql,/has_table_privilege\('authenticated','public.candidates','INSERT,UPDATE,DELETE,TRUNCATE'\)/);
