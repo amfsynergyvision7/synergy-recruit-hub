@@ -51,7 +51,8 @@ BEGIN
   SELECT public.crm_commit_verified_public_application(
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
     '11111111-1111-4111-8111-111111111111',
-    'Synthetic Applicant 1','SYNTHETIC1@EXAMPLE.INVALID','+91 9876543210'
+    'Synthetic Applicant 1','SYNTHETIC1@EXAMPLE.INVALID','+91 9876543210',
+    NULL,NULL,NULL,NULL,'https://drive.google.com/file/d/synthetic/view'
   ) INTO x;
   IF x <> 'accepted' THEN RAISE EXCEPTION 'Build105 FAIL: first commit %',x; END IF;
   SELECT public.crm_commit_verified_public_application(
@@ -77,6 +78,7 @@ BEGIN
   IF c.candidate_code NOT LIKE 'CAND-%'
     OR c.stage IS DISTINCT FROM 'submitted_to_client'
     OR c.status IS DISTINCT FROM 'active'
+    OR c.resume_url IS DISTINCT FROM 'https://drive.google.com/file/d/synthetic/view'
     OR s.candidate_id IS DISTINCT FROM c.id
     OR s.candidate_uuid IS DISTINCT FROM c.id
     OR s.job_uuid IS DISTINCT FROM '11111111-1111-4111-8111-111111111111'::uuid
@@ -117,6 +119,20 @@ SET LOCAL ROLE service_role;
 DO $cases$
 DECLARE has_error boolean; x text;
 BEGIN
+  -- An unsafe resume scheme cannot bypass the privileged SQL RPC, even
+  -- when the source-shaped candidate/submission triggers are installed.
+  has_error:=false;
+  BEGIN
+    PERFORM public.crm_commit_verified_public_application(
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+      '11111111-1111-4111-8111-111111111111',
+      'Synthetic Applicant 2','synthetic2@example.invalid','9876543211',
+      NULL,NULL,NULL,NULL,'data:text/html,malicious');
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM <> 'Application unavailable' THEN RAISE; END IF;
+    has_error:=true;
+  END;
+  IF NOT has_error THEN RAISE EXCEPTION 'Build108 accepted an unsafe source-shaped resume link'; END IF;
   has_error:=false;
   BEGIN
     PERFORM public.crm_commit_verified_public_application(
