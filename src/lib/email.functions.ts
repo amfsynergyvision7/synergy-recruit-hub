@@ -5,6 +5,7 @@ import { sendEmail, textToHtml } from "./email.server";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
 import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
+import { assertCrmEmailRecordReadAccess } from "./crm-email-record-access.server";
 
 // Which CrudModule tables can currently send email from their row actions
 // (Candidates, Clients — see emailField on those two route configs). Kept as
@@ -99,7 +100,7 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     if (logError) {
       // Don't mask a real send failure behind a logging failure, but do
       // surface both if the send itself also failed.
-      console.error("[email_log] insert failed:", logError.message);
+      console.error("[email_log] insert failed; review restricted server diagnostics");
     }
 
     if (!result.success) {
@@ -115,14 +116,22 @@ export const listEmailHistory = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
+    // Verify record ownership separately from the user's broad role, before
+    // disclosing correspondence or template merge details for this ID.
+    await assertCrmEmailRecordReadAccess({
+      supabase: context.supabase,
+      actorId: context.userId,
+      relatedTable: data.relatedTable,
+      relatedId: data.relatedId,
+    });
     const { data: rows, error } = await context.supabase
       .from("email_log" as any)
-      .select("*")
+      .select("id,subject,status,created_at,to_email")
       .eq("related_table", data.relatedTable)
       .eq("related_id", data.relatedId)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error("Email history is unavailable");
     return rows ?? [];
   });
 
@@ -144,6 +153,14 @@ export const getEmailMergeContext = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }): Promise<EmailMergeContext> => {
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
+    // Verify record ownership separately from the user's broad role, before
+    // disclosing correspondence or template merge details for this ID.
+    await assertCrmEmailRecordReadAccess({
+      supabase: context.supabase,
+      actorId: context.userId,
+      relatedTable: data.relatedTable,
+      relatedId: data.relatedId,
+    });
     // Resolves a profile id to a human name, falling back to whoever is
     // actually composing this email when the record itself has no owner
     // set — so the signature is never blank just because a candidate or
