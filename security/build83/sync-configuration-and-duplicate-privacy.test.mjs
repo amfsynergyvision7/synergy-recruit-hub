@@ -94,11 +94,13 @@ test('failed sync diagnostics no longer propagate raw provider exception into CR
  const end=sheets.indexOf('export async function fetchHeaders(',start);
  const sync=sheets.slice(start,end);
  assert(sync.includes('const message = SAFE_CANDIDATE_SYNC_ERROR;'));
- assert(sheets.includes('message: SAFE_CANDIDATE_SYNC_ERROR }));'));
+ assert(sheets.includes('message: SAFE_CANDIDATE_SYNC_ERROR });'));
  assert(sheets.includes('return sanitizeStoredSyncLogs(data ?? []);'));
  assert(!sheets.includes('message: e?.message || String(e)'));
  assert(!sheets.includes('const parts = [error?.message, error?.details, error?.hint, error?.code]'));
- assert(!sheets.includes('if (error) throw error;'));
+ const headers=sheets.slice(sheets.indexOf('export async function saveDetectedHeaders('),sheets.indexOf('export async function resetGoogleIntegrationSyncCursor('));
+ assert(headers.includes('if (error) throw new Error('));
+ assert(!headers.includes('if (error) throw error;'));
  assert(sheets.includes('const message = SAFE_CANDIDATE_SYNC_ERROR;'));
  assert(!sync.includes('e?.message || String(e)'));
  assert(!sync.includes('console.error("Failed to write sync failure log", logError)'));
