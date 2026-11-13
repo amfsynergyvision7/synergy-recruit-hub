@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {isCrmEmailRecordReadable} from '../../src/lib/crm-email-recipient-policy.ts';
-import {assertNoAnonymousCandidateCollision} from '../../src/lib/public-application-identity.ts';
+import {requireVerifiedApplicantProofId,parseAtomicApplicationOutcome} from '../../src/lib/public-application-identity.ts';
 
 const actor='11111111-1111-4111-8111-111111111111';
 const peer='22222222-2222-4222-8222-222222222222';
@@ -95,59 +95,66 @@ test('Build86 no public careers errors expose PostgREST SQL diagnostics or candi
  assert(apply.includes('assertExternalEffectReleased("public_application")'));
 });
 
-test('Build103 anonymous applicant cannot claim an existing CRM identity by email or phone',()=>{
- const base={emailMatches:[],mobileMatches:[],normalizedMobile:'9876543210',mobileProbeLimit:100};
- assert.doesNotThrow(()=>assertNoAnonymousCandidateCollision(base));
- const disallowed=[
-  {...base,emailMatches:[{id:'existing-candidate'}]},
-  {...base,emailMatches:[{},{}]},
-  {...base,mobileMatches:[{mobile:'9876543210'}]},
-  {...base,mobileMatches:[{mobile:'+91 98765 43210'}]},
-  {...base,mobileMatches:[{mobile:'09876543210'}]},
-  {...base,mobileMatches:Array(100).fill({mobile:'9999999999'})},
-  {...base,mobileMatches:null},
-  {...base,emailMatches:null},
-  {...base,emailError:{message:'private provider error email@secret'}},
-  {...base,mobileError:{message:'private provider error 9876543210'}},
-  {...base,mobileMatches:[{mobile:null}]},
-  {...base,mobileMatches:[null]},
-  {...base,normalizedMobile:null},
-  {...base,normalizedMobile:'123'},
-  {...base,normalizedMobile:'abcd1234'},
-  {...base,mobileProbeLimit:0}
- ];
- const failures=disallowed.map(v=>{
-  try{assertNoAnonymousCandidateCollision(v);return 'WRONG_ALLOW';}
-  catch(e){return e.message}
- });
- assert.equal(new Set(failures).size,1,'Every collision/error response must have the same generic wording');
- assert.equal(failures[0],'Application requires independent identity verification');
- assert(!failures.join(' ').includes('existing-candidate'));
- assert(!failures.join(' ').includes('email@secret'));
- assert.doesNotThrow(()=>assertNoAnonymousCandidateCollision({
-  ...base,mobileMatches:[{mobile:'+91 90000 01234'}]
- }));
+
+test('Build104 public applicant proof requires a random UUIDv4, never a contact string',()=>{
+ const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
+ assert.equal(requireVerifiedApplicantProofId(id),id);
+ const invalid=[null,undefined,'person@example.invalid','+91 9876543210','',
+  '00000000-0000-0000-0000-000000000000',
+  'aaaaaaaa-aaaa-1aaa-8aaa-aaaaaaaaaaa1',
+  'aaaaaaaa-aaaa-4aaa-0aaa-aaaaaaaaaaa1',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1/../',{},[],42];
+ for(const item of invalid)
+  assert.throws(()=>requireVerifiedApplicantProofId(item),/requires independent identity verification/);
+ assert.deepEqual(parseAtomicApplicationOutcome('accepted'),{alreadyApplied:false});
+ assert.deepEqual(parseAtomicApplicationOutcome('already_applied'),{alreadyApplied:true});
+ for(const item of [null,{},[],{candidateId:'private-id'},'private-candidate-id','approved',false]){
+  assert.throws(()=>parseAtomicApplicationOutcome(item),/could not be completed securely/);
+ }
 });
-test('Build103 public careers handler never uses an unverified contact lookup as a CRM candidate identity',()=>{
+test('Build104 public server never issues verification proofs, reuses contacts, or writes candidate/submission rows',()=>{
  const src=file('src/lib/careers.functions.ts');
  const apply=src.slice(src.indexOf('export const submitJobApplication'));
- assert(apply.includes('assertExternalEffectReleased("public_application")'));
  const hold=apply.indexOf('assertExternalEffectReleased("public_application")');
- const lookup=apply.indexOf('.from("candidates")');
- assert(hold>=0&&lookup>hold);
- assert(apply.includes('.ilike("email", escapeIlikeLiteral(email))'));
- assert(apply.includes('.select("mobile").ilike("mobile",'));
- assert(apply.includes('.limit(mobileProbeLimit)'));
- const collision=apply.indexOf('assertNoAnonymousCandidateCollision({');
- const insert=apply.indexOf('.from("candidates")\n      .insert(');
- const submission=apply.indexOf('.from("submissions")\n      .insert(');
- assert(collision>lookup&&insert>collision&&submission>insert);
- assert(apply.includes('const candidateId = created.id'));
+ const proof=apply.indexOf('requireVerifiedApplicantProofId(data.verificationId)');
+ const rpc=apply.indexOf('.rpc(');
+ assert(hold>=0&&proof>hold&&rpc>proof);
+ assert(apply.includes('"crm_commit_verified_public_application"'));
+ assert(apply.includes('p_proof_id: proofId'));
+ assert(apply.includes('p_email: data.email'));
+ assert(apply.includes('p_mobile: data.mobile'));
+ assert(apply.includes('return parseAtomicApplicationOutcome(outcome)'));
+ assert(!apply.includes('.from("candidates")'));
+ assert(!apply.includes('.from("submissions")'));
+ assert(!apply.includes('.from("notifications")'));
  assert(!apply.includes('candidateId = byEmail.id'));
- assert(!apply.includes('candidateId = (mobileMatches'));
- assert(!apply.includes('return { alreadyApplied: true }'));
- assert(!apply.includes('throw new Error(emailError.message)'));
- assert(!apply.includes('throw new Error(mobileError.message)'));
- assert(apply.includes('an atomic candidate+submission transaction before'));
- assert(apply.includes('public_application may be released. This code is draft/held.'));
+ assert(!apply.includes('mobileMatches'));
+ assert(!apply.includes('throw new Error(error.message)'));
+ assert(!apply.includes('return { candidateId:'));
+ const schema=src.slice(src.indexOf('const applicationSchema'),src.indexOf('export const submitJobApplication'));
+ assert(schema.includes('verificationId: z.string().uuid().optional()'));
+});
+test('Build104 atomic review SQL has private proof table, explicit service-only EXECUTE, verified identity and transactional writes',()=>{
+ const sql=file('security/build104/verified-public-application.review-only.sql');
+ assert(sql.includes('SECURITY DEFINER SET search_path = pg_catalog'));
+ assert(sql.includes('REVOKE ALL ON FUNCTION public.crm_commit_verified_public_application('));
+ assert(sql.includes('FROM PUBLIC,anon,authenticated;'));
+ assert(sql.includes('GRANT EXECUTE ON FUNCTION public.crm_commit_verified_public_application('));
+ assert(sql.includes('TO service_role;'));
+ assert(sql.includes('REVOKE ALL ON TABLE crm_private.verified_public_applications FROM PUBLIC,anon,authenticated,service_role'));
+ assert(sql.includes('FOR UPDATE'));
+ assert(sql.includes('v_proof.verified_email IS DISTINCT FROM v_email'));
+ assert(sql.includes('v_proof.verified_mobile IS DISTINCT FROM v_phone'));
+ assert(sql.includes('IF v_proof.consumed_at IS NOT NULL THEN'));
+ assert(sql.includes("RETURN 'already_applied'"));
+ const candidate=sql.indexOf('INSERT INTO public.candidates(');
+ const submission=sql.indexOf('INSERT INTO public.submissions(');
+ const consumed=sql.indexOf('UPDATE crm_private.verified_public_applications');
+ assert(candidate>0&&submission>candidate&&consumed>submission);
+ assert(!sql.includes('CREATE OR REPLACE FUNCTION'));
+ assert(!sql.includes('GRANT EXECUTE ON FUNCTION public.crm_commit_verified_public_application(\n  uuid,uuid,text,text,text,text,numeric,numeric,text,text,text\n) TO anon'));
+ const rehearsal=file('security/build104/verified-public-application.integration.sql');
+ assert(rehearsal.includes('\\ir verified-public-application.review-only.sql'));
+ assert(rehearsal.includes('simulated submissions trigger failure'));
+ assert(rehearsal.trim().endsWith('ROLLBACK;'));
 });
