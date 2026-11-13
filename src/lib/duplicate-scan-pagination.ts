@@ -17,11 +17,18 @@ export async function loadCompleteDuplicateReviewRows<T extends { id: string }>(
   for (let offset = 0; offset === 0 || offset < (expectedTotal ?? 0); offset += DUPLICATE_SCAN_PAGE_SIZE) {
     // Exact count is repeated to detect obvious concurrent row-set changes.
     // Tie-break by UUID so equal timestamps have deterministic pagination.
-    const query = await client.from("candidates")
-      .select(columns, { count: "exact" })
-      .order("created_at", { ascending: true })
-      .order("id", { ascending: true })
-      .range(offset, offset + DUPLICATE_SCAN_PAGE_SIZE - 1);
+    let query: any;
+    try {
+      query = await client.from("candidates")
+        .select(columns, { count: "exact" })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + DUPLICATE_SCAN_PAGE_SIZE - 1);
+    } catch {
+      // Network/runtime exceptions can contain internal URLs, provider
+      // headers, or candidate identifiers. Never serialize those details.
+      throw new Error(UNAVAILABLE);
+    }
     const { data, count, error } = query ?? {};
     if (error || !Number.isSafeInteger(count) || count < 0 ||
       count > MAX_COMPLETE_DUPLICATE_SCAN ||
