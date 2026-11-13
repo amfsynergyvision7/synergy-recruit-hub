@@ -319,13 +319,15 @@ test('Build100 credentialed Sheets gateway has bounded JSON streaming, zero redi
 test('Build101 fast guard: untrusted Sheet aliases cannot inject CRM owner, role or status fields',()=>{
  const legacy={experience:'experience_years',position:'position_applied'};
  const headers={'full name':'full_name',email:'email',role:'position_applied'};
+ assert.equal(approvedCandidateHeaderAlias('role',headers,CANDIDATE_FIELDS),'position_applied');
  assert.equal(approvedCandidateMappingTarget('experience',legacy,CANDIDATE_FIELDS),'experience_years');
  assert.equal(approvedCandidateHeaderAlias(' FULL NAME ',headers,CANDIDATE_FIELDS),'full_name');
  for(const forbidden of ['__proto__','constructor','toString','valueOf','user_id','id',
-  'role','status','stage','created_source','assigned_recruiter','is_active',null,{},1]){
+  'status','stage','created_source','assigned_recruiter','is_active',null,{},1]){
   assert.equal(approvedCandidateMappingTarget(forbidden,legacy,CANDIDATE_FIELDS),undefined);
   assert.equal(approvedCandidateHeaderAlias(forbidden,headers,CANDIDATE_FIELDS),undefined);
  }
+ assert.equal(approvedCandidateMappingTarget('role',legacy,CANDIDATE_FIELDS),undefined);
  const code=file('src/lib/sheets-sync.server.ts');
  assert(code.includes('approvedCandidateHeaderAlias(h, FIELD_ALIASES, CANDIDATE_FIELDS)'));
  assert(code.includes('approvedCandidateMappingTarget(field, LEGACY_FIELD_NAMES, CANDIDATE_FIELDS)'));
