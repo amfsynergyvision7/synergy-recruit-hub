@@ -35,3 +35,26 @@ export function isCrmEmailRecipientBound(args: {
   }
   return false;
 }
+
+/**
+ * Explicit record-read scope for CRM email history and merge templates.
+ * A recruiter may read only their assigned candidate's correspondence.
+ * Client records and any other candidate are admin-only. This does not
+ * trust application display state or a permissive future RLS policy.
+ */
+export function isCrmEmailRecordReadable(args: {
+  relatedTable: CrmEmailTable;
+  record: { assigned_recruiter?: string | null } | null;
+  actingUserId: string;
+  approvedRole: CrmEmailRole;
+}): boolean {
+  const { relatedTable, record, actingUserId, approvedRole } = args;
+  if (!uuid.test(actingUserId) || !record ||
+      (approvedRole !== "admin" && approvedRole !== "recruiter")) return false;
+  if (relatedTable === "clients") return approvedRole === "admin";
+  if (relatedTable === "candidates") {
+    return approvedRole === "admin" ||
+      record.assigned_recruiter === actingUserId;
+  }
+  return false;
+}
