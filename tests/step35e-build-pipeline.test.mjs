@@ -19,3 +19,12 @@ test('GitHub Actions uses the same security suite as Preview', () => {
   const pkg = JSON.parse(read('package.json'));
   assert.ok(pkg.scripts['test:security'].includes('step35e-build-pipeline.test.mjs'));
 });
+
+test('isolated security workflow cannot trigger on main or deploy production', () => {
+  const workflow = read('.github/workflows/step35e-security-gates.yml');
+  const triggers = workflow.split('jobs:')[0];
+  assert.match(triggers, /branches:\s*\[security\/step-35e-isolated-hardening\]/);
+  assert.doesNotMatch(triggers, /pull_request:|schedule:|branches:\s*\[main\]/);
+  assert.doesNotMatch(workflow, /vercel\s+(?:--prod|deploy)|supabase\s+db\s+push|git\s+push\s+origin\s+main/i);
+  assert.doesNotMatch(workflow, /id-token:\s*write|contents:\s*write/);
+});
