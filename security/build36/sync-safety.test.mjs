@@ -26,7 +26,9 @@ test('actual importer has owner, exact-match and fail-fast guards',()=>{
  assert.match(code,/reconcileCandidateMatches\(mobileMatch, emailMatch\)/);
  assert.match(code,/escapeIlikeLiteral\(cand\.email\)/);
  const batch=code.slice(code.indexOf('for (let i = startIdx;'),code.indexOf('result.created = result.rows_created;'));
- assert.match(batch,/catch \(e: any\) \{[\s\S]*?result\.rows_skipped\+\+;\s*break;/);
+ assert.match(batch,/catch(?:\s*\([^)]*\))?\s*\{[\s\S]*?result\.rows_skipped\+\+;\s*break;/);
+ assert.match(batch,/result\.error_details\.push\(\{ row: sheetRowNumber, message: SAFE_CANDIDATE_SYNC_ERROR \}\)/);
+ assert.doesNotMatch(batch,/e\?\.message|String\(e\)/);
  assert.match(batch,/lastSynced = advanceContiguousCursor/);
 });
 test('matching queries detect duplicate rows rather than choosing latest silently',()=>{
