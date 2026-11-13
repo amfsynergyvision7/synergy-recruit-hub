@@ -1,9 +1,22 @@
 -- Build105 synthetic, disposable, source-derived trigger compatibility tests.
 -- The composer places this AFTER the Build44 baseline, real submission
 -- trigger snapshot, production-like PK/FK constraints, and Build104 function.
-INSERT INTO public.job_openings(id,job_title,status,open_positions)
- VALUES ('11111111-1111-4111-8111-111111111111','Fictional Analyst','open',1),
-        ('22222222-2222-4222-8222-222222222222','Closed Synthetic Job','closed',1);
+-- Explicit synthetic assigned recruiter + active rule tests that the
+-- source-derived workflow trigger makes one private notification and that
+-- a later failed submission cannot leak a premature notification.
+INSERT INTO public.job_openings(id,job_title,status,open_positions,assigned_recruiter)
+ VALUES ('11111111-1111-4111-8111-111111111111','Fictional Analyst','open',1,
+         'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),
+        ('22222222-2222-4222-8222-222222222222','Closed Synthetic Job','closed',1,
+         'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+INSERT INTO public.workflow_rules(
+ id,name,table_name,field_name,field_value,action_type,notify_target,
+ notify_title,notify_message,is_active
+) VALUES (
+ 'dddddddd-dddd-4ddd-8ddd-dddddddddddd','Build107 synthetic stage notification',
+ 'candidates','stage','submitted_to_client','notify','assigned_recruiter',
+ 'Candidate: {{full_name}}','Applicant stage transitioned: {{value}}',true
+);
 
 DO $acl$
 DECLARE
@@ -78,6 +91,13 @@ BEGIN
   IF (SELECT count(*) FROM crm_private.verified_public_applications WHERE consumed_at IS NOT NULL)<>1 THEN
     RAISE EXCEPTION 'Build105 FAIL: proof not consumed exactly once';
   END IF;
+  IF (SELECT count(*) FROM public.notifications
+        WHERE related_table='candidates' AND related_id=c.id
+          AND user_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'::uuid
+          AND title='Candidate: Synthetic Applicant 1'
+          AND message='Applicant stage transitioned: submitted_to_client')<>1 THEN
+    RAISE EXCEPTION 'Build107 FAIL: missing or duplicate recruiter notification for accepted applicant';
+  END IF;
 END $assert$;
 
 -- Source-derived trigger runs BEFORE and AFTER submission; a later failure
@@ -141,8 +161,9 @@ BEGIN
   IF (SELECT count(*) FROM public.candidates)<>1
     OR (SELECT count(*) FROM public.submissions)<>1
     OR (SELECT count(*) FROM public.candidate_stage_history)<>1
+    OR (SELECT count(*) FROM public.notifications)<>1
     OR (SELECT count(*) FROM crm_private.verified_public_applications WHERE consumed_at IS NOT NULL)<>1 THEN
-      RAISE EXCEPTION 'Build105 FAIL: failed transactions left candidate/submission/history/proof side effects';
+      RAISE EXCEPTION 'Build107 FAIL: failing application left candidate/submission/history/notification/proof side effects';
   END IF;
 END $verify$;
 
