@@ -92,6 +92,9 @@ BEGIN
     -- Exactly one candidate/submission pair was already committed.
     RETURN 'already_applied';
   END IF;
+  -- This lock may have waited behind another request. Use the post-lock
+  -- clock, not the timestamp captured before waiting, to enforce expiry.
+  v_now := pg_catalog.clock_timestamp();
   IF v_proof.expires_at <= v_now THEN
     RAISE EXCEPTION 'Application unavailable' USING ERRCODE='22023';
   END IF;
