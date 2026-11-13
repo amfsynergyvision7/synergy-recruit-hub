@@ -29,7 +29,12 @@ test('Sheets errors do not echo provider response, candidate row, or connection 
  const end=sheets.indexOf('export interface GoogleIntegrationSettings',i);
  assert(i>0&&end>i);
  const gateway=sheets.slice(i,end);
- assert(gateway.includes('Sheets API request failed (HTTP'));
+ assert(gateway.includes('Sheets gateway request unavailable; check restricted diagnostics'));
+ assert(gateway.includes('redirect: "error"'));
+ assert(gateway.includes('signal: AbortSignal.timeout(15000)'));
+ assert(gateway.includes('await readResponseTextBounded(res, 1024 * 1024)'));
+ assert(gateway.includes('if (!res.ok) {'));
+ assert(!gateway.includes('await res.text()'));
  assert(!gateway.includes('res.status}:'));
- assert(gateway.includes('if (!res.ok) throw new Error('));
+ assert(!gateway.includes('...init'));
 });
