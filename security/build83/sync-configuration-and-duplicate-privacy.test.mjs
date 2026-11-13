@@ -225,6 +225,11 @@ test('Build99 owner settings read uses explicit field allowlist, never historica
   src.indexOf('export async function saveDetectedHeaders('));
  assert(save.includes('return redactHistoricalIntegrationError(data as GoogleIntegrationSettings)'));
  assert(save.includes('assertExternalEffectReleased("integration_configuration")'));
+ assert(!save.includes('.select("*")'));
+ const responseProjections=[...save.matchAll(/\.select\("([^"]+)"\)\.single\(\)/g)].map(m=>m[1]);
+ assert.equal(responseProjections.length,2);
+ assert(responseProjections.every(p=>p===projection));
+ assert(responseProjections.every(p=>!p.split(',').includes('last_error')));
  const ui=file('src/routes/_app.integrations.tsx');
  assert(!ui.includes('console.error("integration load error", integQ.error)'));
  assert(!ui.includes('console.error("sync logs load error", logsQ.error)'));
