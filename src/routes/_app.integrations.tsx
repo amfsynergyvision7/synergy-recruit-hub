@@ -127,10 +127,10 @@ function Page() {
 
   if (integQ.isError) {
     // surface error but don't crash
-    console.error("integration load error", integQ.error);
+    console.error("Integration settings unavailable");
   }
   if (logsQ.isError) {
-    console.error("sync logs load error", logsQ.error);
+    console.error("Sync log history unavailable");
   }
 
   return (
