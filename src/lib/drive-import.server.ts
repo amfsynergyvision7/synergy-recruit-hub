@@ -102,7 +102,6 @@ async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveF
     }
     const params = new URLSearchParams({
       q: `'${folderId}' in parents and trashed = false`,
-      key: apiKey,
       fields: "nextPageToken, files(id, name, mimeType, webViewLink)",
       pageSize: "200",
     });
@@ -110,7 +109,8 @@ async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveF
 
     // Google APIs can emit unbounded JSON or echo the key/folder/PII in
     // error bodies. Read a maximum of 2 MB from the exact Google API host.
-    // Never follow a redirect to an unapproved endpoint with the API key.
+    // Put the Google key in a host-pinned header, never a URL query or
+    // loggable request address; reject all redirects before forwarding it.
     let data: any;
     try {
       const result = await downloadRemoteBounded(`${DRIVE_LIST_ENDPOINT}?${params.toString()}`, {
@@ -118,6 +118,7 @@ async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveF
         maxBytes: 2 * 1024 * 1024,
         timeoutMs: 10000,
         maxRedirects: 0,
+        googleApiKey: apiKey,
       });
       data = JSON.parse(result.body.toString("utf8"));
       if (!data || !Array.isArray(data.files)) throw new Error("Invalid Drive response");
