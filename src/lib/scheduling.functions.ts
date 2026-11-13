@@ -52,6 +52,9 @@ export const createSchedulingLink = createServerFn({ method: "POST" })
 export const getSchedulingInfo = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ token: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    // Do not expose candidate/interview information through a public bearer
+    // token before the publication and scheduling release review.
+    assertExternalEffectReleased("interview_scheduling");
     // interviews has two foreign keys each to candidates (candidate_id AND
     // candidate_uuid) and to clients (client_id AND client_uuid) — a plain
     // `candidates(...)`/`clients(...)` embed is ambiguous to PostgREST and
