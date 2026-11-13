@@ -14,6 +14,7 @@
 // works, so it's governed by the exact same admin-only RLS policy.
 import { normalizeEmail, normalizePhone, normalizeName } from "./dedupe";
 import { assertApprovedRole } from "./access-gates.server";
+import { loadCompleteDuplicateReviewRows } from "./duplicate-scan-pagination";
 
 export interface DuplicateCandidate {
   id: string;
@@ -76,16 +77,11 @@ export async function findDuplicateClusters(supabase: any, actorUserId: string):
   // Enforce at the data-access boundary, even when called directly by another server module.
   // The unique approved+active admin gate must pass before any 5,000-row candidate read.
   await assertApprovedRole(actorUserId, ["admin"]);
-  const { data, error } = await supabase
-    .from("candidates")
-    .select(
-      "id, full_name, candidate_code, email, mobile, position_applied, stage, status, source, location, current_company, experience_years, resume_url, created_at",
-    )
-    .order("created_at", { ascending: true })
-    .limit(5000);
-  if (error) throw error;
+  const candidates = await loadCompleteDuplicateReviewRows<DuplicateCandidate>(
+    supabase,
+    "id, full_name, candidate_code, email, mobile, position_applied, stage, status, source, location, current_company, experience_years, resume_url, created_at",
+  );
 
-  const candidates: DuplicateCandidate[] = data ?? [];
   const uf = new UnionFind(candidates.length);
 
   // Every pairwise match this scan is willing to make, tagged with *why*,
