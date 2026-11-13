@@ -14,7 +14,7 @@ This build implements server-side security changes to prevent unapproved candida
 
 ### 2. Integration settings GET is genuinely read-only
 - `getIntegration` now requests `getSavedGoogleIntegration({backfillLegacy:false,...})`, so an ordinary settings read cannot perform a surprise legacy database backfill through a privileged service-role client.
-- `getSavedGoogleIntegration` defaults to **no backfill**; any explicitly requested legacy backfill is independently blocked by the `integration_configuration` release hold before its privileged `upsert`.
+- `getSavedGoogleIntegration` defaults to **no backfill**; Build96 now **rejects every explicit legacy-backfill request when no owner-scoped row exists**, rather than allowing an ownerless `integrations` row to be silently rehomed. The low-level settings save now opens or creates only its own `google_integrations.user_id` record.
 - Manual `saveIntegration` and `detectHeaders`, low-level `saveGoogleIntegrationSettings`, `saveDetectedHeaders`, and `fetchSheetValues` require the same hard release interlock before writing configuration or accessing an external Google Sheet. Existing admin-role checks remain.
 - These holds block premature auto-sync enablement and sheet-data downloads via the revised application while preserving read-only settings and sync-log viewing for approved admins.
 
@@ -47,3 +47,13 @@ Full guarded CI for the final documentation commit must be separately verified; 
 **Conditional planning estimate:** approximately **5–10+ further substantive CRM release builds to `main`**, and **15–30+ builds for all six programme workstreams**, **if** protected Auth Admin access and independent reviews/signoffs become available. With those blockers unresolved, no finite build count is reliable.
 
 Source of record: [draft PR #12](https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12), [hosted UAT issue #13](https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/13), [governance issue #14](https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/14). No real candidate or client records are included here.
+
+## Build 96 — Block ownerless historical Google Sheets connection transfer (13 Nov 2026)
+
+**Source risk identified through read-only production schema metadata:** `public.integrations` has no `user_id`, whereas `public.google_integrations` has a required `user_id`. The older `getSavedGoogleIntegration({backfillLegacy:true,userId:...})` path took the one available global legacy `candidates` Sheets integration and created an owner-scoped record under whichever administrator happened to call `saveGoogleIntegrationSettings`. This could transfer sheet URLs, integration configuration and historical auto-sync settings across accounts after the current release holds are independently lifted. No real sheet contents, credentials or candidate records were queried to establish this defect.
+
+**Implemented draft-only:** an existing owner-scoped `google_integrations` record is still read normally; a missing record now returns `null` for read-only requests. Asking for `backfillLegacy:true` when there is no owner-scoped record fails with a generic independently reviewed owner-mapping requirement; **no global `integrations` query or implicit service-role `upsert` exists in this read path**. New authorized integration saves use `backfillLegacy:false` and the authenticated administrator's explicit `context.userId` from the server route. The existing hard-coded `integration_configuration` and `candidate_sync` release holds remain **active**.
+
+The updated Build83 regression test checks no ownerless table lookup, no global->user transfer, no hidden upsert and an approved-admin-protected save. Old legacy integrations, if business-required, need a future separately reviewed, auditable migration with a verified owner mapping and consent—not inference from the current session.
+
+**Boundaries:** This is source-only hardening on draft PR #12. It does not migrate any real connection, enable sync, access sheet data, create new hosted UAT accounts, change production, merge or deploy. Formal release counters remain 0/140 signed hosted UAT, 0/48 accepted remediations and 0/9 independent release approvals.
