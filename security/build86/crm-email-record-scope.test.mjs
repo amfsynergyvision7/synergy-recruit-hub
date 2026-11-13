@@ -274,6 +274,8 @@ test('Build108 resume URL accepts ordinary public HTTPS links and rejects execut
   'https://192.168.0.1/resume.pdf',
   'https://user:password@drive.google.com/file',
   'https://drive.google.com:8443/file',
+  'https://drive.google.com:443/file',
+  'https://drive.google.com./file',
   'https://internal.local/file',
   'https://example.internal/file',
   'https://remote.invalid/file',
