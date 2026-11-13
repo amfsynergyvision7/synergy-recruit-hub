@@ -8,7 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
-import { requireVerifiedApplicantProofId, parseAtomicApplicationOutcome } from "./public-application-identity";
+import { requireVerifiedApplicantProofId, parseAtomicApplicationOutcome, normalizeSafePublicResumeUrl } from "./public-application-identity";
 
 function maskCompanyName(row: { is_confidential: boolean; clients?: { company_name?: string } | null }): string | null {
   if (row.is_confidential) return null;
@@ -100,6 +100,7 @@ export const submitJobApplication = createServerFn({ method: "POST" })
     // No feature flag or deployment environment can bypass this review hold.
     assertExternalEffectReleased("public_application");
     const proofId = requireVerifiedApplicantProofId(data.verificationId);
+    const resumeUrl = normalizeSafePublicResumeUrl(data.resumeUrl);
     // Single server-only RPC. No separate service-role candidate/submission
     // writes are possible in this public handler, even if an outer release
     // hold were accidentally removed. The review-only SQL requires a single-
@@ -117,7 +118,7 @@ export const submitJobApplication = createServerFn({ method: "POST" })
         p_experience_years: data.experienceYears ?? null,
         p_expected_salary: data.expectedSalary ?? null,
         p_notice_period: data.noticePeriod || null,
-        p_resume_url: data.resumeUrl || null,
+        p_resume_url: resumeUrl,
         p_cover_note: data.coverNote || null,
       },
     );
