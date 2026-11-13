@@ -128,12 +128,14 @@ test('BUILD88 cannot create nine GoTrue users without a separately reviewed, fre
  assert.throws(()=>executionPlan({...e,AMF_UAT_PREFLIGHT_ATTESTATION:'I clicked YES'}),/preflight attestation/);
  const ok=executionPlan({...e,AMF_UAT_PREFLIGHT_ATTESTATION:PREFLIGHT_CONFIRMATION});
  assert.equal(ok.operation,'CREATE_NINE_AND_SEED_38');
+ assert.equal(ok.preflightAttested,true);
  assert.equal(ok.credentials.users.length,9);
 });
 test('BUILD88 direct-runner rejects arbitrary operations and missing nonprod credentials without API writes',async()=>{
  const f=fakeClient();
  await assert.rejects(runGuardedHostUat({operation:'WRONG'},f.client),/Unknown isolated hosted operation/);
- await assert.rejects(runGuardedHostUat({operation:'CREATE_NINE_AND_SEED_38'},f.client),/Invalid exact nonproduction synthetic plan/);
+ await assert.rejects(runGuardedHostUat({operation:'CREATE_NINE_AND_SEED_38'},f.client),/Fresh hosted preflight attestation missing/);
+ await assert.rejects(runGuardedHostUat({operation:'CREATE_NINE_AND_SEED_38',preflightAttested:true},f.client),/Invalid exact nonproduction synthetic plan/);
  assert.equal(f.mutated(),false);
 });
 test('BUILD88 read-only SQL preflight inspects all 19 app tables plus Auth triggers, public grants and RLS',()=>{
