@@ -75,6 +75,14 @@ export async function readHostedSnapshot(client){
      .every(email=>users.filter(u=>u.email===email).length===1));
  const counts={};
  for(const table of TABLES)counts[table]=await countRows(client,table);
+ // A user replacement during sequential table reads must not be treated
+ // as stable synthetic identity evidence. No user attributes are logged.
+ const authAfter=await client.auth.admin.listUsers({page:1,perPage:100});
+ const afterUsers=authAfter?.data?.users;
+ if(authAfter?.error||!Array.isArray(afterUsers)||afterUsers.length!==users.length||
+    afterUsers.length>=100||
+    users.some(u=>afterUsers.filter(a=>a.id===u.id&&a.email===u.email&&a.role===u.role).length!==1))
+   throw new Error('Nonproduction Auth identity inventory changed during snapshot');
  return Object.freeze({authUsers:users.length,tableCounts:counts,
    totalRows:Object.values(counts).reduce((a,b)=>a+b,0),
    syntheticAuthSlotsValid:slotsValid});
@@ -90,6 +98,8 @@ export function validateSnapshot(snapshot,stage){
  const authExpected=stage==='EMPTY'?0:9;
  if(snapshot.authUsers!==authExpected)
    throw new Error('Unexpected number of real nonproduction Auth accounts');
+ if(stage!=='EMPTY' && snapshot.syntheticAuthSlotsValid!==true)
+   throw new Error('Unexpected nonproduction Auth identity in staged fixture');
  for(const table of TABLES)if(snapshot.tableCounts[table] !== (expected[table]??0))
    throw new Error('Unexpected table cardinality in hosted synthetic fixture');
  if(snapshot.totalRows!==(stage==='EMPTY'?0:stage==='BASE'?18:38))
@@ -218,7 +228,12 @@ export async function runGuardedHostUat(plan,client){
  if(operation==='AUDIT_ONLY'){
    const fixtureStage=validateReadOnlyAudit(before);
    if(fixtureStage==='FULL')await verifyInertHostedContents(client);
-   return {operation,authUsers:before.authUsers,records:before.totalRows,mutated:false,fixtureStage};
+   // Recheck the final state after content inspection; otherwise a
+   // concurrent table-count change could masquerade as a clean audit.
+   const after=await readHostedSnapshot(client);
+   if(validateReadOnlyAudit(after)!==fixtureStage)
+     throw new Error('Nonproduction hosted audit HOLD: fixture changed during inspection');
+   return {operation,authUsers:after.authUsers,records:after.totalRows,mutated:false,fixtureStage};
  }
  validateSnapshot(before,'EMPTY');
  let mapping=null;
@@ -235,6 +250,8 @@ export async function runGuardedHostUat(plan,client){
    throw new Error('Hosted extended fixture integrity mismatch');
  validateSnapshot(await readHostedSnapshot(client),'FULL');
  await verifyInertHostedContents(client);
+ // Reconfirm identity and counts after inspecting all fixture contents.
+ validateSnapshot(await readHostedSnapshot(client),'FULL');
  return {operation,authUsers:9,records:38,mutated:true,formalSignedUat:0};
 }
 async function main(){

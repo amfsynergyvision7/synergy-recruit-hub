@@ -59,6 +59,7 @@ const snapshot=(stage)=>{
  for(const k of Object.keys(expectedTables))
    count[k]=stage==='EMPTY'?0:stage==='BASE'?(BASE_COUNTS[k]??0):expectedTables[k];
  return {authUsers:stage==='EMPTY'?0:9,tableCounts:count,
+  syntheticAuthSlotsValid:true,
   totalRows:Object.values(count).reduce((a,b)=>a+b,0)};
 };
 const fakeClient=(counts=snapshot('EMPTY'))=>{
@@ -610,4 +611,49 @@ test('Build112 completed fixture audit covers all 19 tables, including action/hi
   assert(section.includes("await read('"+table+"'"));
   assert(section.includes("reject('"+table+"')"));
  }
+});
+
+
+test('Build113 staged fixture rejects wrong synthetic Auth slots even with matching 9/38 counts',()=>{
+ for(const stage of ['BASE','FULL']){
+  const s=snapshot(stage);
+  s.syntheticAuthSlotsValid=false;
+  assert.throws(()=>validateSnapshot(s,stage),/Auth identity/);
+  s.syntheticAuthSlotsValid=undefined;
+  assert.throws(()=>validateSnapshot(s,stage),/Auth identity/);
+ }
+});
+
+test('Build113 readHostedSnapshot rejects an Auth user replacement during table inventory',async()=>{
+ const {client,mutated}=fakeClient();
+ let reads=0;
+ client.auth.admin.listUsers=async()=>{
+  reads++;
+  return {data:{users:reads===1?[]:[{id:'00000000-0000-0000-0000-000000000001',email:slotEmail(1)}]},error:null};
+ };
+ await assert.rejects(runGuardedHostUat({operation:'AUDIT_ONLY'},client),
+  /Auth identity inventory changed/);
+ assert.equal(reads,2);
+ assert.equal(mutated(),false);
+});
+
+test('Build113 AUDIT_ONLY rechecks all 19 counts after full inert content inspection',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ let readCounts=0;
+ const original=client.from;
+ client.from=table=>{
+  const handle=original(table);
+  return {
+   ...handle,
+   select:async(projection,options)=>{
+    if(options?.head && ++readCounts>19) {
+     return {count:tables[table].length+(table==='billing'?1:0),error:null};
+    }
+    return handle.select(projection,options);
+   }
+  };
+ };
+ await assert.rejects(runGuardedHostUat({operation:'AUDIT_ONLY'},client),
+  /cardinality/);
+ assert.equal(writes(),0);
 });

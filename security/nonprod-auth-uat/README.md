@@ -125,3 +125,8 @@ Before any approved `CREATE_NINE_AND_SEED_38`, the operator must **rerun** Build
 ## Build 112 — full 19-table inert content readback (14 Nov 2026)
 
 Earlier count-verified 9-user/38-row `AUDIT_ONLY` readback checked the content of 16 of the 19 public fixture tables. It omitted `candidate_activities`, `candidate_stage_history`, and `audit_logs`. Build 112 adds exact read-only checks of their invented actor, candidate, action, history and audit-detail fields; content verification now covers **all 19 tables**. Negative tests substitute real-operation-like values and require HOLD. This remains a read-only point-in-time best-effort review, not a transaction snapshot or a production authorization. No hosted users or rows are created by this build.
+
+
+## Build 113 — two-sided hosted audit readback (14 Nov 2026)
+
+A complete synthetic AUDIT_ONLY scan now compares the Auth identity inventory before and after the 19 public-table count queries. It also rechecks the 9-user/38-row snapshot after inspecting the complete fixture contents. Staged CREATE validation rejects an incorrect nine-user Auth-slot set, and a final count/identity readback follows CREATE content inspection. Negative regression tests cover changes to Auth identity and hosted row counts. These checks are non-destructive but **not** equivalent to a PostgreSQL repeatable-read transaction: changes restored between samples can be missed. Independent release approval and environment gating remain unchanged.
