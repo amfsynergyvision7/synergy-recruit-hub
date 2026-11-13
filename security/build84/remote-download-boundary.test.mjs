@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  downloadRemoteBounded,isTrustedDriveHost,isTrustedSupabaseLogoUrl,
+  downloadRemoteBounded,isTrustedDriveHost,isTrustedSupabaseLogoUrl,readResponseTextBounded,
 } from '../../src/lib/safe-remote-download.server.ts';
 
 const base='https://drive.google.com/uc?export=download&id=abcdefghij';
@@ -95,4 +95,29 @@ test('Build84 resume fetch and PDF logo use bounded trusted network paths exclus
  assert.match(logo,/maxRedirects: 0/);
  assert.match(logo,/return null/);
  assert.doesNotMatch(logo,/await fetch\(logoUrl\)/);
+});
+
+
+test('Build84 provider response reader accepts small JSON and rejects a large Content-Length',async()=>{
+ assert.equal(await readResponseTextBounded(new Response('{"ok":true}'),64),'{"ok":true}');
+ await assert.rejects(readResponseTextBounded(new Response('x',{headers:{'content-length':'4096'}}),64),/exceeded safe size/);
+});
+test('Build84 provider response reader rejects oversized chunked stream even without Content-Length',async()=>{
+ const body=new ReadableStream({start(ctrl){ctrl.enqueue(new Uint8Array(60));ctrl.enqueue(new Uint8Array(60));ctrl.close();}});
+ await assert.rejects(readResponseTextBounded(new Response(body),64),/exceeded safe size/);
+});
+test('Build84 Gemini and Drive API response size limits and no-redirect policy are enforced',()=>{
+ const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+ const ai=read('src/lib/ai.server.ts');
+ const drive=read('src/lib/drive-import.server.ts');
+ assert(ai.includes('redirect: "error"'));
+ assert(ai.includes('signal: AbortSignal.timeout(30000)'));
+ assert(ai.includes('readResponseTextBounded(res, 512 * 1024)'));
+ assert(!ai.includes('const text = await res.text()'));
+ assert(drive.includes('downloadRemoteBounded('));
+ assert(drive.includes('DRIVE_LIST_ENDPOINT'));
+ assert(drive.includes('allowedHost: host => host === "www.googleapis.com"'));
+ assert(drive.includes('maxBytes: 2 * 1024 * 1024'));
+ assert(drive.includes('maxRedirects: 0'));
+ assert(!drive.includes('const message = data?.error?.message'));
 });
