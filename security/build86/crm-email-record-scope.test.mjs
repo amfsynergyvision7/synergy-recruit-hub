@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {isCrmEmailRecordReadable} from '../../src/lib/crm-email-recipient-policy.ts';
-import {requireVerifiedApplicantProofId,parseAtomicApplicationOutcome} from '../../src/lib/public-application-identity.ts';
+import {requireVerifiedApplicantProofId,parseAtomicApplicationOutcome,normalizeSafePublicResumeUrl} from '../../src/lib/public-application-identity.ts';
 
 const actor='11111111-1111-4111-8111-111111111111';
 const peer='22222222-2222-4222-8222-222222222222';
@@ -251,4 +251,56 @@ test('Build107 workflow notification side effects commit only with accepted appl
  const workflow=file('.github/workflows/security-build34-review.yml');
  assert(workflow.includes('  build105-source-shaped-public-application:'));
  assert(workflow.includes('  build106-concurrent-verified-applications:'));
+});
+
+test('Build108 resume URL accepts ordinary public HTTPS links and rejects executable or local URLs',()=>{
+ const valid=[
+   'https://drive.google.com/file/d/fictional/view?usp=sharing',
+   'https://www.dropbox.com/s/fictional/resume.pdf?dl=0',
+   'https://example.org/cv.pdf',
+ ];
+ for(const value of valid)
+   assert.equal(normalizeSafePublicResumeUrl(value),value);
+ for(const missing of [null,undefined,'', '   '])
+   assert.equal(normalizeSafePublicResumeUrl(missing),null);
+ for(const input of [
+  'javascript:alert(document.domain)',
+  'data:text/html,<script>alert(1)</script>',
+  'file:///etc/passwd',
+  'ftp://docs.google.com/resume.pdf',
+  'http://docs.google.com/resume.pdf',
+  'https://localhost/resume.pdf',
+  'https://127.0.0.1/resume.pdf',
+  'https://192.168.0.1/resume.pdf',
+  'https://user:password@drive.google.com/file',
+  'https://drive.google.com:8443/file',
+  'https://internal.local/file',
+  'https://example.internal/file',
+  'https://remote.invalid/file',
+  'https://drive.google.com.evil.invalid/file',
+  'https://example.onion/file',
+  'https://[::1]/file',
+  'https://drive.google.com\\evil.invalid/file',
+  'https://drive.google.com/resume\n.pdf',
+  'https://drive.google.com/'+'a'.repeat(2100),
+  {},42,[],
+ ]){
+   assert.throws(()=>normalizeSafePublicResumeUrl(input),/could not be completed securely/);
+ }
+ const server=file('src/lib/careers.functions.ts');
+ const start=server.indexOf('export const submitJobApplication');
+ const apply=server.slice(start);
+ assert(apply.indexOf('assertExternalEffectReleased("public_application")')>=0);
+ const proof=apply.indexOf('requireVerifiedApplicantProofId(data.verificationId)');
+ const url=apply.indexOf('normalizeSafePublicResumeUrl(data.resumeUrl)');
+ const rpc=apply.indexOf('.rpc(');
+ assert(proof>=0&&url>proof&&rpc>url);
+ assert(apply.includes('p_resume_url: resumeUrl'));
+ assert(!apply.includes('p_resume_url: data.resumeUrl || null'));
+ const sql=file('security/build104/verified-public-application.review-only.sql');
+ assert(sql.includes("p_resume_url !~* '^https://"));
+ assert(sql.includes('p_resume_url LIKE'));
+ assert(sql.includes("RETURNS text"));
+ assert(sql.includes('SECURITY DEFINER SET search_path = pg_catalog'));
+ assert(!sql.includes('CREATE OR REPLACE FUNCTION public.crm_commit_verified_public_application'));
 });
