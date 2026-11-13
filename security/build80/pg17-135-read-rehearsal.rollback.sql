@@ -8,6 +8,7 @@ BEGIN;
 -- Actual RLS semantics on synthetic subjects in a disposable PostgreSQL17 CI-only transaction.
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
+CREATE ROLE service_role NOLOGIN;
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 CREATE SCHEMA auth;
 GRANT USAGE ON SCHEMA auth TO authenticated;
@@ -457,7 +458,7 @@ SELECT 'BUILD80_POSTGRES17_135_ACTUAL_RLS_READ_CASES_PASS_DISPOSABLE_ONLY' AS te
 
 ROLLBACK;
 DO $check$ BEGIN
- IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname IN ('anon','authenticated'))
+ IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role'))
  OR EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='r')
  OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspname IN ('auth','amf_rls_guard'))
  THEN RAISE EXCEPTION 'Build80 disposable lab did not rollback all roles/schema'; END IF;
