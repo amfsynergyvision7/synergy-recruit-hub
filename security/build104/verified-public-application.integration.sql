@@ -70,7 +70,8 @@ BEGIN
  SELECT public.crm_commit_verified_public_application(
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1',
  '11111111-1111-4111-8111-111111111111',
- 'Synthetic One','PERSON1@EXAMPLE.INVALID','+91 9876543210')
+ 'Synthetic One','PERSON1@EXAMPLE.INVALID','+91 9876543210',
+ NULL,NULL,NULL,NULL,'https://drive.google.com/file/d/fictional/view')
  INTO result;
  IF result <> 'accepted' THEN RAISE EXCEPTION 'Expected first application to commit once';END IF;
  SELECT public.crm_commit_verified_public_application(
@@ -90,6 +91,34 @@ BEGIN
     RAISE EXCEPTION 'Atomic initial commit did not persist exactly one pair';
  END IF;
 END $test$;
+
+-- Build108 unsafe public resume URL must fail inside service-role RPC,
+-- independently of TypeScript validation and without consuming a proof.
+SET LOCAL ROLE service_role;
+DO $unsafe_resume$
+DECLARE rejected boolean:=false;
+BEGIN
+ BEGIN
+   PERFORM public.crm_commit_verified_public_application(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+    '11111111-1111-4111-8111-111111111111',
+    'Synthetic Two','person2@example.invalid','9876543211',
+    NULL,NULL,NULL,NULL,'javascript:alert(1)');
+ EXCEPTION WHEN OTHERS THEN
+   IF SQLERRM <> 'Application unavailable' THEN RAISE; END IF;
+   rejected:=true;
+ END;
+ IF NOT rejected THEN RAISE EXCEPTION 'Build108 unsafe resume URL was accepted'; END IF;
+END $unsafe_resume$;
+RESET ROLE;
+DO $unsafe_no_write$
+BEGIN
+ IF (SELECT count(*) FROM public.candidates)<>1 OR
+    (SELECT count(*) FROM public.submissions)<>1 OR
+    (SELECT count(*) FROM crm_private.verified_public_applications WHERE consumed_at IS NOT NULL)<>1 THEN
+   RAISE EXCEPTION 'Build108 unsafe resume URL caused candidate/submission/proof side effects';
+ END IF;
+END $unsafe_no_write$;
 
 -- Synthetic AFTER/BEFORE trigger rejection simulates a real submission trigger
 -- failure: a candidate cannot survive a failed submission in this RPC.
