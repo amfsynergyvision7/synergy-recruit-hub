@@ -1,4 +1,5 @@
 import { fetchResumeText } from "./resume-fetch.server";
+import { readResponseTextBounded } from "./safe-remote-download.server";
 
 // Server-only Gemini API access. GEMINI_API_KEY must be set as a server
 // environment variable (Vercel project settings, same place SUPABASE_URL /
@@ -46,6 +47,8 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   }
   const res = await fetch(GEMINI_ENDPOINT, {
     method: "POST",
+    redirect: "error", // Never forward provider API key to redirected hosts.
+    signal: AbortSignal.timeout(30000),
     headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: GEMINI_MODEL,
@@ -53,7 +56,9 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
       response_format: { type: "text", mime_type: "application/json", schema },
     }),
   });
-  const text = await res.text();
+  // Provider responses can be arbitrarily large or echo private candidate
+  // prompts; apply a 512-KiB stream cap before materializing/parsing JSON.
+  const text = await readResponseTextBounded(res, 512 * 1024);
   let data: any;
   try { data = JSON.parse(text); } catch { data = text; }
   if (!res.ok) {
