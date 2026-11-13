@@ -158,3 +158,35 @@ test('Build104 atomic review SQL has private proof table, explicit service-only 
  assert(rehearsal.includes('simulated submissions trigger failure'));
  assert(rehearsal.trim().endsWith('ROLLBACK;'));
 });
+
+test('Build105 source-shaped trigger rehearsal is disposable and preserves both public applicant holds',()=>{
+ const composer=file('security/build105/compose-source-shaped-public-application.mjs');
+ const tests=file('security/build105/verified-application-source-trigger.tests.sql');
+ const snapshot=file('security/build105/production-submission-trigger.snapshot.sql');
+ const source=file('security/build44/production-trigger-compat.integration.sql');
+ assert(composer.includes("security/build44/production-trigger-compat.integration.sql"));
+ assert(composer.includes("security/build105/production-submission-trigger.snapshot.sql"));
+ assert(composer.includes("security/build104/verified-public-application.review-only.sql"));
+ assert(composer.includes("security/build105/verified-application-source-trigger.tests.sql"));
+ assert(composer.includes("const boundary='CREATE SCHEMA crm_private;'"));
+ assert(composer.includes("assert(!prefix.includes('ROLLBACK;')"));
+ assert(composer.includes("writeFileSync(output"));
+ assert(source.includes('CREATE TRIGGER trg_candidate_stage_change'));
+ assert(source.includes('CREATE OR REPLACE FUNCTION public.run_workflow_rules()'));
+ assert(snapshot.includes('CREATE OR REPLACE FUNCTION public.normalize_submission_relationships()'));
+ assert(snapshot.includes('CREATE OR REPLACE FUNCTION public.on_submission_insert()'));
+ assert(snapshot.includes('CREATE TRIGGER normalize_submissions_relationships_trigger'));
+ assert(snapshot.includes('CREATE TRIGGER submissions_stage_trigger'));
+ assert(snapshot.includes('CREATE TRIGGER workflow_rules_trigger'));
+ assert(tests.includes("c.stage IS DISTINCT FROM 'submitted_to_client'"));
+ assert(tests.includes("public.candidate_stage_history WHERE candidate_id=c.id"));
+ assert(tests.includes("CREATE TRIGGER zz_b105_fail AFTER INSERT ON public.submissions"));
+ assert(tests.includes("SIMULATE_FAILURE"));
+ assert(tests.includes("crm_private.verified_public_applications WHERE consumed_at IS NOT NULL"));
+ assert(tests.trim().endsWith('ROLLBACK;'));
+ const handler=file('src/lib/careers.functions.ts');
+ assert(handler.includes('assertExternalEffectReleased("careers_publication")'));
+ assert(handler.includes('assertExternalEffectReleased("public_application")'));
+ assert(!handler.includes('.from("submissions")'));
+ assert(!handler.includes('.from("candidates")'));
+});
