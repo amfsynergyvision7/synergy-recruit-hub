@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { SLOT_FORMAT, splitSlot } from "./scheduling";
+import { assertApprovedRole } from "./access-gates.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 
 // ---- Recruiter-side: create/replace the proposed slots for one interview ----
 // Authenticated, same admin-or-recruiter rule as everything else on the
@@ -19,9 +21,10 @@ export const createSchedulingLink = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    const { data: roles } = await context.supabase.from("user_roles").select("role").eq("user_id", context.userId);
-    const allowed = (roles ?? []).some((r: any) => r.role === "admin" || r.role === "recruiter");
-    if (!allowed) throw new Error("Only an admin or recruiter can send a scheduling link.");
+    assertExternalEffectReleased("interview_scheduling");
+    // Enforce one unique approved, active role before even looking up a
+    // scheduling record; server-only guard agrees with Build80 RLS.
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
 
     const { data: existing, error: fetchError } = await context.supabase
       .from("interviews")
@@ -81,6 +84,9 @@ export const getSchedulingInfo = createServerFn({ method: "POST" })
 export const confirmSchedulingSlot = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ token: z.string().uuid(), slot: z.string().regex(SLOT_FORMAT) }).parse(input))
   .handler(async ({ data }) => {
+    // Public scheduling tokens invoke a service-role client and bypass RLS.
+    // The release gate must run BEFORE that privileged read or any update.
+    assertExternalEffectReleased("interview_scheduling");
     const { data: interview, error } = await supabaseAdmin
       .from("interviews")
       .select("id, status, proposed_slots, candidate_uuid, candidates!interviews_candidate_uuid_fkey(full_name, assigned_recruiter)")
