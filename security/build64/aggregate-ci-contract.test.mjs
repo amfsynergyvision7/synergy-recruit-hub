@@ -10,12 +10,15 @@ test("CI summary depends on EVERY substantive job, not the deliberate hold",()=>
  const chunk=workflow.split("  substantive-security-summary:\n")[1]?.split("\n  production-release-hold:")[0];
  assert.ok(chunk,"required aggregate job missing or after release hold");
  const needed=[...chunk.matchAll(/^      - ([a-z][a-z0-9-]+)\s*$/gm)].map(m=>m[1]);
- assert.equal(declared.length,32);
+ assert.equal(declared.length,33);
  assert.equal(needed.length,declared.length);
  assert.deepEqual(new Set(needed),new Set(declared));
+ assert.ok(needed.includes('build104-verified-public-application-atomic'));
+ assert.match(workflow,/security\/build104\/verified-public-application\.integration\.sql/);
+ assert.match(workflow,/expected_substantive_jobs\": 33/);
  assert.ok(!needed.includes("production-release-hold"));
  assert.match(chunk,/if: always\(\)/);
- assert.match(chunk,/len\(results\)!=32 or failed/);
+ assert.match(chunk,/len\(results\)!=33 or failed/);
  assert.match(chunk,/build65-substantive-ci-summary\.json/);
  assert.match(chunk,/source_sha/);
  assert.match(chunk,/expected_substantive_jobs/);
