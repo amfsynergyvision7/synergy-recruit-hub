@@ -97,3 +97,14 @@ export function sanitizeStoredSyncLogs(value: unknown): SanitizedCandidateSyncLo
     };
   });
 }
+
+// Historical google_integrations.last_error may contain raw upstream provider
+// responses from code deployed before the release holds. Never serialize those
+// error bodies to the browser, including after a future reviewed save operation.
+export function redactHistoricalIntegrationError<T extends {last_error?:string|null}>(record:T):T {
+ if(!record||typeof record!=='object'||Array.isArray(record))
+   throw new Error("Integration readback malformed");
+ return {...record,last_error:
+  typeof record.last_error==='string'&&record.last_error.length>0
+    ? SAFE_CANDIDATE_SYNC_ERROR : null};
+}
