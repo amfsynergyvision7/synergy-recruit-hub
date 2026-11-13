@@ -449,3 +449,16 @@ test('Build109 duplicate reviewer enforces unique admin role before any paginate
  assert(api.includes('await assertApprovedRole(context.userId, ["admin"])'));
  assert(api.includes('return findDuplicateClusters(context.supabase, context.userId)'));
 });
+
+test('Build109 stale duplicate review data cannot be displayed or exported after a failed rescan',()=>{
+ const ui=file('src/routes/_app.duplicates.tsx');
+ assert(ui.includes('const summary = query.isError ? undefined : query.data;'));
+ assert(ui.includes('const clusters = summary?.clusters ?? [];'));
+ assert(ui.includes('if (!summary || query.isError || query.isFetching)'));
+ assert(ui.includes('disabled={!summary || query.isError || query.isFetching || totalSelected === 0}'));
+ assert(ui.includes('A completed duplicate review scan is required before export.'));
+ assert(ui.includes('{query.isError && !query.isPending && ('));
+ assert(ui.includes('{summary && !query.isPending && ('));
+ assert(ui.includes('buildDuplicateReviewCSV(clusters, selected)'));
+ assert(!ui.includes('const summary = query.data;'));
+});
