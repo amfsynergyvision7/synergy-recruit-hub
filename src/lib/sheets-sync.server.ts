@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
-import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR } from "./sync-safety";
+import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR, redactHistoricalIntegrationError } from "./sync-safety";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
@@ -134,14 +134,16 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
   if (!opts.userId) throw new Error("Explicit integration owner required");
   let query = (supabaseAdmin as any)
     .from("google_integrations")
-    .select("*")
+    // Never fetch legacy last_error, which could contain raw sheet rows or
+    // bearer-like provider details from deployments before Build97.
+    .select("id,user_id,sheet_url,spreadsheet_id,sheet_name,header_row,auto_sync_enabled,sync_frequency_minutes,last_sync,last_synced_row,google_account_email,connection_status,column_mapping,created_at,updated_at")
     .order("updated_at", { ascending: false })
     .limit(1);
   if (opts.userId) query = query.eq("user_id", opts.userId);
 
   const { data, error } = await query.maybeSingle();
   if (error) throw new Error(formatSupabaseError("Load Google integration settings failed", error));
-  if (data) return data as GoogleIntegrationSettings;
+  if (data) return redactHistoricalIntegrationError({...(data as GoogleIntegrationSettings),last_error:null});
   // Legacy `public.integrations` is an OWNERLESS table (no user_id).
   // Reassigning its historical sheet URL, credentials or mappings to any
   // currently signed-in admin would transfer another user's configuration.
@@ -192,7 +194,7 @@ export async function saveGoogleIntegrationSettings(input: {
   const { data, error } = await write;
   if (error) throw new Error(formatSupabaseError(current?.id ? "Update Google integration settings failed" : "Insert Google integration settings failed", error));
   if (!data) throw new Error("Save returned no integration settings");
-  return data as GoogleIntegrationSettings;
+  return redactHistoricalIntegrationError(data as GoogleIntegrationSettings);
 }
 
 export async function saveDetectedHeaders(integration: GoogleIntegrationSettings, suggested: Record<string, string>) {
