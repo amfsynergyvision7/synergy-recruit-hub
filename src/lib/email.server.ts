@@ -42,6 +42,7 @@
 // leaving SMTP_FROM_EMAIL unset — its from address too) — nothing in this
 // file needs to change.
 import nodemailer from "nodemailer";
+import { createHash } from "node:crypto";
 import { isExternalEffectPaused } from "./external-effects-hold.server";
 
 export interface SendEmailResult {
@@ -65,7 +66,10 @@ function getTransporter(user: string, pass: string) {
   // an env var (e.g. testing a different account) without redeploying the
   // whole function still picks up fresh config instead of reusing a stale
   // cached transporter from before the change.
-  const key = `${host}:${port}:${secure}:${user}`;
+  // Secret rotation must invalidate a warm transport without storing the
+  // raw SMTP password in the cache key or logging the secret.
+  const passFingerprint = createHash("sha256").update(pass, "utf8").digest("hex");
+  const key = `${host}:${port}:${secure}:${user}:${passFingerprint}`;
   if (_transporter && _transporterKey === key) return _transporter;
   _transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
   _transporterKey = key;
@@ -107,7 +111,7 @@ export async function sendEmail(opts: {
   if (!fromEmail.includes("@")) {
     return {
       success: false,
-      error: `SMTP_FROM_EMAIL is missing or invalid (it currently resolves to "${fromEmail}", which isn't a real email address). Set SMTP_FROM_EMAIL on Vercel to a real address on your verified domain (e.g. yourname@amfsynergyvision.com) and redeploy.`,
+      error: "SMTP_FROM_EMAIL is missing or invalid. Configure a verified sender address in protected server settings.",
     };
   }
 
