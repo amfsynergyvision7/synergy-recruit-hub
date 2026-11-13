@@ -8,6 +8,9 @@ tmp="$(mktemp -d)"
 cleanup() {
   # Always clean the temporary database and output files, even on failure.
   dropdb --if-exists --force "$db" >/dev/null 2>&1 || true
+  # PostgreSQL roles are cluster-global, not database-local. Remove roles
+  # created inside the disposable setup even after the database is dropped.
+  psql -X -v ON_ERROR_STOP=1 -d postgres -c "DROP ROLE IF EXISTS anon, authenticated, service_role" >/dev/null 2>&1 || true
   rm -rf "$tmp"
 }
 trap cleanup EXIT
