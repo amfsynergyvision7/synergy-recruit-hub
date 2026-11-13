@@ -8,6 +8,7 @@
 import { extractText as extractPdfText } from "unpdf";
 import mammoth from "mammoth";
 import { downloadRemoteBounded, isTrustedDriveHost } from "./safe-remote-download.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 
 // A resume that genuinely has no readable text (a scanned photo/image saved
 // as a PDF, with no text layer at all) is a different, harder problem than
@@ -45,7 +46,12 @@ export function extractDriveFileId(raw: string): string | null {
   } catch { return null; }
 }
 
-export async function fetchDriveBytes(fileId: string): Promise<{ buffer: Buffer; contentType: string } | { error: string }> {
+export async function fetchDriveBytes(
+  fileId: string,
+  purpose: "candidate_ai_processing" | "drive_bulk_import" = "candidate_ai_processing",
+): Promise<{ buffer: Buffer; contentType: string } | { error: string }> {
+  // Low-level Drive downloader cannot bypass either privacy release boundary.
+  assertExternalEffectReleased(purpose);
   if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) {
     return { error: "Invalid Google Drive file identifier." };
   }
@@ -113,6 +119,8 @@ export async function extractText(buffer: Buffer, contentType: string): Promise<
 }
 
 export async function fetchResumeText(resumeUrl: string | null): Promise<ResumeFetchResult> {
+  // Stop before even parsing or dereferencing a stored candidate URL.
+  assertExternalEffectReleased("candidate_ai_processing");
   if (!resumeUrl) {
     return { ok: false, error: "No resume URL saved for this candidate." };
   }
