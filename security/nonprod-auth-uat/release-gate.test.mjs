@@ -340,3 +340,15 @@ test('Build90 Git-tree proof follows independent review and precedes privileged 
  const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
  assert(workflow.indexOf('independent-release-approval.mjs') < workflow.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
 });
+
+test('Build90 protects against concurrent nonproduction writes and mutable Actions tags',()=>{
+ const yaml=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ const manual=yaml.slice(yaml.indexOf('  manual_provisioning:'));
+ assert(manual.includes('concurrency:'));
+ assert(manual.includes('group: amf-nonprod-auth-uat-'));
+ assert(manual.includes('cancel-in-progress: false'));
+ assert.equal((yaml.match(/actions\/checkout@[a-f0-9]{40}/g)||[]).length,2);
+ assert.equal((yaml.match(/actions\/setup-node@[a-f0-9]{40}/g)||[]).length,2);
+ assert(!yaml.includes('actions/checkout@v4'));
+ assert(!yaml.includes('actions/setup-node@v4'));
+});
