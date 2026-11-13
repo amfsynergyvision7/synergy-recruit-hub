@@ -64,16 +64,16 @@ function Page() {
     onSuccess: (row: any) => {
       if (!row?.integration?.id) {
         toast.error("Save failed: no integration settings were returned by the server");
-        console.error("Google integration save failed", row);
+        console.error("Google integration save failed");
         return;
       }
-      console.info("Google integration save success", { id: row.integration.id, sheet_url: row.integration.sheet_url, diagnostics: row.diagnostics });
-      toast.success(`Settings saved — row ${row.integration.id.slice(0, 8)}`);
+      // Never log private Sheets URLs, row IDs, account data or diagnostics.
+      toast.success("Integration settings saved");
       setRuntimeDiagnostics(row?.diagnostics ?? null);
       qc.setQueryData(["integration"], row);
       qc.invalidateQueries({ queryKey: ["integration"] });
     },
-    onError: (e: any) => { console.error("Google integration save error", e); toast.error(e?.message || "Save failed"); },
+    onError: () => { console.error("Google integration save failed"); toast.error("Integration settings unavailable"); },
   });
 
   const ensureSaved = async () => {
@@ -87,7 +87,7 @@ function Page() {
   const detectMut = useMutation({
     mutationFn: async () => { await ensureSaved(); return detect({ data: {} }); },
     onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); setRuntimeDiagnostics(r?.diagnostics ?? null); toast.success(`Detected ${hs.length} columns`); },
-    onError: (e: any) => toast.error(e?.message || "Detect failed"),
+    onError: () => toast.error("Header detection unavailable"),
   });
 
   const syncMut = useMutation({
@@ -101,7 +101,7 @@ function Page() {
       toast.success(`Sync Complete\nCreated: ${created}\nUpdated: ${updated}\nSkipped: ${skipped}\nErrors: ${errors}`);
       qc.invalidateQueries({ queryKey: ["integration"] }); qc.invalidateQueries({ queryKey: ["sync-logs"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Sync failed"),
+    onError: () => toast.error("Candidate synchronization unavailable; check restricted logs"),
   });
 
   const hasValidUrl = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.test(form.sheet_url || "");
