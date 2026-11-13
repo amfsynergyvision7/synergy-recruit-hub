@@ -55,8 +55,7 @@ export function extractSpreadsheetId(url: string): string | null {
  * Never expose raw remote text, URL, error details, or account metadata.
  */
 async function gw(path: string) {
-  if (!/^\/spreadsheets\/[A-Za-z0-9_-]{10,160}\/values\//.test(path) ||
-      path.includes("?") || path.includes("#") || path.includes("..")) {
+  if (!/^\/spreadsheets\/[A-Za-z0-9_-]{10,160}\/values\/[^/?#]+!A1%3AZ100000$/.test(path)) {
     throw new Error("Sheets gateway path is not approved");
   }
   const lk = process.env.LOVABLE_API_KEY;
@@ -215,11 +214,17 @@ export async function saveGoogleIntegrationSettings(input: {
 
 export async function saveDetectedHeaders(integration: GoogleIntegrationSettings, suggested: Record<string, string>) {
   assertExternalEffectReleased("integration_configuration");
+  // A service-role UPDATE must retain the authenticated owner's binding,
+  // not rely on a caller-supplied integration ID alone.
+  if (!integration?.user_id || !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(integration.user_id) ||
+      !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(integration.id)) {
+    throw new Error("Integration owner binding is unavailable");
+  }
   const { error } = await (supabaseAdmin as any).from("google_integrations").update({
     column_mapping: { ...suggested, ...(integration.column_mapping ?? {}) },
     connection_status: "headers_detected",
     last_error: null,
-  }).eq("id", integration.id);
+  }).eq("id", integration.id).eq("user_id", integration.user_id);
   if (error) throw new Error('Integration header mapping unavailable');
 }
 
@@ -249,8 +254,8 @@ export async function fetchSheetValues(spreadsheetId: string, sheetName: string)
   const data = await gw(path);
   if (data.values == null) return [];
   if (!Array.isArray(data.values) ||
-      data.values.some(row => !Array.isArray(row) || row.length > 26 ||
-        row.some(cell => typeof cell !== "string"))) {
+      data.values.some((row: unknown) => !Array.isArray(row) || row.length > 26 ||
+        row.some((cell: unknown) => typeof cell !== "string"))) {
     throw new Error("Sheets gateway row payload is invalid");
   }
   return data.values as string[][];
