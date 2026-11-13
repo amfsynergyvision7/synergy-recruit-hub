@@ -133,3 +133,57 @@ test('Build84 Drive folder traversal cannot use arbitrary URL, infinite pages or
  assert(drive.includes('Drive folder listing exceeded the maximum page count'));
  assert(drive.includes('Drive folder pagination repeated a token'));
 });
+
+test('Build98 header-only Google API key never enters URL, redirects, or other hosts',async()=>{
+ const secret='AIza_123456789012345678901234567890ABC';
+ const url='https://www.googleapis.com/drive/v3/files?pageSize=200';
+ const p={allowedHost:host=>host==='www.googleapis.com',maxBytes:128,timeoutMs:1000,
+  maxRedirects:0,googleApiKey:secret};
+ let calls=0;
+ const ok=await downloadRemoteBounded(url,p,async(address,init)=>{
+  calls++;
+  assert.equal(new URL(address).hostname,'www.googleapis.com');
+  assert(!address.includes(secret),'Secret must not appear in URL');
+  assert.equal(init?.headers?.['x-goog-api-key'],secret);
+  assert.equal(init?.redirect,'manual');
+  assert.equal(init?.credentials,'omit');
+  return new Response('{"files":[]}',{status:200});
+ });
+ assert.equal(calls,1);
+ assert.equal(ok.body.toString(),'{"files":[]}');
+ const noFetch=async()=>{calls++;throw new Error('Untrusted host must be denied before fetch')};
+ for(const badUrl of [
+  'https://drive.google.com/drive/v3/files',
+  'https://evil.invalid/drive/v3/files',
+  'https://www.googleapis.com.evil.invalid/drive/v3/files',
+  'https://www.googleapis.com/drive/v3/files?key='+secret,
+  'http://www.googleapis.com/drive/v3/files'
+ ])await assert.rejects(downloadRemoteBounded(badUrl,p,noFetch),/approved/);
+ assert.equal(calls,1);
+ for(const bad of [
+  {...p,maxRedirects:1},
+  {...p,maxRedirects:undefined},
+  {...p,googleApiKey:'x'},
+  {...p,googleApiKey:'\r\nX-Leak:1'}
+ ])await assert.rejects(downloadRemoteBounded(url,bad,noFetch),/policy is invalid/);
+ assert.equal(calls,1);
+ let redirects=0;
+ await assert.rejects(downloadRemoteBounded(url,p,async(_address,init)=>{
+  redirects++;assert.equal(init.headers['x-goog-api-key'],secret);
+  return new Response(null,{status:302,headers:{location:'https://evil.invalid/stolen'}});
+ }),/too many times/);
+ assert.equal(redirects,1,'Never call redirected endpoint with Google key');
+});
+test('Build98 Google Drive folder listing has no query-string API key and exact host-pinned credentials',()=>{
+ const s=readFileSync(new URL('../../src/lib/drive-import.server.ts',import.meta.url),'utf8');
+ const first=s.slice(s.indexOf('async function listFolderFiles('),
+   s.indexOf('export type DriveImportFileOutcome'));
+ assert(!first.includes('key: apiKey,'));
+ assert(first.includes('googleApiKey: apiKey,'));
+ assert(first.includes('maxRedirects: 0'));
+ assert(first.includes('allowedHost: host => host === "www.googleapis.com"'));
+ const source=readFileSync(new URL('../../src/lib/safe-remote-download.server.ts',import.meta.url),'utf8');
+ assert(source.includes('"x-goog-api-key": policy.googleApiKey'));
+ assert(source.includes('current.searchParams.has("key")'));
+ assert(source.includes('current.hostname !== "www.googleapis.com"'));
+});
