@@ -6,7 +6,7 @@
  */
 import {createClient} from '@supabase/supabase-js';
 import {createHmac} from 'node:crypto';
-import {planFromEnv,provisionNine,PROJECT_ID,PROJECT_URL,ACK} from './provision-nine-auth-users.mjs';
+import {planFromEnv,adminConnectionFromEnv,provisionNine,PROJECT_ID,PROJECT_URL,ACK,slotEmail} from './provision-nine-auth-users.mjs';
 import {seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
 import {seedExtendedFixture,EXPECTED_EXTENDED_COUNTS} from './compose-and-seed-remaining-fixture.mjs';
 import {pathToFileURL} from 'node:url';
@@ -30,6 +30,10 @@ export function executionPlan(env){
  if(env.AMF_UAT_OPERATION===OPERATIONS[1]&&
     env.AMF_UAT_PREFLIGHT_ATTESTATION!==PREFLIGHT_CONFIRMATION)
    throw new Error('Fresh read-only hosted preflight attestation required before synthetic provisioning');
+ // Audit mode needs one isolated Admin key, never test-user passwords.
+ // Exact source/environment review is unconditional in the GitHub job.
+ if(env.AMF_UAT_OPERATION===OPERATIONS[0])
+   return {credentials:adminConnectionFromEnv(env),operation:OPERATIONS[0],preflightAttested:false};
  // One 64+ character random master secret deterministically derives nine
  // distinct, strong test passwords, avoiding nine manually configured secrets
  // and allowing future signed UAT to reproduce them without saved plaintext.
@@ -60,10 +64,20 @@ export async function readHostedSnapshot(client){
  const auth=await client.auth.admin.listUsers({page:1,perPage:100});
  if(auth.error||!Array.isArray(auth.data?.users)||auth.data.users.length>=100)
    throw new Error('Nonproduction Auth user inventory is not verifiable');
+ const users=auth.data.users;
+ // Counts alone cannot prove the expected nine synthetic identities.
+ const slotsValid=users.length===0 || (users.length===9 &&
+   new Set(users.map(u=>u.id)).size===9 &&
+   users.every(u=>typeof u.id==='string' &&
+     /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(u.id) &&
+     (!u.role||u.role==='authenticated')) &&
+   Array.from({length:9},(_,i)=>slotEmail(i+1))
+     .every(email=>users.filter(u=>u.email===email).length===1));
  const counts={};
  for(const table of TABLES)counts[table]=await countRows(client,table);
- return Object.freeze({authUsers:auth.data.users.length,tableCounts:counts,
-   totalRows:Object.values(counts).reduce((a,b)=>a+b,0)});
+ return Object.freeze({authUsers:users.length,tableCounts:counts,
+   totalRows:Object.values(counts).reduce((a,b)=>a+b,0),
+   syntheticAuthSlotsValid:slotsValid});
 }
 export function validateSnapshot(snapshot,stage){
  if(!snapshot||!Object.values(snapshot.tableCounts??{}).every(Number.isSafeInteger))
@@ -82,6 +96,20 @@ export function validateSnapshot(snapshot,stage){
    throw new Error('Unexpected overall synthetic row count');
  return true;
 }
+/**
+ * A read-only audit must distinguish an empty isolated lab from the exact
+ * completed synthetic fixture. Any partial/mismatched state remains a HOLD,
+ * not a successful audit or a cleanup command.
+ */
+export function validateReadOnlyAudit(snapshot){
+ const stage=snapshot?.authUsers===0&&snapshot?.totalRows===0?'EMPTY':
+   snapshot?.authUsers===9&&snapshot?.totalRows===38?'FULL':null;
+ if(!stage)throw new Error('Nonproduction hosted audit HOLD: partial or unexpected fixture');
+ validateSnapshot(snapshot,stage);
+ if(stage==='FULL'&&snapshot.syntheticAuthSlotsValid!==true)
+   throw new Error('Nonproduction hosted audit HOLD: unexpected Auth identities');
+ return stage;
+}
 export async function runGuardedHostUat(plan,client){
  if(!plan||!OPERATIONS.includes(plan.operation))
    throw new Error('Unknown isolated hosted operation');
@@ -93,7 +121,8 @@ export async function runGuardedHostUat(plan,client){
    throw new Error('Invalid exact nonproduction synthetic plan');
  const before=await readHostedSnapshot(client);
  if(operation==='AUDIT_ONLY'){
-   return {operation,authUsers:before.authUsers,records:before.totalRows,mutated:false};
+   const fixtureStage=validateReadOnlyAudit(before);
+   return {operation,authUsers:before.authUsers,records:before.totalRows,mutated:false,fixtureStage};
  }
  validateSnapshot(before,'EMPTY');
  let mapping=null;
@@ -122,7 +151,7 @@ async function main(){
  const out=await runGuardedHostUat(plan,client);
  process.stdout.write('NONPROD_HOSTED_'+out.operation+
   ': AUTH_USERS='+out.authUsers+', FIXTURE_ROWS='+out.records+
-  ', MUTATED='+out.mutated+', SIGNED_UAT_ACCEPTED=0\n');
+  ', MUTATED='+out.mutated+', FIXTURE_STAGE='+(out.fixtureStage??'NOT_APPLICABLE')+', SIGNED_UAT_ACCEPTED=0\n');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  main().catch(()=>{
