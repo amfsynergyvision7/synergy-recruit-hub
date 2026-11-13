@@ -194,8 +194,16 @@ export function assertUnambiguousCandidateSheetMapping(
   const seen=new Set<string>();
   let hasIdentity=false;
   for(const header of headers){
-    if(typeof header!=="string"||header.length===0||header.length>256){
+    if(typeof header!=="string"||header.length>256){
       throw new Error("Candidate sync header is not approved");
+    }
+    // Empty optional Sheet columns are harmless when they are not mapped.
+    // An explicit mapping of an empty header is ambiguous and rejected.
+    if(header.length===0){
+      if(Object.prototype.hasOwnProperty.call(mapping,header)){
+        throw new Error("Candidate sync blank mapped header requires manual review");
+      }
+      continue;
     }
     if(!Object.prototype.hasOwnProperty.call(mapping,header))continue;
     const field=mapping[header];
