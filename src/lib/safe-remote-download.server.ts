@@ -8,6 +8,9 @@ export type DownloadPolicy = {
   maxBytes: number;
   timeoutMs: number;
   maxRedirects?: number;
+  // Google Drive listing ONLY: never put API credentials in URLs.
+  // Deny redirects and restrict request to the exact Google API hostname.
+  googleApiKey?: string;
 };
 export type SafeDownload = { body: Buffer; contentType: string };
 const MAX_REDIRECTS = 4;
@@ -59,7 +62,18 @@ export async function downloadRemoteBounded(
     throw new Error("Remote download policy is invalid");
   }
   const redirects = policy.maxRedirects ?? MAX_REDIRECTS;
+  const credentialed = policy.googleApiKey !== undefined;
+  if (credentialed && (
+      typeof policy.googleApiKey !== "string" ||
+      !/^[A-Za-z0-9_-]{16,512}$/.test(policy.googleApiKey) ||
+      redirects !== 0)) {
+    throw new Error("Credentialed Google API request policy is invalid");
+  }
   let current = safeDestination(address, policy);
+  if (credentialed && (current.hostname !== "www.googleapis.com" ||
+      current.searchParams.has("key"))) {
+    throw new Error("Credentialed Google API request destination is not approved");
+  }
   for (let hop = 0; hop <= redirects; hop++) {
     const response = await request(current.toString(), {
       method: "GET",
@@ -67,7 +81,10 @@ export async function downloadRemoteBounded(
       credentials: "omit",
       cache: "no-store",
       signal: AbortSignal.timeout(policy.timeoutMs),
-      headers: { Accept: "application/pdf,application/octet-stream,image/png,image/jpeg,*/*" },
+      headers: {
+        Accept: "application/pdf,application/octet-stream,image/png,image/jpeg,*/*",
+        ...(credentialed ? { "x-goog-api-key": policy.googleApiKey } : {}),
+      },
     });
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       if (hop === redirects) {
