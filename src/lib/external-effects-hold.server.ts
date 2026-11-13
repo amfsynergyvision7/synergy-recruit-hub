@@ -10,8 +10,10 @@ export const CRM_PUBLIC_APPLICATION_RELEASE_HOLD = true as const;
 export const CRM_PUBLIC_CAREERS_PUBLISH_RELEASE_HOLD = true as const;
 export const CRM_CANDIDATE_AI_PROCESSING_RELEASE_HOLD = true as const;
 export const CRM_DRIVE_BULK_IMPORT_RELEASE_HOLD = true as const;
+export const CRM_CANDIDATE_SYNC_RELEASE_HOLD = true as const;
+export const CRM_INTEGRATION_CONFIGURATION_RELEASE_HOLD = true as const;
 
-export type PausedExternalEffect='crm_email'|'interview_scheduling'|'public_application'|'careers_publication'|'candidate_ai_processing'|'drive_bulk_import';
+export type PausedExternalEffect='crm_email'|'interview_scheduling'|'public_application'|'careers_publication'|'candidate_ai_processing'|'drive_bulk_import'|'candidate_sync'|'integration_configuration';
 export function assertExternalEffectReleased(action:PausedExternalEffect):void {
   switch(action) {
     case 'crm_email':
@@ -32,6 +34,12 @@ export function assertExternalEffectReleased(action:PausedExternalEffect):void {
     case 'drive_bulk_import':
       if(CRM_DRIVE_BULK_IMPORT_RELEASE_HOLD)throw new Error('Drive resume bulk import is paused pending privacy and release approval');
       return;
+    case 'candidate_sync':
+      if(CRM_CANDIDATE_SYNC_RELEASE_HOLD)throw new Error('Candidate synchronization is paused pending release approval');
+      return;
+    case 'integration_configuration':
+      if(CRM_INTEGRATION_CONFIGURATION_RELEASE_HOLD)throw new Error('Integration configuration changes are paused pending release approval');
+      return;
   }
   // Runtime safety if typed callers or compiled JS bypass the TS union.
   throw new Error('Unapproved external-effect operation');
@@ -42,5 +50,7 @@ export function isExternalEffectPaused(action:PausedExternalEffect):boolean {
     action==='public_application'?CRM_PUBLIC_APPLICATION_RELEASE_HOLD:
     action==='careers_publication'?CRM_PUBLIC_CAREERS_PUBLISH_RELEASE_HOLD:
     action==='candidate_ai_processing'?CRM_CANDIDATE_AI_PROCESSING_RELEASE_HOLD:
-    action==='drive_bulk_import'?CRM_DRIVE_BULK_IMPORT_RELEASE_HOLD:true;
+    action==='drive_bulk_import'?CRM_DRIVE_BULK_IMPORT_RELEASE_HOLD:
+    action==='candidate_sync'?CRM_CANDIDATE_SYNC_RELEASE_HOLD:
+    action==='integration_configuration'?CRM_INTEGRATION_CONFIGURATION_RELEASE_HOLD:true;
 }
