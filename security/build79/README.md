@@ -62,13 +62,21 @@ The committed `outbound-isolation.readonly.sql` was executed on the nonproductio
 
 Supabase Edge Function list separately returned `[]` (zero deployed functions). This is a bounded catalog/keyword audit, not a complete external egress proof. It supports the isolated fixture plan; it does not authorize sending mail, publishing, syncing or issuing financial records.
 
-### 5. Proposed minimal RLS role pilot — NOT executed
+### 5. Complete 38-row post-seed integrity check — created and actually run (expected HOLD)
+
+`full-synthetic-postseed.readonly.sql` independently checks all 19 source table counts, **exactly 38 invented application rows** (eight profiles, eight user roles, two recruiter candidates, and 20 additional records across the remaining 16 tables), nine genuine `example.invalid` Auth identities, eight matched profiles, exactly one unprofiled/unroled ninth user, seven role-status groups, candidate ID/ownership, linked jobs/submissions/interviews, and inert finance/email/Sheets/sync/workflow/publication controls. It returns only numeric aggregates, never emails, user UUIDs, passwords or personal rows.
+
+This query was **ACTUALLY executed read-only** in the currently empty hosted nonproduction project. It correctly returned `HOLD_BUILD79_FULL_SYNTHETIC_POSTSEED_INTEGRITY`: 19/19 table groups mismatch the expected seeded counts, zero application rows, zero Auth users and zero historical signed UAT acceptance. This is expected until the separately protected Auth Admin and full fixture stages are executed; **no user/data creation was implied or performed**.
+
+Two new CI source-contract tests enforce the read-only 38-row integrity and external-effect requirements. Total Build79 new tests are now **19** (eight fixture composer/mocked seeding; six catalog integrity; three review-only policy; two postseed gate).
+
+### 6. Proposed minimal RLS role pilot — NOT executed
 
 `minimal-three-policy-review-only.rollback.sql` proposes self-profile/self-role access and active approved recruiter-only candidate reads, with anon denied and no write grants. It is intentionally incomplete for the full historical 135-case admin and cross-table matrix. Attempted hosted rehearsal was **blocked by an execution safety control**. We did **not** retry via an alternate SQL path or apply this policy. All public application policies in nonproduction remain zero. Three new source-only CI tests verify its narrow, `ROLLBACK`-only nature. Reviewer approval and a permitted execution context would be needed before any live pilot.
 
 ## CI, release status and follow-up
 
-Three Build79 Node test files add **17 tests** covering fixture composition, mocked hosted setup failures and cleanup, live-catalog 239-column/42-FK/7-CHECK consistency and review-only RLS guards. Both existing fast and full workflows were extended to run them on the PR branch. Confirm each run's own exact HEAD SHA; a cancelled earlier run or the intentionally failing `production-release-hold` job does not indicate a substantive engineering failure.
+Four Build79 Node test files add **19 tests** covering fixture composition, mocked hosted setup failures and cleanup, live-catalog 239-column/42-FK/7-CHECK consistency and review-only RLS guards. Both existing fast and full workflows were extended to run them on the PR branch. Confirm each run's own exact HEAD SHA; a cancelled earlier run or the intentionally failing `production-release-hold` job does not indicate a substantive engineering failure.
 
 **Formal counters unchanged:** 0/48 accepted live security remediations, 0/140 independently signed hosted UAT cases, 0/9 signed release gates, 0/6 programme workstreams formally closed. PR #12 remains DRAFT/unmerged with zero independent reviews; earlier repository rulesets query showed `[]`.
 
