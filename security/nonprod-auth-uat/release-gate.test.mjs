@@ -402,3 +402,27 @@ test('Build91 runtime fetches protected environment metadata and has limited rea
  const code=workflow.slice(workflow.indexOf('  manual_provisioning:'));
  assert(code.indexOf('independent-release-approval.mjs')<code.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
 });
+
+test('Build92 hosted schema drift source is pinned, read-only and nonproduction scoped',()=>{
+ const path=new URL('./build92-hosted-schema-contract.readonly.sql',import.meta.url);
+ const sql=readFileSync(path,'utf8');
+ const observation=JSON.parse(readFileSync(new URL('./build92-hosted-schema-observation.json',import.meta.url),'utf8'));
+ assert(PINNED_RELEASE_PATHS.includes('security/nonprod-auth-uat/build92-hosted-schema-contract.readonly.sql'));
+ assert(PINNED_RELEASE_PATHS.includes('security/nonprod-auth-uat/build92-hosted-schema-observation.json'));
+ assert.equal(observation.project_id,'dhlhlasnaapzckjyvffn');
+ assert.equal(observation.scope,'LIVE_NONPRODUCTION_READ_ONLY');
+ assert.equal(observation.mutations,0);
+ assert.equal(observation.columns_seen,239);
+ assert.equal(observation.required_no_default_columns,101);
+ assert.equal(observation.schema_fingerprint,'e51f1648c517e88831a3c07740476bf3');
+ assert(sql.includes(observation.schema_fingerprint));
+ assert(sql.includes('TECHNICAL_FIXTURE_SCHEMA_BASELINE_PASS_NOT_PROVISIONING_PERMISSION'));
+ assert(sql.includes('HOLD_FIXTURE_SCHEMA_DRIFT'));
+ assert(sql.includes('columns_seen=239'));
+ assert(sql.includes('required_no_default_columns=101'));
+ assert(sql.includes("table_schema='public'"));
+ for(const name of Object.keys(expectedTables))
+  assert(sql.includes("'"+name+"'"),'source schema table omitted: '+name);
+ assert.equal((sql.match(/WITH cols AS/g)||[]).length,1);
+ assert(!/\b(?:INSERT|UPDATE|DELETE|MERGE|TRUNCATE|CREATE|ALTER|DROP|GRANT|REVOKE|CALL)\s+(?:INTO\s+|FROM\s+|TABLE\s+)?(?:public\.|auth\.|information_schema\.)/i.test(sql));
+});
