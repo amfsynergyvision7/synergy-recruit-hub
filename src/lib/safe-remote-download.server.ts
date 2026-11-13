@@ -121,7 +121,7 @@ export async function readResponseTextBounded(response: Response, maxBytes = 512
     throw new Error("Provider response size limit is invalid");
   }
   const length = response.headers.get("content-length");
-  if (length !== null && (!/^\\d+$/.test(length) || Number(length) > maxBytes)) {
+  if (length !== null && (!new RegExp("^[0-9]+$").test(length) || Number(length) > maxBytes)) {
     await response.body?.cancel().catch(() => {});
     throw new Error("Provider response exceeded safe size");
   }
