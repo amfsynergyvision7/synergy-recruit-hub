@@ -60,9 +60,14 @@ test('Build85 saved resume URL and raw Drive bytes reject direct caller before l
 test('Build85 low-level duplicate scan verifies unique active administrator before 5000 candidate records',()=>{
  assert(duplicates.includes('import { assertApprovedRole } from "./access-gates.server"'));
  const start=duplicates.indexOf('export async function findDuplicateClusters(');
- const firstQuery=duplicates.indexOf('.from("candidates")',start);
+ const paged=duplicates.indexOf('await loadCompleteDuplicateReviewRows<DuplicateCandidate>',start);
  const check=duplicates.indexOf('await assertApprovedRole(actorUserId, ["admin"])',start);
- assert(start>=0&&check>start&&firstQuery>check);
+ assert(start>=0&&check>start&&paged>check);
+ const paging=readFileSync('src/lib/duplicate-scan-pagination.ts','utf8');
+ assert(paging.includes('.from("candidates")'));
+ assert(paging.includes('.select(columns, { count: "exact" })'));
+ assert(paging.includes('count > MAX_COMPLETE_DUPLICATE_SCAN'));
+ assert(!duplicates.includes('.limit(5000)'));
  assert(duplicates.includes('findDuplicateClusters(supabase: any, actorUserId: string)'));
  assert(duplicateApi.includes('return findDuplicateClusters(context.supabase, context.userId)'));
  assert(duplicateApi.includes('await assertApprovedRole(context.userId, ["admin"])'));
