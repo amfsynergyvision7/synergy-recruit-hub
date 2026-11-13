@@ -1,0 +1,105 @@
+/**
+ * Nonproduction-only, one-shot hosted GoTrue + 38-row inert fixture runner.
+ * Manual GitHub Actions environment must hold the isolated project's secret
+ * and nine distinct strong test passwords. NO production credentials, real
+ * candidate data, invitations, emails or direct auth.users SQL allowed.
+ */
+import {createClient} from '@supabase/supabase-js';
+import {planFromEnv,provisionNine,PROJECT_ID,PROJECT_URL,ACK} from './provision-nine-auth-users.mjs';
+import {seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
+import {seedExtendedFixture,EXPECTED_EXTENDED_COUNTS} from './compose-and-seed-remaining-fixture.mjs';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+
+export const MANUAL_CONFIRMATION='EXECUTE_9_GO_TRUE_AND_38_INERT_ROWS_ONLY_IN_dhlhlasnaapzckjyvffn';
+export const OPERATIONS=Object.freeze(['AUDIT_ONLY','CREATE_NINE_AND_SEED_38']);
+export const BASE_COUNTS=Object.freeze({profiles:8,user_roles:8,candidates:2});
+const TABLES=Object.freeze([...Object.keys(BASE_COUNTS),...Object.keys(EXPECTED_EXTENDED_COUNTS)]);
+if(new Set(TABLES).size!==19 ||
+   Object.values(BASE_COUNTS).reduce((a,b)=>a+b,0)!==18 ||
+   Object.values(EXPECTED_EXTENDED_COUNTS).reduce((a,b)=>a+b,0)!==20) {
+  throw new Error('Source-shaped hosted fixture drift');
+}
+export function executionPlan(env){
+ if(env.AMF_UAT_OPERATION!==OPERATIONS[0]&&env.AMF_UAT_OPERATION!==OPERATIONS[1])
+   throw new Error('Unknown guarded hosted operation');
+ if(env.AMF_UAT_CONFIRMATION!==MANUAL_CONFIRMATION)
+   throw new Error('Exact nonproduction manual confirmation required');
+ // Reuse the independently tested strict project/email/password/secret guard.
+ return {credentials:planFromEnv(env),operation:env.AMF_UAT_OPERATION};
+}
+async function countRows(client,table){
+ const r=await client.from(table).select('id',{count:'exact',head:true});
+ if(r.error||!Number.isSafeInteger(r.count))
+   throw new Error('Nonproduction table count is not verifiable');
+ return r.count;
+}
+export async function readHostedSnapshot(client){
+ if(typeof client?.auth?.admin?.listUsers!=='function')
+   throw new Error('Protected nonproduction Auth Admin client required');
+ const auth=await client.auth.admin.listUsers({page:1,perPage:100});
+ if(auth.error||!Array.isArray(auth.data?.users)||auth.data.users.length>=100)
+   throw new Error('Nonproduction Auth user inventory is not verifiable');
+ const counts={};
+ for(const table of TABLES)counts[table]=await countRows(client,table);
+ return Object.freeze({authUsers:auth.data.users.length,tableCounts:counts,
+   totalRows:Object.values(counts).reduce((a,b)=>a+b,0)});
+}
+export function validateSnapshot(snapshot,stage){
+ if(!snapshot||!Object.values(snapshot.tableCounts??{}).every(Number.isSafeInteger))
+   throw new Error('Unverifiable hosted snapshot');
+ if(Object.keys(snapshot.tableCounts??{}).length!==19)
+   throw new Error('Unexpected hosted table count');
+ const expected=stage==='EMPTY'?{}:stage==='BASE'?BASE_COUNTS:
+   stage==='FULL'?{...BASE_COUNTS,...EXPECTED_EXTENDED_COUNTS}:null;
+ if(!expected)throw new Error('Invalid snapshot stage');
+ const authExpected=stage==='EMPTY'?0:9;
+ if(snapshot.authUsers!==authExpected)
+   throw new Error('Unexpected number of real nonproduction Auth accounts');
+ for(const table of TABLES)if(snapshot.tableCounts[table] !== (expected[table]??0))
+   throw new Error('Unexpected table cardinality in hosted synthetic fixture');
+ if(snapshot.totalRows!==(stage==='EMPTY'?0:stage==='BASE'?18:38))
+   throw new Error('Unexpected overall synthetic row count');
+ return true;
+}
+export async function runGuardedHostUat(plan,client){
+ const {operation}=plan;
+ const before=await readHostedSnapshot(client);
+ if(operation==='AUDIT_ONLY'){
+   return {operation,authUsers:before.authUsers,records:before.totalRows,mutated:false};
+ }
+ validateSnapshot(before,'EMPTY');
+ let mapping=null;
+ // A failure after Auth creation can leave exactly invented users behind.
+ // Do not silently retry over partial data or delete unowned IDs.
+ await provisionNine(plan.credentials,client.auth.admin,async m=>{mapping=m;});
+ if(!mapping)throw new Error('Exact synthetic Auth identity mapping unavailable');
+ const base=await seedInertBaseFixture(client,mapping);
+ if(base.profiles!==8||base.roles!==8||base.candidates!==2)
+   throw new Error('Hosted base fixture integrity mismatch');
+ validateSnapshot(await readHostedSnapshot(client),'BASE');
+ const ext=await seedExtendedFixture(client,mapping);
+ if(ext.insertedRows!==20||ext.populatedExtendedTables!==16)
+   throw new Error('Hosted extended fixture integrity mismatch');
+ validateSnapshot(await readHostedSnapshot(client),'FULL');
+ return {operation,authUsers:9,records:38,mutated:true,formalSignedUat:0};
+}
+async function main(){
+ const plan=executionPlan(process.env);
+ if(plan.credentials.url!==PROJECT_URL||process.env.AMF_UAT_PROJECT_ID!==PROJECT_ID||
+    process.env.AMF_UAT_ACK!==ACK)
+   throw new Error('Dedicated Auth Admin project attestation failed');
+ const client=createClient(PROJECT_URL,plan.credentials.key,{
+   auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false}
+ });
+ const out=await runGuardedHostUat(plan,client);
+ process.stdout.write('NONPROD_HOSTED_'+out.operation+
+  ': AUTH_USERS='+out.authUsers+', FIXTURE_ROWS='+out.records+
+  ', MUTATED='+out.mutated+', SIGNED_UAT_ACCEPTED=0\n');
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
+ main().catch(()=>{
+   process.stderr.write('NONPROD_AUTH_UAT_HOLD_OR_FAILURE: Verify secret binding, exact isolated tenant state and partial-write recovery privately. NO secrets or candidate data logged.\n');
+   process.exitCode=1;
+ });
+}
