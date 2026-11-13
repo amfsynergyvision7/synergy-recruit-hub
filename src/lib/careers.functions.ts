@@ -7,10 +7,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { normalizeEmail, normalizePhone } from "@/lib/dedupe";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
-import { escapeIlikeLiteral } from "./sync-safety";
-import { assertNoAnonymousCandidateCollision } from "./public-application-identity";
 
 function maskCompanyName(row: { is_confidential: boolean; clients?: { company_name?: string } | null }): string | null {
   if (row.is_confidential) return null;
@@ -77,6 +74,9 @@ export const getJobDetail = createServerFn({ method: "POST" })
 
 const applicationSchema = z.object({
   jobId: z.string().uuid(),
+  // No verifier or proof issuer is implemented in Build104: optional here
+  // for read-only UI compatibility; always required by the handler to write.
+  verificationId: z.string().uuid().optional(),
   fullName: z.string().trim().min(2, "Enter your full name.").max(200),
   email: z.string().trim().email("Enter a valid email address."),
   mobile: z.string().trim().min(7, "Enter a valid mobile number.").max(20),
@@ -88,115 +88,43 @@ const applicationSchema = z.object({
   coverNote: z.string().trim().max(2000).optional(),
 });
 
-// ---- Public apply: creates (or reuses) a candidate, then a submission ----
-// tied to this job — the same shape a recruiter creates by hand today, just
-// candidate-initiated. Deliberately no resume file upload here: resumes
-// elsewhere in this app are a URL (resume_url), populated via Drive import
-// rather than Supabase Storage, and adding a *new*, publicly-writable
-// Storage bucket for anonymous uploads is both a fresh paid-tier surface and
-// an abuse vector this prototype doesn't need yet — a pasted Drive/Dropbox
-// link fills the same field.
+// ---- Public apply: verification proof + atomic candidate/submission RPC ----
+// No actual proof issuer exists. Release holds are unconditional. This path
+// cannot create orphan candidates on partial submission failure, and public
+// applicants cannot claim existing CRM identities by giving contact details.
 export const submitJobApplication = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => applicationSchema.parse(input))
   .handler(async ({ data }) => {
     // Anonymous application writes use a service-role database client.
     // No feature flag or deployment environment can bypass this review hold.
     assertExternalEffectReleased("public_application");
-    const { data: job, error: jobError } = await supabaseAdmin
-      .from("job_openings")
-      .select("id, job_title, status, assigned_recruiter")
-      .eq("id", data.jobId)
-      .maybeSingle();
-    if (jobError || !job) throw new Error("This posting couldn't be found.");
-    if (job.status !== "open") throw new Error("This position is no longer accepting applications.");
-
-    const email = normalizeEmail(data.email)!;
-    const mobileLast10 = normalizePhone(data.mobile);
-
-    // Anonymous possession of a contact string is NOT verified ownership
-    // of a candidate. Never reuse an existing candidate's CRM identity or
-    // attach a public job submission to their recruiting history.
-    // Only bounded, minimal-column collision probes are permitted here;
-    // database error / matches return the SAME generic response.
-    const { data: emailMatches, error: emailError } = await supabaseAdmin
-      .from("candidates")
-      .select("id")
-      .ilike("email", escapeIlikeLiteral(email))
-      .limit(2);
-    const mobileProbeLimit = 100;
-    const suffix = mobileLast10?.slice(-4);
-    const { data: mobileMatches, error: mobileError } = suffix
-      ? await supabaseAdmin.from("candidates")
-          .select("mobile").ilike("mobile", `%${suffix}%`).limit(mobileProbeLimit)
-      : { data: [], error: null };
-    assertNoAnonymousCandidateCollision({
-      emailMatches, emailError, mobileMatches, mobileError,
-      normalizedMobile: mobileLast10, mobileProbeLimit,
-    });
-
-    // New anonymous submissions still require approved applicant verification,
-    // anti-automation and an atomic candidate+submission transaction before
-    // public_application may be released. This code is draft/held.
-    const { data: created, error: createError } = await supabaseAdmin
-      .from("candidates")
-      .insert({
-        full_name: data.fullName,
-        email: data.email,
-        mobile: data.mobile,
-        current_company: data.currentCompany || null,
-        experience_years: data.experienceYears ?? null,
-        expected_salary: data.expectedSalary ?? null,
-        notice_period: data.noticePeriod || null,
-        resume_url: data.resumeUrl || null,
-        position_applied: job.job_title,
-        source: "career_page",
-        assigned_recruiter: job.assigned_recruiter,
-        stage: "lead_received",
-        status: "active",
-      })
-      .select("id")
-      .single();
-    if (createError || !created?.id) throw new Error("Application could not be completed securely.");
-    const candidateId = created.id;
-
-    // No anonymous duplicate-submission shortcut: every applicant needs
-    // independently verified identity and atomic submission idempotency
-    // before this currently held public workflow may be activated.
-    // client_id/client_uuid/job_id are deliberately left unset here —
-    // submissions has its own normalize_submission_relationships() BEFORE
-    // INSERT trigger that fills those in from candidate_uuid/job_uuid, and
-    // even derives client_uuid from the job's own client automatically, so
-    // there's no room for the two to drift by duplicating that lookup here.
-    // candidate_id is still supplied (the legacy column is NOT NULL with no
-    // DB-level default the generated types can see) — the trigger would set
-    // it from candidate_uuid regardless, this just satisfies the type.
-    const { data: submission, error: subError } = await supabaseAdmin
-      .from("submissions")
-      .insert({
-        candidate_id: candidateId,
-        candidate_uuid: candidateId,
-        job_uuid: job.id,
-        role_title: job.job_title,
-        status: "submitted",
-        remarks: data.coverNote || null,
-      })
-      .select("id")
-      .single();
-    if (subError) throw new Error("Application could not be completed securely.");
-
-    // Best-effort nudge to whoever owns this req, through the same
-    // notifications feed every other automated event in this app already
-    // uses — never blocks the candidate's own success response.
-    if (job.assigned_recruiter) {
-      await supabaseAdmin.from("notifications").insert({
-        user_id: job.assigned_recruiter,
-        title: `New application: ${data.fullName}`,
-        message: `${data.fullName} applied for "${job.job_title}" via the careers page.`,
-        type: "new_application",
-        related_table: "submissions",
-        related_id: submission.id,
-      });
+    if (!data.verificationId) {
+      throw new Error("Application requires independent identity verification");
     }
-
-    return { alreadyApplied: false };
+    // Single server-only RPC. No separate service-role candidate/submission
+    // writes are possible in this public handler, even if an outer release
+    // hold were accidentally removed. The review-only SQL requires a single-
+    // use, independently issued email+mobile proof and transactionally writes
+    // both rows. No proof issuer exists in Build104, so this cannot be live.
+    const { data: outcome, error } = await (supabaseAdmin as any).rpc(
+      "crm_commit_verified_public_application",
+      {
+        p_proof_id: data.verificationId,
+        p_job_id: data.jobId,
+        p_full_name: data.fullName,
+        p_email: data.email,
+        p_mobile: data.mobile,
+        p_current_company: data.currentCompany || null,
+        p_experience_years: data.experienceYears ?? null,
+        p_expected_salary: data.expectedSalary ?? null,
+        p_notice_period: data.noticePeriod || null,
+        p_resume_url: data.resumeUrl || null,
+        p_cover_note: data.coverNote || null,
+      },
+    );
+    // Never relay the raw PostgREST/trigger error or candidate/submission IDs.
+    if (error || (outcome !== "accepted" && outcome !== "already_applied")) {
+      throw new Error("Application could not be completed securely.");
+    }
+    return { alreadyApplied: outcome === "already_applied" };
   });
