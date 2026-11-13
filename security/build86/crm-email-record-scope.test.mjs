@@ -65,3 +65,31 @@ test('Build86 send-time record-address binding, hard release hold and nonleaking
  assert(send.includes('[email_log] insert failed; review restricted server diagnostics'));
  assert(!send.includes('logError.message'));
 });
+
+
+test('Build86 low-level public Supabase logo fetch requires candidate privacy release before environment/network',()=>{
+ const pdf=file('src/lib/resume-pdf.server.ts');
+ const start=pdf.indexOf('export async function fetchLogoBuffer(');
+ const end=pdf.indexOf('function drawSectionHeading(',start);
+ const fetcher=pdf.slice(start,end);
+ const hold=fetcher.indexOf('assertExternalEffectReleased("candidate_ai_processing")');
+ const env=fetcher.indexOf('process.env.SUPABASE_URL');
+ const net=fetcher.indexOf('downloadRemoteBounded(');
+ assert(hold>0&&env>hold&&net>env);
+ assert(fetcher.includes('isTrustedSupabaseLogoUrl(logoUrl, projectUrl)'));
+ assert(fetcher.includes('maxRedirects: 0'));
+});
+test('Build86 no public careers errors expose PostgREST SQL diagnostics or candidate insert internals',()=>{
+ const careers=file('src/lib/careers.functions.ts');
+ const list=careers.slice(careers.indexOf('export const listOpenJobs'),careers.indexOf('export const getJobDetail'));
+ const detail=careers.slice(careers.indexOf('export const getJobDetail'),careers.indexOf('const applicationSchema'));
+ const apply=careers.slice(careers.indexOf('export const submitJobApplication'));
+ assert(!list.includes('throw new Error(error.message)'));
+ assert(!detail.includes('throw new Error(error.message)'));
+ assert(!apply.includes('throw new Error(createError.message)'));
+ assert(!apply.includes('throw new Error(subError.message)'));
+ assert(list.includes('Career postings are temporarily unavailable.'));
+ assert(apply.includes('Application could not be completed securely.'));
+ assert(list.includes('assertExternalEffectReleased("careers_publication")'));
+ assert(apply.includes('assertExternalEffectReleased("public_application")'));
+});
