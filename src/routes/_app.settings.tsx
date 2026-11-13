@@ -13,11 +13,10 @@ import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
 import type { ColorThemeId } from "@/lib/color-themes";
+import { ACCEPTED_LOGO_TYPES, verifyLogoSignature } from "@/lib/logo-upload-safety";
 
 export const Route = createFileRoute("/_app/settings")({ component: Page });
 
-const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2MB
-const ACCEPTED_LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
 const LOGO_STORAGE_PATH = "company-logo";
 
 function Page() {
@@ -57,12 +56,17 @@ function Page() {
   };
 
   const uploadLogo = async (file: File) => {
-    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
-      return toast.error("Please upload a PNG, JPG, WEBP, or SVG image.");
+    if (uploading) return;
+    // Reject executable SVG and MIME-spoofed bytes before any storage write.
+    // Server storage policies remain authoritative: this adds browser defense.
+    let signature: Uint8Array;
+    try {
+      signature = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    } catch {
+      return toast.error("Unable to verify image contents before upload.");
     }
-    if (file.size > MAX_LOGO_BYTES) {
-      return toast.error("Logo must be smaller than 2MB.");
-    }
+    const rejection = verifyLogoSignature(file.type, file.size, signature);
+    if (rejection) return toast.error(rejection);
     setUploading(true);
     // Same object path every time (upsert) so old versions don't pile up in
     // the bucket; the `?v=` cache-buster on the stored URL is what makes a
@@ -148,7 +152,7 @@ function Page() {
               </div>
               <div className="space-y-1">
                 <p className="text-sm">{logoUrl ? "Custom logo active" : "No logo uploaded yet — showing the default mark"}</p>
-                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP, or SVG · up to 2MB</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG or WEBP · up to 2MB (SVG not accepted)</p>
               </div>
             </div>
             <input
