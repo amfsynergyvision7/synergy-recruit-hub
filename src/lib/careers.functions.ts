@@ -9,6 +9,8 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { normalizeEmail, normalizePhone } from "@/lib/dedupe";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
+import { escapeIlikeLiteral } from "./sync-safety";
+import { assertNoAnonymousCandidateCollision } from "./public-application-identity";
 
 function maskCompanyName(row: { is_confidential: boolean; clients?: { company_name?: string } | null }): string | null {
   if (row.is_confidential) return null;
@@ -111,45 +113,51 @@ export const submitJobApplication = createServerFn({ method: "POST" })
     const email = normalizeEmail(data.email)!;
     const mobileLast10 = normalizePhone(data.mobile);
 
-    // Reuse an existing candidate record rather than creating a duplicate —
-    // the same normalization dedupe.ts already uses for Drive import and
-    // the Duplicate Candidates tool, so a candidate who applied before (or
-    // was already in the pipeline from another source) is recognized here
-    // too. Matched on email first (the more reliable signal), then mobile.
-    let candidateId: string | null = null;
-    const { data: byEmail } = await supabaseAdmin
-      .from("candidates").select("id").ilike("email", email).limit(1).maybeSingle();
-    if (byEmail) {
-      candidateId = byEmail.id;
-    } else if (mobileLast10) {
-      const { data: mobileMatches } = await supabaseAdmin
-        .from("candidates").select("id, mobile").ilike("mobile", `%${mobileLast10}%`);
-      candidateId = (mobileMatches ?? []).find((c: any) => normalizePhone(c.mobile) === mobileLast10)?.id ?? null;
-    }
+    // Anonymous possession of a contact string is NOT verified ownership
+    // of a candidate. Never reuse an existing candidate's CRM identity or
+    // attach a public job submission to their recruiting history.
+    // Only bounded, minimal-column collision probes are permitted here;
+    // database error / matches return the SAME generic response.
+    const { data: emailMatches, error: emailError } = await supabaseAdmin
+      .from("candidates")
+      .select("id")
+      .ilike("email", escapeIlikeLiteral(email))
+      .limit(2);
+    const mobileProbeLimit = 100;
+    const suffix = mobileLast10?.slice(-4);
+    const { data: mobileMatches, error: mobileError } = suffix
+      ? await supabaseAdmin.from("candidates")
+          .select("mobile").ilike("mobile", `%${suffix}%`).limit(mobileProbeLimit)
+      : { data: [], error: null };
+    assertNoAnonymousCandidateCollision({
+      emailMatches, emailError, mobileMatches, mobileError,
+      normalizedMobile: mobileLast10, mobileProbeLimit,
+    });
 
-    if (!candidateId) {
-      const { data: created, error: createError } = await supabaseAdmin
-        .from("candidates")
-        .insert({
-          full_name: data.fullName,
-          email: data.email,
-          mobile: data.mobile,
-          current_company: data.currentCompany || null,
-          experience_years: data.experienceYears ?? null,
-          expected_salary: data.expectedSalary ?? null,
-          notice_period: data.noticePeriod || null,
-          resume_url: data.resumeUrl || null,
-          position_applied: job.job_title,
-          source: "career_page",
-          assigned_recruiter: job.assigned_recruiter,
-          stage: "lead_received",
-          status: "active",
-        })
-        .select("id")
-        .single();
-      if (createError) throw new Error("Application could not be completed securely.");
-      candidateId = created.id;
-    }
+    // New anonymous submissions still require approved applicant verification,
+    // anti-automation and an atomic candidate+submission transaction before
+    // public_application may be released. This code is draft/held.
+    const { data: created, error: createError } = await supabaseAdmin
+      .from("candidates")
+      .insert({
+        full_name: data.fullName,
+        email: data.email,
+        mobile: data.mobile,
+        current_company: data.currentCompany || null,
+        experience_years: data.experienceYears ?? null,
+        expected_salary: data.expectedSalary ?? null,
+        notice_period: data.noticePeriod || null,
+        resume_url: data.resumeUrl || null,
+        position_applied: job.job_title,
+        source: "career_page",
+        assigned_recruiter: job.assigned_recruiter,
+        stage: "lead_received",
+        status: "active",
+      })
+      .select("id")
+      .single();
+    if (createError || !created?.id) throw new Error("Application could not be completed securely.");
+    const candidateId = created.id;
 
     // One application per candidate per job — a second submit (someone
     // double-clicking, or re-applying to a posting they already sent) is a
