@@ -110,3 +110,36 @@ export async function downloadRemoteBounded(
   }
   throw new Error("Remote file was not retrieved");
 }
+
+/**
+ * Restrict untrusted provider JSON/text responses before decoding. This is
+ * deliberately separate from downloadRemoteBounded: API responses may be
+ * POST results and do not need the remote-asset URL policy.
+ */
+export async function readResponseTextBounded(response: Response, maxBytes = 512 * 1024): Promise<string> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || maxBytes > 1024 * 1024) {
+    throw new Error("Provider response size limit is invalid");
+  }
+  const length = response.headers.get("content-length");
+  if (length !== null && (!/^\\d+$/.test(length) || Number(length) > maxBytes)) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error("Provider response exceeded safe size");
+  }
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const parts: Uint8Array[] = [];
+  let count = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      count += value.byteLength;
+      if (count > maxBytes) {
+        await reader.cancel().catch(() => {});
+        throw new Error("Provider response exceeded safe size");
+      }
+      parts.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  return Buffer.concat(parts.map(part => Buffer.from(part)), count).toString("utf8");
+}
