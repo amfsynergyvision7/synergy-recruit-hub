@@ -106,3 +106,10 @@ These are proposed security controls in PR #15. They do not mean 9 GoTrue users,
 The original manual runner checked protected `main`, independent approval of PR #15, and exact reviewed-source integrity only for `CREATE_NINE_AND_SEED_38`. Although `AUDIT_ONLY` does not write rows, it still executes code with the isolated tenant's Admin credential and can enumerate Auth identities. Build 91 makes the independent approval and exact-source gate **unconditional for both manual operations**, always before the secret-bearing step. No unreviewed code can use either operation to access the lab key. For a zero-credential read-only status check before merge, use the existing connected Supabase management SQL preflights instead.
 
 This change is a proposed PR #15 workflow hardening, not configured GitHub protection, independent review, completed hosted provisioning or an accepted UAT case. Human sign-off and lab-only environment secrets remain separate prerequisites.
+
+
+### Build 91 — verify the **actual** GitHub Environment reviewer rules before accessing lab secrets
+
+An environment label alone is not a protection guarantee. Build 91's read-only GitHub check now requires the exact environment `amf-nonprod-auth-review` to have an active **required-reviewers** rule with `prevent_self_review=true`, at least one reviewer other than the workflow actor, and a deployment branch policy restricted to **protected branches**. The workflow explicitly grants the GitHub token only `actions:read`, `pull-requests:read` and `contents:read`. GitHub's environment metadata API provides these fields. A missing, unreadable or improperly configured environment halts both manual operations before the lab secrets are bound to the next step.
+
+These are new fail-closed checks in PR #15; they do not configure the GitHub environment or prove any independent review has occurred. The repository administrator must select **Required reviewers**, **Prevent self-review**, and **Protected branches only**, and install lab-only Auth Admin and test password secrets, all after a privacy review of the currently public source repository.
