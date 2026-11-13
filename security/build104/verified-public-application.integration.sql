@@ -109,6 +109,18 @@ BEGIN
    rejected:=true;
  END;
  IF NOT rejected THEN RAISE EXCEPTION 'Build108 unsafe resume URL was accepted'; END IF;
+ rejected:=false;
+ BEGIN
+   PERFORM public.crm_commit_verified_public_application(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2',
+    '11111111-1111-4111-8111-111111111111',
+    'Synthetic Two','person2@example.invalid','9876543211',
+    NULL,NULL,NULL,NULL,'https://private.internal/resume.pdf');
+ EXCEPTION WHEN OTHERS THEN
+   IF SQLERRM <> 'Application unavailable' THEN RAISE; END IF;
+   rejected:=true;
+ END;
+ IF NOT rejected THEN RAISE EXCEPTION 'Build108 private DNS resume URL was accepted'; END IF;
 END $unsafe_resume$;
 RESET ROLE;
 DO $unsafe_no_write$
