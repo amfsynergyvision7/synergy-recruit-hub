@@ -14,7 +14,7 @@ export const slotEmail = (index) =>
   `amf-uat-${String(index).padStart(2,'0')}@example.invalid`;
 const uuidRE = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const secretRE = /^(?:sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/;
-export function planFromEnv(env, cwd = process.cwd()) {
+export function adminConnectionFromEnv(env) {
   if (env.AMF_UAT_MODE !== 'EXECUTE' || env.AMF_UAT_ACK !== ACK)
     throw new Error('Explicit isolated synthetic execution acknowledgement required');
   if (env.AMF_UAT_PROJECT_ID !== PROJECT_ID ||
@@ -29,6 +29,11 @@ export function planFromEnv(env, cwd = process.cwd()) {
     catch { throw new Error('Unusable service role JWT'); }
     if (role !== 'service_role') throw new Error('Service-role authorization required');
   }
+  return Object.freeze({url:PROJECT_URL,key});
+}
+
+export function planFromEnv(env, cwd = process.cwd()) {
+  const {key}=adminConnectionFromEnv(env);
   const mappingFile = env.AMF_UAT_MAPPING_FILE;
   if (typeof mappingFile !== 'string' || !isAbsolute(mappingFile) ||
       mappingFile.includes('..') || resolve(mappingFile).startsWith(resolve(cwd) + '/'))
