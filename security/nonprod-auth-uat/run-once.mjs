@@ -45,7 +45,8 @@ export function executionPlan(env){
    derived['AMF_UAT_CASE_'+index+'_PASSWORD']='Uat9-Aa-'+digest;
  }
  // Reuse independently tested strict project/secret/derived-password guard.
- return {credentials:planFromEnv(derived),operation:env.AMF_UAT_OPERATION};
+ return {credentials:planFromEnv(derived),operation:env.AMF_UAT_OPERATION,
+   preflightAttested:env.AMF_UAT_PREFLIGHT_ATTESTATION===PREFLIGHT_CONFIRMATION};
 }
 async function countRows(client,table){
  const r=await client.from(table).select('id',{count:'exact',head:true});
@@ -85,6 +86,8 @@ export async function runGuardedHostUat(plan,client){
  if(!plan||!OPERATIONS.includes(plan.operation))
    throw new Error('Unknown isolated hosted operation');
  const {operation}=plan;
+ if(operation===OPERATIONS[1] && plan.preflightAttested!==true)
+   throw new Error('Fresh hosted preflight attestation missing');
  if(operation===OPERATIONS[1] &&
    (plan.credentials?.url!==PROJECT_URL||plan.credentials?.users?.length!==9))
    throw new Error('Invalid exact nonproduction synthetic plan');
