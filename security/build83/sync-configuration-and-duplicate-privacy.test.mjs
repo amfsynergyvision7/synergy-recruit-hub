@@ -89,7 +89,7 @@ test('failed sync diagnostics no longer propagate raw provider exception into CR
 test('duplicate-candidate full contact scan requires unique active admin before reading any candidate',()=>{
  assert(dupes.includes('.middleware([requireSupabaseAuth])'));
  const admin=dupes.indexOf('await assertApprovedRole(context.userId, ["admin"])');
- const query=dupes.indexOf('return findDuplicateClusters(context.supabase)');
+ const query=dupes.indexOf('return findDuplicateClusters(context.supabase, context.userId)');
  assert(admin>0&&query>admin);
  assert(!dupes.includes('no extra role gate'));
 });
