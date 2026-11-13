@@ -10,7 +10,7 @@ const smtp=read('src/lib/email.server.ts');
 const schedule=read('src/lib/scheduling.functions.ts');
 const careers=read('src/lib/careers.functions.ts');
 
-for(const action of ['crm_email','interview_scheduling','public_application','careers_publication']){
+for(const action of ['crm_email','interview_scheduling','public_application','careers_publication','candidate_ai_processing','drive_bulk_import']){
  test('Build82 blocks '+action+' without toggles',()=>{
   assert.equal(isExternalEffectPaused(action),true);
   assert.throws(()=>assertExternalEffectReleased(action),/paused/);
@@ -18,7 +18,7 @@ for(const action of ['crm_email','interview_scheduling','public_application','ca
 }
 test('release holds cannot be enabled through app or server environment variables',()=>{
  assert.doesNotMatch(holds,/process\.env|import\.meta\.env|localStorage/);
- assert.equal((holds.match(/RELEASE_HOLD = true as const/g)||[]).length,4);
+ assert.equal((holds.match(/RELEASE_HOLD = true as const/g)||[]).length,6);
  assert.throws(()=>assertExternalEffectReleased('unknown'),/Unapproved/);
 });
 test('CRM mail is held before SMTP and logs; email history is restricted to approved role',()=>{
@@ -60,4 +60,17 @@ test('public careers publication and application side effects are blocked before
  assert(apply.includes('assertExternalEffectReleased("public_application")'));
  assert.match(detail,/\.eq\("id", data\.jobId\)\s*\.eq\("status", "open"\)/);
  assert(!detail.includes('error.message'));
+});
+
+test('all five candidate AI actions and one Drive resume import block before outbound processing',()=>{
+ const ai=read('src/lib/ai.functions.ts');
+ assert.equal((ai.match(/assertExternalEffectReleased\("candidate_ai_processing"\)/g)||[]).length,5);
+ assert.equal((ai.match(/assertExternalEffectReleased\("drive_bulk_import"\)/g)||[]).length,1);
+ assert.equal((ai.match(/await assertApprovedRole\(context\.userId,/g)||[]).length,6);
+ const functions=ai.split(/export const [A-Za-z]+ = createServerFn/).slice(1);
+ assert.equal(functions.length,6);
+ for(const f of functions){
+   assert(f.indexOf('assertExternalEffectReleased(')>=0);
+   assert(f.indexOf('assertExternalEffectReleased(')<f.indexOf('await assertApprovedRole('));
+ }
 });
