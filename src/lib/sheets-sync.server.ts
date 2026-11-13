@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
-import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR, redactHistoricalIntegrationError, extractApprovedSpreadsheetId, buildSafeSheetValuesPath } from "./sync-safety";
+import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR, redactHistoricalIntegrationError, extractApprovedSpreadsheetId, buildSafeSheetValuesPath, approvedCandidateMappingTarget, approvedCandidateHeaderAlias } from "./sync-safety";
 import { readResponseTextBounded } from "./safe-remote-download.server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
@@ -15,9 +15,7 @@ const LEGACY_FIELD_NAMES: Record<string, string> = {
 };
 
 function normalizeFieldName(field: unknown): string | undefined {
-  if (typeof field !== "string" || !field) return undefined;
-  return Object.prototype.hasOwnProperty.call(LEGACY_FIELD_NAMES, field)
-    ? LEGACY_FIELD_NAMES[field] : field;
+  return approvedCandidateMappingTarget(field, LEGACY_FIELD_NAMES, CANDIDATE_FIELDS);
 }
 
 const FIELD_ALIASES: Record<string, string> = {
@@ -39,11 +37,8 @@ const FIELD_ALIASES: Record<string, string> = {
 export function autoMap(headers: string[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const h of headers) {
-    const key = (h || "").toLowerCase().trim();
-    // Untrusted Sheet headers must not resolve Object.prototype entries
-    // such as constructor, __proto__ or toString as inherited field aliases.
-    if (!Object.prototype.hasOwnProperty.call(FIELD_ALIASES, key)) continue;
-    const f = FIELD_ALIASES[key];
+    // Pure, executable own-key and allowlist checks for untrusted Sheet labels.
+    const f = approvedCandidateHeaderAlias(h, FIELD_ALIASES, CANDIDATE_FIELDS);
     if (f) map[h] = f;
   }
   return map;
