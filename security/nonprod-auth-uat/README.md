@@ -46,3 +46,27 @@ If GitHub Environments' required-reviewer protection is unavailable on the curre
 This turns the recurring "missing Auth Admin tool" excuse into an independently reviewable executable path. It does **not** yet complete the credential setup, independent reviewer assignment, actual account provisioning, fixture insertion, hosted UAT or production deployment. Those are separate verifiable actions. The existing 5–10-build CRM countdown was not evidence-based; use milestone/gate completion instead of inventing a smaller number.
 
 **Evidence of current baseline (read-only 13 November 2026):** nonproduction Auth 0/9, hosted fixture 0/38, signed UAT 0/140, production security remediations 0/48, approved release gates 0/9; main unprotected and no independent reviewers. Do not represent creation of this PR as any of those counters having advanced.
+
+
+## Build 88 — Live 19-table readiness audit and enforced independent gate
+
+The full read-only SQL artifact is `build88-hosted-preflight.readonly.sql`. It is explicitly scoped to the **dedicated isolated nonproduction project**. It was **actually run via the approved connected Supabase management SQL tool on 13 November 2026** and returned `ready_for_reviewed_synthetic_provisioning = true`, with **19 expected public tables and zero actual fixture records**. The audit independently verified **zero Auth users, zero enabled public app triggers, zero enabled noninternal Auth-user triggers, zero public application RLS policies, zero non-forced-RLS public tables, zero unapproved anonymous/authenticated grants, zero exposed public views/functions**, and **zero missing service-role SELECT/INSERT/DELETE privileges for any of the 19 tables**. This is a *read-only preflight*, **not** actual Auth provisioning, policy installation, or signed UAT. Its result must be rechecked freshly immediately before any manual write.
+
+**Additional mandatory runtime gates.** For `CREATE_NINE_AND_SEED_38` (not for `AUDIT_ONLY`), the workflow requires the exact additional `preflight_confirmation`:
+
+`I_REVIEWED_FRESH_NONPROD_SQL_19_EMPTY_ZERO_AUTH_TRIGGERS_GRANTS_POLICIES`
+
+This is an *operator attestation of a freshly rerun read-only SQL check*, not an automated live SQL verification by GitHub Actions. The runner and its underlying writer independently reject missing preflight acknowledgement and unexpected users/table cardinalities; they cannot certify triggers or grants without the separate SQL review.
+
+Before accessing either protected Supabase secret, `independent-release-approval.mjs` also performs read-only GitHub API checks requiring: the exact original **PR #15** independently **APPROVED at its current head SHA and merged**; a genuinely separate non-bot reviewer with collaborator/member/owner association (author self-review is rejected); no outstanding independent `CHANGES_REQUESTED`; and a **protected, unchanged `main` branch** at the manual dispatch SHA. If any prerequisite is missing, the GitHub job exits before the later secret-bearing step. The GitHub token is scoped to read-only repository/PR access; no production secret is supplied. These source checks supplement—do not replace—the GitHub Environment's required-reviewer settings.
+
+**Current real blocker:** GitHub `main.protected=false`, PR #15 is unmerged and has no independent approval, and the two nonproduction-only secrets have not been verified as configured. The connected GitHub integration cannot update repository branch protection or confidential GitHub Environment secrets. A repository administrator must enable main protection and protect the manual environment; a separate collaborator must review and approve the small PR. **Do not merge until reviewed.**
+
+### Operator sequence that changes actual counts
+
+1. An authorized repo administrator protects `main` (review + status checks) and configures the `amf-nonprod-auth-review` GitHub Environment with independent approval and the **two lab-only** secrets. Never paste production keys in this chat.
+2. An eligible independent reviewer approves the *exact current source SHA* of PR #15; only then may an authorized administrator merge the small PR into protected `main`.
+3. Dispatch `AUDIT_ONLY`, rerun the read-only SQL audit, verify every preflight result is zero or otherwise as specified, then—only with fresh evidence—dispatch `CREATE_NINE_AND_SEED_38` with both literal confirmations and any required environment reviewer approval.
+4. Verify in the real nonproduction Supabase Auth and tables that **9/9 identities and 38/38 invented records** now exist. Until that happens, counters remain **0/9 and 0/38**. Signed UAT still starts at **0/140** and requires reviewed RLS, genuine signed sessions and separately controlled writes; production release controls remain untouched.
+
+This project should be measured by **verified movement of those milestones**, not by treating each code build as one fewer release build.
