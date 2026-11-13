@@ -18,7 +18,7 @@ for(const action of ['crm_email','interview_scheduling','public_application','ca
 }
 test('release holds cannot be enabled through app or server environment variables',()=>{
  assert.doesNotMatch(holds,/process\.env|import\.meta\.env|localStorage/);
- assert.equal((holds.match(/RELEASE_HOLD = true as const/g)||[]).length,6);
+ assert.equal((holds.match(/RELEASE_HOLD = true as const/g)||[]).length,8);
  assert.throws(()=>assertExternalEffectReleased('unknown'),/Unapproved/);
 });
 test('CRM mail is held before SMTP and logs; email history is restricted to approved role',()=>{
