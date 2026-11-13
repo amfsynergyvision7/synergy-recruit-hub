@@ -61,6 +61,7 @@ test("Build115 role lookup denies mismatched, pending, inactive and missing prof
 });
 
 test("Build115 auth context applies freshness gate on success, catch and finally", () => {
+  assert.match(authSource, /if \(!ticket\.userId \|\| !gate\.accepts\(ticket\)\) return;/);
   assert.match(authSource, /if \(!gate\.accepts\(ticket\)\) return;/);
   assert.match(authSource, /if \(gate\.accepts\(ticket\)\) \{/);
   assert.match(authSource, /if \(gate\.accepts\(ticket\)\) setLoading\(false\);/);

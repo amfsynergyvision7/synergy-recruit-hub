@@ -48,7 +48,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Never commit a role/profile from an outdated sign-in, account switch,
   // refresh, or an effect that has already been disposed.
   const loadProfile = async (gate: AuthIdentityEpoch, ticket: AuthIdentityTicket) => {
-    if (!ticket.userId) return;
+    // A scheduled lookup for an earlier account must not even issue a
+    // database read after sign-out, switching users, or a later refresh.
+    if (!ticket.userId || !gate.accepts(ticket)) return;
     try {
       const [{ data: prof, error: profileError }, { data: roles, error: rolesError }] =
         await Promise.all([

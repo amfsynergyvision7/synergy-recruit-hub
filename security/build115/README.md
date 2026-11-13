@@ -8,3 +8,5 @@ This is **review-only** CRM client code on PR #12; it does not alter a database 
 - `.github/workflows/security-build65-fast.yml` now executes the six actual Build 115 tests, and both workflows include the changed auth paths on pull requests.
 
 **Known boundaries:** Existing server-side `assertApprovedRole` checks and PostgreSQL RLS remain authoritative; front-end role hiding alone is not a security boundary. This does not approve PR #12, PR #15, hosted UAT, financial workflows or deployment. No candidate records or secrets are read by the tests.
+
+- The final Build 115 adjustment also checks a request's epoch **before** starting any Supabase profile/role query. Stale scheduled timers cannot cause unnecessary old-account reads; already in-flight responses remain gated at commit time.
