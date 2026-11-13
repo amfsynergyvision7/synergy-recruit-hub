@@ -105,11 +105,20 @@ export const confirmSchedulingSlot = createServerFn({ method: "POST" })
     }
 
     const { date, time } = splitSlot(data.slot);
-    const { error: updateError } = await supabaseAdmin
+    // Atomic compare-and-set: a second (or stale) bearer-token request
+    // must not overwrite the first accepted slot after the initial read.
+    // Recheck status and membership in the SAME database UPDATE operation.
+    const { data: confirmed, error: updateError } = await supabaseAdmin
       .from("interviews")
       .update({ interview_date: date, interview_time: time, status: "scheduled" })
-      .eq("id", interview.id);
-    if (updateError) throw new Error(updateError.message);
+      .eq("id", interview.id)
+      .eq("status", "awaiting_candidate")
+      .contains("proposed_slots", [data.slot])
+      .select("id")
+      .maybeSingle();
+    if (updateError || !confirmed) {
+      throw new Error("This interview slot is no longer available.");
+    }
 
     // Nice-to-have close-the-loop touch: ping the assigned recruiter through
     // the same reminders feed from step 1, rather than them only noticing the
