@@ -1,7 +1,7 @@
 # Reviewable, standalone NONPRODUCTION fixture workflow.
 # Provisioning is NEVER triggered by pushes, PRs, schedules, or deployments.
 # Configure GitHub Environment "amf-nonprod-auth-review" with independent
-# required reviewers, isolated project secret and 9 distinct test passwords.
+# required reviewers, isolated project service secret and ONE random UAT password-master secret.
 name: Nonprod Synthetic Auth UAT — Manual Only
 
 on:
@@ -72,13 +72,5 @@ jobs:
           AMF_UAT_SUPABASE_URL: https://dhlhlasnaapzckjyvffn.supabase.co
           AMF_UAT_MAPPING_FILE: /tmp/amf-synthetic-uat-in-memory-mapping.json
           AMF_UAT_SERVICE_ROLE_KEY: ${{ secrets.AMF_NONPROD_SERVICE_ROLE_KEY }}
-          AMF_UAT_CASE_01_PASSWORD: ${{ secrets.AMF_UAT_CASE_01_PASSWORD }}
-          AMF_UAT_CASE_02_PASSWORD: ${{ secrets.AMF_UAT_CASE_02_PASSWORD }}
-          AMF_UAT_CASE_03_PASSWORD: ${{ secrets.AMF_UAT_CASE_03_PASSWORD }}
-          AMF_UAT_CASE_04_PASSWORD: ${{ secrets.AMF_UAT_CASE_04_PASSWORD }}
-          AMF_UAT_CASE_05_PASSWORD: ${{ secrets.AMF_UAT_CASE_05_PASSWORD }}
-          AMF_UAT_CASE_06_PASSWORD: ${{ secrets.AMF_UAT_CASE_06_PASSWORD }}
-          AMF_UAT_CASE_07_PASSWORD: ${{ secrets.AMF_UAT_CASE_07_PASSWORD }}
-          AMF_UAT_CASE_08_PASSWORD: ${{ secrets.AMF_UAT_CASE_08_PASSWORD }}
-          AMF_UAT_CASE_09_PASSWORD: ${{ secrets.AMF_UAT_CASE_09_PASSWORD }}
+          AMF_UAT_PASSWORD_MASTER_SECRET: ${{ secrets.AMF_UAT_PASSWORD_MASTER_SECRET }}
         run: node security/nonprod-auth-uat/run-once.mjs
