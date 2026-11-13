@@ -111,8 +111,10 @@ export async function extractText(buffer: Buffer, contentType: string): Promise<
       return { ok: true, text: trimmed };
     }
     return { ok: false, error: "This resume isn't a PDF or Word (.docx) file — only those two formats are supported right now." };
-  } catch (err: any) {
-    return { ok: false, error: `Couldn't read the resume file: ${err?.message ?? "unknown parsing error"}.` };
+  } catch {
+    // PDF/Word parsing libraries can echo filenames, embedded document text
+    // or URLs in exception messages. Never return those details to callers.
+    return { ok: false, error: "Couldn't read this resume file. Check that it is a valid PDF or Word document." };
   }
 }
 
