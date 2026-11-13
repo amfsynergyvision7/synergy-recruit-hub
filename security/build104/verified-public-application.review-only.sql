@@ -111,7 +111,7 @@ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM public.candidates c
              WHERE pg_catalog.lower(pg_catalog.btrim(c.email))=v_email
-              OR pg_catalog.right(pg_catalog.regexp_replace(pg_catalog.coalesce(c.mobile,''),'[^0-9]','','g'),10)=v_phone) THEN
+              OR pg_catalog.right(pg_catalog.regexp_replace(COALESCE(c.mobile,''),'[^0-9]','','g'),10)=v_phone) THEN
     RAISE EXCEPTION 'Application unavailable' USING ERRCODE='22023';
   END IF;
 
