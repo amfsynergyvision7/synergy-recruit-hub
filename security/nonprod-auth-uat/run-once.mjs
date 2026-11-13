@@ -181,12 +181,30 @@ export async function verifyInertHostedContents(client){
     r.details?.fixture_only===true&&r.details?.no_real_action===true&&
     Object.keys(r.details).length===2))
    reject('audit_logs');
- // These are the fixture's security-sensitive activation and egress fields.
- // Exact values are stricter than "not currently active", so a modified lab
- // can never accidentally become an approved source of signed UAT evidence.
+ // Build113: prevent title/owner swaps or a notification targeting an
+ // unexpected user from passing a count-only or status-only review.
+ const jobOpenings=await read('job_openings',
+   'job_title,assigned_recruiter,created_by,status,is_confidential,open_positions',2);
+ for(let i=1;i<=2;i++)
+   if(jobOpenings.filter(j=>j.job_title==='Fictional UAT Job '+i&&
+     j.assigned_recruiter===ids[i]&&j.created_by===ids[0]&&
+     j.status==='draft'&&j.is_confidential===true&&j.open_positions===0).length!==1)
+     reject('job_openings');
+ const notices=await read('notifications','user_id,title,message,type,is_read',2);
+ for(let i=1;i<=2;i++)
+   if(notices.filter(n=>n.user_id===ids[i]&&
+     n.title==='SYNTHETIC UAT — no notification sent'&&
+     n.message==='Inert database fixture; no delivery'&&
+     n.type==='synthetic_no_delivery'&&n.is_read===true).length!==1)
+     reject('notifications');
+
+ // Verify stored no-send/no-automation values and invented owners/content;
+ // no messages are sent and only projected synthetic fields are inspected.
  const checks=[
-  ['clients','email,status',1,r=>r.email==='invented-client@example.invalid'&&r.status==='synthetic_inactive'],
-  ['job_openings','status,is_confidential,open_positions',2,r=>r.status==='draft'&&r.is_confidential===true&&r.open_positions===0],
+  ['clients','company_name,email,status,created_by',1,r=>
+    r.company_name==='Fictional UAT Company — NOT A CUSTOMER'&&
+    r.email==='invented-client@example.invalid'&&
+    r.status==='synthetic_inactive'&&r.created_by===ids[0]],
   ['google_integrations','auto_sync_enabled,connection_status,sheet_url,spreadsheet_id,google_account_email',1,r=>
     r.auto_sync_enabled===false&&r.connection_status==='not_configured'&&r.sheet_url==null&&r.spreadsheet_id==null&&r.google_account_email==null],
   ['integrations','auto_sync,last_status,sheet_url,spreadsheet_id',1,r=>
@@ -198,15 +216,22 @@ export async function verifyInertHostedContents(client){
   ['billing','invoice_number,invoice_date,invoice_amount,placement_fee,gst,salary,outstanding_amount,payment_status',1,r=>
     r.invoice_number==null&&r.invoice_date==null&&r.payment_status==='synthetic_draft_never_issue'&&
     [r.invoice_amount,r.placement_fee,r.gst,r.salary,r.outstanding_amount].every(x=>x===0)],
-  ['notifications','type,is_read',2,r=>r.type==='synthetic_no_delivery'&&r.is_read===true],
   ['sync_logs','status,rows_scanned,rows_created,rows_updated,rows_skipped',1,r=>
     r.status==='never_run'&&[r.rows_scanned,r.rows_created,r.rows_updated,r.rows_skipped].every(x=>x===0)],
   ['app_settings','id,default_color_theme,resume_import_folder_url,logo_url',1,r=>
     r.id===1&&r.default_color_theme==='default'&&r.resume_import_folder_url==null&&r.logo_url==null],
-  ['email_log','to_email,status,provider_id',1,r=>
-    r.to_email==='never-deliver@example.invalid'&&r.status==='synthetic_never_sent'&&r.provider_id==null],
-  ['workflow_rules','is_active,field_value',1,r=>
-    r.is_active===false&&r.field_value==='never_matches_any_candidate']
+  ['email_log','related_table,related_id,to_email,subject,body,status,provider_id,sent_by',1,r=>
+    r.related_table==='candidates'&&r.related_id===ids[1]&&
+    r.to_email==='never-deliver@example.invalid'&&
+    r.subject==='SYNTHETIC UAT — not sent'&&
+    r.body==='No external send was requested.'&&
+    r.status==='synthetic_never_sent'&&r.provider_id==null&&r.sent_by==null],
+  ['workflow_rules','name,table_name,field_name,field_value,action_type,notify_target,notify_title,notify_message,is_active,created_by',1,r=>
+    r.name==='SYNTHETIC INACTIVE NOOP'&&r.table_name==='candidates'&&
+    r.field_name==='status'&&r.field_value==='never_matches_any_candidate'&&
+    r.action_type==='notify'&&r.notify_target==='role:admin'&&
+    r.notify_title==='Inert'&&r.notify_message==='NOT TO BE SENT'&&
+    r.is_active===false&&r.created_by===ids[0]]
  ];
  for(const [table,projection,count,check] of checks){
    const rows=await read(table,projection,count);

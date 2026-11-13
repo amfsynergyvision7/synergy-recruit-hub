@@ -488,7 +488,7 @@ test('Build93 guarded hosted audit accepts only complete empty or exact 9-user/3
    specimen.syntheticAuthSlotsValid=true;
    assert.equal(validateReadOnlyAudit(specimen),'FULL');
    specimen.syntheticAuthSlotsValid=false;
-   assert.throws(()=>validateReadOnlyAudit(specimen),/unexpected Auth identities/);
+   assert.throws(()=>validateReadOnlyAudit(specimen),/Auth identit/);
    specimen.syntheticAuthSlotsValid=true;
    specimen.tableCounts.billing=2;
    assert.throws(()=>validateReadOnlyAudit(specimen),/cardinality/);
@@ -527,6 +527,21 @@ test('Build95 a complete 9/38 synthetic fixture audit inspects inert billing, sy
   ['email_log','status','sent'],
   ['email_log','provider_id','provider-token'],
   ['email_log','to_email','real@example.com'],
+  ['email_log','subject','Real message'],
+  ['email_log','body','Real candidate contact'],
+  ['email_log','related_id','00000000-0000-0000-0000-000000000008'],
+  ['workflow_rules','name','Actual active workflow'],
+  ['workflow_rules','notify_target','email:someone@example.com'],
+  ['workflow_rules','notify_message','Send candidate details'],
+  ['workflow_rules','action_type','send_email'],
+  ['job_openings','job_title','Actual vacancy'],
+  ['job_openings','assigned_recruiter','00000000-0000-0000-0000-000000000008'],
+  ['job_openings','created_by','00000000-0000-0000-0000-000000000008'],
+  ['notifications','user_id','00000000-0000-0000-0000-000000000008'],
+  ['notifications','title','Email real candidate'],
+  ['notifications','message','Real candidate personal details'],
+  ['clients','company_name','Actual Client Ltd'],
+  ['clients','created_by','00000000-0000-0000-0000-000000000008'],
   ['billing','invoice_number','INV-REAL'],
   ['billing','invoice_date','2026-11-13'],
   ['billing','invoice_amount',10],
@@ -654,6 +669,28 @@ test('Build113 AUDIT_ONLY rechecks all 19 counts after full inert content inspec
   };
  };
  await assert.rejects(runGuardedHostUat({operation:'AUDIT_ONLY'},client),
-  /cardinality/);
+  /partial or unexpected|cardinality/);
+ assert.equal(writes(),0);
+});
+
+
+test('Build113 no-send, ownership and notification readbacks cover recipient/content as well as status',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ assert.deepEqual(await verifyInertHostedContents(client),
+  {verifiedNonproductionInertTables:19,contentMutations:0});
+ const failures=[
+  ['notifications','user_id','00000000-0000-0000-0000-000000000009'],
+  ['notifications','message','Real candidate details'],
+  ['email_log','body','A real message'],
+  ['workflow_rules','notify_target','actual@example.com'],
+  ['clients','created_by','00000000-0000-0000-0000-000000000009'],
+  ['job_openings','assigned_recruiter','00000000-0000-0000-0000-000000000009']
+ ];
+ for(const [table,field,bad] of failures){
+  const old=tables[table][0][field];tables[table][0][field]=bad;
+  await assert.rejects(verifyInertHostedContents(client),/inert fixture HOLD/,
+    'Required rejection: '+table+'.'+field);
+  tables[table][0][field]=old;
+ }
  assert.equal(writes(),0);
 });

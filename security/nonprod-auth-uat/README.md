@@ -130,3 +130,8 @@ Earlier count-verified 9-user/38-row `AUDIT_ONLY` readback checked the content o
 ## Build 113 — two-sided hosted audit readback (14 Nov 2026)
 
 A complete synthetic AUDIT_ONLY scan now compares the Auth identity inventory before and after the 19 public-table count queries. It also rechecks the 9-user/38-row snapshot after inspecting the complete fixture contents. Staged CREATE validation rejects an incorrect nine-user Auth-slot set, and a final count/identity readback follows CREATE content inspection. Negative regression tests cover changes to Auth identity and hosted row counts. These checks are non-destructive but **not** equivalent to a PostgreSQL repeatable-read transaction: changes restored between samples can be missed. Independent release approval and environment gating remain unchanged.
+
+
+### Build 113 — tighter inert egress and ownership review
+
+In addition to repeated Auth and count readbacks, complete fixture audits now require the two invented job titles and recruiter owners, exact two recipient identities and message contents of never-delivered notifications, exact fictitious client name/creator, exact never-sent email recipient/body/related candidate, and the complete disabled workflow rule's routing fields and creator. The negative cases cover misleading statuses that could previously coexist with swapped owners or non-synthetic payloads. No outbound communications are generated or authorized.
