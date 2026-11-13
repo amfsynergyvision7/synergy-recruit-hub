@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {executionPlan,validateSnapshot,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
-import { verifyIndependentReleaseGate } from './independent-release-approval.mjs';
+import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS } from './independent-release-approval.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
 const env=()=>{
@@ -295,4 +295,48 @@ test('Build89 hardened checker is a technical preseed only; it never creates a r
  assert(runner.includes("validateSnapshot(before,'EMPTY')"));
  assert(runner.includes("preflightAttested"));
  assert(!sql.includes('auth.admin.createUser'));
+});
+
+test('Build90 checks exact reviewed source tree including package lock and workflow',()=>{
+ assert(PINNED_RELEASE_PATHS.includes('package-lock.json'));
+ assert(PINNED_RELEASE_PATHS.includes('security/nonprod-auth-uat/run-once.mjs'));
+ assert(PINNED_RELEASE_PATHS.includes('.github/workflows/nonprod-synthetic-auth-uat.yml'));
+ assert.equal(new Set(PINNED_RELEASE_PATHS).size,PINNED_RELEASE_PATHS.length);
+ const mkTree=()=>({truncated:false,tree:PINNED_RELEASE_PATHS.map(path=>({
+  path,type:'blob',sha:'a'.repeat(40)
+ }))});
+ const approved=mkTree(),running=mkTree();
+ assert.deepEqual(verifyPinnedReviewedSource(approved,running),
+  {reviewedSourceFiles:PINNED_RELEASE_PATHS.length});
+ for(const path of PINNED_RELEASE_PATHS){
+   const changed=mkTree();
+   changed.tree.find(f=>f.path===path).sha='b'.repeat(40);
+   assert.throws(()=>verifyPinnedReviewedSource(approved,changed),/Unreviewed change/);
+ }
+});
+test('Build90 rejects incomplete, truncated and malformed Git tree inventories',()=>{
+ const mkTree=()=>({truncated:false,tree:PINNED_RELEASE_PATHS.map(path=>({
+  path,type:'blob',sha:'a'.repeat(40)
+ }))});
+ const approved=mkTree();
+ const variants=[
+  {...mkTree(),truncated:true},
+  {...mkTree(),tree:null},
+  {...mkTree(),tree:mkTree().tree.slice(1)},
+  {...mkTree(),tree:[...mkTree().tree,{...mkTree().tree[0]}]},
+  {...mkTree(),tree:mkTree().tree.map((x,i)=>i===0?{...x,type:'tree'}:x)},
+  {...mkTree(),tree:mkTree().tree.map((x,i)=>i===0?{...x,sha:'bad'}:x)}
+ ];
+ for(const variant of variants)
+  assert.throws(()=>verifyPinnedReviewedSource(approved,variant),
+   /Complete approved|Unreviewed change|Malformed reviewed/);
+});
+test('Build90 Git-tree proof follows independent review and precedes privileged secrets',()=>{
+ const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
+ assert(gate.includes('verifyIndependentReleaseGate({pr,reviews,main,context})'));
+ assert(gate.includes("getGitHubJson('/git/commits/'+sha,token)"));
+ assert(gate.includes("getGitHubJson('/git/trees/'+commit.tree.sha+'?recursive=1',token)"));
+ assert(gate.includes('verifyPinnedReviewedSource(approvedTree,currentTree)'));
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ assert(workflow.indexOf('independent-release-approval.mjs') < workflow.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
 });
