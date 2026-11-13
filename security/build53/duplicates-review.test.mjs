@@ -35,3 +35,10 @@ test("duplicate UI retains unconditional delete hold and offers review CSV only"
  assert.doesNotMatch(ui,/\.from\("candidates"\)\.delete\(/);
  assert.match(ui,/toast\.error\(CANDIDATE_MUTATION_HOLD_REASON\)/);
 });
+
+test("Build109 failed rescans cannot expose the previous review manifest",()=>{
+ assert.match(ui,/const summary = query\.isError \? undefined : query\.data;/);
+ assert.match(ui,/if \(!summary \|\| query\.isError \|\| query\.isFetching\)/);
+ assert.match(ui,/disabled=\{!summary \|\| query\.isError \|\| query\.isFetching \|\| totalSelected === 0\}/);
+ assert.match(ui,/A completed duplicate review scan is required before export/);
+});
