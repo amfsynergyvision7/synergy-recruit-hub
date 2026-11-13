@@ -3,6 +3,9 @@
  * privileged hosted nonproduction Auth user/fixture write.
  * No Supabase secret is available to this step. Only read-only GitHub API GET.
  */
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+
 export const EXPECTED_REPO='amfsynergyvision7/synergy-recruit-hub';
 export const EXPECTED_PR=15;
 export const EXPECTED_BRANCH='release/nonprod-auth-uat-gate-20261113';
@@ -82,7 +85,7 @@ export async function assertGitHubReleaseGate(env=process.env){
  ]);
  return verifyIndependentReleaseGate({pr,reviews,main,context});
 }
-if(process.argv[1]&&new URL(import.meta.url).pathname===process.argv[1]){
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  assertGitHubReleaseGate().then(()=>{
    process.stdout.write('INDEPENDENT_GITHUB_REVIEW_AND_MAIN_PROTECTION_PASS: No secrets inspected; nonprod credential step still separate.\n');
  }).catch(()=>{
