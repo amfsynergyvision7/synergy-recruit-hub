@@ -12,5 +12,5 @@ export const scanForDuplicateCandidates = createServerFn({ method: "POST" })
     // Duplicate review returns contact details for up to 5,000 candidates.
     // Only an approved, active, uniquely assigned admin can scan this scope.
     await assertApprovedRole(context.userId, ["admin"]);
-    return findDuplicateClusters(context.supabase);
+    return findDuplicateClusters(context.supabase, context.userId);
   });
