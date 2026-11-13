@@ -5,6 +5,7 @@
  * candidate data, invitations, emails or direct auth.users SQL allowed.
  */
 import {createClient} from '@supabase/supabase-js';
+import {createHmac} from 'node:crypto';
 import {planFromEnv,provisionNine,PROJECT_ID,PROJECT_URL,ACK} from './provision-nine-auth-users.mjs';
 import {seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
 import {seedExtendedFixture,EXPECTED_EXTENDED_COUNTS} from './compose-and-seed-remaining-fixture.mjs';
@@ -25,8 +26,22 @@ export function executionPlan(env){
    throw new Error('Unknown guarded hosted operation');
  if(env.AMF_UAT_CONFIRMATION!==MANUAL_CONFIRMATION)
    throw new Error('Exact nonproduction manual confirmation required');
- // Reuse the independently tested strict project/email/password/secret guard.
- return {credentials:planFromEnv(env),operation:env.AMF_UAT_OPERATION};
+ // One 64+ character random master secret deterministically derives nine
+ // distinct, strong test passwords, avoiding nine manually configured secrets
+ // and allowing future signed UAT to reproduce them without saved plaintext.
+ const master=env.AMF_UAT_PASSWORD_MASTER_SECRET;
+ if(typeof master!=='string'||!/^amf_uat_master_[A-Za-z0-9_-]{64,}$/.test(master))
+   throw new Error('A separate secret-managed high-entropy synthetic password master is required');
+ const derived={...env};
+ for(let i=1;i<=9;i++){
+   const index=String(i).padStart(2,'0');
+   const digest=createHmac('sha256',master)
+     .update('AMF-NONPROD-GOTRUE-ONLY:'+PROJECT_ID+':slot:'+index)
+     .digest('base64url');
+   derived['AMF_UAT_CASE_'+index+'_PASSWORD']='Uat9-Aa-'+digest;
+ }
+ // Reuse independently tested strict project/secret/derived-password guard.
+ return {credentials:planFromEnv(derived),operation:env.AMF_UAT_OPERATION};
 }
 async function countRows(client,table){
  const r=await client.from(table).select('id',{count:'exact',head:true});
