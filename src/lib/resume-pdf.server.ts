@@ -16,6 +16,7 @@
 import PDFDocument from "pdfkit";
 import type { ClientResumeStructured } from "./ai.server";
 import { downloadRemoteBounded, isTrustedSupabaseLogoUrl } from "./safe-remote-download.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 
 const PAGE_MARGIN = 50;
 const ACCENT = "#7a3fe0"; // CRM's default (Neon) theme primary — a reasonable
@@ -39,6 +40,8 @@ export interface ClientResumePdfInput {
 // the PDF letterhead. Never throws — a broken/unreachable logo URL degrades
 // to a text-only letterhead rather than failing the whole PDF generation.
 export async function fetchLogoBuffer(logoUrl: string | null): Promise<Buffer | null> {
+  // Also enforce release at this low-level public-object fetch boundary.
+  assertExternalEffectReleased("candidate_ai_processing");
   // A configurable letterhead URL must never become a general-purpose
   // server-side HTTP proxy (SSRF). Only this deployment's own public
   // Supabase Storage objects may supply an optional logo.
