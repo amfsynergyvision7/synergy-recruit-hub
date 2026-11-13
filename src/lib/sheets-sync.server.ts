@@ -14,9 +14,10 @@ const LEGACY_FIELD_NAMES: Record<string, string> = {
   experience: "experience_years",
 };
 
-function normalizeFieldName(field: string | undefined): string | undefined {
-  if (!field) return undefined;
-  return LEGACY_FIELD_NAMES[field] ?? field;
+function normalizeFieldName(field: unknown): string | undefined {
+  if (typeof field !== "string" || !field) return undefined;
+  return Object.prototype.hasOwnProperty.call(LEGACY_FIELD_NAMES, field)
+    ? LEGACY_FIELD_NAMES[field] : field;
 }
 
 const FIELD_ALIASES: Record<string, string> = {
@@ -39,6 +40,9 @@ export function autoMap(headers: string[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const h of headers) {
     const key = (h || "").toLowerCase().trim();
+    // Untrusted Sheet headers must not resolve Object.prototype entries
+    // such as constructor, __proto__ or toString as inherited field aliases.
+    if (!Object.prototype.hasOwnProperty.call(FIELD_ALIASES, key)) continue;
     const f = FIELD_ALIASES[key];
     if (f) map[h] = f;
   }
@@ -275,7 +279,9 @@ function rowToCandidate(headers: string[], row: string[], mapping: Record<string
   const obj: Record<string, any> = {};
   headers.forEach((h, i) => {
     const field = normalizeFieldName(mapping[h]);
-    if (!field) return;
+    // Defense in depth: neither mapped headers nor saved integration settings
+    // can instruct a service-role import to set ids, roles, stages or owners.
+    if (!field || !CANDIDATE_FIELDS.includes(field as typeof CANDIDATE_FIELDS[number])) return;
     const val = row[i];
     if (val === undefined || val === "") return;
     if (field === "experience_years" || field === "current_salary" || field === "expected_salary") {
