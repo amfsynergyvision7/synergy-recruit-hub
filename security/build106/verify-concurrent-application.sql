@@ -28,6 +28,16 @@ BEGIN
        WHERE stage='submitted_to_client' AND candidate_code LIKE 'CAND-%')<>3 THEN
   RAISE EXCEPTION 'Build106 FAIL: source-derived candidate triggers not exercised';
  END IF;
+ IF (SELECT count(*) FROM public.notifications
+       WHERE related_table='candidates'
+         AND user_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'::uuid
+         AND message='Applicant stage transitioned: submitted_to_client')<>3 THEN
+  RAISE EXCEPTION 'Build107 FAIL: concurrent claims sent missing/duplicate recruiter notifications';
+ END IF;
+ IF EXISTS(SELECT 1 FROM public.notifications n
+   WHERE NOT EXISTS(SELECT 1 FROM public.candidates c WHERE c.id=n.related_id)) THEN
+  RAISE EXCEPTION 'Build107 FAIL: losing concurrent claims left orphan recruiter notifications';
+ END IF;
  IF EXISTS(
    SELECT 1 FROM public.submissions s LEFT JOIN public.candidates c ON c.id=s.candidate_uuid
     WHERE c.id IS NULL OR s.candidate_id<>c.id OR s.job_uuid<>s.job_id
@@ -49,4 +59,4 @@ BEGIN
    RAISE EXCEPTION 'Build106 FAIL: distinct proofs sharing phone';
  END IF;
 END $verify$;
-SELECT 'PASS: same-proof replay and different-proof duplicate contact claims are atomic; 3 candidate/submission/history/proof records' AS build106;
+SELECT 'PASS: same-proof replay and different-proof duplicate contact claims are atomic; 3 candidate/submission/history/proof/notification records' AS build106;
