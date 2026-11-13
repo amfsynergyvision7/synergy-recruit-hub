@@ -99,3 +99,10 @@ Repository visibility was rechecked on 13 November 2026: **public**. The earlier
 Before the secret-bearing CREATE step, the runner now performs read-only Git-tree comparisons between the independently approved exact PR #15 head and the executing `main` commit for **14 fixed release source, test, lockfile and evidence paths**. Missing, changed or truncated source inventories fail closed. A later change to these files does not inherit the old approval. The workflow also serializes privileged jobs using one non-cancelling concurrency group and pins checkout/setup-node actions to fixed reviewed commits.
 
 These are proposed security controls in PR #15. They do not mean 9 GoTrue users, 38 fixture records, 140 signed UAT cases, 48 accepted production remediations or 9 signed release approvals have been completed. Independent review, protected main, the protected environment and isolated lab-only secrets remain preconditions for any manual provisioning.
+
+
+### Build 91 — close AUDIT_ONLY source-review bypass (proposed; nonproduction workflow only)
+
+The original manual runner checked protected `main`, independent approval of PR #15, and exact reviewed-source integrity only for `CREATE_NINE_AND_SEED_38`. Although `AUDIT_ONLY` does not write rows, it still executes code with the isolated tenant's Admin credential and can enumerate Auth identities. Build 91 makes the independent approval and exact-source gate **unconditional for both manual operations**, always before the secret-bearing step. No unreviewed code can use either operation to access the lab key. For a zero-credential read-only status check before merge, use the existing connected Supabase management SQL preflights instead.
+
+This change is a proposed PR #15 workflow hardening, not configured GitHub protection, independent review, completed hosted provisioning or an accepted UAT case. Human sign-off and lab-only environment secrets remain separate prerequisites.
