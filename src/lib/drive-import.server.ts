@@ -69,12 +69,14 @@ const MAX_FILES_PER_RUN = 20;
 // afterwards, the files that already succeeded won't be reprocessed.
 const CONCURRENCY = 5;
 
-function extractDriveFolderId(url: string): string | null {
-  // Covers the common folder link shapes:
-  //   https://drive.google.com/drive/folders/FOLDER_ID?usp=sharing
-  //   https://drive.google.com/drive/u/0/folders/FOLDER_ID
-  const match = url.match(/\/folders\/([a-zA-Z0-9_-]{10,})/);
-  return match?.[1] ?? null;
+function extractDriveFolderId(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || url.hostname !== "drive.google.com" ||
+        url.port || url.username || url.password) return null;
+    const match = /\/folders\/([a-zA-Z0-9_-]{10,})(?:\/|$)/.exec(url.pathname);
+    return match?.[1] ?? null;
+  } catch { return null; }
 }
 
 interface DriveFile {
@@ -87,8 +89,17 @@ interface DriveFile {
 async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveFile[]> {
   const files: DriveFile[] = [];
   let pageToken: string | undefined;
+  const seenTokens = new Set<string>();
+  let pageCount = 0;
 
   do {
+    if (++pageCount > 10) {
+      throw new Error("Drive folder listing exceeded the maximum page count");
+    }
+    if (pageToken) {
+      if (seenTokens.has(pageToken)) throw new Error("Drive folder pagination repeated a token");
+      seenTokens.add(pageToken);
+    }
     const params = new URLSearchParams({
       q: `'${folderId}' in parents and trashed = false`,
       key: apiKey,
