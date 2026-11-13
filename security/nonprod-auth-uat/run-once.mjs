@@ -13,6 +13,7 @@ import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
 export const MANUAL_CONFIRMATION='EXECUTE_9_GO_TRUE_AND_38_INERT_ROWS_ONLY_IN_dhlhlasnaapzckjyvffn';
+export const PREFLIGHT_CONFIRMATION='I_REVIEWED_FRESH_NONPROD_SQL_19_EMPTY_ZERO_AUTH_TRIGGERS_GRANTS_POLICIES';
 export const OPERATIONS=Object.freeze(['AUDIT_ONLY','CREATE_NINE_AND_SEED_38']);
 export const BASE_COUNTS=Object.freeze({profiles:8,user_roles:8,candidates:2});
 const TABLES=Object.freeze([...Object.keys(BASE_COUNTS),...Object.keys(EXPECTED_EXTENDED_COUNTS)]);
@@ -26,6 +27,9 @@ export function executionPlan(env){
    throw new Error('Unknown guarded hosted operation');
  if(env.AMF_UAT_CONFIRMATION!==MANUAL_CONFIRMATION)
    throw new Error('Exact nonproduction manual confirmation required');
+ if(env.AMF_UAT_OPERATION===OPERATIONS[1]&&
+    env.AMF_UAT_PREFLIGHT_ATTESTATION!==PREFLIGHT_CONFIRMATION)
+   throw new Error('Fresh read-only hosted preflight attestation required before synthetic provisioning');
  // One 64+ character random master secret deterministically derives nine
  // distinct, strong test passwords, avoiding nine manually configured secrets
  // and allowing future signed UAT to reproduce them without saved plaintext.
@@ -78,7 +82,12 @@ export function validateSnapshot(snapshot,stage){
  return true;
 }
 export async function runGuardedHostUat(plan,client){
+ if(!plan||!OPERATIONS.includes(plan.operation))
+   throw new Error('Unknown isolated hosted operation');
  const {operation}=plan;
+ if(operation===OPERATIONS[1] &&
+   (plan.credentials?.url!==PROJECT_URL||plan.credentials?.users?.length!==9))
+   throw new Error('Invalid exact nonproduction synthetic plan');
  const before=await readHostedSnapshot(client);
  if(operation==='AUDIT_ONLY'){
    return {operation,authUsers:before.authUsers,records:before.totalRows,mutated:false};
