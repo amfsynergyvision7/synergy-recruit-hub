@@ -145,3 +145,32 @@ export function buildSafeSheetValuesPath(spreadsheetId: string, sheetName: strin
   return "/spreadsheets/" + spreadsheetId +
     "/values/" + encodeURIComponent(safeTab + "!A1:Z100000");
 }
+
+/**
+ * Imported Sheet headers and saved mapping JSON are untrusted. Do not use
+ * inherited object keys (constructor, __proto__, toString) as aliases or
+ * allow arbitrary database columns in a service-role candidate import.
+ */
+export function approvedCandidateMappingTarget(
+  raw: unknown,
+  legacyAliases: Readonly<Record<string,string>>,
+  permitted: readonly string[],
+): string | undefined {
+  if(typeof raw!=="string"||raw.length===0)return undefined;
+  const canonical=Object.prototype.hasOwnProperty.call(legacyAliases,raw)
+    ? legacyAliases[raw] : raw;
+  return typeof canonical==="string"&&permitted.includes(canonical)
+    ? canonical : undefined;
+}
+
+export function approvedCandidateHeaderAlias(
+  raw: unknown,
+  aliases: Readonly<Record<string,string>>,
+  permitted: readonly string[],
+): string | undefined {
+  if(typeof raw!=="string"||raw.length>256)return undefined;
+  const key=raw.toLowerCase().trim();
+  if(!Object.prototype.hasOwnProperty.call(aliases,key))return undefined;
+  const field=aliases[key];
+  return typeof field==="string"&&permitted.includes(field)?field:undefined;
+}
