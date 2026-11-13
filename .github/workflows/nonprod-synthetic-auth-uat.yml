@@ -90,5 +90,5 @@ jobs:
           AMF_UAT_SUPABASE_URL: https://dhlhlasnaapzckjyvffn.supabase.co
           AMF_UAT_MAPPING_FILE: /tmp/amf-synthetic-uat-in-memory-mapping.json
           AMF_UAT_SERVICE_ROLE_KEY: ${{ secrets.AMF_NONPROD_SERVICE_ROLE_KEY }}
-          AMF_UAT_PASSWORD_MASTER_SECRET: ${{ secrets.AMF_UAT_PASSWORD_MASTER_SECRET }}
+          AMF_UAT_PASSWORD_MASTER_SECRET: ${{ inputs.operation == 'CREATE_NINE_AND_SEED_38' && secrets.AMF_UAT_PASSWORD_MASTER_SECRET || '' }}
         run: node security/nonprod-auth-uat/run-once.mjs
