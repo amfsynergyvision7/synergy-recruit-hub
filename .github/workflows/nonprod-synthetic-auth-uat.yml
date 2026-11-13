@@ -46,6 +46,8 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node --test security/nonprod-auth-uat/release-gate.test.mjs
+      - name: Verify independent Vite build (Vercel quota not required)
+        run: npm run build
   manual_provisioning:
     concurrency:
       group: amf-nonprod-auth-uat-${{ github.repository }}
