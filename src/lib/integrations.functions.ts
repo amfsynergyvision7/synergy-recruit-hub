@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createSupabaseSyncLeaseOperations, withCandidateSyncLease } from "./sync-lease.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 import {
   runCandidateSync,
   fetchSheetValues,
@@ -19,7 +20,7 @@ export const getIntegration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdminUser(context.userId);
-    const integration = await getSavedGoogleIntegration({ userId: context.userId });
+    const integration = await getSavedGoogleIntegration({ backfillLegacy: false, userId: context.userId });
     return { integration, diagnostics: diagnosticsForIntegration(integration, null, { loggedUserId: context.userId }) };
   });
 
@@ -35,6 +36,7 @@ export const saveIntegration = createServerFn({ method: "POST" })
       column_mapping: z.record(z.string(), z.string()).optional(),
     }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("integration_configuration");
     await assertAdminUser(context.userId);
     const integration = await saveGoogleIntegrationSettings({ ...data, user_id: context.userId });
     return { integration, diagnostics: diagnosticsForIntegration(integration, null, { loggedUserId: context.userId, saveSuccess: true, saveError: null }) };
@@ -44,8 +46,9 @@ export const detectHeaders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({}).optional().parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("integration_configuration");
     await assertAdminUser(context.userId);
-    const integration = await getSavedGoogleIntegration({ userId: context.userId });
+    const integration = await getSavedGoogleIntegration({ backfillLegacy: false, userId: context.userId });
     if (!integration?.spreadsheet_id) throw new Error("Google Sheet not configured");
     const sheetName = integration.sheet_name || "Form Responses 1";
     const headerRow = integration.header_row || 1;
@@ -62,6 +65,7 @@ export const triggerSync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ fullHistory: z.boolean().optional() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_sync");
     await assertAdminUser(context.userId);
     if (process.env.CANDIDATE_SYNC_MANUAL_ENABLED !== "true") {
       throw new Error("Manual candidate sync is disabled until release approval");
