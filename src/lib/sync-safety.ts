@@ -108,3 +108,40 @@ export function redactHistoricalIntegrationError<T extends {last_error?:string|n
   typeof record.last_error==='string'&&record.last_error.length>0
     ? SAFE_CANDIDATE_SYNC_ERROR : null};
 }
+
+/**
+ * Sheets connection input is never a generic URL/proxy: it must be an
+ * owner-provided docs.google.com spreadsheet link, not an embedded path on
+ * another origin. Fragments such as #gid=0 are local navigation only.
+ */
+export function extractApprovedSpreadsheetId(raw: string): string | null {
+  if (typeof raw !== "string" || raw.length > 2048) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || url.hostname !== "docs.google.com" ||
+        url.port || url.username || url.password ||
+        url.searchParams.has("key") || url.searchParams.has("access_token")) return null;
+    const match = /^\/spreadsheets\/d\/([A-Za-z0-9_-]{10,160})(?:\/(?:edit|view|copy|preview|htmlview))?\/?$/.exec(url.pathname);
+    return match?.[1] ?? null;
+  } catch { return null; }
+}
+
+/**
+ * Build an exact Sheets v4 values.get path with a single encoded A1 range.
+ * Even a historical database value must not inject query strings, fragments,
+ * URL traversal, extra API paths, or unbounded tab names.
+ */
+export function buildSafeSheetValuesPath(spreadsheetId: string, sheetName: string): string {
+  if (typeof spreadsheetId !== "string" ||
+      !/^[A-Za-z0-9_-]{10,160}$/.test(spreadsheetId)) {
+    throw new Error("Sheet identifier is not approved");
+  }
+  if (typeof sheetName !== "string" || sheetName.length === 0 ||
+      sheetName.length > 120 || /[\u0000-\u001f\u007f]/.test(sheetName)) {
+    throw new Error("Sheet tab name is not approved");
+  }
+  const safeTab = /^[A-Za-z0-9_]+$/.test(sheetName)
+    ? sheetName : "'" + sheetName.replace(/'/g, "''") + "'";
+  return "/spreadsheets/" + spreadsheetId +
+    "/values/" + encodeURIComponent(safeTab + "!A1:Z100000");
+}
