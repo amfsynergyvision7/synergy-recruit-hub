@@ -135,3 +135,8 @@ A complete synthetic AUDIT_ONLY scan now compares the Auth identity inventory be
 ### Build 113 — tighter inert egress and ownership review
 
 In addition to repeated Auth and count readbacks, complete fixture audits now require the two invented job titles and recruiter owners, exact two recipient identities and message contents of never-delivered notifications, exact fictitious client name/creator, exact never-sent email recipient/body/related candidate, and the complete disabled workflow rule's routing fields and creator. The negative cases cover misleading statuses that could previously coexist with swapped owners or non-synthetic payloads. No outbound communications are generated or authorized.
+
+
+## Build 114 — concealed PII and external-effect payload rejection (14 Nov 2026)
+
+The 19-table content audit now rejects an otherwise fictitious candidate carrying any unexpected phone number, resume URL, name, company, location, salary, private notes, AI summary, ATS results, source or owner. It also checks unused profile contact and role-request fields, fictional client contact and billing configuration, notification related links, email error payload and workflow update-action fields. These are direct exact-source-shaped minimal-column readbacks with sanitized errors; **neither real candidate details nor projected row values are logged**. This does not establish complete database snapshot consistency or replace independent signed UAT. All candidate and external-effect mutations remain held.

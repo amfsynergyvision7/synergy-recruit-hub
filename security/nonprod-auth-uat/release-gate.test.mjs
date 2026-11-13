@@ -694,3 +694,57 @@ test('Build113 no-send, ownership and notification readbacks cover recipient/con
  }
  assert.equal(writes(),0);
 });
+
+
+test('Build114 inert fixture rejects concealed candidate PII and generated resumes while IDs/counts stay valid',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ assert.deepEqual(await verifyInertHostedContents(client),
+  {verifiedNonproductionInertTables:19,contentMutations:0});
+ const hidden=[
+  ['full_name','Actual Applicant Name'],
+  ['mobile','+911234567890'],
+  ['resume_url','https://external.example/real-resume.pdf'],
+  ['notes','Sensitive candidate work history'],
+  ['resume_summary','Real candidate summary'],
+  ['ats_score',95],
+  ['ats_issues',{issues:['sensitive']}],
+  ['ats_checked_at','2026-11-14T00:00:00Z'],
+  ['current_company','Real Employer'],
+  ['position_applied','CEO'],
+  ['location','Kolkata'],
+  ['current_salary',100000],
+  ['created_by','00000000-0000-0000-0000-000000000009']
+ ];
+ for(const [field,bad] of hidden){
+  const old=tables.candidates[0][field];
+  tables.candidates[0][field]=bad;
+  await assert.rejects(verifyInertHostedContents(client),/inert fixture HOLD/,
+    'Concealed candidate value must hold audit: '+field);
+  tables.candidates[0][field]=old;
+ }
+ assert.equal(writes(),0);
+});
+
+test('Build114 synthetic profile/CRM egress fields cannot hide real contact data',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ for(const [table,field,bad] of [
+  ['profiles','full_name','Real Employee'],
+  ['profiles','phone','+911234567890'],
+  ['profiles','role_request','admin'],
+  ['clients','contact_person','Real Person'],
+  ['clients','phone','+911234567890'],
+  ['clients','agreement_type','signed'],
+  ['notifications','related_table','candidates'],
+  ['notifications','related_id','00000000-0000-0000-0000-000000000001'],
+  ['email_log','error','real provider trace'],
+  ['workflow_rules','update_field_name','status'],
+  ['workflow_rules','update_field_value','approved']
+ ]){
+  const old=tables[table][0][field];
+  tables[table][0][field]=bad;
+  await assert.rejects(verifyInertHostedContents(client),/inert fixture HOLD/,
+    'Concealed non-inert field must hold audit: '+table+'.'+field);
+  tables[table][0][field]=old;
+ }
+ assert.equal(writes(),0,'Audit cannot mutate the database');
+});

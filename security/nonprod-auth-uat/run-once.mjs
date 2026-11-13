@@ -144,22 +144,38 @@ export async function verifyInertHostedContents(client){
    return result.data;
  };
  const reject=(table)=>{throw new Error('Hosted inert fixture HOLD: non-inert or mismatched '+table);};
- const profiles=await read('profiles','id,email,status,is_active',8);
+ // Build114: account profile contact fields must match the exact fictional
+ // fixture. These fields were not inspected by earlier count/role readbacks.
+ const profiles=await read('profiles',
+   'id,full_name,email,phone,department,role_request,status,is_active',8);
  const roles=await read('user_roles','user_id,role',8);
  for(let i=0;i<8;i++){
    const id=ids[i],email=slotEmail(i+1),[role,status,active]=expectedRoles[i];
-   if(profiles.filter(p=>p.id===id&&p.email===email&&
+   if(profiles.filter(p=>p.id===id&&
+     p.full_name==='Synthetic UAT Profile '+String(i+1).padStart(2,'0')&&
+     p.email===email&&
+     p.phone==null&&p.department==null&&p.role_request==null&&
      p.status===status&&p.is_active===active).length!==1||
-     roles.filter(r=>r.user_id===id&&r.role===role).length!==1)reject('profiles/user_roles');
+     roles.filter(r=>r.user_id===id&&r.role===role).length!==1)
+     reject('profiles/user_roles');
  }
  if(profiles.some(p=>p.id===ids[8])||roles.some(r=>r.user_id===ids[8]))
    reject('unprofiled negative Auth slot');
- const candidates=await read('candidates','id,assigned_recruiter,email,stage,status,created_source',2);
+ const candidates=await read('candidates',
+   'id,candidate_code,full_name,mobile,email,location,position_applied,current_company,experience_years,current_salary,expected_salary,notice_period,resume_url,source,assigned_recruiter,stage,notes,created_by,status,created_source,resume_summary,ats_score,ats_issues,ats_checked_at',2);
+ const mustStayEmpty=[
+   'candidate_code','mobile','location','position_applied','current_company',
+   'experience_years','current_salary','expected_salary','notice_period',
+   'resume_url','source','notes','created_by','resume_summary','ats_score',
+   'ats_issues','ats_checked_at'
+ ];
  for(let i=1;i<=2;i++)
    if(candidates.filter(c=>c.id===ids[i]&&c.assigned_recruiter===ids[i]&&
+     c.full_name==='Invented UAT Candidate '+i&&
      c.email==='amf-candidate-'+i+'@example.invalid'&&
      c.stage==='lead_received'&&c.status==='active'&&
-     c.created_source==='build78_synthetic_lab').length!==1)
+     c.created_source==='build78_synthetic_lab'&&
+     mustStayEmpty.every(field=>c[field]==null)).length!==1)
      reject('candidates');
 
  // Build112: previously unverified action, stage-history and audit rows must
@@ -190,20 +206,24 @@ export async function verifyInertHostedContents(client){
      j.assigned_recruiter===ids[i]&&j.created_by===ids[0]&&
      j.status==='draft'&&j.is_confidential===true&&j.open_positions===0).length!==1)
      reject('job_openings');
- const notices=await read('notifications','user_id,title,message,type,is_read',2);
+ const notices=await read('notifications',
+   'user_id,title,message,type,is_read,related_table,related_id',2);
  for(let i=1;i<=2;i++)
    if(notices.filter(n=>n.user_id===ids[i]&&
      n.title==='SYNTHETIC UAT — no notification sent'&&
      n.message==='Inert database fixture; no delivery'&&
-     n.type==='synthetic_no_delivery'&&n.is_read===true).length!==1)
+     n.type==='synthetic_no_delivery'&&n.is_read===true&&
+     n.related_table==null&&n.related_id==null).length!==1)
      reject('notifications');
 
  // Verify stored no-send/no-automation values and invented owners/content;
  // no messages are sent and only projected synthetic fields are inspected.
  const checks=[
-  ['clients','company_name,email,status,created_by',1,r=>
+  ['clients','company_name,contact_person,phone,email,agreement_type,billing_model,status,created_by',1,r=>
     r.company_name==='Fictional UAT Company — NOT A CUSTOMER'&&
+    r.contact_person==null&&r.phone==null&&
     r.email==='invented-client@example.invalid'&&
+    r.agreement_type==null&&r.billing_model==null&&
     r.status==='synthetic_inactive'&&r.created_by===ids[0]],
   ['google_integrations','auto_sync_enabled,connection_status,sheet_url,spreadsheet_id,google_account_email',1,r=>
     r.auto_sync_enabled===false&&r.connection_status==='not_configured'&&r.sheet_url==null&&r.spreadsheet_id==null&&r.google_account_email==null],
@@ -220,17 +240,19 @@ export async function verifyInertHostedContents(client){
     r.status==='never_run'&&[r.rows_scanned,r.rows_created,r.rows_updated,r.rows_skipped].every(x=>x===0)],
   ['app_settings','id,default_color_theme,resume_import_folder_url,logo_url',1,r=>
     r.id===1&&r.default_color_theme==='default'&&r.resume_import_folder_url==null&&r.logo_url==null],
-  ['email_log','related_table,related_id,to_email,subject,body,status,provider_id,sent_by',1,r=>
+  ['email_log','related_table,related_id,to_email,subject,body,status,error,provider_id,sent_by',1,r=>
     r.related_table==='candidates'&&r.related_id===ids[1]&&
     r.to_email==='never-deliver@example.invalid'&&
     r.subject==='SYNTHETIC UAT — not sent'&&
     r.body==='No external send was requested.'&&
-    r.status==='synthetic_never_sent'&&r.provider_id==null&&r.sent_by==null],
-  ['workflow_rules','name,table_name,field_name,field_value,action_type,notify_target,notify_title,notify_message,is_active,created_by',1,r=>
+    r.status==='synthetic_never_sent'&&r.error==null&&
+    r.provider_id==null&&r.sent_by==null],
+  ['workflow_rules','name,table_name,field_name,field_value,action_type,notify_target,notify_title,notify_message,update_field_name,update_field_value,is_active,created_by',1,r=>
     r.name==='SYNTHETIC INACTIVE NOOP'&&r.table_name==='candidates'&&
     r.field_name==='status'&&r.field_value==='never_matches_any_candidate'&&
     r.action_type==='notify'&&r.notify_target==='role:admin'&&
     r.notify_title==='Inert'&&r.notify_message==='NOT TO BE SENT'&&
+    r.update_field_name==null&&r.update_field_value==null&&
     r.is_active===false&&r.created_by===ids[0]]
  ];
  for(const [table,projection,count,check] of checks){
