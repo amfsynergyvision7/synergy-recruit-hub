@@ -174,3 +174,41 @@ export function approvedCandidateHeaderAlias(
   const field=aliases[key];
   return typeof field==="string"&&permitted.includes(field)?field:undefined;
 }
+
+/**
+ * Fail closed before any candidate-sync configuration or ledger write.
+ * Two visible Sheet columns may not feed the same CRM field: otherwise the
+ * final column silently overwrites a prior identity such as email or phone.
+ * Nor may a source without any mapped identity column consume the cursor
+ * as a series of silently skipped candidate rows.
+ */
+export function assertUnambiguousCandidateSheetMapping(
+  headers: readonly unknown[],
+  mapping: Readonly<Record<string,unknown>>,
+  permitted: readonly string[],
+): void {
+  if(!Array.isArray(headers)||headers.length===0||headers.length>26||
+     !mapping||typeof mapping!=="object"||Array.isArray(mapping)) {
+    throw new Error("Candidate sync column mapping requires manual review");
+  }
+  const seen=new Set<string>();
+  let hasIdentity=false;
+  for(const header of headers){
+    if(typeof header!=="string"||header.length===0||header.length>256){
+      throw new Error("Candidate sync header is not approved");
+    }
+    if(!Object.prototype.hasOwnProperty.call(mapping,header))continue;
+    const field=mapping[header];
+    if(typeof field!=="string"||!permitted.includes(field)){
+      throw new Error("Candidate sync mapped field is not approved");
+    }
+    if(seen.has(field)){
+      throw new Error("Candidate sync duplicate mapped field requires manual review");
+    }
+    seen.add(field);
+    if(field==="email"||field==="mobile"||field==="full_name")hasIdentity=true;
+  }
+  if(!hasIdentity){
+    throw new Error("Candidate sync requires a mapped identity column");
+  }
+}
