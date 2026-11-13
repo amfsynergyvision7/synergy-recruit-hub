@@ -7,7 +7,7 @@
 import {createClient} from '@supabase/supabase-js';
 import {createHmac} from 'node:crypto';
 import {planFromEnv,adminConnectionFromEnv,provisionNine,PROJECT_ID,PROJECT_URL,ACK,slotEmail} from './provision-nine-auth-users.mjs';
-import {seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
+import {seedInertBaseFixture,expectedRoles} from './seed-inert-base-fixture.mjs';
 import {seedExtendedFixture,EXPECTED_EXTENDED_COUNTS} from './compose-and-seed-remaining-fixture.mjs';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
@@ -110,6 +110,81 @@ export function validateReadOnlyAudit(snapshot){
    throw new Error('Nonproduction hosted audit HOLD: unexpected Auth identities');
  return stage;
 }
+
+/**
+ * Build95: count-only "FULL" is NOT evidence that all records remain inert.
+ * Inspect only minimal nonproduction columns, never log or return row contents.
+ * This performs SELECT and Auth Admin listUsers only: no API mutation.
+ */
+export async function verifyInertHostedContents(client){
+ if(typeof client?.from!=='function'||typeof client?.auth?.admin?.listUsers!=='function')
+   throw new Error('Full hosted fixture content verification requires isolated Admin read access');
+ const auth=await client.auth.admin.listUsers({page:1,perPage:100});
+ const users=auth?.data?.users;
+ if(auth.error||!Array.isArray(users)||users.length!==9)
+   throw new Error('Hosted inert fixture HOLD: exact synthetic Auth subjects unavailable');
+ const getSlot=i=>users.find(u=>u.email===slotEmail(i));
+ const ids=Array.from({length:9},(_,i)=>getSlot(i+1)?.id);
+ if(ids.some(id=>typeof id!=='string')||new Set(ids).size!==9)
+   throw new Error('Hosted inert fixture HOLD: malformed synthetic Auth subject mapping');
+ const read=async(table,projection,count)=>{
+   const result=await client.from(table).select(projection);
+   if(result?.error||!Array.isArray(result?.data)||result.data.length!==count)
+     throw new Error('Hosted inert fixture HOLD: expected readback unavailable for '+table);
+   return result.data;
+ };
+ const reject=(table)=>{throw new Error('Hosted inert fixture HOLD: non-inert or mismatched '+table);};
+ const profiles=await read('profiles','id,email,status,is_active',8);
+ const roles=await read('user_roles','user_id,role',8);
+ for(let i=0;i<8;i++){
+   const id=ids[i],email=slotEmail(i+1),[role,status,active]=expectedRoles[i];
+   if(profiles.filter(p=>p.id===id&&p.email===email&&
+     p.status===status&&p.is_active===active).length!==1||
+     roles.filter(r=>r.user_id===id&&r.role===role).length!==1)reject('profiles/user_roles');
+ }
+ if(profiles.some(p=>p.id===ids[8])||roles.some(r=>r.user_id===ids[8]))
+   reject('unprofiled negative Auth slot');
+ const candidates=await read('candidates','id,assigned_recruiter,email,stage,status,created_source',2);
+ for(let i=1;i<=2;i++)
+   if(candidates.filter(c=>c.id===ids[i]&&c.assigned_recruiter===ids[i]&&
+     c.email==='amf-candidate-'+i+'@example.invalid'&&
+     c.stage==='lead_received'&&c.status==='active'&&
+     c.created_source==='build78_synthetic_lab').length!==1)
+     reject('candidates');
+ // These are the fixture's security-sensitive activation and egress fields.
+ // Exact values are stricter than "not currently active", so a modified lab
+ // can never accidentally become an approved source of signed UAT evidence.
+ const checks=[
+  ['clients','email,status',1,r=>r.email==='invented-client@example.invalid'&&r.status==='synthetic_inactive'],
+  ['job_openings','status,is_confidential,open_positions',2,r=>r.status==='draft'&&r.is_confidential===true&&r.open_positions===0],
+  ['google_integrations','auto_sync_enabled,connection_status,sheet_url,spreadsheet_id,google_account_email',1,r=>
+    r.auto_sync_enabled===false&&r.connection_status==='not_configured'&&r.sheet_url==null&&r.spreadsheet_id==null&&r.google_account_email==null],
+  ['integrations','auto_sync,last_status,sheet_url,spreadsheet_id',1,r=>
+    r.auto_sync===false&&r.last_status==='not_configured'&&r.sheet_url==null&&r.spreadsheet_id==null],
+  ['submissions','status',2,r=>r.status==='synthetic_hold'],
+  ['interviews','status',2,r=>r.status==='not_scheduled'],
+  ['offers','offer_status,joining_status,joining_date,salary,ctc',1,r=>
+    r.offer_status==='draft'&&r.joining_status==='not_joined'&&r.joining_date==null&&r.salary==null&&r.ctc==null],
+  ['billing','invoice_number,invoice_date,invoice_amount,placement_fee,gst,salary,outstanding_amount,payment_status',1,r=>
+    r.invoice_number==null&&r.invoice_date==null&&r.payment_status==='synthetic_draft_never_issue'&&
+    [r.invoice_amount,r.placement_fee,r.gst,r.salary,r.outstanding_amount].every(x=>x===0)],
+  ['notifications','type,is_read',2,r=>r.type==='synthetic_no_delivery'&&r.is_read===true],
+  ['sync_logs','status,rows_scanned,rows_created,rows_updated,rows_skipped',1,r=>
+    r.status==='never_run'&&[r.rows_scanned,r.rows_created,r.rows_updated,r.rows_skipped].every(x=>x===0)],
+  ['app_settings','id,default_color_theme,resume_import_folder_url,logo_url',1,r=>
+    r.id===1&&r.default_color_theme==='default'&&r.resume_import_folder_url==null&&r.logo_url==null],
+  ['email_log','to_email,status,provider_id',1,r=>
+    r.to_email==='never-deliver@example.invalid'&&r.status==='synthetic_never_sent'&&r.provider_id==null],
+  ['workflow_rules','is_active,field_value',1,r=>
+    r.is_active===false&&r.field_value==='never_matches_any_candidate']
+ ];
+ for(const [table,projection,count,check] of checks){
+   const rows=await read(table,projection,count);
+   if(!rows.every(check))reject(table);
+ }
+ return Object.freeze({verifiedNonproductionInertTables:16,contentMutations:0});
+}
+
 export async function runGuardedHostUat(plan,client){
  if(!plan||!OPERATIONS.includes(plan.operation))
    throw new Error('Unknown isolated hosted operation');
@@ -122,6 +197,7 @@ export async function runGuardedHostUat(plan,client){
  const before=await readHostedSnapshot(client);
  if(operation==='AUDIT_ONLY'){
    const fixtureStage=validateReadOnlyAudit(before);
+   if(fixtureStage==='FULL')await verifyInertHostedContents(client);
    return {operation,authUsers:before.authUsers,records:before.totalRows,mutated:false,fixtureStage};
  }
  validateSnapshot(before,'EMPTY');
@@ -138,6 +214,7 @@ export async function runGuardedHostUat(plan,client){
  if(ext.insertedRows!==20||ext.populatedExtendedTables!==16)
    throw new Error('Hosted extended fixture integrity mismatch');
  validateSnapshot(await readHostedSnapshot(client),'FULL');
+ await verifyInertHostedContents(client);
  return {operation,authUsers:9,records:38,mutated:true,formalSignedUat:0};
 }
 async function main(){
