@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertApprovedRole } from "./access-gates.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 import {
   matchCandidatesToJob,
   matchCandidateResume,
@@ -18,6 +19,7 @@ export const matchCandidates = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     // Approval and role checks are defense-in-depth, not a substitute for
     // per-record RLS, column grants, ownership checks or release validation.
+    assertExternalEffectReleased("candidate_ai_processing");
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     return matchCandidatesToJob(context.supabase, data.jobId);
   });
@@ -32,6 +34,7 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
     z.object({ jobId: z.string().uuid(), candidateId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_ai_processing");
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     return matchCandidateResume(context.supabase, data.jobId, data.candidateId);
   });
@@ -42,6 +45,7 @@ export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_ai_processing");
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     return generateResumeSummary(context.supabase, data.candidateId);
   });
@@ -54,6 +58,7 @@ export const generateCandidateAtsScoreFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_ai_processing");
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     return generateCandidateAtsScore(context.supabase, data.candidateId);
   });
@@ -67,6 +72,7 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_ai_processing");
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     const { candidate, resume } = await restructureResumeForClient(context.supabase, data.candidateId);
 
@@ -99,6 +105,7 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
 export const checkDriveForNewResumes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    assertExternalEffectReleased("drive_bulk_import");
     await assertApprovedRole(context.userId, ["admin"]);
     return runResumeDriveImport(context.supabase, context.userId);
   });
