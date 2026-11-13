@@ -55,7 +55,8 @@ test('ownerless legacy Sheets configuration cannot silently backfill into a new 
  const code=sheets.slice(start,end);
  assert(code.includes('if (!opts.userId) throw new Error("Explicit integration owner required")'));
  assert(code.includes('.eq("user_id", opts.userId)'));
- assert(code.includes('if (data) return data as GoogleIntegrationSettings'));
+ assert(code.includes('if (data) return redactHistoricalIntegrationError({...(data as GoogleIntegrationSettings),last_error:null})'));
+ assert(!code.includes('if (data) return data as GoogleIntegrationSettings'));
  assert(code.includes('if (opts.backfillLegacy === true)'));
  assert(code.includes('Legacy Sheets integration requires independently reviewed owner mapping'));
  assert(code.includes('return null;'));
