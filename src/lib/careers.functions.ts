@@ -159,17 +159,9 @@ export const submitJobApplication = createServerFn({ method: "POST" })
     if (createError || !created?.id) throw new Error("Application could not be completed securely.");
     const candidateId = created.id;
 
-    // One application per candidate per job — a second submit (someone
-    // double-clicking, or re-applying to a posting they already sent) is a
-    // friendly no-op rather than a duplicate submissions row.
-    const { data: existingSubmission } = await supabaseAdmin
-      .from("submissions").select("id")
-      .eq("candidate_uuid", candidateId).eq("job_uuid", job.id)
-      .maybeSingle();
-    if (existingSubmission) {
-      return { alreadyApplied: true };
-    }
-
+    // No anonymous duplicate-submission shortcut: every applicant needs
+    // independently verified identity and atomic submission idempotency
+    // before this currently held public workflow may be activated.
     // client_id/client_uuid/job_id are deliberately left unset here —
     // submissions has its own normalize_submission_relationships() BEFORE
     // INSERT trigger that fills those in from candidate_uuid/job_uuid, and
