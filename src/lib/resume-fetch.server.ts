@@ -7,6 +7,7 @@
 // will fail to download here the same way it would in an incognito browser.
 import { extractText as extractPdfText } from "unpdf";
 import mammoth from "mammoth";
+import { downloadRemoteBounded, isTrustedDriveHost } from "./safe-remote-download.server";
 
 // A resume that genuinely has no readable text (a scanned photo/image saved
 // as a PDF, with no text layer at all) is a different, harder problem than
@@ -29,56 +30,49 @@ export type ResumeFetchResult =
 // logic instead of duplicating it — a file downloaded via a folder listing
 // and a file downloaded via a saved resume_url go through identical code
 // from here on.
-export function extractDriveFileId(url: string): string | null {
-  // Covers the common Drive link shapes:
-  //   https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-  //   https://drive.google.com/open?id=FILE_ID
-  //   https://drive.google.com/uc?id=FILE_ID&export=download
-  const patterns = [
-    /\/file\/d\/([a-zA-Z0-9_-]{10,})/,
-    /[?&]id=([a-zA-Z0-9_-]{10,})/,
-  ];
-  for (const re of patterns) {
-    const match = url.match(re);
-    if (match?.[1]) return match[1];
-  }
-  return null;
+export function extractDriveFileId(raw: string): string | null {
+  // Exact HTTPS origin checking stops drive.google.com.evil.example,
+  // credentials, IP literals and arbitrary URL substring matches.
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:" || url.hostname !== "drive.google.com" ||
+        url.port || url.username || url.password) return null;
+    const byPath = /^\/file\/d\/([a-zA-Z0-9_-]{10,})(?:\/|$)/.exec(url.pathname)?.[1];
+    const queryId = (url.pathname === "/open" || url.pathname === "/uc")
+      ? url.searchParams.get("id") : null;
+    const fileId = byPath ?? queryId;
+    return fileId && /^[a-zA-Z0-9_-]{10,}$/.test(fileId) ? fileId : null;
+  } catch { return null; }
 }
 
 export async function fetchDriveBytes(fileId: string): Promise<{ buffer: Buffer; contentType: string } | { error: string }> {
-  const baseUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-
-  let res = await fetch(baseUrl, { redirect: "follow" });
-  let contentType = res.headers.get("content-type") ?? "";
-
-  // Large files (or ones Drive "can't scan for viruses") return an HTML
-  // interstitial page instead of the file, containing a confirm token that
-  // has to be replayed as a query param to actually get the bytes.
-  if (contentType.includes("text/html")) {
-    const html = await res.text();
-    const confirmMatch = html.match(/confirm=([0-9A-Za-z_-]+)/);
-    if (!confirmMatch) {
-      return { error: "Drive returned a page instead of the file — the link may not be set to \"Anyone with the link\"." };
+  if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) {
+    return { error: "Invalid Google Drive file identifier." };
+  }
+  const baseUrl = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`;
+  const policy = { allowedHost: isTrustedDriveHost, maxBytes: 8 * 1024 * 1024, timeoutMs: 15000, maxRedirects: 4 };
+  try {
+    let result = await downloadRemoteBounded(baseUrl, policy);
+    if (result.contentType.toLowerCase().includes("text/html")) {
+      // Drive virus-scanner confirmation pages require a second request.
+      // Read only bounded HTML; never follow arbitrary links in that page.
+      const html = result.body.toString("utf8");
+      const token = /confirm=([0-9A-Za-z_-]{1,128})/.exec(html)?.[1];
+      if (!token) return { error: "Drive returned a page instead of an accessible PDF or Word file." };
+      result = await downloadRemoteBounded(`${baseUrl}&confirm=${encodeURIComponent(token)}`, policy);
     }
-    res = await fetch(`${baseUrl}&confirm=${confirmMatch[1]}`, { redirect: "follow" });
-    contentType = res.headers.get("content-type") ?? "";
+    // Verify content from magic bytes. Do not feed HTML, unknown binary or
+    // obsolete .doc OLE blobs to the PDF/DOCX decompression/parsing stack.
+    const magic = result.body.subarray(0, 4).toString("latin1");
+    if (magic === "%PDF") return { buffer: result.body, contentType: "application/pdf" };
+    if (result.body.subarray(0, 2).toString("latin1") === "PK") {
+      return { buffer: result.body,
+        contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
+    }
+    return { error: "Only downloadable PDF and Word .docx resume files are supported." };
+  } catch {
+    return { error: "Could not download this Drive file safely. Check sharing permissions and file size (maximum 8 MB)." };
   }
-
-  if (!res.ok) {
-    return { error: `Drive returned ${res.status} — the link may be broken, private, or the file may have been removed.` };
-  }
-
-  const arrayBuffer = await res.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  // Sniff the actual file type from magic bytes rather than trusting
-  // content-type alone, since Drive doesn't always set it precisely.
-  const isPdf = buffer.subarray(0, 4).toString("latin1") === "%PDF";
-  const isZipBased = buffer.subarray(0, 2).toString("latin1") === "PK"; // .docx is a zip archive
-
-  if (isPdf) return { buffer, contentType: "application/pdf" };
-  if (isZipBased) return { buffer, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
-  return { buffer, contentType };
 }
 
 export async function extractText(buffer: Buffer, contentType: string): Promise<ResumeFetchResult> {
@@ -125,10 +119,6 @@ export async function fetchResumeText(resumeUrl: string | null): Promise<ResumeF
 
   if (resumeUrl.includes("docs.google.com/document") || resumeUrl.includes("docs.google.com/spreadsheets") || resumeUrl.includes("docs.google.com/presentation")) {
     return { ok: false, error: "This is a native Google Docs/Sheets/Slides link, not an uploaded PDF or Word file — those aren't supported yet." };
-  }
-
-  if (!resumeUrl.includes("drive.google.com")) {
-    return { ok: false, error: "Only Google Drive links are supported right now — this doesn't look like a Drive URL." };
   }
 
   const fileId = extractDriveFileId(resumeUrl);
