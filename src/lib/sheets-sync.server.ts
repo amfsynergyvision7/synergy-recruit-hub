@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { CANDIDATE_FIELDS } from "./candidate-fields";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
-import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor } from "./sync-safety";
+import { uniqueCandidateMatch, reconcileCandidateMatches, escapeIlikeLiteral, advanceContiguousCursor, sanitizeStoredSyncLogs, SAFE_CANDIDATE_SYNC_ERROR } from "./sync-safety";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
@@ -94,9 +94,10 @@ export interface GoogleIntegrationSettings {
   updated_at: string;
 }
 
-function formatSupabaseError(action: string, error: any) {
-  const parts = [error?.message, error?.details, error?.hint, error?.code].filter(Boolean);
-  return `${action}: ${parts.join(" | ") || "Unknown database error"}`;
+function formatSupabaseError(action: string, _error: unknown) {
+  // Callers include this message in UI errors. Never interpolate provider
+  // response bodies, hints, SQL details, private URLs or identifiers.
+  return `${action}; inspect restricted server diagnostics`;
 }
 
 export interface SyncDiagnostics {
@@ -201,7 +202,7 @@ export async function saveDetectedHeaders(integration: GoogleIntegrationSettings
     connection_status: "headers_detected",
     last_error: null,
   }).eq("id", integration.id);
-  if (error) throw error;
+  if (error) throw new Error('Integration header mapping unavailable');
 }
 
 export async function resetGoogleIntegrationSyncCursor(_integrationId: string) {
@@ -211,13 +212,16 @@ export async function resetGoogleIntegrationSyncCursor(_integrationId: string) {
 }
 
 export async function getCandidateSyncLogs() {
+  // Historical sync_logs may contain unredacted upstream exceptions from
+  // older code. Preserve harmless counters/status; redact on the server
+  // before an approved administrator receives ANY log response.
   const { data, error } = await supabaseAdmin
     .from("sync_logs")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(50);
-  if (error) throw error;
-  return data ?? [];
+  if (error) throw new Error("Sync log retrieval unavailable");
+  return sanitizeStoredSyncLogs(data ?? []);
 }
 
 export async function fetchSheetValues(spreadsheetId: string, sheetName: string) {
@@ -396,8 +400,10 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
         });
       }
       lastSynced = advanceContiguousCursor(lastSynced, sheetRowNumber);
-    } catch (e: any) {
-      result.error_details.push({ row: sheetRowNumber, message: e?.message || String(e) });
+    } catch {
+      // A DB/provider exception can contain private candidate cells, URLs
+      // or access diagnostics. Persist only the generic bounded row marker.
+      result.error_details.push({ row: sheetRowNumber, message: SAFE_CANDIDATE_SYNC_ERROR });
       result.rows_skipped++;
       break; // Fail fast: do not checkpoint beyond a failed row.
     }
@@ -447,7 +453,7 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
   } catch (e: any) {
     // Provider errors can contain sensitive candidate/sheet information.
     // Never persist or return a raw provider exception in sync diagnostics.
-    const message = "Candidate sync failed; review restricted server diagnostics";
+    const message = SAFE_CANDIDATE_SYNC_ERROR;
     const result = emptyResult();
     result.errors = 1;
     result.error_details = [{ row: 0, message }];
