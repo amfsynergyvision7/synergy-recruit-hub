@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {executionPlan,validateSnapshot,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
+import {executionPlan,validateSnapshot,validateReadOnlyAudit,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
+import {slotEmail} from './provision-nine-auth-users.mjs';
 import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
@@ -40,11 +41,12 @@ const fakeClient=(counts=snapshot('EMPTY'))=>{
  return {client,mutated:()=>mutated};
 };
 test('release runner accepts only exact project, nine unique passwords and explicit manual confirmation',()=>{
- const ok=executionPlan(env());
- assert.equal(ok.operation,'AUDIT_ONLY');
+ const forWrite=()=>({...env(),AMF_UAT_OPERATION:'CREATE_NINE_AND_SEED_38',AMF_UAT_PREFLIGHT_ATTESTATION:PREFLIGHT_CONFIRMATION});
+ const ok=executionPlan(forWrite());
+ assert.equal(ok.operation,'CREATE_NINE_AND_SEED_38');
  assert.equal(ok.credentials.users.length,9);
  assert.equal(new Set(ok.credentials.users.map(u=>u.password)).size,9);
- assert.deepEqual(ok.credentials.users.map(u=>u.password),executionPlan(env()).credentials.users.map(u=>u.password));
+ assert.deepEqual(ok.credentials.users.map(u=>u.password),executionPlan(forWrite()).credentials.users.map(u=>u.password));
  assert(ok.credentials.users.every(u=>u.password.length>=40&&!u.password.includes(env().AMF_UAT_PASSWORD_MASTER_SECRET)));
  for(const variation of [
   {AMF_UAT_PROJECT_ID:'wusntntcqgtpgokggdzv'},
@@ -54,7 +56,7 @@ test('release runner accepts only exact project, nine unique passwords and expli
   {AMF_UAT_SERVICE_ROLE_KEY:'sb_publishable_not_admin'},
   {AMF_UAT_MAPPING_FILE:'./mapping.json'},
   {AMF_UAT_PASSWORD_MASTER_SECRET:'weak'}
- ])assert.throws(()=>executionPlan({...env(),...variation}));
+ ])assert.throws(()=>executionPlan({...forWrite(),...variation}));
 });
 test('all nineteen source-shaped table cardinalities sum to 38 and support exact stages',()=>{
  assert.equal(Object.keys(expectedTables).length,19);
@@ -75,7 +77,7 @@ test('refuse non-empty, wrong role or wrong count at each required stage',()=>{
 test('audit-only mode reads counts and performs zero Auth or CRM writes',async()=>{
  const {client,mutated}=fakeClient();
  const out=await runGuardedHostUat({operation:'AUDIT_ONLY'},client);
- assert.deepEqual(out,{operation:'AUDIT_ONLY',authUsers:0,records:0,mutated:false});
+ assert.deepEqual(out,{operation:'AUDIT_ONLY',authUsers:0,records:0,mutated:false,fixtureStage:'EMPTY'});
  assert.equal(mutated(),false);
 });
 test('write mode refuses a nonempty Auth tenant before account creation or fixture inserts',async()=>{
@@ -425,4 +427,60 @@ test('Build92 hosted schema drift source is pinned, read-only and nonproduction 
   assert(sql.includes("'"+name+"'"),'source schema table omitted: '+name);
  assert.equal((sql.match(/WITH cols AS/g)||[]).length,1);
  assert(!/\b(?:INSERT|UPDATE|DELETE|MERGE|TRUNCATE|CREATE|ALTER|DROP|GRANT|REVOKE|CALL)\s+(?:INTO\s+|FROM\s+|TABLE\s+)?(?:public\.|auth\.|information_schema\.)/i.test(sql));
+});
+
+test('Build93 audit-only uses isolated Admin key but never requires/derives a password master',()=>{
+ const cfg=env();
+ delete cfg.AMF_UAT_PASSWORD_MASTER_SECRET;
+ const result=executionPlan(cfg);
+ assert.equal(result.operation,'AUDIT_ONLY');
+ assert.equal(result.credentials.url,'https://'+project+'.supabase.co');
+ assert.equal(typeof result.credentials.key,'string');
+ assert.equal(result.credentials.users,undefined);
+ assert.equal(result.preflightAttested,false);
+ assert.throws(()=>executionPlan({...cfg,AMF_UAT_OPERATION:'CREATE_NINE_AND_SEED_38',
+  AMF_UAT_PREFLIGHT_ATTESTATION:PREFLIGHT_CONFIRMATION}),/password master/);
+ assert.throws(()=>executionPlan({...cfg,AMF_UAT_PROJECT_ID:'wusntntcqgtpgokggdzv'}),/non-allowlisted/);
+ assert.throws(()=>executionPlan({...cfg,AMF_UAT_SERVICE_ROLE_KEY:'sb_publishable_unsafe'}),/service.role|Server-only/i);
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ assert(workflow.includes("AMF_UAT_PASSWORD_MASTER_SECRET: ${{ inputs.operation == 'CREATE_NINE_AND_SEED_38' && secrets.AMF_UAT_PASSWORD_MASTER_SECRET || '' }}"));
+});
+test('Build93 guarded hosted audit accepts only complete empty or exact 9-user/38-row synthetic fixture',async()=>{
+ const empty=snapshot('EMPTY');
+ assert.equal(validateReadOnlyAudit(empty),'EMPTY');
+ for(const stage of ['BASE','FULL']){
+  const specimen=snapshot(stage);
+  if(stage==='BASE')
+   assert.throws(()=>validateReadOnlyAudit(specimen),/partial or unexpected/);
+  else {
+   specimen.syntheticAuthSlotsValid=true;
+   assert.equal(validateReadOnlyAudit(specimen),'FULL');
+   specimen.syntheticAuthSlotsValid=false;
+   assert.throws(()=>validateReadOnlyAudit(specimen),/unexpected Auth identities/);
+   specimen.syntheticAuthSlotsValid=true;
+   specimen.tableCounts.billing=2;
+   assert.throws(()=>validateReadOnlyAudit(specimen),/cardinality/);
+  }
+ }
+ const mock=fakeClient(snapshot('FULL'));
+ mock.client.auth.admin.listUsers=async()=>({
+  data:{users:Array.from({length:9},(_,i)=>({
+   id:'00000000-0000-0000-0000-'+String(i+1).padStart(12,'0'),
+   email:slotEmail(i+1),role:'authenticated'
+  }))}
+ });
+ const plan=executionPlan({...env(),AMF_UAT_PASSWORD_MASTER_SECRET:undefined});
+ const valid=await runGuardedHostUat(plan,mock.client);
+ assert.equal(valid.fixtureStage,'FULL');
+ assert.deepEqual({users:valid.authUsers,rows:valid.records,mutated:valid.mutated},
+  {users:9,rows:38,mutated:false});
+ assert.equal(mock.mutated(),false);
+ // Wrong or duplicated identity is a mandatory HOLD even if 9/38 counts match.
+ const old=mock.client.auth.admin.listUsers;
+ mock.client.auth.admin.listUsers=async()=>{
+  const response=await old();
+  response.data.users[8].email='unknown@example.invalid';
+  return response;
+ };
+ await assert.rejects(runGuardedHostUat(plan,mock.client),/unexpected Auth identities/);
 });
