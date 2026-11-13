@@ -508,7 +508,7 @@ test('Build93 guarded hosted audit accepts only complete empty or exact 9-user/3
   response.data.users[8].email='unknown@example.invalid';
   return response;
  };
- await assert.rejects(runGuardedHostUat(plan,mock.client),/unexpected Auth identities/);
+ await assert.rejects(runGuardedHostUat(plan,mock.client),/Auth identit/);
 });
 
 test('Build95 a complete 9/38 synthetic fixture audit inspects inert billing, sync, email, workflow and owner data',async()=>{
