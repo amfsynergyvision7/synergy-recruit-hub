@@ -152,7 +152,9 @@ function Page() {
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const summary = query.data;
+  // A failed refetch can retain the last successful TanStack Query data.
+  // Never show or export that stale candidate review as a new complete scan.
+  const summary = query.isError ? undefined : query.data;
   const clusters = summary?.clusters ?? [];
   const totalSelected = useMemo(
     () => clusters.reduce((n, c) => n + c.members.filter((m) => selected.has(m.id)).length, 0),
@@ -191,6 +193,10 @@ function Page() {
   };
 
   const exportReview = () => {
+    if (!summary || query.isError || query.isFetching) {
+      toast.error("A completed duplicate review scan is required before export.");
+      return;
+    }
     const csv = buildDuplicateReviewCSV(clusters, selected);
     if (!csv) { toast.error("Select candidates for a non-destructive review export."); return; }
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
@@ -221,7 +227,7 @@ function Page() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" disabled={totalSelected === 0} onClick={exportReview}>
+          <Button variant="outline" disabled={!summary || query.isError || query.isFetching || totalSelected === 0} onClick={exportReview}>
             <Download className="h-3.5 w-3.5 mr-1" />Export review CSV (no deletion)
           </Button>
           <Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}>
