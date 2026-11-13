@@ -65,7 +65,7 @@ test('Build85 low-level duplicate scan verifies unique active administrator befo
  assert(start>=0&&check>start&&paged>check);
  const paging=readFileSync('src/lib/duplicate-scan-pagination.ts','utf8');
  assert(paging.includes('.from("candidates")'));
- assert(paging.includes('.select(columns, { count: "exact" })'));
+ assert(paging.includes('.select(pass === 0 ? columns : "id", { count: "exact" })'));
  assert(paging.includes('count > MAX_COMPLETE_DUPLICATE_SCAN'));
  assert(!duplicates.includes('.limit(5000)'));
  assert(duplicates.includes('findDuplicateClusters(supabase: any, actorUserId: string)'));

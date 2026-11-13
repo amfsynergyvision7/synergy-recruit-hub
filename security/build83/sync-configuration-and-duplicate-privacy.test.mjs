@@ -369,12 +369,14 @@ test('Build102 fast candidate mapping denies duplicate identity/phone fields and
 
 function build109MockCandidateClient(rows, opts={}){
  const calls=[];
+ const projections=[];
  return {
-  calls,
+  calls, projections,
   from(table){
    assert.equal(table,'candidates');
    return {
     select(columns, options){
+     projections.push(columns);
      assert(columns.includes('id'));
      assert.equal(options.count,'exact');
      return {
@@ -409,6 +411,7 @@ test('Build109 duplicate paging retrieves every candidate despite PostgREST page
  assert.equal(result.length,1001);
  assert.equal(new Set(result.map(r=>r.id)).size,1001);
  assert.deepEqual(mock.calls,[[0,499],[500,999],[1000,1499],[0,499],[500,999],[1000,1499]]);
+ assert.deepEqual(mock.projections,['id, created_at','id, created_at','id, created_at','id','id','id']);
  assert.equal(DUPLICATE_SCAN_PAGE_SIZE,500);
  assert.equal(MAX_COMPLETE_DUPLICATE_SCAN,5000);
  const blank=build109MockCandidateClient([]);
@@ -445,7 +448,7 @@ test('Build109 duplicate reviewer enforces unique admin role before any paginate
  assert(role>=0&&paged>role);
  assert(!source.includes('.limit(5000)'));
  assert(!source.includes('data ?? []'));
- assert(helper.includes('.select(columns, { count: "exact" })'));
+ assert(helper.includes('.select(pass === 0 ? columns : "id", { count: "exact" })'));
  assert(helper.includes('.order("created_at", { ascending: true })'));
  assert(helper.includes('.order("id", { ascending: true })'));
  assert(helper.includes('count > MAX_COMPLETE_DUPLICATE_SCAN'));
