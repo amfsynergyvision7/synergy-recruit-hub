@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {executionPlan,validateSnapshot,validateReadOnlyAudit,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
+import {executionPlan,validateSnapshot,validateReadOnlyAudit,verifyInertHostedContents,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
+import {makeBaseFixture} from './seed-inert-base-fixture.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
 import {slotEmail} from './provision-nine-auth-users.mjs';
 import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
@@ -22,6 +23,36 @@ const env=()=>{
  // Passwords are deterministically derived from the protected test-only master.
  return e;
 };
+
+const fakeFullInertClient=()=>{
+ const users=Array.from({length:9},(_,i)=>({
+  slot:i+1,id:'00000000-0000-0000-0000-'+String(i+1).padStart(12,'0'),
+  email:slotEmail(i+1),role:'authenticated'
+ }));
+ const mapping={project_id:project,users};
+ const now='2026-11-13T09:00:00.000Z';
+ const base=makeBaseFixture(mapping,now);
+ const ext=composeExtendedFixture(mapping,now);
+ const tables=Object.fromEntries([
+  ['profiles',base.profiles],
+  ['user_roles',base.roles],
+  ['candidates',base.candidates],
+  ...ext.batches.map(batch=>[batch.table,batch.rows])
+ ]);
+ let writes=0;
+ const client={
+  auth:{admin:{listUsers:async()=>({data:{users:users.map(u=>({...u}))},error:null})}},
+  from:table=>({
+   select:async(_projection,options)=>options?.head?
+    {count:tables[table].length,error:null}:
+    {data:tables[table].map(row=>({...row})),error:null},
+   insert:async()=>{writes++;throw new Error('No writes allowed')},
+   delete:async()=>{writes++;throw new Error('No writes allowed')}
+  })
+ };
+ return {client,tables,users,writes:()=>writes};
+};
+
 const expectedTables={...BASE_COUNTS,...EXPECTED_EXTENDED_COUNTS};
 const snapshot=(stage)=>{
  const count={};
@@ -462,19 +493,13 @@ test('Build93 guarded hosted audit accepts only complete empty or exact 9-user/3
    assert.throws(()=>validateReadOnlyAudit(specimen),/cardinality/);
   }
  }
- const mock=fakeClient(snapshot('FULL'));
- mock.client.auth.admin.listUsers=async()=>({
-  data:{users:Array.from({length:9},(_,i)=>({
-   id:'00000000-0000-0000-0000-'+String(i+1).padStart(12,'0'),
-   email:slotEmail(i+1),role:'authenticated'
-  }))}
- });
+ const mock=fakeFullInertClient();
  const plan=executionPlan({...env(),AMF_UAT_PASSWORD_MASTER_SECRET:undefined});
  const valid=await runGuardedHostUat(plan,mock.client);
  assert.equal(valid.fixtureStage,'FULL');
  assert.deepEqual({users:valid.authUsers,rows:valid.records,mutated:valid.mutated},
   {users:9,rows:38,mutated:false});
- assert.equal(mock.mutated(),false);
+ assert.equal(mock.writes(),0);
  // Wrong or duplicated identity is a mandatory HOLD even if 9/38 counts match.
  const old=mock.client.auth.admin.listUsers;
  mock.client.auth.admin.listUsers=async()=>{
@@ -483,4 +508,68 @@ test('Build93 guarded hosted audit accepts only complete empty or exact 9-user/3
   return response;
  };
  await assert.rejects(runGuardedHostUat(plan,mock.client),/unexpected Auth identities/);
+});
+
+test('Build95 a complete 9/38 synthetic fixture audit inspects inert billing, sync, email, workflow and owner data',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ assert.deepEqual(await verifyInertHostedContents(client),
+  {verifiedNonproductionInertTables:16,contentMutations:0});
+ const expected=executionPlan({...env(),AMF_UAT_PASSWORD_MASTER_SECRET:undefined});
+ const success=await runGuardedHostUat(expected,client);
+ assert.equal(success.fixtureStage,'FULL');
+ assert.equal(success.mutated,false);
+ assert.equal(writes(),0);
+ // Every introduced dangerous state must block even if all counts stay 9/38.
+ const corruptions=[
+  ['workflow_rules','is_active',true],
+  ['workflow_rules','field_value','active'],
+  ['email_log','status','sent'],
+  ['email_log','provider_id','provider-token'],
+  ['email_log','to_email','real@example.com'],
+  ['billing','invoice_number','INV-REAL'],
+  ['billing','invoice_date','2026-11-13'],
+  ['billing','invoice_amount',10],
+  ['billing','payment_status','paid'],
+  ['google_integrations','auto_sync_enabled',true],
+  ['google_integrations','spreadsheet_id','live'],
+  ['integrations','auto_sync',true],
+  ['integrations','sheet_url','https://live.example'],
+  ['sync_logs','status','success'],
+  ['sync_logs','rows_created',1],
+  ['offers','joining_date','2026-11-13'],
+  ['offers','offer_status','accepted'],
+  ['job_openings','status','published'],
+  ['job_openings','is_confidential',false],
+  ['clients','email','customer@example.com'],
+  ['submissions','status','submitted'],
+  ['interviews','status','scheduled'],
+  ['notifications','type','email'],
+  ['profiles','is_active',false],
+  ['user_roles','role','admin'],
+  ['candidates','email','real@example.com'],
+  ['candidates','assigned_recruiter','00000000-0000-0000-0000-000000000008']
+ ];
+ for(const [table,field,bad] of corruptions){
+  const prior=tables[table][0][field];
+  tables[table][0][field]=bad;
+  await assert.rejects(runGuardedHostUat(expected,client),/inert fixture HOLD/i,
+   'Expected fail-closed audit for '+table+'.'+field);
+  tables[table][0][field]=prior;
+ }
+ assert.equal(writes(),0);
+});
+test('Build95 content verification fails closed on missing projections and never calls mutating APIs',async()=>{
+ const {client,writes}=fakeFullInertClient();
+ client.from=table=>({select:async()=>({error:{message:'simulated read denial'},data:null})});
+ await assert.rejects(verifyInertHostedContents(client),/readback unavailable/);
+ assert.equal(writes(),0);
+ const source=readFileSync(new URL('./run-once.mjs',import.meta.url),'utf8');
+ const section=source.slice(source.indexOf('export async function verifyInertHostedContents('),
+   source.indexOf('export async function runGuardedHostUat('));
+ assert(!section.includes('.insert('));
+ assert(!section.includes('.update('));
+ assert(!section.includes('.delete('));
+ assert(!section.includes('console.log'));
+ assert(source.includes("if(fixtureStage==='FULL')await verifyInertHostedContents(client)"));
+ assert(source.includes("await verifyInertHostedContents(client);"));
 });
