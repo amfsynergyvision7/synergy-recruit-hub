@@ -33,6 +33,7 @@
 import { extractDriveFileId, fetchDriveBytes, extractText } from "./resume-fetch.server";
 import { extractCandidateFieldsFromResume } from "./ai.server";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { downloadRemoteBounded } from "./safe-remote-download.server";
 
 const DRIVE_LIST_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
 
@@ -96,20 +97,34 @@ async function listFolderFiles(folderId: string, apiKey: string): Promise<DriveF
     });
     if (pageToken) params.set("pageToken", pageToken);
 
-    const res = await fetch(`${DRIVE_LIST_ENDPOINT}?${params.toString()}`);
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      const message = data?.error?.message ?? `Drive API ${res.status}`;
-      throw new Error(
-        `Couldn't list the Drive folder (${message}). Check that DRIVE_API_KEY is set, the Drive API is enabled for that key's Google Cloud project, and the folder is shared "Anyone with the link — Viewer".`,
-      );
+    // Google APIs can emit unbounded JSON or echo the key/folder/PII in
+    // error bodies. Read a maximum of 2 MB from the exact Google API host.
+    // Never follow a redirect to an unapproved endpoint with the API key.
+    let data: any;
+    try {
+      const result = await downloadRemoteBounded(`${DRIVE_LIST_ENDPOINT}?${params.toString()}`, {
+        allowedHost: host => host === "www.googleapis.com",
+        maxBytes: 2 * 1024 * 1024,
+        timeoutMs: 10000,
+        maxRedirects: 0,
+      });
+      data = JSON.parse(result.body.toString("utf8"));
+      if (!data || !Array.isArray(data.files)) throw new Error("Invalid Drive response");
+    } catch {
+      throw new Error("Drive folder listing unavailable; review restricted connector diagnostics.");
     }
     for (const f of data?.files ?? []) {
       if (f?.id && f?.name && f?.mimeType && f?.webViewLink) {
         files.push({ id: f.id, name: f.name, mimeType: f.mimeType, webViewLink: f.webViewLink });
       }
     }
-    pageToken = data?.nextPageToken;
+    const nextToken = data?.nextPageToken;
+    if (nextToken !== undefined && nextToken !== null &&
+        (typeof nextToken !== "string" || nextToken.length > 2048 ||
+         !/^[A-Za-z0-9._+\\/=-]+$/.test(nextToken))) {
+      throw new Error("Drive pagination response is invalid");
+    }
+    pageToken = nextToken ?? undefined;
   } while (pageToken && files.length < 2000); // hard safety cap regardless of folder size
 
   return files;
