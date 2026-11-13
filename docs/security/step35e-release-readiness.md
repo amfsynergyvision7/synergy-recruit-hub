@@ -15,6 +15,13 @@ Status: **NOT APPROVED FOR PRODUCTION**. This document is a working evidence reg
 - Outbound AI and SMTP transport modules have unconditional denial before their environment approval checks; external operations remain disabled.
 - Node regression tests are committed under `tests/`, invoked from the actual Vercel build entrypoint, and wired into `.github/workflows/step35e-security-gates.yml` using the canonical `npm run test:security` command. GitHub Actions completion has **not** been independently verified.
 
+## Verification checkpoint — 2026-11-13
+- Vercel isolated Preview commit `8306aa07f23374f124456a683441bb88fb1a57fd` reported **READY**. Build events show the mandatory `test:security` invocation and deployment completion. This does not establish end-to-end authorization.
+- Isolated Supabase catalog inspection: eight `security_lab` ordinary tables all have `relrowsecurity=true` and `relforcerowsecurity=true`; four have zero policies. This is structural evidence, not a complete role-by-role behavioral test.
+- Compared `security-isolation-test` against this branch; its 2026-11-09 batch report describes synthetic six-role SELECT and outbox guard tests, but also explicitly says the complete CRM public schema is absent. Do not treat those results as full-schema acceptance or blindly merge fixture changes.
+- Added an isolated workflow non-deployment regression assertion on this branch. Its new commit must be independently verified by a subsequent Preview test log before counting it as passed.
+- GitHub Actions execution status remains unverified; the available commit-workflow lookup is PR-run scoped and cannot establish the push workflow conclusion.
+
 ## Outstanding acceptance checks
 1. Obtain a confirmed GitHub Actions test conclusion and logs for the latest commit. The Vercel build independently ran the 19-test suite, but GitHub Actions execution remains unverified.
 2. Run integration tests against a synthetic CRM-compatible schema with `public.profiles`, `user_roles`, `candidates`, `job_openings`, `clients` and appropriate RLS, without copying production records. The current `security_lab` fixture is not a complete CRM replica.
