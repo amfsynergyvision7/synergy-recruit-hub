@@ -1130,7 +1130,7 @@ jobs:
           PGPASSWORD: postgres
         run: |
           psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build104/verified-public-application.integration.sql
-          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace='crm_private'::regnamespace AND c.relname='verified_public_applications'" 2>/dev/null || echo '0')" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT pg_catalog.to_regclass('crm_private.verified_public_applications') IS NULL")" = "t"
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
 
   substantive-security-summary:
