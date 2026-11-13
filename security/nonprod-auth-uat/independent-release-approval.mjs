@@ -99,6 +99,32 @@ export function verifyPinnedReviewedSource(approvedTree,currentTree){
  return {reviewedSourceFiles:PINNED_RELEASE_PATHS.length};
 }
 
+
+/**
+ * Build91: never trust an environment name alone as an approval boundary.
+ * Verify GitHub has actually enabled reviewer enforcement, self-review
+ * prevention and protected-branch-only access for the lab environment.
+ */
+export const EXPECTED_ENVIRONMENT='amf-nonprod-auth-review';
+export function verifyProtectedEnvironment(env){
+ if(env?.name!==EXPECTED_ENVIRONMENT||!Array.isArray(env.protection_rules))
+  throw new Error('Protected lab environment metadata is unavailable');
+ const required=env.protection_rules.filter(x=>x?.type==='required_reviewers');
+ if(required.length!==1||required[0].prevent_self_review!==true||
+    !Array.isArray(required[0].reviewers)||required[0].reviewers.length===0)
+  throw new Error('Lab environment must require independent reviewer approval and prevent self-review');
+ const eligible=required[0].reviewers.some(x=>
+  (x?.type==='User'&&typeof x.reviewer?.login==='string'&&
+   x.reviewer.login!==EXPECTED_ACTOR&&!x.reviewer.login.endsWith('[bot]'))||
+  (x?.type==='Team'&&typeof x.reviewer?.slug==='string'&&x.reviewer.slug.length>0));
+ if(!eligible)
+  throw new Error('Lab environment requires an eligible non-author reviewer');
+ if(env.deployment_branch_policy?.protected_branches!==true ||
+    env.deployment_branch_policy?.custom_branch_policies!==false)
+  throw new Error('Lab environment must restrict dispatch to protected branches');
+ return {independentEnvironmentReviewer:true,preventSelfReview:true,protectedBranchesOnly:true};
+}
+
 async function getGitHubJson(path,token){
  const url='https://api.github.com/repos/'+EXPECTED_REPO+path;
  const res=await fetch(url,{
@@ -128,12 +154,14 @@ export async function assertGitHubReleaseGate(env=process.env){
    sha:env.GITHUB_SHA
  };
  // Bound, exact read-only API URLs; no GitHub writes or Supabase access.
- const [pr,reviews,main]=await Promise.all([
+ const [pr,reviews,main,environment]=await Promise.all([
    getGitHubJson('/pulls/'+EXPECTED_PR,token),
    getGitHubJson('/pulls/'+EXPECTED_PR+'/reviews?per_page=100',token),
-   getGitHubJson('/branches/main',token)
+   getGitHubJson('/branches/main',token),
+   getGitHubJson('/environments/'+EXPECTED_ENVIRONMENT,token)
  ]);
  const approved=verifyIndependentReleaseGate({pr,reviews,main,context});
+ const protectedEnvironment=verifyProtectedEnvironment(environment);
  // GitHub's immutable commit API returns the tree SHA for each exact commit.
  const getSourceTree=async sha=>{
    const commit=await getGitHubJson('/git/commits/'+sha,token);
@@ -144,7 +172,7 @@ export async function assertGitHubReleaseGate(env=process.env){
  const [approvedTree,currentTree]=await Promise.all([
    getSourceTree(pr.head.sha),getSourceTree(context.sha)
  ]);
- return {...approved,...verifyPinnedReviewedSource(approvedTree,currentTree)};
+ return {...approved,...protectedEnvironment,...verifyPinnedReviewedSource(approvedTree,currentTree)};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  assertGitHubReleaseGate().then(()=>{
