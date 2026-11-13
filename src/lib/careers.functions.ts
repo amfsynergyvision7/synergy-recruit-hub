@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
+import { requireVerifiedApplicantProofId, parseAtomicApplicationOutcome } from "./public-application-identity";
 
 function maskCompanyName(row: { is_confidential: boolean; clients?: { company_name?: string } | null }): string | null {
   if (row.is_confidential) return null;
@@ -98,9 +99,7 @@ export const submitJobApplication = createServerFn({ method: "POST" })
     // Anonymous application writes use a service-role database client.
     // No feature flag or deployment environment can bypass this review hold.
     assertExternalEffectReleased("public_application");
-    if (!data.verificationId) {
-      throw new Error("Application requires independent identity verification");
-    }
+    const proofId = requireVerifiedApplicantProofId(data.verificationId);
     // Single server-only RPC. No separate service-role candidate/submission
     // writes are possible in this public handler, even if an outer release
     // hold were accidentally removed. The review-only SQL requires a single-
@@ -109,7 +108,7 @@ export const submitJobApplication = createServerFn({ method: "POST" })
     const { data: outcome, error } = await (supabaseAdmin as any).rpc(
       "crm_commit_verified_public_application",
       {
-        p_proof_id: data.verificationId,
+        p_proof_id: proofId,
         p_job_id: data.jobId,
         p_full_name: data.fullName,
         p_email: data.email,
@@ -123,8 +122,6 @@ export const submitJobApplication = createServerFn({ method: "POST" })
       },
     );
     // Never relay the raw PostgREST/trigger error or candidate/submission IDs.
-    if (error || (outcome !== "accepted" && outcome !== "already_applied")) {
-      throw new Error("Application could not be completed securely.");
-    }
-    return { alreadyApplied: outcome === "already_applied" };
+    if (error) throw new Error("Application could not be completed securely.");
+    return parseAtomicApplicationOutcome(outcome);
   });
