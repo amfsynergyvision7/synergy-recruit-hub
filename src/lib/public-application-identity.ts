@@ -24,10 +24,16 @@ export function assertNoAnonymousCandidateCollision(args: {
     throw new Error(blocked);
   }
   if(args.emailMatches.length !== 0) throw new Error(blocked);
+  // A form's free-text phone field must contain an actual comparable number.
+  // Malformed readback cannot establish collision absence.
+  const target = args.normalizedMobile;
+  if(typeof target!=="string" || !/^[0-9]{7,10}$/.test(target) ||
+     args.mobileMatches.some(item => !item || typeof item.mobile!=="string")) {
+    throw new Error(blocked);
+  }
   // Never attach an anonymous application to a record on contact resemblance.
   // The mobile result is only a collision check; no candidate ID is returned.
-  const target = args.normalizedMobile;
-  if(target && args.mobileMatches.some(item => {
+  if(args.mobileMatches.some(item => {
     const raw=item?.mobile;
     const digits=typeof raw==="string" ? raw.replace(/\D/g,"") : "";
     const canonical=digits.length>10?digits.slice(-10):digits;
