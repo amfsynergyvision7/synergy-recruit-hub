@@ -253,3 +253,46 @@ test('BUILD88 one independent change request overrides any other valid approval 
    submitted_at:'2026-11-13T09:30:00Z'};
  assert.throws(()=>verifyIndependentReleaseGate({...x,reviews:[x.reviews[0],veto]}),/Outstanding independent changes-requested/);
 });
+
+
+test('Build89 preseed source checker pins exactly 30 original plus two explicit hardened function hashes',()=>{
+ const sql=readFileSync(new URL('./build89-hosted-preseed-two-hardenings.readonly.sql',import.meta.url),'utf8');
+ assert.match(sql,/Build89 nonproduction preseed: READ ONLY/);
+ assert.match(sql,/source exact|source-pinned|source hashes/i);
+ assert.match(sql,/0b3f5aefd663dae047d866fddc805c96/);
+ assert.match(sql,/1966ef60466b78a94bd0f700a8ae9468/);
+ assert.match(sql,/f0e8035858775f92d6d3077f11a02fe8/);
+ assert.match(sql,/553468e85bd324fcd4f3153321dc1d70/);
+ assert.match(sql,/safe_hardened_function_variants=2/);
+ assert.match(sql,/approved_source_or_hardened_app_triggers=32/);
+ assert.match(sql,/auth_user_hooks=0 AND auth_user_count=0/);
+ assert.match(sql,/not_disabled_app_triggers=0/);
+ assert.match(sql,/search_path=""/);
+ assert.match(sql,/NOT has_function_privilege\('anon'/);
+ assert.match(sql,/NOT has_function_privilege\('authenticated'/);
+ assert.match(sql,/TECHNICAL_PRESEED_30_EXACT_PLUS_2_HARDENED_PASS_NOT_PROVISIONING_PERMISSION/);
+ assert(!/\b(?:CREATE|ALTER|DROP|GRANT|REVOKE|TRUNCATE)\s+(?:TABLE|SCHEMA|ROLE|FUNCTION|VIEW)\b/i.test(sql.split('WITH expected_tables')[1]));
+});
+
+test('Build89 historical exact-source verifier remains unchanged and cannot silently accept function hardenings',()=>{
+ const current=readFileSync(new URL('./build89-hosted-preseed-two-hardenings.readonly.sql',import.meta.url),'utf8');
+ const historicHash="0e559d0265e39ff0e099ca1bbe0f784d7c685f7d";
+ assert(current.includes(historicHash));
+ // Historical hashes appear in the comment only; only exact reviewed
+ // hardened hashes are accepted in the executable expected-triggers CTE.
+ const query=current.split('WITH expected_tables')[1];
+ assert(!query.includes("'e400aad0d20359265b58d9718d4f48a4'"));
+ assert(!query.includes("'86c1f9eb50c225a673ae61e82d4e7397'"));
+ assert(query.includes("'0b3f5aefd663dae047d866fddc805c96'"));
+ assert(query.includes("'1966ef60466b78a94bd0f700a8ae9468'"));
+ assert(query.includes("ELSE 'HOLD_NONPROD_PRESEED_SCHEMA_TRIGGER_AUTH_OR_GRANTS'"));
+});
+
+test('Build89 hardened checker is a technical preseed only; it never creates a real UAT account',()=>{
+ const sql=readFileSync(new URL('./build89-hosted-preseed-two-hardenings.readonly.sql',import.meta.url),'utf8');
+ const runner=readFileSync(new URL('./run-once.mjs',import.meta.url),'utf8');
+ assert(sql.includes("NOT_PROVISIONING_PERMISSION"));
+ assert(runner.includes("validateSnapshot(before,'EMPTY')"));
+ assert(runner.includes("preflightAttested"));
+ assert(!sql.includes('auth.admin.createUser'));
+});
