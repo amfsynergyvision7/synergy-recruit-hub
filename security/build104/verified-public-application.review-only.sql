@@ -66,11 +66,12 @@ BEGIN
       OR p_experience_years IS NOT NULL AND (p_experience_years < 0 OR p_experience_years > 60)
       OR p_expected_salary IS NOT NULL AND p_expected_salary < 0
       OR p_notice_period IS NOT NULL AND pg_catalog.length(p_notice_period) > 100
-      -- A service-role caller cannot bypass the server-side HTTPS resume
-      -- validation or inject a script/file/loopback link into CRM records.
+      -- Enforce URL scheme/domain constraints even for direct service RPCs.
       OR (p_resume_url IS NOT NULL AND (
            pg_catalog.length(p_resume_url) > 2048
-           OR p_resume_url !~* '^https://[a-z0-9][a-z0-9.-]*\\.[a-z]{2,}([/?#][^[:space:][:cntrl:]]*)?
+           OR p_resume_url !~* '^https://[a-z0-9][a-z0-9.-]*\.[a-z]{2,}([/?#][^[:space:][:cntrl:]]*)?$'
+           OR p_resume_url LIKE '%..%'
+         ))
       OR p_cover_note IS NOT NULL AND pg_catalog.length(p_cover_note) > 2000
   THEN
     RAISE EXCEPTION 'Application unavailable' USING ERRCODE='22023';
