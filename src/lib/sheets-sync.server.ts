@@ -141,42 +141,14 @@ export async function getSavedGoogleIntegration(opts: { backfillLegacy?: boolean
   const { data, error } = await query.maybeSingle();
   if (error) throw new Error(formatSupabaseError("Load Google integration settings failed", error));
   if (data) return data as GoogleIntegrationSettings;
-  // Read paths never silently copy legacy integration settings or enable sync.
-  if (opts.backfillLegacy !== true) return null;
-  assertExternalEffectReleased("integration_configuration");
-  if (!opts.userId) return null;
-
-  const { data: legacy, error: legacyError } = await supabaseAdmin
-    .from("integrations")
-    .select("*")
-    .eq("module", "candidates")
-    .maybeSingle();
-  if (legacyError) throw legacyError;
-  if (!legacy?.sheet_url && !legacy?.spreadsheet_id) return null;
-
-  const spreadsheetId = legacy.spreadsheet_id || (legacy.sheet_url ? extractSpreadsheetId(legacy.sheet_url) : null);
-  const payload = {
-    user_id: opts.userId,
-    sheet_url: legacy.sheet_url,
-    spreadsheet_id: spreadsheetId,
-    sheet_name: legacy.sheet_name || "Form Responses 1",
-    header_row: legacy.header_row || 1,
-    auto_sync_enabled: !!legacy.auto_sync,
-    sync_frequency_minutes: 2,
-    last_sync: legacy.last_sync_at,
-    last_synced_row: legacy.last_synced_row || 1,
-    connection_status: spreadsheetId ? "configured" : "not_configured",
-    column_mapping: legacy.column_mapping ?? {},
-    last_error: legacy.last_error ?? null,
-  };
-
-  const { data: inserted, error: insertError } = await (supabaseAdmin as any)
-    .from("google_integrations")
-    .upsert(payload, { onConflict: "user_id" })
-    .select("*")
-    .single();
-  if (insertError) throw new Error(formatSupabaseError("Backfill Google integration settings failed", insertError));
-  return inserted as GoogleIntegrationSettings;
+  // Legacy `public.integrations` is an OWNERLESS table (no user_id).
+  // Reassigning its historical sheet URL, credentials or mappings to any
+  // currently signed-in admin would transfer another user's configuration.
+  // No automatic backfill is safe without a separate reviewed owner mapping.
+  if (opts.backfillLegacy === true) {
+    throw new Error("Legacy Sheets integration requires independently reviewed owner mapping");
+  }
+  return null;
 }
 
 export async function saveGoogleIntegrationSettings(input: {
@@ -191,7 +163,7 @@ export async function saveGoogleIntegrationSettings(input: {
 }) {
   assertExternalEffectReleased("integration_configuration");
   if (!input.user_id) throw new Error("Missing user_id for Google integration settings");
-  const current = await getSavedGoogleIntegration({ backfillLegacy: true, userId: input.user_id });
+  const current = await getSavedGoogleIntegration({ backfillLegacy: false, userId: input.user_id });
   const spreadsheetId = input.sheet_url ? extractSpreadsheetId(input.sheet_url) : null;
   if (input.sheet_url && !spreadsheetId) {
     throw new Error("Invalid Google Sheet URL — must look like https://docs.google.com/spreadsheets/d/<ID>/edit");
