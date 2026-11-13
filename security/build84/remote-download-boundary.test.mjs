@@ -121,3 +121,15 @@ test('Build84 Gemini and Drive API response size limits and no-redirect policy a
  assert(drive.includes('maxRedirects: 0'));
  assert(!drive.includes('const message = data?.error?.message'));
 });
+
+
+test('Build84 Drive folder traversal cannot use arbitrary URL, infinite pages or cyclic tokens',()=>{
+ const drive=readFileSync(new URL('../../src/lib/drive-import.server.ts',import.meta.url),'utf8');
+ assert(drive.includes('url.protocol !== "https:" || url.hostname !== "drive.google.com"'));
+ assert(drive.includes('url.port || url.username || url.password'));
+ assert(drive.includes('if (++pageCount > 10)'));
+ assert(drive.includes('seenTokens.has(pageToken)'));
+ assert(drive.includes('seenTokens.add(pageToken)'));
+ assert(drive.includes('Drive folder listing exceeded the maximum page count'));
+ assert(drive.includes('Drive folder pagination repeated a token'));
+});
