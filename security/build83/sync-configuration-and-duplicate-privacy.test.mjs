@@ -46,16 +46,26 @@ test('direct low-level candidate sync cannot run with service-role even if cron/
  assert(code.includes('Full-history sync disabled'));
  assert(code.includes('Non-atomic candidate sync disabled'));
 });
-test('integration GET is read-only and disables implicit legacy backfill by default',()=>{
+test('ownerless legacy Sheets configuration cannot silently backfill into a new signed-in admin account',()=>{
  const read=integrations.slice(integrations.indexOf('export const getIntegration'),integrations.indexOf('export const saveIntegration'));
  assert(read.includes('getSavedGoogleIntegration({ backfillLegacy: false, userId: context.userId })'));
  const start=sheets.indexOf('export async function getSavedGoogleIntegration(');
  const end=sheets.indexOf('export async function saveGoogleIntegrationSettings(',start);
  const code=sheets.slice(start,end);
- const conditional=code.indexOf('if (opts.backfillLegacy !== true) return null;');
- const hold=code.indexOf('assertExternalEffectReleased("integration_configuration")');
- const write=code.indexOf('.upsert(payload,');
- assert(conditional>0&&hold>conditional&&write>hold);
+ assert(code.includes('if (!opts.userId) throw new Error("Explicit integration owner required")'));
+ assert(code.includes('.eq("user_id", opts.userId)'));
+ assert(code.includes('if (data) return data as GoogleIntegrationSettings'));
+ assert(code.includes('if (opts.backfillLegacy === true)'));
+ assert(code.includes('Legacy Sheets integration requires independently reviewed owner mapping'));
+ assert(code.includes('return null;'));
+ assert(!code.includes('.from("integrations")'));
+ assert(!code.includes('.upsert('));
+ assert(!code.includes('legacy.sheet_url'));
+ const save=sheets.slice(sheets.indexOf('export async function saveGoogleIntegrationSettings('),
+  sheets.indexOf('export async function saveDetectedHeaders('));
+ assert(save.includes('getSavedGoogleIntegration({ backfillLegacy: false, userId: input.user_id })'));
+ assert(!save.includes('backfillLegacy: true'));
+ assert(save.includes('assertExternalEffectReleased("integration_configuration")'));
 });
 test('integration save and header detection refuse before admin, network or write',()=>{
  const save=integrations.slice(integrations.indexOf('export const saveIntegration'),integrations.indexOf('export const detectHeaders'));
@@ -92,4 +102,23 @@ test('duplicate-candidate full contact scan requires unique active admin before 
  const query=dupes.indexOf('return findDuplicateClusters(context.supabase, context.userId)');
  assert(admin>0&&query>admin);
  assert(!dupes.includes('no extra role gate'));
+});
+
+test('Build96 legacy Sheets ownership cannot be inferred from the service-role or an HTTP session',()=>{
+ const src=file('src/lib/sheets-sync.server.ts');
+ const integrationRead=src.slice(src.indexOf('export async function getSavedGoogleIntegration('),
+   src.indexOf('export async function saveGoogleIntegrationSettings('));
+ const save=src.slice(src.indexOf('export async function saveGoogleIntegrationSettings('),
+   src.indexOf('export async function saveDetectedHeaders('));
+ // No cross-account global table read or implicit source->owner transfer.
+ assert(!integrationRead.includes('.from("integrations")'));
+ assert(!integrationRead.includes('auto_sync_enabled: !!legacy.auto_sync'));
+ assert(!integrationRead.includes('.upsert(payload'));
+ assert(save.includes('user_id: input.user_id'));
+ assert(save.includes('.eq("user_id", input.user_id)'));
+ const routes=file('src/lib/integrations.functions.ts');
+ const h=routes.slice(routes.indexOf('export const saveIntegration'),routes.indexOf('export const detectHeaders'));
+ assert(h.includes('await assertAdminUser(context.userId)'));
+ assert(h.includes('user_id: context.userId'));
+ assert(h.indexOf('await assertAdminUser(context.userId)')<h.indexOf('saveGoogleIntegrationSettings('));
 });
