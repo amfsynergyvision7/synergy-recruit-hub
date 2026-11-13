@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {executionPlan,validateSnapshot,runGuardedHostUat,MANUAL_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
+import {executionPlan,validateSnapshot,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
@@ -79,7 +79,8 @@ test('audit-only mode reads counts and performs zero Auth or CRM writes',async()
 });
 test('write mode refuses a nonempty Auth tenant before account creation or fixture inserts',async()=>{
  const {client,mutated}=fakeClient({...snapshot('EMPTY'),authUsers:1});
- await assert.rejects(runGuardedHostUat({operation:'CREATE_NINE_AND_SEED_38'},client),/Auth/);
+ const guarded=executionPlan({...env(),AMF_UAT_OPERATION:'CREATE_NINE_AND_SEED_38',AMF_UAT_PREFLIGHT_ATTESTATION:PREFLIGHT_CONFIRMATION});
+ await assert.rejects(runGuardedHostUat(guarded,client),/Auth/);
  assert.equal(mutated(),false);
 });
 test('no public endpoint, automatic schedule, prod secret or prod database source in manual runner',()=>{
@@ -90,6 +91,9 @@ test('no public endpoint, automatic schedule, prod secret or prod database sourc
  assert(workflow.includes("github.actor == 'amfsynergyvision7'"));
  assert(workflow.includes('name: amf-nonprod-auth-review'));
  assert(workflow.includes('AMF_NONPROD_SERVICE_ROLE_KEY'));
+ assert(workflow.includes('preflight_confirmation:'));
+ assert(workflow.includes('AMF_UAT_PREFLIGHT_ATTESTATION:'));
+ assert(workflow.includes('I_REVIEWED_FRESH_NONPROD_SQL_19_EMPTY_ZERO_AUTH_TRIGGERS_GRANTS_POLICIES'));
  assert(workflow.includes('AMF_UAT_PASSWORD_MASTER_SECRET'));
  assert(!workflow.includes('secrets.AMF_UAT_CASE_'));
  assert(!workflow.includes('secrets.SUPABASE_SERVICE_ROLE_KEY'));
@@ -114,4 +118,42 @@ test('nine invalid-domain Auth users and sixteen inert fixtures preserve no real
  assert(fixture.includes("invoice_number:null"));
  assert(fixture.includes("status:'never_run'"));
  assert(fixture.includes('populatedExtendedTables:16'));
+});
+
+
+test('BUILD88 cannot create nine GoTrue users without a separately reviewed, fresh SQL preflight attestation',()=>{
+ const e={...env(),AMF_UAT_OPERATION:'CREATE_NINE_AND_SEED_38'};
+ assert.throws(()=>executionPlan(e),/preflight attestation/);
+ assert.throws(()=>executionPlan({...e,AMF_UAT_PREFLIGHT_ATTESTATION:'I clicked YES'}),/preflight attestation/);
+ const ok=executionPlan({...e,AMF_UAT_PREFLIGHT_ATTESTATION:PREFLIGHT_CONFIRMATION});
+ assert.equal(ok.operation,'CREATE_NINE_AND_SEED_38');
+ assert.equal(ok.credentials.users.length,9);
+});
+test('BUILD88 direct-runner rejects arbitrary operations and missing nonprod credentials without API writes',async()=>{
+ const f=fakeClient();
+ await assert.rejects(runGuardedHostUat({operation:'WRONG'},f.client),/Unknown isolated hosted operation/);
+ await assert.rejects(runGuardedHostUat({operation:'CREATE_NINE_AND_SEED_38'},f.client),/Invalid exact nonproduction synthetic plan/);
+ assert.equal(f.mutated(),false);
+});
+test('BUILD88 read-only SQL preflight inspects all 19 app tables plus Auth triggers, public grants and RLS',()=>{
+ const sql=readFileSync(new URL('./build88-hosted-preflight.readonly.sql',import.meta.url),'utf8');
+ for(const table of Object.keys(expectedTables)){
+   assert(sql.includes('FROM public.'+table),'missing source table '+table);
+ }
+ assert.equal((sql.match(/AS row_count FROM public\./g)||[]).length,19);
+ for(const item of ['FROM auth.users','enabled_auth_user_triggers','enabled_app_triggers',
+  'public_rls_policies','public_tables_with_caller_grants','callable_public_functions',
+  'exposed_public_views','unprotected_public_tables','ready_for_reviewed_synthetic_provisioning']){
+   assert(sql.includes(item),'missing safety audit '+item);
+ }
+ assert(!/\b(?:insert|update|delete|create|drop|alter|truncate)\s+(?:into\s+|from\s+)?(?:public|auth)\./i.test(sql));
+});
+test('BUILD88 GitHub manual workflow requires fresh preflight only for write operation, not audit',()=>{
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ const guard=workflow.slice(workflow.indexOf('  manual_provisioning:'));
+ assert(guard.includes("inputs.operation == 'AUDIT_ONLY' ||"));
+ assert(guard.includes('inputs.preflight_confirmation == '));
+ assert(guard.includes('AMF_UAT_PREFLIGHT_ATTESTATION:'));
+ assert(guard.includes('github.ref == '));
+ assert(!guard.includes('pull_request:'));
 });
