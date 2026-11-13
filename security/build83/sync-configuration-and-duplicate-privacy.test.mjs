@@ -5,6 +5,7 @@ import {assertExternalEffectReleased,isExternalEffectPaused} from '../../src/lib
 import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError,extractApprovedSpreadsheetId,buildSafeSheetValuesPath,approvedCandidateMappingTarget,approvedCandidateHeaderAlias,assertUnambiguousCandidateSheetMapping} from '../../src/lib/sync-safety.ts';
 import {CANDIDATE_FIELDS} from '../../src/lib/candidate-fields.ts';
 import {loadCompleteDuplicateReviewRows,MAX_COMPLETE_DUPLICATE_SCAN,DUPLICATE_SCAN_PAGE_SIZE} from '../../src/lib/duplicate-scan-pagination.ts';
+import { safeResumeHref } from '../../src/lib/safe-resume-link.ts';
 
 const file=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const guard=file('src/lib/external-effects-hold.server.ts');
@@ -498,4 +499,45 @@ test('Build110 second-pass provider failure also suppresses incomplete candidate
  assert(ui.includes('scanVersion: query.dataUpdatedAt'));
  assert(ui.includes('const updateSelected = (apply:'));
  assert(!ui.includes('setSelected((prev)'));
+});
+
+test('Build111 duplicate review never mounts cached admin data across identity or role transitions',()=>{
+ const ui=file('src/routes/_app.duplicates.tsx');
+ const page=ui.slice(ui.indexOf('function Page() {'),ui.indexOf('function AdminDuplicateReview('));
+ const admin=ui.slice(ui.indexOf('function AdminDuplicateReview('));
+ assert(page.includes('const { role, user, profile, loading } = useAuth();'));
+ assert(page.includes('if (loading)'));
+ assert(page.includes('profile.id !== user.id'));
+ assert(page.includes('profile.status !== "approved"'));
+ assert(page.includes('profile.is_active !== true'));
+ assert(page.includes('role !== "admin"'));
+ assert(page.includes('return <AdminDuplicateReview key={user.id} userId={user.id} />;'));
+ assert(!page.includes('useQuery('),'Conditional route wrapper must not invoke account-scoped data hooks');
+ assert(admin.includes('queryKey: ["duplicate-candidates", userId]'));
+ assert(admin.includes('refetchOnMount: "always"'));
+ assert(admin.includes('query.isError || query.isFetching ? undefined : query.data'));
+ assert(!admin.includes('queryKey: ["duplicate-candidates"]'));
+});
+
+test('Build111 legacy resume links are HTTPS-only and cannot be executable or internal',()=>{
+ const good='https://storage.example.org/resumes/safe.pdf?token=a%2Fb';
+ assert.equal(safeResumeHref(good),good);
+ assert.equal(safeResumeHref('https://safe.example.org'),'https://safe.example.org/');
+ for(const bad of [
+   null,undefined,{},'',' https://safe.example.org','https://safe.example.org ',
+   'javascript:alert(1)','data:text/html,<script>bad</script>',
+   'file:///tmp/sample.pdf','http://safe.example.org/resume.pdf',
+   'https://user:password@safe.example.org/resume.pdf',
+   'https://127.0.0.1/resume','https://10.0.0.1/resume',
+   'https://[::1]/resume','https://localhost/resume',
+   'https://corp.internal/resume','https://example.invalid/resume',
+   '//safe.example.org/resume','https://safe.example.org/has space',
+   'https://safe.example.org/\nmalicious'
+ ]) assert.equal(safeResumeHref(bad),null,JSON.stringify(bad));
+ const ui=file('src/routes/_app.duplicates.tsx');
+ assert(ui.includes('const href = safeResumeHref(url);'));
+ assert(ui.includes('if (!href) return null;'));
+ assert(ui.includes('href={href}'));
+ assert(ui.includes('rel="noopener noreferrer"'));
+ assert(!ui.includes('href={m.resume_url}'));
 });

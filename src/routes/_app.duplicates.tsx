@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { scanForDuplicateCandidates } from "@/lib/duplicates.functions";
 import { buildDuplicateReviewCSV } from "@/lib/duplicate-review-export";
+import { safeResumeHref } from "@/lib/safe-resume-link";
 import type { DuplicateCluster, DuplicateMatchReason } from "@/lib/duplicates.server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,21 @@ function formatDate(value: string) {
   } catch {
     return value;
   }
+}
+
+function SafeResumeLink({ url }: { url: unknown }) {
+  const href = safeResumeHref(url);
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-2"
+    >
+      Resume <ExternalLink className="h-3 w-3" />
+    </a>
+  );
 }
 
 function ClusterCard({
@@ -106,16 +122,7 @@ function ClusterCard({
                   <span>{m.source || "Manual"}</span>
                   <span>· Added {formatDate(m.created_at)}</span>
                 </div>
-                {m.resume_url && (
-                  <a
-                    href={m.resume_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-2"
-                  >
-                    Resume <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
+                {m.resume_url && <SafeResumeLink url={m.resume_url} />}
               </div>
             </div>
           ))}
@@ -126,15 +133,23 @@ function ClusterCard({
 }
 
 function Page() {
-  const { role } = useAuth();
+  const { role, user, profile, loading } = useAuth();
 
-  if (role && role !== "admin") {
+  // Do not mount candidate-contact queries while the auth context is loading
+  // or the profile belongs to a previous signed-in account. A server-side
+  // approved+active unique-admin check still runs before candidate reads.
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">Checking duplicate-review access…</div>;
+  }
+  if (!user || !profile || profile.id !== user.id ||
+      profile.status !== "approved" || profile.is_active !== true ||
+      role !== "admin") {
     return (
       <div className="max-w-2xl">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Admin only</AlertTitle>
-          <AlertDescription>The duplicate-candidate cleanup tool is restricted to administrators.</AlertDescription>
+          <AlertDescription>The duplicate-candidate review is restricted to active, approved administrators.</AlertDescription>
         </Alert>
         <Button asChild variant="outline" className="mt-4">
           <Link to="/settings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Settings</Link>
@@ -143,9 +158,15 @@ function Page() {
     );
   }
 
+  // Unmount old account state and selections on identity changes.
+  return <AdminDuplicateReview key={user.id} userId={user.id} />;
+}
+
+function AdminDuplicateReview({ userId }: { userId: string }) {
   const runScan = useServerFn(scanForDuplicateCandidates);
   const query = useQuery({
-    queryKey: ["duplicate-candidates"],
+    queryKey: ["duplicate-candidates", userId],
+    refetchOnMount: "always",
     queryFn: () => runScan(),
     staleTime: 0,
   });
