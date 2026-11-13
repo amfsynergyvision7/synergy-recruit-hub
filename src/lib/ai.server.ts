@@ -57,20 +57,18 @@ async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>)
   let data: any;
   try { data = JSON.parse(text); } catch { data = text; }
   if (!res.ok) {
-    throw new Error(`Gemini API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+    // Provider errors may echo private candidate prompts or resume excerpts.
+    // Keep a bounded numeric status code; do not return/log upstream content.
+    throw new Error(`Gemini request failed (HTTP ${res.status})`);
   }
   const outputText = extractOutputText(data);
   if (!outputText) {
-    // Include a slice of the raw response so this is debuggable in one shot
-    // if Google's response shape ever drifts again, instead of a dead-end
-    // generic message.
-    const preview = typeof data === "string" ? data : JSON.stringify(data);
-    throw new Error(`Gemini returned no recognizable output. Raw response: ${preview.slice(0, 500)}`);
+    throw new Error("Gemini returned an unsupported response format");
   }
   try {
     return JSON.parse(outputText) as T;
   } catch {
-    throw new Error(`Gemini returned a response that wasn't valid JSON: ${outputText.slice(0, 500)}`);
+    throw new Error("Gemini returned invalid structured JSON");
   }
 }
 
