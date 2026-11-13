@@ -302,6 +302,8 @@ test('Build108 resume URL accepts ordinary public HTTPS links and rejects execut
  const sql=file('security/build104/verified-public-application.review-only.sql');
  assert(sql.includes("p_resume_url !~* '^https://"));
  assert(sql.includes('p_resume_url LIKE'));
+ assert(sql.includes('private/reserved non-public DNS zones.'));
+ assert(sql.includes("p_resume_url ~* '^https://"));
  assert(sql.includes("RETURNS text"));
  assert(sql.includes('SECURITY DEFINER SET search_path = pg_catalog'));
  assert(!sql.includes('CREATE OR REPLACE FUNCTION public.crm_commit_verified_public_application'));
