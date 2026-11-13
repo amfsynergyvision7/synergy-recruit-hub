@@ -148,5 +148,6 @@ test('Build103 public careers handler never uses an unverified contact lookup as
  assert(!apply.includes('return { alreadyApplied: true }'));
  assert(!apply.includes('throw new Error(emailError.message)'));
  assert(!apply.includes('throw new Error(mobileError.message)'));
- assert(!apply.includes('public_application may be released.'));
+ assert(apply.includes('an atomic candidate+submission transaction before'));
+ assert(apply.includes('public_application may be released. This code is draft/held.'));
 });
