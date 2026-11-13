@@ -1,42 +1,23 @@
 /**
- * Public careers applications are unauthenticated. A supplied email address
- * or phone number is not evidence of ownership of an existing CRM candidate.
- * Never link anonymous form input to a pre-existing candidate or disclose its ID.
- *
- * These checks do NOT verify a new applicant's identity. The independent
- * public_application release hold remains mandatory pending a proper
- * verified-identity, anti-abuse and atomic-write workflow.
+ * Pure fail-closed boundary for the future independently verified applicant
+ * workflow. Build104 has NO proof issuer, rate limiter or public activation.
+ * A contact email/mobile alone must never authorize an existing CRM record.
  */
-export function assertNoAnonymousCandidateCollision(args: {
-  emailMatches: readonly unknown[] | null;
-  emailError?: unknown;
-  mobileMatches: readonly { mobile?: unknown }[] | null;
-  mobileError?: unknown;
-  normalizedMobile?: string | null;
-  mobileProbeLimit: number;
-}): void {
-  const blocked = "Application requires independent identity verification";
-  if(args.emailError || args.mobileError ||
-    !Array.isArray(args.emailMatches) || !Array.isArray(args.mobileMatches) ||
-    !Number.isSafeInteger(args.mobileProbeLimit) ||
-    args.mobileProbeLimit < 2 ||
-    args.mobileMatches.length >= args.mobileProbeLimit) {
-    throw new Error(blocked);
+const PUBLIC_APPLICATION_ERROR = "Application could not be completed securely.";
+const PUBLIC_VERIFICATION_ERROR = "Application requires independent identity verification";
+
+export function requireVerifiedApplicantProofId(value: unknown): string {
+  // Proof IDs come from independent high-entropy v4 issuance, not contacts.
+  if (typeof value !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+    throw new Error(PUBLIC_VERIFICATION_ERROR);
   }
-  if(args.emailMatches.length !== 0) throw new Error(blocked);
-  // A form's free-text phone field must contain an actual comparable number.
-  // Malformed readback cannot establish collision absence.
-  const target = args.normalizedMobile;
-  if(typeof target!=="string" || !/^[0-9]{7,10}$/.test(target) ||
-     args.mobileMatches.some(item => !item || typeof item.mobile!=="string")) {
-    throw new Error(blocked);
-  }
-  // Never attach an anonymous application to a record on contact resemblance.
-  // The mobile result is only a collision check; no candidate ID is returned.
-  if(args.mobileMatches.some(item => {
-    const raw=item?.mobile;
-    const digits=typeof raw==="string" ? raw.replace(/\D/g,"") : "";
-    const canonical=digits.length>10?digits.slice(-10):digits;
-    return canonical===target;
-  })) throw new Error(blocked);
+  return value;
+}
+
+/** Never return internal database candidate/submission IDs or SQL errors. */
+export function parseAtomicApplicationOutcome(value: unknown): { alreadyApplied: boolean } {
+  if (value === "accepted") return { alreadyApplied: false };
+  if (value === "already_applied") return { alreadyApplied: true };
+  throw new Error(PUBLIC_APPLICATION_ERROR);
 }
