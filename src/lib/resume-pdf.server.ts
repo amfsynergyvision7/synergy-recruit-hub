@@ -15,6 +15,7 @@
 // packaging and isn't worth it for a prototype-phase, free-tier app.
 import PDFDocument from "pdfkit";
 import type { ClientResumeStructured } from "./ai.server";
+import { downloadRemoteBounded, isTrustedSupabaseLogoUrl } from "./safe-remote-download.server";
 
 const PAGE_MARGIN = 50;
 const ACCENT = "#7a3fe0"; // CRM's default (Neon) theme primary — a reasonable
@@ -38,13 +39,28 @@ export interface ClientResumePdfInput {
 // the PDF letterhead. Never throws — a broken/unreachable logo URL degrades
 // to a text-only letterhead rather than failing the whole PDF generation.
 export async function fetchLogoBuffer(logoUrl: string | null): Promise<Buffer | null> {
-  if (!logoUrl) return null;
+  // A configurable letterhead URL must never become a general-purpose
+  // server-side HTTP proxy (SSRF). Only this deployment's own public
+  // Supabase Storage objects may supply an optional logo.
+  const projectUrl = process.env.SUPABASE_URL;
+  if (!isTrustedSupabaseLogoUrl(logoUrl, projectUrl)) return null;
   try {
-    const res = await fetch(logoUrl);
-    if (!res.ok) return null;
-    const arrayBuffer = await res.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    const allowedHost = new URL(projectUrl!).hostname;
+    const { body, contentType } = await downloadRemoteBounded(logoUrl!, {
+      allowedHost: (host) => host === allowedHost,
+      maxBytes: 512 * 1024,
+      timeoutMs: 5000,
+      maxRedirects: 0,
+    });
+    const magic = body.subarray(0, 8);
+    const isPng = magic.equals(Buffer.from([137,80,78,71,13,10,26,10]));
+    const isJpeg = magic[0] === 0xff && magic[1] === 0xd8 && magic[2] === 0xff;
+    if (!isPng && !isJpeg) return null;
+    if (contentType && !/^image\/(?:png|jpeg|jpg)(?:\s*;|$)/i.test(contentType)) return null;
+    return body;
   } catch {
+    // Failure or unapproved logo URL degrades to a text-only letterhead.
+    // Never return raw provider errors or network diagnostics.
     return null;
   }
 }
