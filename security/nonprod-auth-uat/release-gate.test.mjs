@@ -545,7 +545,7 @@ test('Build95 a complete 9/38 synthetic fixture audit inspects inert billing, sy
   ['interviews','status','scheduled'],
   ['notifications','type','email'],
   ['profiles','is_active',false],
-  ['user_roles','role','admin'],
+  ['user_roles','role','viewer'],
   ['candidates','email','real@example.com'],
   ['candidates','assigned_recruiter','00000000-0000-0000-0000-000000000008']
  ];
