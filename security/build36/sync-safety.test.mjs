@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {uniqueCandidateMatch,reconcileCandidateMatches,escapeIlikeLiteral,advanceContiguousCursor} from '../../src/lib/sync-safety.ts';
+import {uniqueCandidateMatch,reconcileCandidateMatches,escapeIlikeLiteral,advanceContiguousCursor,approvedCandidateMappingTarget,approvedCandidateHeaderAlias} from '../../src/lib/sync-safety.ts';
+import {CANDIDATE_FIELDS} from '../../src/lib/candidate-fields.ts';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const A={id:'A',full_name:'Synthetic A'},B={id:'B',full_name:'Synthetic B'};
 for(const [name,rows,result] of [['missing',null,null],['empty',[],null],['one',[A],A]]) {
@@ -36,4 +37,62 @@ test('matching queries detect duplicate rows rather than choosing latest silentl
  const batch=code.slice(code.indexOf('for (let i = startIdx;'),code.indexOf('result.created = result.rows_created;'));
  assert.equal((batch.match(/\.limit\(2\)/g)||[]).length,2);
  assert.doesNotMatch(batch,/\.limit\(1\)\.maybeSingle\(\)/);
+});
+
+test('Build101 candidate mapping rejects role/id/owner injection and inherited JS prototype keys',()=>{
+ const legacy={position:'position_applied',experience:'experience_years'};
+ const expected=[
+  ['position','position_applied'],['experience','experience_years'],
+  ['full_name','full_name'],['mobile','mobile'],['source','source'],
+  ['email','email'],['notes','notes'],['resume_url','resume_url']
+ ];
+ for(const [input,output] of expected)
+  assert.equal(approvedCandidateMappingTarget(input,legacy,CANDIDATE_FIELDS),output);
+ for(const input of ['__proto__','constructor','toString','hasOwnProperty',
+  'id','user_id','assigned_recruiter','stage','status','created_at','created_source',
+  'auth_uid','role','is_active','client_id','billing','profile_id',
+  null,undefined,42,{},[],false]){
+   assert.equal(approvedCandidateMappingTarget(input,legacy,CANDIDATE_FIELDS),undefined,
+    'Unauthorized DB field: '+String(input));
+ }
+ const inherited=Object.create({role:'full_name',constructor:'full_name'});
+ assert.equal(approvedCandidateMappingTarget('role',inherited,CANDIDATE_FIELDS),undefined);
+ assert.equal(approvedCandidateMappingTarget('constructor',inherited,CANDIDATE_FIELDS),undefined);
+ const malicious={position:'user_id'};
+ assert.equal(approvedCandidateMappingTarget('position',malicious,CANDIDATE_FIELDS),undefined);
+});
+test('Build101 spreadsheet auto-header aliases allow only own, approved mapped fields',()=>{
+ const aliases={'full name':'full_name','e-mail':'email','mobile':'mobile',role:'position_applied'};
+ for(const [header,field] of [
+  [' FULL NAME ','full_name'],['E-Mail','email'],['Mobile','mobile'],
+  ['ROLE','position_applied']])
+  assert.equal(approvedCandidateHeaderAlias(header,aliases,CANDIDATE_FIELDS),field);
+ for(const label of ['constructor','__proto__','toString','valueOf','hasOwnProperty',
+  'user_id','assigned_recruiter','id','created_source','email'.repeat(130),
+  '',null,undefined,{},42]){
+  assert.equal(approvedCandidateHeaderAlias(label,aliases,CANDIDATE_FIELDS),undefined,
+   'Untrusted label: '+String(label));
+ }
+ const polluted=Object.create({email:'email'});
+ assert.equal(approvedCandidateHeaderAlias('email',polluted,CANDIDATE_FIELDS),undefined);
+ const unsafe={'full name':'user_id'};
+ assert.equal(approvedCandidateHeaderAlias('full name',unsafe,CANDIDATE_FIELDS),undefined);
+});
+test('Build101 live importer uses strict mapping helpers and every privileged integration write is owner fenced',()=>{
+ const code=readFileSync(resolve(root,'src/lib/sheets-sync.server.ts'),'utf8');
+ assert(code.includes('approvedCandidateMappingTarget(field, LEGACY_FIELD_NAMES, CANDIDATE_FIELDS)'));
+ assert(code.includes('approvedCandidateHeaderAlias(h, FIELD_ALIASES, CANDIDATE_FIELDS)'));
+ assert(code.includes('CANDIDATE_FIELDS.includes(field as typeof CANDIDATE_FIELDS[number])'));
+ const start=code.indexOf('async function runCandidateSyncUnsafe(');
+ const end=code.indexOf('export async function fetchHeaders(',start);
+ const section=code.slice(start,end);
+ assert(start>0&&end>start);
+ const writes=[...section.matchAll(/\.eq\("id", integ\.id\)([^;]*);/g)];
+ assert.equal(writes.length,5,'All five integration write sites must be inspected');
+ for(const match of writes)
+  assert(match[1].includes('.eq("user_id", opts.userId)'),'Missing owner filter on integration update');
+ const owner=section.indexOf('integ.user_id !== opts.userId');
+ const sheetRead=section.indexOf('fetchSheetValues(integ.spreadsheet_id, sheetName)');
+ assert(owner>0&&sheetRead>owner);
+ assert(!section.includes('.eq("id", integ.id);'));
 });
