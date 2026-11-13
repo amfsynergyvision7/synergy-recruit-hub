@@ -54,7 +54,21 @@ export function redactSyncErrors(value: unknown): {row:number; message:string}[]
   });
 }
 
-export function sanitizeStoredSyncLogs(value: unknown): Record<string,unknown>[] {
+export interface SanitizedCandidateSyncLog {
+  id: string | null;
+  module: "candidates" | "other";
+  triggered_by: "manual" | "scheduled" | "cron" | "other";
+  rows_scanned: number;
+  rows_created: number;
+  rows_updated: number;
+  rows_skipped: number;
+  errors: {row:number; message:string}[];
+  status: "success" | "partial" | "error" | "unknown";
+  message: string;
+  created_at: string | null;
+}
+
+export function sanitizeStoredSyncLogs(value: unknown): SanitizedCandidateSyncLog[] {
   if (!Array.isArray(value)) throw new Error("Sync-log readback unavailable");
   return value.map((item: unknown) => {
     if (!item || typeof item !== "object" || Array.isArray(item))
@@ -65,13 +79,16 @@ export function sanitizeStoredSyncLogs(value: unknown): Record<string,unknown>[]
     const rows_created=safeSyncCount(entry.rows_created);
     const rows_updated=safeSyncCount(entry.rows_updated);
     const rows_skipped=safeSyncCount(entry.rows_skipped);
-    const status = ["success","partial","error"].includes(String(entry.status))
-      ? entry.status : "unknown";
+    const status: SanitizedCandidateSyncLog["status"] =
+      entry.status === "success" || entry.status === "partial" || entry.status === "error"
+        ? entry.status : "unknown";
+    const triggered_by: SanitizedCandidateSyncLog["triggered_by"] =
+      entry.triggered_by === "manual" || entry.triggered_by === "scheduled" || entry.triggered_by === "cron"
+        ? entry.triggered_by : "other";
     return {
       id: typeof entry.id === "string" && /^[0-9a-f-]{36}$/i.test(entry.id) ? entry.id : null,
       module: entry.module === "candidates" ? "candidates" : "other",
-      triggered_by: ["manual","scheduled","cron"].includes(String(entry.triggered_by))
-        ? entry.triggered_by : "other",
+      triggered_by,
       rows_scanned,rows_created,rows_updated,rows_skipped,
       errors,status,
       message: "Sync record available; provider diagnostics redacted",
