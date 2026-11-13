@@ -19,8 +19,17 @@ assert(baseline.includes('CREATE FUNCTION public.crm_commit_verified_public_appl
 assert(!baseline.includes('ROLLBACK;'));
 const fixture=`
 -- Synthetic fixtures and a deterministic overlapping candidate write.
-INSERT INTO public.job_openings(id,job_title,status,open_positions)
-VALUES('11111111-1111-4111-8111-111111111111','Synthetic Concurrency Role','open',1);
+INSERT INTO public.job_openings(id,job_title,status,open_positions,assigned_recruiter)
+VALUES('11111111-1111-4111-8111-111111111111','Synthetic Concurrency Role','open',1,
+       'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+INSERT INTO public.workflow_rules(
+ id,name,table_name,field_name,field_value,action_type,notify_target,
+ notify_title,notify_message,is_active
+) VALUES(
+ 'dddddddd-dddd-4ddd-8ddd-dddddddddddd','Build107 synthetic notification',
+ 'candidates','stage','submitted_to_client','notify','assigned_recruiter',
+ 'Candidate: {{full_name}}','Applicant stage transitioned: {{value}}',true
+);
 
 INSERT INTO crm_private.verified_public_applications(
  proof_id,job_id,verified_email,verified_mobile,email_verified_at,mobile_verified_at,expires_at
