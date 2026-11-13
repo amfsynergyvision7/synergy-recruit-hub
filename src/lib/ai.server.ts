@@ -1,5 +1,6 @@
 import { fetchResumeText } from "./resume-fetch.server";
 import { readResponseTextBounded } from "./safe-remote-download.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 
 // Server-only Gemini API access. GEMINI_API_KEY must be set as a server
 // environment variable (Vercel project settings, same place SUPABASE_URL /
@@ -41,6 +42,9 @@ function extractOutputText(data: any): string | undefined {
 }
 
 async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>): Promise<T> {
+  // Build85: secure the low-level caller too, not only its server-function endpoint.
+  // Reject before candidate DB reads, provider secrets, or outbound requests.
+  assertExternalEffectReleased("candidate_ai_processing");
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured. Add it as an environment variable and redeploy.");
@@ -187,6 +191,9 @@ export interface CandidateMatch {
 }
 
 export async function matchCandidatesToJob(supabase: any, jobId: string) {
+  // Build85: secure the low-level caller too, not only its server-function endpoint.
+  // Reject before candidate DB reads, provider secrets, or outbound requests.
+  assertExternalEffectReleased("candidate_ai_processing");
   const { data: job, error: jobError } = await supabase
     .from("job_openings")
     .select("id, job_title, location, salary_min, salary_max, priority, description, requirements")
@@ -277,6 +284,9 @@ export interface DeepCandidateMatch {
 }
 
 export async function matchCandidateResume(supabase: any, jobId: string, candidateId: string) {
+  // Build85: secure the low-level caller too, not only its server-function endpoint.
+  // Reject before candidate DB reads, provider secrets, or outbound requests.
+  assertExternalEffectReleased("candidate_ai_processing");
   const { data: job, error: jobError } = await supabase
     .from("job_openings")
     .select("id, job_title, location, salary_min, salary_max, priority, description, requirements")
@@ -345,6 +355,9 @@ function buildResumeSummaryPrompt(candidateName: string, resumeText: string): st
 // triggered by a "Generate Resume Summary" button — never runs automatically
 // on save, since a resume fetch + Gemini call has a real, visible cost.
 export async function generateResumeSummary(supabase: any, candidateId: string) {
+  // Build85: secure the low-level caller too, not only its server-function endpoint.
+  // Reject before candidate DB reads, provider secrets, or outbound requests.
+  assertExternalEffectReleased("candidate_ai_processing");
   const { data: candidate, error } = await supabase
     .from("candidates")
     .select("id, full_name, resume_url")
@@ -435,6 +448,9 @@ function cleanNumber(value: unknown): number | null {
 // once this session (see extractOutputText), so this never trusts a raw
 // field's type without checking it first.
 export async function extractCandidateFieldsFromResume(resumeText: string): Promise<ExtractedCandidateFields> {
+  // Build85: secure the low-level caller too, not only its server-function endpoint.
+  // Reject before candidate DB reads, provider secrets, or outbound requests.
+  assertExternalEffectReleased("candidate_ai_processing");
   const raw = await callGeminiJSON<Record<string, unknown>>(
     buildCandidateExtractPrompt(resumeText),
     CANDIDATE_EXTRACT_SCHEMA,
@@ -508,6 +524,9 @@ export interface AtsScoreResult {
 // generateResumeSummary above: a resume fetch + Gemini call has a real,
 // visible cost, so this only runs from a "Check ATS Score" button.
 export async function generateCandidateAtsScore(supabase: any, candidateId: string): Promise<{ result: AtsScoreResult; resumeText: string }> {
+  // Build85: secure the low-level caller too, not only its server-function endpoint.
+  // Reject before candidate DB reads, provider secrets, or outbound requests.
+  assertExternalEffectReleased("candidate_ai_processing");
   const { data: candidate, error } = await supabase
     .from("candidates")
     .select("id, full_name, resume_url")
@@ -621,6 +640,9 @@ export interface ClientResumeStructured {
 // schema in this file; resume-pdf.server.ts owns only the PDF-drawing code,
 // same split as drive-import.server.ts/ai.server.ts for the bulk-import flow.
 export async function restructureResumeForClient(supabase: any, candidateId: string): Promise<{ candidate: any; resumeText: string; resume: ClientResumeStructured }> {
+  // Build85: secure the low-level caller too, not only its server-function endpoint.
+  // Reject before candidate DB reads, provider secrets, or outbound requests.
+  assertExternalEffectReleased("candidate_ai_processing");
   const { data: candidate, error } = await supabase
     .from("candidates")
     .select("id, full_name, email, mobile, location, position_applied, current_company, experience_years, resume_url")
