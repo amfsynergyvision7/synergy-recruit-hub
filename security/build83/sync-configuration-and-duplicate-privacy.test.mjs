@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {assertExternalEffectReleased,isExternalEffectPaused} from '../../src/lib/external-effects-hold.server.ts';
-import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError,extractApprovedSpreadsheetId,buildSafeSheetValuesPath} from '../../src/lib/sync-safety.ts';
+import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError,extractApprovedSpreadsheetId,buildSafeSheetValuesPath,approvedCandidateMappingTarget,approvedCandidateHeaderAlias} from '../../src/lib/sync-safety.ts';
+import {CANDIDATE_FIELDS} from '../../src/lib/candidate-fields.ts';
 
 const file=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const guard=file('src/lib/external-effects-hold.server.ts');
@@ -313,4 +314,26 @@ test('Build100 credentialed Sheets gateway has bounded JSON streaming, zero redi
  assert(headersSource.includes('.eq("id", integration.id).eq("user_id", integration.user_id)'));
  assert(headersSource.includes('assertExternalEffectReleased("integration_configuration")'));
  assert(!headersSource.includes('console.log'));
+});
+
+test('Build101 fast guard: untrusted Sheet aliases cannot inject CRM owner, role or status fields',()=>{
+ const legacy={experience:'experience_years',position:'position_applied'};
+ const headers={'full name':'full_name',email:'email',role:'position_applied'};
+ assert.equal(approvedCandidateMappingTarget('experience',legacy,CANDIDATE_FIELDS),'experience_years');
+ assert.equal(approvedCandidateHeaderAlias(' FULL NAME ',headers,CANDIDATE_FIELDS),'full_name');
+ for(const forbidden of ['__proto__','constructor','toString','valueOf','user_id','id',
+  'role','status','stage','created_source','assigned_recruiter','is_active',null,{},1]){
+  assert.equal(approvedCandidateMappingTarget(forbidden,legacy,CANDIDATE_FIELDS),undefined);
+  assert.equal(approvedCandidateHeaderAlias(forbidden,headers,CANDIDATE_FIELDS),undefined);
+ }
+ const code=file('src/lib/sheets-sync.server.ts');
+ assert(code.includes('approvedCandidateHeaderAlias(h, FIELD_ALIASES, CANDIDATE_FIELDS)'));
+ assert(code.includes('approvedCandidateMappingTarget(field, LEGACY_FIELD_NAMES, CANDIDATE_FIELDS)'));
+ const allWrites=[...code.matchAll(/\.eq\("id", integ\.id\)([^;]*);/g)];
+ assert.equal(allWrites.length,4);
+ assert(allWrites.every(m=>m[1].includes('.eq("user_id", opts.userId)')));
+ const start=code.indexOf('async function runCandidateSyncUnsafe(');
+ const end=code.indexOf('export async function fetchHeaders(',start);
+ const unsafe=code.slice(start,end);
+ assert(unsafe.indexOf('integ.user_id !== opts.userId')<unsafe.indexOf('fetchSheetValues(integ.spreadsheet_id, sheetName)'));
 });
