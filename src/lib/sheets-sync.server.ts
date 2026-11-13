@@ -68,7 +68,9 @@ async function gw(path: string, init?: RequestInit) {
   });
   const text = await res.text();
   let data: any; try { data = JSON.parse(text); } catch { data = text; }
-  if (!res.ok) throw new Error(`Sheets API ${res.status}: ${typeof data === "string" ? data : JSON.stringify(data)}`);
+  // Never echo provider response bodies. Upstream errors can include CRM
+  // candidate rows, access headers, private sheet identifiers or diagnostics.
+  if (!res.ok) throw new Error(`Sheets API request failed (HTTP ${res.status})`);
   return data;
 }
 
