@@ -163,6 +163,15 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: bash security/build38/run_database_contracts.sh
+      - name: Validate Build80 135-case real RLS in disposable PostgreSQL17 with unconditional rollback
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build80_policy_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -f security/build80/pg17-135-read-rehearsal.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -c "SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='r'")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated')")" = "0"
+          dropdb -h localhost -U postgres amf_build80_policy_lab
   expanded-public-security-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 14
