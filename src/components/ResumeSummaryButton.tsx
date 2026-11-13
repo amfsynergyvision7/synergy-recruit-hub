@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { generateCandidateResumeSummary } from "@/lib/ai.functions";
+import { safeResumeHref } from "@/lib/safe-resume-link";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,6 +37,7 @@ export function ResumeSummaryButton({ candidateId, fullName, resumeUrl, resumeSu
   }
 
   const resumeTextPreview = (genMut.data as { resumeText: string } | undefined)?.resumeText;
+  const safeHref = safeResumeHref(resumeUrl);
 
   return (
     <>
@@ -51,14 +53,18 @@ export function ResumeSummaryButton({ candidateId, fullName, resumeUrl, resumeSu
           </DialogHeader>
 
           <div className="space-y-3 text-sm">
-            <a
-              href={resumeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-primary underline underline-offset-2"
-            >
-              Open resume in Drive <ExternalLink className="h-3 w-3" />
-            </a>
+            {safeHref ? (
+              <a
+                href={safeHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary underline underline-offset-2"
+              >
+                Open resume <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground">Stored resume link requires review before opening.</p>
+            )}
 
             {genMut.isPending && (
               <div className="space-y-2">

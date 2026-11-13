@@ -541,3 +541,14 @@ test('Build111 legacy resume links are HTTPS-only and cannot be executable or in
  assert(ui.includes('rel="noopener noreferrer"'));
  assert(!ui.includes('href={m.resume_url}'));
 });
+
+test('Build111 candidate summary dialog cannot render a raw legacy resume URL',()=>{
+ const ui=file('src/components/ResumeSummaryButton.tsx');
+ assert(ui.includes('import { safeResumeHref } from "@/lib/safe-resume-link";'));
+ assert(ui.includes('const safeHref = safeResumeHref(resumeUrl);'));
+ assert(ui.includes('{safeHref ? ('));
+ assert(ui.includes('href={safeHref}'));
+ assert(!ui.includes('href={resumeUrl}'));
+ assert(ui.includes('rel="noopener noreferrer"'));
+ assert(ui.includes('Stored resume link requires review before opening.'));
+});
