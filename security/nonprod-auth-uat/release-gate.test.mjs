@@ -195,7 +195,7 @@ test('unprotected or advanced main, wrong actor, nonmanual trigger, wrong repo o
   {...x,context:{...x.context,sha:'invalid'}}
  ];
  for(const item of overrides)
-  assert.throws(()=>verifyIndependentReleaseGate(item),/trusted manual|protected/);
+  assert.throws(()=>verifyIndependentReleaseGate(item),/trusted manual|protected/i);
 });
 test('unmerged/wrong PR, unreviewed head commit, empty reviewer list are rejected',()=>{
  const x=githubGateFixture();
