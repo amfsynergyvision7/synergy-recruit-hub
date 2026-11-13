@@ -242,3 +242,13 @@ test('source gates require independent PR signature and protected branch BEFORE 
  assert(!gate.includes('AMF_NONPROD_SERVICE_ROLE_KEY'));
  assert(!gate.includes('await fetch(') || gate.includes('method:'));
 });
+
+
+test('BUILD88 one independent change request overrides any other valid approval until resolved',()=>{
+ const x=githubGateFixture();
+ const veto={...x.reviews[0],user:{login:'second-independent-reviewer'},
+   author_association:'COLLABORATOR',
+   state:'CHANGES_REQUESTED',
+   submitted_at:'2026-11-13T09:30:00Z'};
+ assert.throws(()=>verifyIndependentReleaseGate({...x,reviews:[x.reviews[0],veto]}),/Outstanding independent changes-requested/);
+});
