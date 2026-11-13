@@ -70,7 +70,11 @@ test('rollback fixture injects failure after candidate write and checks no parti
   assert.ok(rehearsal.includes(phrase),phrase);
  }
 });
-test('scheduler remains disabled by default without cron secret and flags',()=>{
- assert.match(route,/enabled: process\.env\.SHEETS_SYNC_CRON_ENABLED/);
+test('scheduler remains disabled by default even if environment flags are enabled',()=>{
+ // Build83 intentionally strengthens the old environment-only check.
+ // A hard source release hold takes priority, while the original bearer
+ // secret and scheduled flag are still required if separately released.
+ assert.match(route,/enabled: isExternalEffectPaused\('candidate_sync'\) \? undefined : process\.env\.SHEETS_SYNC_CRON_ENABLED/);
  assert.match(route,/secret: process\.env\.CRON_SECRET/);
+ assert.match(route,/import \{ isExternalEffectPaused \} from '@\/lib\/external-effects-hold\.server'/);
 });
