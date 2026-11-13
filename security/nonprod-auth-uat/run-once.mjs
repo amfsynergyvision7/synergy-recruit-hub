@@ -13,7 +13,7 @@ import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
 export const MANUAL_CONFIRMATION='EXECUTE_9_GO_TRUE_AND_38_INERT_ROWS_ONLY_IN_dhlhlasnaapzckjyvffn';
-export const PREFLIGHT_CONFIRMATION='I_REVIEWED_FRESH_NONPROD_SQL_19_EMPTY_ZERO_AUTH_TRIGGERS_GRANTS_POLICIES';
+export const PREFLIGHT_CONFIRMATION='I_REVIEWED_BUILD88_EMPTY_GRANTS_AND_BUILD89_32_SOURCE_PINNED_2_HARDENED';
 export const OPERATIONS=Object.freeze(['AUDIT_ONLY','CREATE_NINE_AND_SEED_38']);
 export const BASE_COUNTS=Object.freeze({profiles:8,user_roles:8,candidates:2});
 const TABLES=Object.freeze([...Object.keys(BASE_COUNTS),...Object.keys(EXPECTED_EXTENDED_COUNTS)]);
