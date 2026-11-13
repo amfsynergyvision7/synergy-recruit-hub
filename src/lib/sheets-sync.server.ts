@@ -318,6 +318,9 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   }
   const integ = await getSavedGoogleIntegration({ userId: opts.userId });
   if (!integ || !integ.spreadsheet_id) throw new Error("Google Sheet not configured");
+  if (!opts.userId || integ.user_id !== opts.userId) {
+    throw new Error("Candidate sync integration owner mismatch");
+  }
 
   const sheetName = integ.sheet_name || "Form Responses 1";
   const headerRow = integ.header_row || 1;
@@ -330,7 +333,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
     await opts.leaseHeartbeat?.();
     await (supabaseAdmin as any).from("google_integrations").update({
       last_sync: new Date().toISOString(), connection_status: "success", last_error: null,
-    }).eq("id", integ.id);
+    }).eq("id", integ.id).eq("user_id", opts.userId);
     return result;
   }
 
@@ -345,7 +348,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
   const mapping: Record<string, string> = { ...autoMap(headers), ...normalizedSaved };
   if (JSON.stringify(mapping) !== JSON.stringify(savedMapping)) {
     await opts.leaseHeartbeat?.();
-    await (supabaseAdmin as any).from("google_integrations").update({ column_mapping: mapping }).eq("id", integ.id);
+    await (supabaseAdmin as any).from("google_integrations").update({ column_mapping: mapping }).eq("id", integ.id).eq("user_id", opts.userId);
   }
 
   const startIdx = opts.fullHistory ? headerRow : Math.max(headerRow, integ.last_synced_row || headerRow);
@@ -461,7 +464,7 @@ async function runCandidateSyncUnsafe(opts: { fullHistory?: boolean; triggeredBy
     ...(!opts.atomicRowWrites ? { last_synced_row: lastSynced } : {}),
     connection_status: status,
     last_error: result.error_details.length ? result.error_details[0].message : null,
-  }).eq("id", integ.id);
+  }).eq("id", integ.id).eq("user_id", opts.userId);
 
   await supabaseAdmin.from("sync_logs").insert({
     module: "candidates",
@@ -502,7 +505,7 @@ export async function runCandidateSync(opts: { fullHistory?: boolean; triggeredB
         last_sync: new Date().toISOString(),
         connection_status: "error",
         last_error: message,
-      }).eq("id", integ.id);
+      }).eq("id", integ.id).eq("user_id", opts.userId);
 
       await supabaseAdmin.from("sync_logs").insert({
         module: "candidates",
