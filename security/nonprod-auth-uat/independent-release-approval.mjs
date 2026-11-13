@@ -43,7 +43,12 @@ export function verifyIndependentReleaseGate({pr,reviews,main,context}){
    if(!old||Date.parse(old.submitted_at)<=Date.parse(r.submitted_at))
      lastDecision.set(name,r);
  }
- const valid=[...lastDecision.values()].some(r=>
+ const decisions=[...lastDecision.values()];
+ // One collaborator's outstanding change request must not be overridden by
+ // another collaborator's approval. Every blocking reviewer must resolve it.
+ if(decisions.some(r=>r.state==='CHANGES_REQUESTED'))
+   throw new Error('Outstanding independent changes-requested review blocks Auth writes');
+ const valid=decisions.some(r=>
    r.state==='APPROVED'&&r.commit_id===pr.head.sha);
  if(!valid)throw new Error('Fresh independent review approving exact Auth bootstrap SHA required');
  return {independentApproved:true,protectedMain:true,approvedPr:EXPECTED_PR};
