@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { makeBaseFixture } from '../build78/seed-inert-base-fixture.mjs';
 import { composeExtendedFixture } from '../build79/compose-and-seed-remaining-fixture.mjs';
 import { PROJECT_ID, slotEmail } from '../build78/provision-nine-auth-users.mjs';
+import { buildFullSourceRlsReplay } from './pg17-full-source-135-rls-addon.mjs';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const tableDDL = read('../build77/nonprod-public-19-source-shaped-rls-deny.sql');
@@ -124,6 +125,7 @@ hardenDDL,
 "SELECT 'BUILD81_REAL_SOURCE_SHAPED_38_ROWS_19_TABLES_PG17_PASS_NOT_HOSTED' AS technical_result,",
 " 0::integer AS genuine_gotrue_users_provisioned,",
 " 0::integer AS hosted_signed_uat_accepted;",
+buildFullSourceRlsReplay(),
 'ROLLBACK;',
 'DO $b81_clean$ BEGIN',
 " IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname='auth') OR",
