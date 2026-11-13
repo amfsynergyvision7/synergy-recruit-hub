@@ -3,13 +3,16 @@ import { getSavedGoogleIntegration, runCandidateSync } from '@/lib/sheets-sync.s
 import { supabaseAdmin } from '@/integrations/supabase/client.server';
 import { assertApprovedRole } from '@/lib/access-gates.server';
 import { handleCandidateSyncCron } from '@/lib/cron-auth.server';
+import { isExternalEffectPaused } from '@/lib/external-effects-hold.server';
 import { createSupabaseSyncLeaseOperations, withCandidateSyncLease } from '@/lib/sync-lease.server';
 
 // REVIEW ONLY. No Vercel cron schedule or server secrets are activated here.
 // Native Vercel Cron GET and trusted POST both require an authenticated bearer.
 const handler = async ({ request }: { request: Request }) => handleCandidateSyncCron(request, {
   secret: process.env.CRON_SECRET,
-  enabled: process.env.SHEETS_SYNC_CRON_ENABLED,
+  // Source-level release approval cannot be bypassed by enabling the
+  // scheduled job through Vercel environment settings alone.
+  enabled: isExternalEffectPaused('candidate_sync') ? undefined : process.env.SHEETS_SYNC_CRON_ENABLED,
   ownerUserId: process.env.SHEETS_SYNC_OWNER_USER_ID,
 }, {
   assertOwnerAdmin: (ownerId) => assertApprovedRole(ownerId, ['admin']),
