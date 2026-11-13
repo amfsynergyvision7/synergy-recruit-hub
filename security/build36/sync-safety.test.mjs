@@ -109,6 +109,8 @@ test('Build102 candidate identity mapper rejects duplicate email, phone and ambi
   Email:'email',Phone:'mobile',Company:'current_company'
  });
  assertAllowed(['Email','Duplicate Unmapped Label','Duplicate Unmapped Label'],{Email:'email'});
+ assertAllowed(['Email','',''],{Email:'email'});
+ assertHold(['Email',''],{Email:'email','':'mobile'},/blank mapped header/);
  assertHold(['Email','Email Address'],{'Email':'email','Email Address':'email'},/duplicate mapped field/);
  assertHold(['Mobile','Phone Number'],{'Mobile':'mobile','Phone Number':'mobile'},/duplicate mapped field/);
  assertHold(['Email','Email'],{Email:'email'},/duplicate mapped field/);
