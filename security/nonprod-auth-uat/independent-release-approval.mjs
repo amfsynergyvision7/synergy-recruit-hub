@@ -31,7 +31,8 @@ export function verifyIndependentReleaseGate({pr,reviews,main,context}){
  for(const r of reviews){
    const name=r?.user?.login;
    if(typeof name!=='string'||!name||name===pr.user.login||
-      name.endsWith('[bot]'))continue;
+      name.endsWith('[bot]')||
+      !['OWNER','MEMBER','COLLABORATOR'].includes(r.author_association))continue;
    if(!['APPROVED','CHANGES_REQUESTED','DISMISSED'].includes(r?.state))continue;
    if(!Number.isFinite(Date.parse(r?.submitted_at??'')))
      throw new Error('Invalid independent reviewer timeline');
