@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {uniqueCandidateMatch,reconcileCandidateMatches,escapeIlikeLiteral,advanceContiguousCursor,approvedCandidateMappingTarget,approvedCandidateHeaderAlias} from '../../src/lib/sync-safety.ts';
+import {uniqueCandidateMatch,reconcileCandidateMatches,escapeIlikeLiteral,advanceContiguousCursor,approvedCandidateMappingTarget,approvedCandidateHeaderAlias,assertUnambiguousCandidateSheetMapping} from '../../src/lib/sync-safety.ts';
 import {CANDIDATE_FIELDS} from '../../src/lib/candidate-fields.ts';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const A={id:'A',full_name:'Synthetic A'},B={id:'B',full_name:'Synthetic B'};
@@ -95,4 +95,49 @@ test('Build101 live importer uses strict mapping helpers and every privileged in
  const sheetRead=section.indexOf('fetchSheetValues(integ.spreadsheet_id, sheetName)');
  assert(owner>0&&sheetRead>owner);
  assert(!section.includes('.eq("id", integ.id);'));
+});
+
+test('Build102 candidate identity mapper rejects duplicate email, phone and ambiguous labels',()=>{
+ const assertAllowed=(headers,mapping)=>
+  assert.doesNotThrow(()=>assertUnambiguousCandidateSheetMapping(headers,mapping,CANDIDATE_FIELDS));
+ const assertHold=(headers,mapping,reason)=>
+  assert.throws(()=>assertUnambiguousCandidateSheetMapping(headers,mapping,CANDIDATE_FIELDS),reason);
+ assertAllowed(['Full Name','Email Address','Position'],{
+  'Full Name':'full_name','Email Address':'email','Position':'position_applied'
+ });
+ assertAllowed(['Email','Phone','Company'],{
+  Email:'email',Phone:'mobile',Company:'current_company'
+ });
+ assertAllowed(['Email','Duplicate Unmapped Label','Duplicate Unmapped Label'],{Email:'email'});
+ assertHold(['Email','Email Address'],{'Email':'email','Email Address':'email'},/duplicate mapped field/);
+ assertHold(['Mobile','Phone Number'],{'Mobile':'mobile','Phone Number':'mobile'},/duplicate mapped field/);
+ assertHold(['Email','Email'],{Email:'email'},/duplicate mapped field/);
+ assertHold(['Full Name','Candidate Name'],{
+  'Full Name':'full_name','Candidate Name':'full_name'
+ },/duplicate mapped field/);
+ assertHold(['Position','Notes'],{Position:'position_applied',Notes:'notes'},/mapped identity column/);
+ assertHold(['Candidate ID','Mobile'],{},/mapped identity column/);
+ assertHold(['Email'],{Email:'user_id'},/mapped field is not approved/);
+ assertHold(['Email'],{Email:'__proto__'},/mapped field is not approved/);
+ assertHold(['Email'],{Email:42},/mapped field is not approved/);
+ assertHold([],{},/requires manual review/);
+ assertHold(Array(27).fill('Email'),{Email:'email'},/requires manual review/);
+ assertHold([null],{},/header is not approved/);
+ assertHold(['Email'.repeat(100)],{},/header is not approved/);
+ // A prototype-inherited mapping cannot authorize any field or advance rows.
+ const inherited=Object.create({Email:'email'});
+ assertHold(['Email'],inherited,/mapped identity column/);
+});
+test('Build102 final Sheet mapping is checked before configuration updates, row commits or cursor advances',()=>{
+ const src=readFileSync(resolve(root,'src/lib/sheets-sync.server.ts'),'utf8');
+ const start=src.indexOf('async function runCandidateSyncUnsafe(');
+ const end=src.indexOf('export async function runCandidateSync(',start);
+ const code=src.slice(start,end);
+ const preflight=code.indexOf('assertUnambiguousCandidateSheetMapping(headers, mapping, CANDIDATE_FIELDS)');
+ const mapWrite=code.indexOf('update({ column_mapping: mapping })');
+ const rpc=code.indexOf('"crm_commit_candidate_sync_row"');
+ const checkpoint=code.indexOf('advanceContiguousCursor(lastSynced, sheetRowNumber)');
+ assert(preflight>0&&mapWrite>preflight&&rpc>mapWrite&&checkpoint>rpc);
+ assert(code.indexOf('const mapping: Record<string, string>')<preflight);
+ assert(!code.slice(0,preflight).includes('.rpc('));
 });
