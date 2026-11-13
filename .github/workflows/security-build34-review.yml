@@ -1133,6 +1133,38 @@ jobs:
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT pg_catalog.to_regclass('crm_private.verified_public_applications') IS NULL")" = "t"
           test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
 
+  build105-source-shaped-public-application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rehearse actual candidate/submission trigger definitions with atomic applicant writes
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build105/compose-source-shaped-public-application.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/amf-build105-source-trigger-rehearsal.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT pg_catalog.to_regclass('public.candidates') IS NULL")" = "t"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT pg_catalog.to_regclass('crm_private.verified_public_applications') IS NULL")" = "t"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
+
   substantive-security-summary:
     if: always()
     needs:
@@ -1169,6 +1201,7 @@ jobs:
       - build60-pr-reconciliation-and-recovery
       - build64-hosted-readonly-135-case-contract
       - build104-verified-public-application-atomic
+      - build105-source-shaped-public-application
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -1183,10 +1216,10 @@ jobs:
           failed={name:state for name,state in results.items() if state!='success'}
           summary={
               "source_sha": os.environ.get("GITHUB_SHA",""),
-              "expected_substantive_jobs": 33,
+              "expected_substantive_jobs": 34,
               "observed_substantive_jobs": len(results),
               "passed_jobs": len(results)-len(failed),
-              "all_substantive_pass": len(results)==33 and not failed,
+              "all_substantive_pass": len(results)==34 and not failed,
               "job_outcomes": results,
               "release_hold_excluded": True,
               "hosted_formal_acceptance": False
@@ -1194,11 +1227,11 @@ jobs:
           with open("build65-substantive-ci-summary.json","w") as target:
               json.dump(summary,target,sort_keys=True,indent=2)
           print("Substantive security CI: "+str(summary["passed_jobs"])+"/"+str(summary["observed_substantive_jobs"])+" jobs succeeded")
-          if len(results)!=33 or failed:
+          if len(results)!=34 or failed:
               print("Substantive CI failures or missing jobs: "+str(failed),file=sys.stderr)
               sys.exit(1)
           PY
-      - name: Archive 33-job substantive CI evidence without secrets
+      - name: Archive 34-job substantive CI evidence without secrets
         if: always()
         uses: actions/upload-artifact@v4
         with:
