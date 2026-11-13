@@ -30,7 +30,7 @@ assert(!prefix.includes('ROLLBACK;') && !prefix.includes('crm_commit_candidate_s
 
 const submission=readFileSync(resolve(root,'security/build105/production-submission-trigger.snapshot.sql'),'utf8');
 const atomic=readFileSync(resolve(root,'security/build104/verified-public-application.review-only.sql'),'utf8');
-for(const marker of ['normalize_submission_relationships_trigger','submissions_stage_trigger',
+for(const marker of ['normalize_submissions_relationships_trigger','submissions_stage_trigger',
  'workflow_rules_trigger','public.on_submission_insert()']) assert(submission.includes(marker));
 assert(!atomic.includes('CREATE OR REPLACE FUNCTION'), 'Atomic SQL must not silently replace a live routine');
 const testSql=readFileSync(resolve(root,'security/build105/verified-application-source-trigger.tests.sql'),'utf8');
