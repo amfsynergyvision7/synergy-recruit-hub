@@ -49,6 +49,10 @@ export function extractSpreadsheetId(url: string): string | null {
   return extractApprovedSpreadsheetId(url);
 }
 
+export async function assertAdminUser(userId: string) {
+  await assertApprovedRole(userId, ["admin"]);
+}
+
 /**
  * No caller-provided request headers or redirect handling. The only supported
  * operation is an exact Sheets values.get path on this fixed gateway host.
