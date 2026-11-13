@@ -29,3 +29,14 @@ Actual previously read-only verified state: dedicated nonproduction has **zero**
 **Conditional planning estimate:** 5–10+ substantive recruitment CRM builds toward an independently approved `main` merge; 15–30+ across all six AI Command Center workstreams, only if human review and protected Auth Admin prerequisites become available. No finite build count can be guaranteed while those remain blocked.
 
 **Traceable sources:** [draft PR #12](https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12), [hosted UAT issue #13](https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/13), [governance issue #14](https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/14).
+
+
+## Build 98 — Google Drive listing API key moved out of URL (13 November 2026)
+
+**Verified design defect:** the draft-only Drive bulk-import path previously constructed `https://www.googleapis.com/drive/v3/files?...&key=<server secret>` using `URLSearchParams`. Although access was restricted to the Google HTTPS host and the response body bounded, credentials in query strings can appear in access logs, telemetry and captured URLs. [Google Cloud guidance](https://docs.cloud.google.com/docs/authentication/rest) explicitly recommends the `x-goog-api-key` HTTP header; [API-key best practices](https://docs.cloud.google.com/docs/authentication/api-keys-best-practices) discourage URL query parameters.
+
+**Source change:** `listFolderFiles` no longer appends `key: apiKey` to the Drive API URL. It uses `googleApiKey: apiKey` in the bounded downloader's request policy. That policy only permits a simple server-side key in the `x-goog-api-key` header when **both** the destination hostname is exactly `www.googleapis.com` and `maxRedirects:0`. A `key` URL query, invalid/oversized key, non-Google host, HTTP downgrade or any redirect-enabled credentialed policy is rejected before sending the credential. A 3xx response is never followed with the key. The downloader remains credential-free for normal resume and logo downloads.
+
+**Evidence:** `security/build84/remote-download-boundary.test.mjs` now tests the exact permitted header, absence of secrets from transmitted URLs, malicious host/HTTP/query attempts, invalid keys, disallowed redirect policy and a simulated 302 that must make just one request. All requests are mocked; no Google API/Drive content was accessed, no credentials were read or logged. Existing mandatory `drive_bulk_import` hard-release guard remains unchanged.
+
+**Approval boundary:** This is a draft PR #12 application security correction, not permission to use Google Drive, download candidate resumes, activate external integration, merge, stage or deploy. Real release requires independent privacy review, approved credential rotation where relevant, hosted signed-user tests, backup/restore and all formal release gates. No customer data or production write was involved.
