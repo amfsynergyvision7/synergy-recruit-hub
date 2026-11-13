@@ -231,7 +231,7 @@ test('source gates require independent PR signature and protected branch BEFORE 
  const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
  const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
  assert(workflow.includes('pull-requests: read'));
- assert(workflow.includes("if: inputs.operation == 'CREATE_NINE_AND_SEED_38'"));
+ assert(workflow.includes('Verify protected main, independent PR approval and exact source BEFORE lab-key access'));
  assert(workflow.includes('run: node security/nonprod-auth-uat/independent-release-approval.mjs'));
  assert(workflow.indexOf('run: node security/nonprod-auth-uat/independent-release-approval.mjs') <
         workflow.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
@@ -351,4 +351,18 @@ test('Build90 protects against concurrent nonproduction writes and mutable Actio
  assert.equal((yaml.match(/actions\/setup-node@[a-f0-9]{40}/g)||[]).length,2);
  assert(!yaml.includes('actions/checkout@v4'));
  assert(!yaml.includes('actions/setup-node@v4'));
+});
+
+test('Build91 neither AUDIT_ONLY nor CREATE can access lab credentials without independently approved source',()=>{
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ const section=workflow.slice(workflow.indexOf('  manual_provisioning:'));
+ const steps=section.slice(section.indexOf('    steps:'));
+ const gateIndex=steps.indexOf('run: node security/nonprod-auth-uat/independent-release-approval.mjs');
+ const credentialIndex=steps.indexOf('AMF_UAT_SERVICE_ROLE_KEY:');
+ assert(gateIndex>=0 && credentialIndex>gateIndex);
+ const gateStep=steps.slice(steps.lastIndexOf('      - name:',gateIndex),gateIndex);
+ assert(!gateStep.includes('if:')); // no operation-specific bypass
+ assert(section.includes("inputs.operation == 'AUDIT_ONLY'"));
+ assert(section.includes("inputs.preflight_confirmation == 'I_REVIEWED_FRESH_NONPROD_SQL_19_EMPTY_ZERO_AUTH_TRIGGERS_GRANTS_POLICIES'"));
+ assert(!steps.includes("if: inputs.operation == 'CREATE_NINE_AND_SEED_38'"));
 });
