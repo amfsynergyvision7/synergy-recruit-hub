@@ -26,7 +26,8 @@ export const listOpenJobs = createServerFn({ method: "POST" }).handler(async () 
     .select("id, job_title, location, priority, open_positions, is_confidential, created_at, clients!job_openings_client_uuid_fkey(company_name)")
     .eq("status", "open")
     .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  // Public errors must not echo PostgREST SQL or backend diagnostics.
+  if (error) throw new Error("Career postings are temporarily unavailable.");
 
   return (data ?? []).map((row: any) => ({
     id: row.id,
@@ -146,7 +147,7 @@ export const submitJobApplication = createServerFn({ method: "POST" })
         })
         .select("id")
         .single();
-      if (createError) throw new Error(createError.message);
+      if (createError) throw new Error("Application could not be completed securely.");
       candidateId = created.id;
     }
 
@@ -181,7 +182,7 @@ export const submitJobApplication = createServerFn({ method: "POST" })
       })
       .select("id")
       .single();
-    if (subError) throw new Error(subError.message);
+    if (subError) throw new Error("Application could not be completed securely.");
 
     // Best-effort nudge to whoever owns this req, through the same
     // notifications feed every other automated event in this app already
