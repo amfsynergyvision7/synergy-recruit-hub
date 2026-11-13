@@ -21,3 +21,35 @@ export function parseAtomicApplicationOutcome(value: unknown): { alreadyApplied:
   if (value === "already_applied") return { alreadyApplied: true };
   throw new Error(PUBLIC_APPLICATION_ERROR);
 }
+
+/**
+ * Applicant-supplied resume links may later be shown to a recruiter. Only
+ * conventional public HTTPS URLs are accepted; a generic .url() validator
+ * can also parse javascript:, data:, file:, custom ports and loopback hosts.
+ * This is link validation, NOT a guarantee that linked files are safe.
+ */
+export function normalizeSafePublicResumeUrl(input: unknown): string | null {
+  if (input === null || input === undefined || input === "") return null;
+  if (typeof input !== "string" || input.length > 2048 ||
+      /[\u0000-\u001f\u007f\\]/.test(input)) {
+    throw new Error(PUBLIC_APPLICATION_ERROR);
+  }
+  const value = input.trim();
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    const host = parsed.hostname.toLowerCase().replace(/\.$/, "");
+    if (parsed.protocol !== "https:" || parsed.port ||
+        parsed.username || parsed.password ||
+        !host.includes(".") || host.startsWith(".") ||
+        !/^[a-z0-9.-]+$/.test(host) || host.includes("..") ||
+        /\.(?:localhost|local|internal|invalid|test|example|onion)$/.test(host) ||
+        /^\d+(?:\.\d+){3}$/.test(host) || host.startsWith("[") ||
+        !/[a-z]{2,}$/.test(host)) {
+      throw new Error(PUBLIC_APPLICATION_ERROR);
+    }
+    return parsed.href;
+  } catch {
+    throw new Error(PUBLIC_APPLICATION_ERROR);
+  }
+}
