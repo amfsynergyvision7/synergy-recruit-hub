@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {assertExternalEffectReleased,isExternalEffectPaused} from '../../src/lib/external-effects-hold.server.ts';
 import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError,extractApprovedSpreadsheetId,buildSafeSheetValuesPath,approvedCandidateMappingTarget,approvedCandidateHeaderAlias,assertUnambiguousCandidateSheetMapping} from '../../src/lib/sync-safety.ts';
 import {CANDIDATE_FIELDS} from '../../src/lib/candidate-fields.ts';
+import {loadCompleteDuplicateReviewRows,MAX_COMPLETE_DUPLICATE_SCAN,DUPLICATE_SCAN_PAGE_SIZE} from '../../src/lib/duplicate-scan-pagination.ts';
 
 const file=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const guard=file('src/lib/external-effects-hold.server.ts');
@@ -364,4 +365,87 @@ test('Build102 fast candidate mapping denies duplicate identity/phone fields and
  const gate=code.indexOf('assertUnambiguousCandidateSheetMapping(headers, mapping, CANDIDATE_FIELDS)');
  assert(gate>0&&gate<code.indexOf('update({ column_mapping: mapping })'));
  assert(gate<code.indexOf('"crm_commit_candidate_sync_row"'));
+});
+
+function build109MockCandidateClient(rows, opts={}){
+ const calls=[];
+ return {
+  calls,
+  from(table){
+   assert.equal(table,'candidates');
+   return {
+    select(columns, options){
+     assert(columns.includes('id'));
+     assert.equal(options.count,'exact');
+     return {
+      order(column, options){
+       assert(['created_at','id'].includes(column));
+       assert.equal(options.ascending,true);
+       return this;
+      },
+      async range(start,end){
+       calls.push([start,end]);
+       let data=rows.slice(start,Math.min(end+1,start+(opts.serverMaxRows??9999)));
+       if(opts.duplicateAt!==undefined&&start>0&&data.length)
+        data[0]={...data[0],id:rows[0].id};
+       return {
+        data,
+        count:rows.length+(opts.driftAt===calls.length?1:0),
+        error:opts.errorAt===calls.length?{message:'PRIVATE bearer secret email@example.invalid'}:null
+       };
+      }
+     };
+    }
+   };
+  }
+ };
+}
+test('Build109 duplicate paging retrieves every candidate despite PostgREST page limits',async()=>{
+ const rows=Array.from({length:1001},(_,i)=>({id:'fake-'+i,created_at:'2026-01-01T00:00:00Z'}));
+ const mock=build109MockCandidateClient(rows);
+ const result=await loadCompleteDuplicateReviewRows(mock,'id, created_at');
+ assert.equal(result.length,1001);
+ assert.equal(new Set(result.map(r=>r.id)).size,1001);
+ assert.deepEqual(mock.calls,[[0,499],[500,999],[1000,1499]]);
+ assert.equal(DUPLICATE_SCAN_PAGE_SIZE,500);
+ assert.equal(MAX_COMPLETE_DUPLICATE_SCAN,5000);
+ const blank=build109MockCandidateClient([]);
+ assert.deepEqual(await loadCompleteDuplicateReviewRows(blank,'id, created_at'),[]);
+ assert.deepEqual(blank.calls,[[0,499]]);
+});
+test('Build109 duplicate review never returns a silent partial result beyond or below the scan cap',async()=>{
+ const all=Array.from({length:5000},(_,i)=>({id:'candidate-'+i}));
+ const exact=build109MockCandidateClient(all);
+ assert.equal((await loadCompleteDuplicateReviewRows(exact,'id')).length,5000);
+ assert.equal(exact.calls.length,10);
+ const over=build109MockCandidateClient([...all,{id:'candidate-over-limit'}]);
+ await assert.rejects(loadCompleteDuplicateReviewRows(over,'id'),/no partial results returned/);
+ assert.equal(over.calls.length,1,'Do not expose a partial report when over 5000');
+ const truncated=build109MockCandidateClient(all.slice(0,800),{serverMaxRows:200});
+ await assert.rejects(loadCompleteDuplicateReviewRows(truncated,'id'),/no partial results returned/);
+ const countDrift=build109MockCandidateClient(all.slice(0,600),{driftAt:2});
+ await assert.rejects(loadCompleteDuplicateReviewRows(countDrift,'id'),/no partial results returned/);
+ const duplicate=build109MockCandidateClient(all.slice(0,600),{duplicateAt:500});
+ await assert.rejects(loadCompleteDuplicateReviewRows(duplicate,'id'),/no partial results returned/);
+ const leaked=build109MockCandidateClient(all.slice(0,10),{errorAt:1});
+ await assert.rejects(loadCompleteDuplicateReviewRows(leaked,'id'),e=>
+   e.message==='Complete duplicate review unavailable; no partial results returned');
+});
+test('Build109 duplicate reviewer enforces unique admin role before any paginated contacts are read',()=>{
+ const source=file('src/lib/duplicates.server.ts');
+ const api=file('src/lib/duplicates.functions.ts');
+ const helper=file('src/lib/duplicate-scan-pagination.ts');
+ const role=source.indexOf('await assertApprovedRole(actorUserId, ["admin"])');
+ const paged=source.indexOf('await loadCompleteDuplicateReviewRows<DuplicateCandidate>');
+ assert(role>=0&&paged>role);
+ assert(!source.includes('.limit(5000)'));
+ assert(!source.includes('data ?? []'));
+ assert(helper.includes('.select(columns, { count: "exact" })'));
+ assert(helper.includes('.order("created_at", { ascending: true })'));
+ assert(helper.includes('.order("id", { ascending: true })'));
+ assert(helper.includes('count > MAX_COMPLETE_DUPLICATE_SCAN'));
+ assert(helper.includes('data.length !== expectedLength'));
+ assert(helper.includes('ids.has(row.id)'));
+ assert(api.includes('await assertApprovedRole(context.userId, ["admin"])'));
+ assert(api.includes('return findDuplicateClusters(context.supabase, context.userId)'));
 });
