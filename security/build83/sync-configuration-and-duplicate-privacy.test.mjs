@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {assertExternalEffectReleased,isExternalEffectPaused} from '../../src/lib/external-effects-hold.server.ts';
-import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError} from '../../src/lib/sync-safety.ts';
+import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError,extractApprovedSpreadsheetId,buildSafeSheetValuesPath} from '../../src/lib/sync-safety.ts';
 
 const file=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const guard=file('src/lib/external-effects-hold.server.ts');
@@ -235,4 +235,77 @@ test('Build99 owner settings read uses explicit field allowlist, never historica
  assert(!ui.includes('console.error("sync logs load error", logsQ.error)'));
  assert(ui.includes('console.error("Integration settings unavailable")'));
  assert(ui.includes('console.error("Sync log history unavailable")'));
+});
+
+test('Build100 rejects spoofed Sheets origins while accepting only approved HTTPS spreadsheet links',()=>{
+ const id='1CM29gwKIzeXsAppeNwrc8lbYaVMmUclprLuLYuHog4k';
+ const allowed=[
+  'https://docs.google.com/spreadsheets/d/'+id+'/edit#gid=123',
+  'https://docs.google.com/spreadsheets/d/'+id+'/view?usp=sharing',
+  'https://docs.google.com/spreadsheets/d/'+id,
+  'https://DOCS.GOOGLE.COM/spreadsheets/d/'+id+'/copy'
+ ];
+ for(const url of allowed)assert.equal(extractApprovedSpreadsheetId(url),id,url);
+ for(const url of [
+  'http://docs.google.com/spreadsheets/d/'+id+'/edit',
+  'https://docs.google.com.evil.invalid/spreadsheets/d/'+id+'/edit',
+  'https://evil.invalid/spreadsheets/d/'+id+'/edit',
+  'https://a:password@docs.google.com/spreadsheets/d/'+id+'/edit',
+  'https://docs.google.com:8443/spreadsheets/d/'+id+'/edit',
+  'https://docs.google.com/spreadsheets/d/'+id+'/foo',
+  'https://docs.google.com/spreadsheets/d/'+id+'/edit/extra',
+  'https://docs.google.com/spreadsheets/d/'+id+'/edit?key=ABC',
+  'https://docs.google.com/spreadsheets/d/'+id+'/edit?access_token=ABC',
+  'https://docs.google.com/spreadsheets/d/x/edit',
+  'https://drive.google.com/file/d/'+id+'/view',
+  'https://docs.google.com/not-spreadsheets/d/'+id+'/edit',
+  'not-a-url'
+ ])assert.equal(extractApprovedSpreadsheetId(url),null,url);
+ assert.equal(extractApprovedSpreadsheetId('https://docs.google.com/spreadsheets/d/'+id+'/edit'+'x'.repeat(2100)),null);
+});
+test('Build100 signed gateway range cannot escape spreadsheet path or inject query/fragment',()=>{
+ const id='1CM29gwKIzeXsAppeNwrc8lbYaVMmUclprLuLYuHog4k';
+ const simple=buildSafeSheetValuesPath(id,'Form_Responses_1');
+ assert.equal(simple,'/spreadsheets/'+id+'/values/Form_Responses_1!A1%3AZ100000');
+ const path=buildSafeSheetValuesPath(id,"Operations '26/?# table");
+ assert(path.startsWith('/spreadsheets/'+id+'/values/'));
+ assert(!path.includes('?'));
+ assert(!path.includes('#'));
+ const encoded=path.split('/values/')[1];
+ assert(!encoded.includes('/'));
+ assert.equal(decodeURIComponent(encoded),"'Operations ''26/?# table'!A1:Z100000");
+ for(const badId of ['abc','../secret',id+'?key=SECRET',id+'/values/x',id+'#fake',id+'.'] )
+  assert.throws(()=>buildSafeSheetValuesPath(badId,'Sheet1'),/identifier is not approved/);
+ for(const badTab of ['', '\n', 'Bad\tName', 'x'.repeat(121), 'Bad\u0000Name'])
+  assert.throws(()=>buildSafeSheetValuesPath(id,badTab),/tab name is not approved/);
+});
+test('Build100 credentialed Sheets gateway has bounded JSON streaming, zero redirects, and explicit owner update fencing',()=>{
+ const sheetsSource=file('src/lib/sheets-sync.server.ts');
+ const begin=sheetsSource.indexOf('async function gw(');
+ const end=sheetsSource.indexOf('export interface GoogleIntegrationSettings',begin);
+ const gateway=sheetsSource.slice(begin,end);
+ assert(begin>0&&end>begin);
+ assert(gateway.includes('redirect: "error"'));
+ assert(gateway.includes('signal: AbortSignal.timeout(15000)'));
+ assert(gateway.includes('readResponseTextBounded(res, 1024 * 1024)'));
+ assert(gateway.includes('const data: unknown = JSON.parse(body)'));
+ assert(!gateway.includes('await res.text()'));
+ assert(!gateway.includes('init?.headers'));
+ assert(!gateway.includes('...init'));
+ assert(gateway.includes('Authorization: `Bearer ${lk}`'));
+ assert(gateway.includes('"X-Connection-Api-Key": sk'));
+ assert(gateway.includes('Sheets gateway request unavailable; check restricted diagnostics'));
+ const fetchSource=sheetsSource.slice(sheetsSource.indexOf('export async function fetchSheetValues('),
+  sheetsSource.indexOf('function num(',sheetsSource.indexOf('export async function fetchSheetValues(')));
+ assert(fetchSource.includes('assertExternalEffectReleased("integration_configuration")'));
+ assert(fetchSource.includes('buildSafeSheetValuesPath(spreadsheetId, sheetName)'));
+ assert(fetchSource.includes('data.values.some('));
+ const headersSource=sheetsSource.slice(sheetsSource.indexOf('export async function saveDetectedHeaders('),
+  sheetsSource.indexOf('export async function resetGoogleIntegrationSyncCursor('));
+ const binding=headersSource.indexOf('if (!integration?.user_id');
+ const write=headersSource.indexOf('.from("google_integrations")');
+ assert(binding>0&&binding<write);
+ assert(headersSource.includes('.eq("id", integration.id).eq("user_id", integration.user_id)'));
+ assert(headersSource.includes('assertExternalEffectReleased("integration_configuration")'));
+ assert(!headersSource.includes('console.log'));
 });
