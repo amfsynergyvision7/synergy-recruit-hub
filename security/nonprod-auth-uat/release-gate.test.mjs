@@ -223,7 +223,8 @@ test('newer CHANGES_REQUESTED or dismissed review invalidates earlier approval',
  const x=githubGateFixture();
  for(const state of ['CHANGES_REQUESTED','DISMISSED']){
   const later={...x.reviews[0],state,submitted_at:'2026-11-13T09:00:00Z'};
-  assert.throws(()=>verifyIndependentReleaseGate({...x,reviews:[x.reviews[0],later]}),/Fresh independent/);
+  assert.throws(()=>verifyIndependentReleaseGate({...x,reviews:[x.reviews[0],later]}),
+    state==='CHANGES_REQUESTED'?/Outstanding independent changes-requested/:/Fresh independent/);
  }
 });
 test('source gates require independent PR signature and protected branch BEFORE fixture secret access',()=>{
