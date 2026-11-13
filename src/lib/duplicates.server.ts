@@ -13,6 +13,7 @@
 // delete happens client-side, the same way every other delete in this app
 // works, so it's governed by the exact same admin-only RLS policy.
 import { normalizeEmail, normalizePhone, normalizeName } from "./dedupe";
+import { assertApprovedRole } from "./access-gates.server";
 
 export interface DuplicateCandidate {
   id: string;
@@ -71,7 +72,10 @@ class UnionFind {
   }
 }
 
-export async function findDuplicateClusters(supabase: any): Promise<DuplicateScanSummary> {
+export async function findDuplicateClusters(supabase: any, actorUserId: string): Promise<DuplicateScanSummary> {
+  // Enforce at the data-access boundary, even when called directly by another server module.
+  // The unique approved+active admin gate must pass before any 5,000-row candidate read.
+  await assertApprovedRole(actorUserId, ["admin"]);
   const { data, error } = await supabase
     .from("candidates")
     .select(
