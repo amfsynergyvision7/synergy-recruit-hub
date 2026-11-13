@@ -69,6 +69,8 @@ export const PINNED_RELEASE_PATHS=Object.freeze([
   "security/nonprod-auth-uat/build88-live-preflight-observation.json",
   "security/nonprod-auth-uat/build89-hosted-preseed-two-hardenings.readonly.sql",
   "security/nonprod-auth-uat/build89-live-hardened-preseed-observation.json",
+  "security/nonprod-auth-uat/build92-hosted-schema-contract.readonly.sql",
+  "security/nonprod-auth-uat/build92-hosted-schema-observation.json",
   "security/nonprod-auth-uat/compose-and-seed-remaining-fixture.mjs",
   "security/nonprod-auth-uat/independent-release-approval.mjs",
   "security/nonprod-auth-uat/provision-nine-auth-users.mjs",
