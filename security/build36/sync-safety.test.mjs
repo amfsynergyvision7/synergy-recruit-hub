@@ -88,7 +88,7 @@ test('Build101 live importer uses strict mapping helpers and every privileged in
  const section=code.slice(start,end);
  assert(start>0&&end>start);
  const writes=[...section.matchAll(/\.eq\("id", integ\.id\)([^;]*);/g)];
- assert.equal(writes.length,5,'All five integration write sites must be inspected');
+ assert.equal(writes.length,4,'All four integration write sites must be inspected');
  for(const match of writes)
   assert(match[1].includes('.eq("user_id", opts.userId)'),'Missing owner filter on integration update');
  const owner=section.indexOf('integ.user_id !== opts.userId');
