@@ -144,9 +144,12 @@ test('BUILD88 read-only SQL preflight inspects all 19 app tables plus Auth trigg
  assert.equal((sql.match(/AS row_count FROM public\./g)||[]).length,19);
  for(const item of ['FROM auth.users','enabled_auth_user_triggers','enabled_app_triggers',
   'public_rls_policies','public_tables_with_caller_grants','callable_public_functions',
-  'exposed_public_views','unprotected_public_tables','ready_for_reviewed_synthetic_provisioning']){
+  'exposed_public_views','unprotected_public_tables','public_table_count',
+  'service_role_tables_missing_fixture_privileges','ready_for_reviewed_synthetic_provisioning']){
    assert(sql.includes(item),'missing safety audit '+item);
  }
+ assert(sql.includes("public_table_count=19"));
+ assert(sql.includes("service_role_tables_missing_fixture_privileges=0"));
  assert(!/\b(?:insert|update|delete|create|drop|alter|truncate)\s+(?:into\s+|from\s+)?(?:public|auth)\./i.test(sql));
 });
 test('BUILD88 GitHub manual workflow requires fresh preflight only for write operation, not audit',()=>{
