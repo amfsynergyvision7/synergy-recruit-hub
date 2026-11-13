@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {assertExternalEffectReleased,isExternalEffectPaused} from '../../src/lib/external-effects-hold.server.ts';
-import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError,extractApprovedSpreadsheetId,buildSafeSheetValuesPath,approvedCandidateMappingTarget,approvedCandidateHeaderAlias} from '../../src/lib/sync-safety.ts';
+import {redactSyncErrors,sanitizeStoredSyncLogs,SAFE_CANDIDATE_SYNC_ERROR,redactHistoricalIntegrationError,extractApprovedSpreadsheetId,buildSafeSheetValuesPath,approvedCandidateMappingTarget,approvedCandidateHeaderAlias,assertUnambiguousCandidateSheetMapping} from '../../src/lib/sync-safety.ts';
 import {CANDIDATE_FIELDS} from '../../src/lib/candidate-fields.ts';
 
 const file=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
@@ -338,4 +338,28 @@ test('Build101 fast guard: untrusted Sheet aliases cannot inject CRM owner, role
  const end=code.indexOf('export async function fetchHeaders(',start);
  const unsafe=code.slice(start,end);
  assert(unsafe.indexOf('integ.user_id !== opts.userId')<unsafe.indexOf('fetchSheetValues(integ.spreadsheet_id, sheetName)'));
+});
+
+test('Build102 fast candidate mapping denies duplicate identity/phone fields and unmapped identity sheets',()=>{
+ const valid={Email:'email',Phone:'mobile',Position:'position_applied'};
+ assert.doesNotThrow(()=>assertUnambiguousCandidateSheetMapping(
+  ['Email','Phone','Position'],valid,CANDIDATE_FIELDS));
+ assert.throws(()=>assertUnambiguousCandidateSheetMapping(
+  ['Email','Email Address'],{Email:'email','Email Address':'email'},CANDIDATE_FIELDS),
+  /duplicate mapped field/);
+ assert.throws(()=>assertUnambiguousCandidateSheetMapping(
+  ['Mobile','Phone'],{Mobile:'mobile',Phone:'mobile'},CANDIDATE_FIELDS),
+  /duplicate mapped field/);
+ assert.throws(()=>assertUnambiguousCandidateSheetMapping(
+  ['Position','Notes'],{Position:'position_applied',Notes:'notes'},CANDIDATE_FIELDS),
+  /mapped identity column/);
+ assert.throws(()=>assertUnambiguousCandidateSheetMapping(
+  ['Email'],{Email:'assigned_recruiter'},CANDIDATE_FIELDS),
+  /mapped field is not approved/);
+ const source=file('src/lib/sheets-sync.server.ts');
+ const start=source.indexOf('async function runCandidateSyncUnsafe(');
+ const code=source.slice(start,source.indexOf('export async function runCandidateSync(',start));
+ const gate=code.indexOf('assertUnambiguousCandidateSheetMapping(headers, mapping, CANDIDATE_FIELDS)');
+ assert(gate>0&&gate<code.indexOf('update({ column_mapping: mapping })'));
+ assert(gate<code.indexOf('"crm_commit_candidate_sync_row"'));
 });
