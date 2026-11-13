@@ -71,6 +71,8 @@ BEGIN
            pg_catalog.length(p_resume_url) > 2048
            OR p_resume_url !~* '^https://[a-z0-9][a-z0-9.-]*\.[a-z]{2,}([/?#][^[:space:][:cntrl:]]*)?$'
            OR p_resume_url LIKE '%..%'
+           -- Defense in depth against private/reserved non-public DNS zones.
+           OR p_resume_url ~* '^https://[a-z0-9.-]+\.(local|localhost|internal|invalid|test|example|onion)([/?#]|$)'
          ))
       OR p_cover_note IS NOT NULL AND pg_catalog.length(p_cover_note) > 2000
   THEN
