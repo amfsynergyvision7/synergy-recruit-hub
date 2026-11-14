@@ -14,6 +14,13 @@ export const LEGACY_BULK_IMPORT_WRITES_PAUSED = true as const;
 // the storage policy and admin-settings RPC are independently accepted.
 // This is an unconditional browser-side hold, not backend authorization.
 export const CRM_ORG_SETTINGS_MUTATIONS_PAUSED = true as const;
+// Browser mirror of the unconditional server-side integration_configuration
+// and candidate_sync interlocks. Not a substitute for server authorization.
+export const CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED = true as const;
+export const CRM_CANDIDATE_SYNC_MUTATIONS_PAUSED = true as const;
+export const CRM_INTEGRATION_MUTATION_HOLD_REASON =
+  "Google Sheets connection changes, header detection and candidate synchronization are paused pending independently approved integration release.";
+
 export const CRM_ORG_SETTINGS_HOLD_REASON =
   "Organization branding and settings changes are paused pending independently reviewed storage and RPC authorization.";
 // Build118: draft creation is permitted, but outbound CRM email requires
