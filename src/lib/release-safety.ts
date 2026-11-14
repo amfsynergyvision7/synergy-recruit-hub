@@ -10,6 +10,15 @@
  */
 export const LEGACY_CANDIDATE_WRITES_PAUSED = true as const;
 export const LEGACY_BULK_IMPORT_WRITES_PAUSED = true as const;
+// Build118: draft creation is permitted, but outbound CRM email requires
+// separate independent approval of browser and server interlocks.
+export const CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED = true as const;
+export const CRM_EMAIL_COMPOSER_HOLD_REASON =
+  "Outbound CRM email is paused pending independent release approval.";
+
+export function assertCrmEmailSendAllowed(): void {
+  if (CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED) throw new Error(CRM_EMAIL_COMPOSER_HOLD_REASON);
+}
 // Build56: a joined offer can invoke BOTH live billing handlers.
 // This is a presentation hold only; the review SQL adds an independent
 // BEFORE-trigger gate that also protects non-browser and privileged callers.

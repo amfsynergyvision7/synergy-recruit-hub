@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { sendCrmEmail, listEmailHistory, getEmailMergeContext, type EmailMergeContext } from "@/lib/email.functions";
+import { useAuth } from "@/hooks/use-auth";
+import { CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED, CRM_EMAIL_COMPOSER_HOLD_REASON, assertCrmEmailSendAllowed } from "@/lib/release-safety";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -26,59 +28,20 @@ interface Template {
   body: string;
 }
 
-// {{name}}, {{company}}, {{position}}, and {{signature}} are all replaced
-// below when a template is picked. {{name}} comes straight from the record
-// (toName). The other three come from getEmailMergeContext — a small
-// server lookup that, for a candidate, walks candidate -> most recent
-// submission -> job opening/client to find the actual role and company
-// this email is about, and resolves the record's assigned recruiter (or,
-// if none is set, whoever is currently composing the email) to a display
-// name for the signature. {{signature}} expands to a full sign-off block
-// (name, designation, org), not just a name, so neither template needs to
-// hardcode "Senior HR Associate" / "AMF Synergy Vision" twice.
-//
-// [Your Phone Number] is the one placeholder deliberately NOT auto-filled —
-// it varies per send (a different recruiter's callback number each time),
-// so it's left for whoever is sending to fill in by hand before hitting
-// Send, same as they'd edit a subject line.
+// Templates are draft-only. Never imply terms, fees, selection or other
+// commitments that are not separately approved. D-003 remains inactive.
 const TEMPLATES: Template[] = [
-  { key: "custom", label: "Custom (blank)", subject: "", body: "" },
+  { key: "custom", label: "Custom draft (blank)", subject: "", body: "" },
   {
-    key: "selection_confirmation",
-    label: "Selection confirmed — acknowledge terms",
-    subject: "Congratulations! You've Been Selected — Next Steps",
-    body:
-      "Hi {{name}},\n\n" +
-      "Congratulations! Your interview for the {{position}} role at {{company}} went really well, and you delivered exactly what was expected of you — that alone speaks to how well suited you are for this role.\n\n" +
-      "We're also glad to have helped bring you this opportunity through our own network. Since your profile was routed through our reference on {{company}}'s senior leadership team, it was given the priority and seriousness it deserved throughout the process.\n\n" +
-      "Before we move ahead, here's a quick summary of our placement terms with you:\n\n" +
-      "- A Placement Service Fee of 25% of your first month's gross salary, payable to us within 7 days of receiving that salary\n" +
-      "- A commitment to continue in the role for a minimum of 45 days from your date of joining\n" +
-      "- Providing us at least 7 days' written notice if you need to resign before receiving your first salary\n" +
-      "- Keeping us promptly informed if your joining or continued employment is affected in any way\n\n" +
-      "Could you please reply to this email within 24 hours with \"Agree\" or \"I Acknowledge\" to confirm you've read and accepted these terms? That's all we need from you at this stage.\n\n" +
-      "Once again, congratulations — we're genuinely glad to have supported you through this process, and we look forward to seeing you succeed in this new role.\n\n" +
-      "{{signature}}",
-  },
-  {
-    key: "missed_contact",
-    label: "We've been trying to reach you",
-    subject: "We've Been Trying to Reach You",
-    body:
-      "Hi {{name}},\n\n" +
-      "We've been trying to reach you a few times regarding your application, but haven't been able to connect.\n\n" +
-      "Could you give us a call back at [Your Phone Number] at your earliest convenience? There's an update on your application we'd like to share with you directly.\n\n" +
-      "If it's easier, feel free to reply to this email with a good time to reach you instead.\n\n" +
-      "Looking forward to connecting soon.\n\n" +
-      "{{signature}}",
+    key: "neutral_follow_up",
+    label: "Neutral follow-up (draft only)",
+    subject: "Follow-up",
+    body: "Hello {{name}},\n\nPlease let us know if you would like to discuss next steps.\n\n{{signature}}",
   },
 ];
 
-// {{signature}} expands to this whole block. Designation and org are fixed
-// per your instructions; only the name varies, and even that always has a
-// value — see getEmailMergeContext's fallback to the current user.
 function buildSignature(ownerName: string | null | undefined): string {
-  return `Warm regards,\n${ownerName || "The AMF Synergy Vision Team"}\nSenior HR Associate\nAMF Synergy Vision`;
+  return `Best regards,\n${ownerName ? ownerName + "\n" : ""}AMF Synergy Vision`;
 }
 
 interface Props {
@@ -91,6 +54,7 @@ interface Props {
 }
 
 export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId, toEmail, toName }: Props) {
+  const { user } = useAuth();
   const [templateKey, setTemplateKey] = useState("custom");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -101,13 +65,13 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
       setSubject("");
       setBody("");
     }
-  }, [open, relatedId]);
+  }, [open, relatedTable, relatedId, toEmail]);
 
   const runMergeContext = useServerFn(getEmailMergeContext);
   const mergeQuery = useQuery({
-    queryKey: ["email-merge-context", relatedTable, relatedId],
+    queryKey: ["email-merge-context", user?.id ?? "signed-out", relatedTable, relatedId],
     queryFn: () => runMergeContext({ data: { relatedTable, relatedId } }),
-    enabled: open,
+    enabled: open && !!user?.id && !CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED,
   });
 
   const applyTemplate = (key: string) => {
@@ -133,20 +97,24 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
 
   const runSend = useServerFn(sendCrmEmail);
   const sendMut = useMutation({
-    mutationFn: () => runSend({ data: { relatedTable, relatedId, toEmail, subject, body } }),
+    mutationFn: () => {
+      // Server-side crm_email release hold separately rejects direct RPCs.
+      assertCrmEmailSendAllowed();
+      return runSend({ data: { relatedTable, relatedId, toEmail, subject, body } });
+    },
     onSuccess: () => {
       toast.success(`Email sent to ${toEmail}`);
       onOpenChange(false);
       historyQuery.refetch();
     },
-    onError: (err: any) => toast.error(err?.message ?? "Failed to send email."),
+    onError: () => toast.error(CRM_EMAIL_COMPOSER_HOLD_REASON),
   });
 
   const runHistory = useServerFn(listEmailHistory);
   const historyQuery = useQuery({
-    queryKey: ["email-history", relatedTable, relatedId],
+    queryKey: ["email-history", user?.id ?? "signed-out", relatedTable, relatedId],
     queryFn: () => runHistory({ data: { relatedTable, relatedId } }),
-    enabled: open,
+    enabled: open && !!user?.id && !CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED,
   });
 
   return (
@@ -154,7 +122,10 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Mail className="h-4 w-4" />Email {toName || toEmail}</DialogTitle>
-          <DialogDescription>Sends from your CRM's configured address and logs a copy below for the next person who opens this record.</DialogDescription>
+          <DialogDescription>
+            Draft only. Outbound CRM email and correspondence retrieval are paused pending independent approval.
+            No email is sent from this screen.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -203,8 +174,12 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={sendMut.isPending || !subject.trim() || !body.trim()} onClick={() => sendMut.mutate()}>
-            {sendMut.isPending ? "Sending…" : "Send"}
+          <Button disabled={CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED || sendMut.isPending || !subject.trim() || !body.trim()}
+            onClick={() => {
+              if (CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED) return;
+              sendMut.mutate();
+            }}>
+            {CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED ? "Sending paused" : sendMut.isPending ? "Sending…" : "Send"}
           </Button>
         </DialogFooter>
       </DialogContent>
