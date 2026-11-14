@@ -5,7 +5,7 @@ import {evaluate,compareSnapshots} from "../release-progress/score.mjs";
 const get=n=>JSON.parse(readFileSync(new URL("../release-progress/"+n,import.meta.url),"utf8"));
 const rubric=get("v1-rubric.json");
 const previous=get("build136-evidence-baseline.json");
-const current=get("current.json");
+const current=get("build137-evidence-baseline.json");
 
 test("Build137 evidence weighted rubric remains 26/100 with 12 of 43 accepted",()=>{
  assert.equal(previous.snapshot_build,136);
