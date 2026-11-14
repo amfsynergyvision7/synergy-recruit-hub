@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { CRM_MAX_ROWS, CRM_PAGE_SIZE, checkedCrmPageIds, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
+import { crmRowProjection, crmRelationProjection } from "@/lib/crm-read-projection";
 import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail, RefreshCw } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
@@ -189,6 +190,13 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   const bulkMutationPending = useRef(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
+  // Exact, reviewed module column projection. Never fetch all DB columns.
+  // All row reads still depend on backend RLS and column-level grants.
+  const recordProjection = useMemo(() => crmRowProjection({
+    module, table,
+    fieldNames: fields.map(field => field.name),
+    searchFields, emailField, orderBy: orderBy?.column,
+  }), [module, table, fields, searchFields, emailField, orderBy?.column]);
   const formFields = useMemo(() => fields.filter((f) => !f.hideInForm && !(module === "candidates" && role !== "admin" && f.name === "assigned_recruiter")), [fields, module, role]);
   // What "select some rows, then change one field on all of them at once"
   // (e.g. filter Candidates down to one recruiter's list, select the batch,
@@ -250,7 +258,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
       // before showing records, enabling edits or exporting CSV.
       const data = await readCompleteCrmRows(async (from, to, signal) => {
         const result = await supabase.from(table as any)
-          .select("*", { count: "exact" })
+          .select(recordProjection, { count: "exact" })
           .order("id", { ascending: true }).range(from, to).abortSignal(signal);
         // Narrow dynamic PostgREST table unions only after runtime inspection.
         // The common paging adapter subsequently verifies ID order and count.
@@ -291,7 +299,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
         // a valid record or silently display a blank/incorrect relationship.
         const data = await readCompleteCrmRows(async (from, to, signal) => {
           const result = await supabase.from(field.relation!.table as any)
-            .select(field.relation!.select ?? "*", { count: "exact" })
+            .select(crmRelationProjection(field.relation!.select), { count: "exact" })
             .order("id", { ascending: true }).range(from, to).abortSignal(signal);
           return { data: checkedCrmPageIds(result.data),
             count: result.count, error: result.error };
