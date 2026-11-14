@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
 import { LEGACY_BULK_IMPORT_WRITES_PAUSED, BULK_IMPORT_HOLD_REASON } from "@/lib/release-safety";
 import { commitCandidateImport } from "@/lib/candidate-batch-import";
 import { IMPORT_SCHEMAS, type ImportSchema, type ImportFieldDef } from "@/lib/import-schemas";
@@ -121,7 +121,19 @@ function refMap(rows: any[], keys: string[]) {
 }
 
 function Page() {
-  const { role } = useAuth();
+  const { user, profile, role, loading } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Checking import authorization…</p>;
+  if (!canReadPrivateUserDirectory(user?.id, profile, role)) return (
+    <Alert variant="destructive">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertTitle>Administrator access required</AlertTitle>
+      <AlertDescription>This private import workspace requires an active, approved administrator.</AlertDescription>
+    </Alert>
+  );
+  return <AdminImportWorkspace key={user!.id} />;
+}
+
+function AdminImportWorkspace() {
   const [moduleKey, setModuleKey] = useState<string>("clients");
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
@@ -135,43 +147,12 @@ function Page() {
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(false);
   const [assignedRecruiter, setAssignedRecruiter] = useState("");
-  const [approvedRecruiters, setApprovedRecruiters] = useState<{ id: string; label: string }[]>([]);
   // An uncertain network result is retried with the SAME request ID and payload.
   // A different file must use a deliberate reset before getting a new ID.
   const importRequestId = useRef<string | null>(null);
   const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
 
   const schema = IMPORT_SCHEMAS[moduleKey];
-
-  useEffect(() => {
-    // Selection is only UX. The RPC must independently check the assignee's
-    // approved, active recruiter role from the live database.
-    let current = true;
-    Promise.all([
-      supabase.from("user_roles").select("user_id,role").eq("role", "recruiter"),
-      supabase.from("profiles").select("id,full_name,email").eq("status", "approved").eq("is_active", true),
-    ]).then(([roleRes, profileRes]) => {
-      if (!current || roleRes.error || profileRes.error) return;
-      const recruiterIds = new Set((roleRes.data ?? []).map((r) => r.user_id));
-      setApprovedRecruiters((profileRes.data ?? [])
-        .filter((p) => recruiterIds.has(p.id))
-        .map((p) => ({ id: p.id, label: p.full_name || p.email })));
-    }).catch(() => { /* Fail closed: no assignee can be selected. */ });
-    return () => { current = false; };
-  }, []);
-
-  if (role !== "admin") {
-    return (
-      <div className="max-w-2xl">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Admin only</AlertTitle>
-          <AlertDescription>Bulk data import is restricted to administrators.</AlertDescription>
-        </Alert>
-        <Button asChild variant="outline" className="mt-4"><Link to="/settings"><ArrowLeft className="h-4 w-4 mr-2"/>Back to Settings</Link></Button>
-      </div>
-    );
-  }
 
   const reset = () => {
     setStep("upload"); setFile(null); setFileHeaders([]); setRawRows([]);
@@ -436,21 +417,9 @@ function Page() {
             </div>
 
             {moduleKey === "candidates" && (
-              <div className="space-y-2 rounded-md border p-3">
-                <Label htmlFor="import-recruiter">Approved recruiter to receive every new candidate</Label>
-                <Select value={assignedRecruiter} onValueChange={setAssignedRecruiter}>
-                  <SelectTrigger id="import-recruiter"><SelectValue placeholder="Choose an approved recruiter" /></SelectTrigger>
-                  <SelectContent>
-                    {approvedRecruiters.map((r) =>
-                      <SelectItem key={r.id} value={r.id}>{r.label}</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Atomic create-only import: maximum 50 rows, no partial success, no duplicate updates.
-                  Backend checks all rows and recruiter status again before writing. Import remains paused until release approval.
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Recruiter assignment is unavailable during the import release hold. No employee directory is queried.
+              </p>
             )}
             <div className="border rounded-md max-h-96 overflow-auto">
               <Table>
