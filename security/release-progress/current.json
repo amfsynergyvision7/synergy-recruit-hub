@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 136,
+  "snapshot_build": 137,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -607,6 +607,60 @@
       "build135_exact_head_intentional_release_hold_failed": 1,
       "build136_final_ci_status": "PENDING_AT_PREPARATION",
       "new_independently_accepted_milestones": 0
+    },
+    "build137_source": {
+      "stage": "DRAFT_FAIL_CLOSED_SEARCH_PREVIEW_AND_NONPROD_AUTH_REVIEW_HANDOFF",
+      "global_search_checked_all_three_buckets_before_display": true,
+      "global_search_malformed_rows_and_duplicate_ids_rejected": true,
+      "global_search_six_per_module_not_completeness_claim": true,
+      "global_search_account_keyed_shell_and_query_abort_preserved": true,
+      "global_search_privacy_role_http_acceptance": false,
+      "archived_build136_formal_acceptance_unchanged": true,
+      "peer_review_or_main_merge_performed": false
+    },
+    "build137_nonprod_auth": {
+      "stage": "READ_ONLY_LAB_PARITY_REVIEW_NOT_SIGNED_HOSTED_AUTH_UAT",
+      "lab_project_id": "dhlhlasnaapzckjyvffn",
+      "lab_public_tables": 19,
+      "lab_forced_rls_tables": 19,
+      "lab_public_views": 13,
+      "lab_security_invoker_views": 13,
+      "lab_privileged_functions": 7,
+      "historical_privileged_function_reference": 16,
+      "missing_from_lab_vs_historical_reference": 9,
+      "role_approval_helpers_missing_from_lab": [
+        "get_user_role(uuid)",
+        "has_role(uuid,app_role)",
+        "is_approved(uuid)",
+        "handle_new_user()"
+      ],
+      "lab_public_policies": 0,
+      "lab_auth_users": 0,
+      "lab_enabled_public_app_triggers": 0,
+      "lab_anon_authenticated_table_select_grants": 0,
+      "lab_table_rows": 0,
+      "lab_data_and_schema_writes_performed": 0,
+      "historical_reference_not_current_prod_source": true,
+      "real_signed_uat_accepted": 0,
+      "complete_pinned_handoff_file": "security/build137/nonprod-auth-parity-review.json"
+    },
+    "build137_release_gate": {
+      "stage": "INDEPENDENT_OWNER_BLOCKED_NO_AUTO_SIGNOFF",
+      "main_protected": false,
+      "main_rulesets": 0,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "auth_pr15_open_unmerged": true,
+      "auth_pr15_latest_head": "9db170d4e131a513d5216e571d3f7a7af85d65f3",
+      "auth_pr15_ci_passed": true,
+      "protected_environment_configuration_verified": false,
+      "auth_users_created": 0,
+      "fictional_rows_created": 0,
+      "signed_hosted_uat_accepted": 0,
+      "accepted_production_security_remediations": 0,
+      "signed_release_approvals": 0,
+      "production_merge_or_deploy_performed": false,
+      "new_accepted_milestones": 0
     }
   },
   "statuses": [
@@ -858,8 +912,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build136 draft-only: confirmed Build135 final 848/848 fast cases, app compile and 36/37 guarded jobs; only deliberate production hold red. Removed raw backend error display from admin duplicate review while retaining exact signed admin and server checks. New live READ-ONLY isolated nonprod catalog inventory confirms 19/19 public table RLS enabled+forced, 13/13 invoker views, 7 public security-definer functions. Compared exact historical Build47 16-function production reference: nine specific function names are absent from THIS lab, including get_user_role, has_role and is_approved. This is a lab parity issue, not proof of current production object loss or of verified production permissions. All anon/authenticated table and view SELECT grants and secdef function EXECUTE grants observed zero, all 19 public tables exact zero rows; Auth users 0, public policies 0, enabled public app triggers 0. No writes or customer data read. Reviewer-readable SQL and JSON source provenance added. Score remains 26/100, 12 of 43 accepted, 31 open; no independent reviewer or branch protection. Exact Build136 CI must be verified before technical acceptance.",
-  "previous_file": "build135-evidence-baseline.json",
+  "notes": "Build137 source hardening: global quick-search buckets are runtime-verified as a single atomic preview with exact 6-result-per-module bounds, explicit label that suggestions are not a complete CRM list, unchanged approved-account shell and request cancellation. Reconfirmed isolated lab READ ONLY: 19 forced-RLS tables, 13 invoker views, 7 secdef functions, zero policies/Auth users/triggers/browser table SELECT grants and exact zero rows in all 19 public tables. Nine historic privileged function signatures not present in this lab are prioritized in independent Auth review handoff, not inferred to be absent from production. PR15 CI at source head successful but no independent review and no protected main; environment settings inaccessible from current connector, status unverified. No SQL writes, no credentials or secrets accessed, no merge/deployment. Fixed weighted score 26/100, 12 of 43 evidenced, 31 open. Final Build137 CI to be verified at exact head; previous Build136 36/37 guarded substantive-pass with deliberate production hold.",
+  "previous_file": "build136-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
