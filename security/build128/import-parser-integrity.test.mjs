@@ -111,3 +111,18 @@ test("Build128 raw Excel date conversion is normalized as ISO day", () => {
   assert(importUi.includes('String(d.d).padStart(2,"0")'));
   assert(importUi.includes('error: "Invalid Excel date"'));
 });
+
+test("Build128 rejects semantically equivalent but differently punctuated headers", () => {
+  const grid={headers:["candidate_code","Candidate Code"],rows:[{}]};
+  assert.notEqual(validateImportGrid(grid),null);
+  assert.notEqual(validateImportGrid({headers:["candidate-code","candidate.code"],rows:[{}]}),null);
+});
+
+test("Build128 rejects non-finite Excel numeric cells before mapping", () => {
+  for(const x of [Infinity,-Infinity,NaN])
+    assert.notEqual(validateImportGrid({headers:["amount"],rows:[{amount:x}]}),null);
+});
+
+test("Build128 rejects empty semantic header names containing only punctuation", () => {
+  assert.notEqual(validateImportGrid({headers:["---"],rows:[{"---":"x"}]}),null);
+});
