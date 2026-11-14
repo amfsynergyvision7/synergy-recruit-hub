@@ -63,17 +63,19 @@ test("Build126 candidates route mounts only for matching approved account", () =
 
 test("Build126 recruiter picker filters by verified recruiter role and active profile", () => {
   assert(candidatePage.includes('.eq("role", "recruiter")'));
-  assert(candidatePage.includes('.in("id", ids).eq("status", "approved").eq("is_active", true)'));
+  assert(candidatePage.includes('.in("id", Array.from(ids)).eq("status", "approved")'));
+ assert(candidatePage.includes('.eq("is_active", true)'));
   assert(candidatePage.includes('.select("id, full_name", { count: "exact" })'));
   assert(!candidatePage.includes(".select('id, full_name, email')"));
 });
 
 test("Build126 recruiter picker rejects incomplete, duplicate and stale reads", () => {
-  assert(candidatePage.includes("roleResult.count! > 150"));
-  assert(candidatePage.includes("roles.length !== roleResult.count"));
-  assert(candidatePage.includes("ids.length !== roles.length"));
-  assert(candidatePage.includes("profileResult.count! > 150"));
-  assert(candidatePage.includes("data.length !== profileResult.count"));
+  const helper=src("src/lib/recruiter-selector-read.ts");
+  assert(candidatePage.includes("readVerifiedRecruiterChoices("));
+  assert(helper.includes("readBoundedReportRows(readRoles, signal)"));
+  assert(helper.includes("userIds.has(row.user_id)"));
+  assert(helper.includes("reply.count! > chunk.length"));
+  assert(helper.includes("reply.data.length !== reply.count"));
   assert(candidatePage.includes("controller.abort()"));
   assert(candidatePage.includes("if (!current || controller.signal.aborted) return"));
 });
