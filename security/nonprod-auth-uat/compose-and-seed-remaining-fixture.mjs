@@ -205,6 +205,26 @@ export async function seedExtendedFixture(client,mapping,opts={}){
       cleanupUnconfirmed++;
    }catch{cleanupUnconfirmed++;}
   }
+  // Build142: a successful DELETE response may still leave unrelated rows
+  // or a triggered insertion. Recheck the entire 16-table extended stage
+  // after any failure, including tables whose INSERT was never attempted.
+  for(const {table} of plan.batches){
+   try{await exactCount(client,table,0);}
+   catch{cleanupUnconfirmed++;}
+  }
+  // The base stage and exact test Auth tenant must remain stable. If any
+  // identity/base count drifted, a blind restart would be unsafe.
+  for(const [table,n] of [['profiles',8],['user_roles',8],['candidates',2]]){
+   try{await exactCount(client,table,n);}
+   catch{cleanupUnconfirmed++;}
+  }
+  try{
+   const current=await client.auth.admin.listUsers({page:1,perPage:100});
+   if(current?.error||!Array.isArray(current?.data?.users)||
+     current.data.users.length!==9||
+     current.data.users.some(u=>allowed.get(u.id)!==u.email))
+     cleanupUnconfirmed++;
+  }catch{cleanupUnconfirmed++;}
   throw new Error(`Build79 extended fixture aborted; ${cleanupUnconfirmed} table cleanup results unconfirmed. Inspect isolated lab before retry.`);
  }
 }
