@@ -100,7 +100,8 @@ test('self profile RPC is authenticated-only, with no anonymous execution',()=>{
  assert.match(self,/GRANT EXECUTE ON FUNCTION public\.crm_update_own_profile\(text,text,text\) TO authenticated/);
 });
 test('self profile browser helper defaults to the release hold and uses signed session',()=>{
- assert.match(profileHelper,/VITE_CRM_PROFILE_MUTATIONS_ENABLED === "true"/);
+ assert.match(profileHelper,/CRM_PROFILE_MUTATIONS_ENABLED = false as const/);
+ assert.doesNotMatch(profileHelper,/import\.meta\.env\.VITE_CRM_PROFILE_MUTATIONS_ENABLED/);
  assert.match(profileHelper,/if \(!CRM_PROFILE_MUTATIONS_ENABLED\)/);
  assert.match(profileHelper,/crm_update_own_profile/);
  assert.doesNotMatch(profileHelper,/p_target/);
