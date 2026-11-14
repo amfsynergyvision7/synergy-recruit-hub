@@ -5,7 +5,7 @@ import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const read=name=>JSON.parse(readFileSync(new URL("../release-progress/"+name,import.meta.url),"utf8"));
 const rubric=read("v1-rubric.json");
 const baseline=read("build131-evidence-baseline.json");
-const current=read("current.json");
+const current=read("build132-evidence-baseline.json");
 
 test("Build132 fixed acceptance ledger still 26/100, no invented milestone closure",()=>{
  assert.equal(baseline.snapshot_build,131);
