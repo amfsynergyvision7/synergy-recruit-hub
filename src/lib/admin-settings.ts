@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { CRM_ORG_SETTINGS_MUTATIONS_PAUSED, CRM_ORG_SETTINGS_HOLD_REASON } from "@/lib/release-safety";
 
 export type AdminSettingKey = "logo_url" | "default_color_theme" | "resume_import_folder_url";
 type RpcError = { message: string } | null;
@@ -21,6 +22,8 @@ export async function getAdminResumeFolder(): Promise<{ data: string | null; err
 export async function updateAdminSetting(
   key: AdminSettingKey, value: string | null,
 ): Promise<{ error: RpcError }> {
+  if (CRM_ORG_SETTINGS_MUTATIONS_PAUSED)
+    return { error: { message: CRM_ORG_SETTINGS_HOLD_REASON } };
   const { error } = await rpcClient.rpc("crm_admin_update_setting", { p_key: key, p_value: value });
   return { error };
 }
