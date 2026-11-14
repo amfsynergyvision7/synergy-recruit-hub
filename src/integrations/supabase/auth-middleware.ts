@@ -8,6 +8,7 @@ import { createMiddleware } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
 import ws from 'ws'
+import { assertMatchingSupabaseProject } from '../../lib/security/release-gates.mjs'
 import type { Database } from './types'
 
 
@@ -34,16 +35,10 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     if (!expectedProject) {
       throw new Response('Missing expected Supabase project ID', { status: 500 });
     }
-    {
-      let host: string;
-      try {
-        host = new URL(SUPABASE_URL).hostname;
-      } catch {
-        throw new Response('Invalid Supabase endpoint', { status: 500 });
-      }
-      if (host !== `${expectedProject}.supabase.co`) {
-        throw new Response('Supabase project mismatch', { status: 500 });
-      }
+    try {
+      assertMatchingSupabaseProject(SUPABASE_URL, expectedProject);
+    } catch {
+      throw new Response('Invalid or mismatched Supabase endpoint', { status: 500 });
     }
 
     const request = getRequest();
