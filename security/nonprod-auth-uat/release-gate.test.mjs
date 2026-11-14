@@ -1190,3 +1190,27 @@ test('Build143 failed postcreation identity check refuses mapping and cleans exa
  assert.equal(created.length,0);
  assert.equal(listed,3);
 });
+
+
+test('Build143 standalone fixture writers refuse privileged or unverified Auth before any database mutation',async()=>{
+ const identityProblems=[
+  ['no confirmation',u=>{u.email_confirmed_at=null;}],
+  ['real contact number',u=>{u.phone='+919900000000';}],
+  ['privileged metadata',u=>{u.app_metadata.role='admin';}],
+  ['external provider',u=>{u.identities[0].provider='google';}],
+  ['personal metadata',u=>{u.user_metadata.full_name='Customer Name';}]
+ ];
+ for(const [label,change] of identityProblems){
+  const {users}=fakeFullInertClient();
+  const mapping={project_id:project,users};
+  change(users[0]);
+  for(const extended of [false,true]){
+   const fake=rollbackFake(mapping,{extended,returned:'exact'});
+   const fn=extended?()=>seedExtendedFixture(fake.client,mapping):
+     ()=>seedInertBaseFixture(fake.client,mapping);
+   await assert.rejects(fn(),/exact nine nonproduction GoTrue users|exact nine synthetic Auth users/,
+    label+' must prevent standalone test-data writes');
+   assert.equal(fake.deleteCalls(),0,'No cleanup is needed before any inserts');
+  }
+ }
+});
