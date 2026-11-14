@@ -243,8 +243,11 @@ export async function getCandidateSyncLogs() {
   // before an approved administrator receives ANY log response.
   const { data, error } = await supabaseAdmin
     .from("sync_logs")
-    .select("*")
+    // Least-data query: never retrieve historical raw provider message,
+    // sheet URLs, owner addresses or other future log columns.
+    .select("id, module, triggered_by, rows_scanned, rows_created, rows_updated, rows_skipped, errors, status, created_at")
     .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
     .limit(50);
   if (error) throw new Error("Sync log retrieval unavailable");
   return sanitizeStoredSyncLogs(data ?? []);
