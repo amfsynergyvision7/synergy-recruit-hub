@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadCandidateActivityMetadata } from "@/lib/crm-sensitive-route-access";
+import { CRM_MAX_ROWS, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
 
 export const Route = createFileRoute("/_app/activities")({ component: Page });
 
@@ -22,14 +23,17 @@ function Page() {
     if (!allowed) return () => { active = false; controller.abort(); };
     const load = async () => {
       try {
-        const { data, error } = await supabase
-          .from("candidate_activities" as any)
-          .select("id, created_at, action_type, module_created")
-          .order("created_at", { ascending: false })
-          .limit(200).abortSignal(controller.signal);
+        // Exact-count, bounded ID pages. The old 200-row implicit cap
+        // presented an incomplete activity history as a full timeline.
+        // RLS remains responsible for the caller's row authorization.
+        const data = await readCompleteCrmRows(async (from, to, signal) => {
+          const result = await supabase.from("candidate_activities")
+            .select("id, created_at, action_type, module_created", { count: "exact" })
+            .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+          return { data: result.data, count: result.count, error: result.error };
+        }, controller.signal);
         if (!active || controller.signal.aborted) return;
-        if (error || !data) throw new Error("Activity data unavailable");
-        setRows(data as any[]);
+        setRows(sortCompleteCrmRows(data, "created_at", false));
       } catch {
         if (active && !controller.signal.aborted) { setRows([]); setFailed(true); }
       }
@@ -45,10 +49,10 @@ function Page() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Candidate Timeline</h1>
-        <p className="text-sm text-muted-foreground">Restricted action metadata. Candidate names, recruiter names and notes are excluded.</p>
+        <p className="text-sm text-muted-foreground">Restricted, verified activity metadata (maximum {CRM_MAX_ROWS} records). Candidate names, recruiter names and notes are excluded. No partial timeline is displayed.</p>
       </div>
       <Card>
-        <CardHeader><CardTitle className="text-base">{rows.length} entries</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{failed ? "Activity count unavailable" : `${rows.length} verified entries`}</CardTitle></CardHeader>
         <CardContent className="overflow-auto">
           {failed && <p className="text-sm text-destructive">Unable to retrieve authorized activity metadata.</p>}
           <Table>
@@ -67,7 +71,7 @@ function Page() {
                   <TableCell>{r.module_created ?? "—"}</TableCell>
                 </TableRow>
               ))}
-              {!rows.length && (
+              {!rows.length && !failed && (
                 <TableRow><TableCell colSpan={3} className="text-center py-8 text-sm text-muted-foreground">No activity yet</TableCell></TableRow>
               )}
             </TableBody>
