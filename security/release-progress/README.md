@@ -96,3 +96,10 @@
 ## Forward-compatible anti-reset checks (Build 120 refinement)
 
 The first draft of the CI test mistakenly required `current.json` to stay at 22 forever. This is now corrected: only the Build119 baseline is locked at 22. Subsequent builds are free to earn or lose points **provided** `current.json` names its actual prior snapshot, declares the previous score and delta, and lists all newly closed or regressed milestone IDs. CI derives the true score and exact ID changes independently. A fabricated protected merge, GoTrue count, hosted acceptance, 48-remediation claim, or nine signed gates fails unless the snapshot counters corroborate it. `current.json` sets `previous_file` and `delta_points`; future builds must preserve the previous checked snapshot under its own filename before replacing current.
+
+## Build 121 change under frozen v1 rubric
+
+- **Build120:** 22/100; **Build121:** 24/100; **delta: +2**.
+- Exact accepted gate **LD03 (+2)** only. [Implementation](https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/429d05b070d65c323adb8b6e76656964b83a1227/security/lead-discovery/discover.mjs); [364/364 passing CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43558920955).
+- LD02 real-source/ICP approval, LD04 human review and CRM handoff, LD05 KPIs remain open; full workstreams closed 0/6, release score 0/20.
+- Previous Build120 score snapshot frozen as `build120-evidence-baseline.json`; compare to updated `current.json` with exact new LD03 gate and 2-point delta. Never rewrite v1 weights.

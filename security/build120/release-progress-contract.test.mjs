@@ -32,11 +32,11 @@ test("Build120 current score must reconcile to previous checked snapshot and exa
  assert.deepEqual(diff.regressed,current.regressed_ids);
 });
 test("Build120 future milestone progress can pass without changing the fixed v1 rubric",()=>{
- const next=structuredClone(current);
+ const next=structuredClone(baseline);
  next.statuses.find(s=>s.id==="BI01").complete=true;
  next.statuses.find(s=>s.id==="BI01").evidence=["https://example.invalid/independent-approval"];
  next.expected_earned_points=24;next.previous_earned_points=22;
- next.delta_points=2;next.newly_closed_ids=["BI01"];
+ next.delta_points=2;next.newly_closed_ids=["BI01"];next.regressed_ids=[];
  assert.equal(compareSnapshots(rubric,baseline,next).delta,2);
  next.delta_points=0;
  assert.throws(()=>compareSnapshots(rubric,baseline,next),/Unreconciled points delta/);

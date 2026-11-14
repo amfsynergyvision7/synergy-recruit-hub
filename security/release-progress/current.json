@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 120,
+  "snapshot_build": 121,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
-  "expected_earned_points": 22,
+  "expected_earned_points": 24,
   "observations": {
     "git": {
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
@@ -48,6 +48,21 @@
         "required": 6
       },
       "source": "Last recorded formal release register, not a new signed acceptance audit."
+    },
+    "lead_discovery": {
+      "mode": "SYNTHETIC_OFFLINE_ONLY",
+      "observed_ci_run": "43558920955",
+      "recorded_manifest": "security/lead-discovery/manifest.synthetic.json",
+      "synthetic_sources": 2,
+      "structured_business_entries": 4,
+      "duplicates_merged": 1,
+      "canonical_business_leads": 3,
+      "source_dates_verified": true,
+      "no_personal_contacts": true,
+      "outbound_messages": 0,
+      "crm_writes": 0,
+      "network_requests": 0,
+      "real_source_discovery_approved": false
     }
   },
   "statuses": [
@@ -101,8 +116,12 @@
     },
     {
       "id": "LD03",
-      "complete": false,
-      "evidence": []
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/429d05b070d65c323adb8b6e76656964b83a1227/security/lead-discovery/discover.mjs",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43558920955",
+        "https://docs.google.com/document/d/1i5SVldFxYaSi2Ew1i4YJ0pUAxtGTXJ2AyKRGck8w6Gk/edit"
+      ]
     },
     {
       "id": "LD04",
@@ -291,10 +310,13 @@
       "evidence": []
     }
   ],
-  "notes": "Build120 publishes the fixed rubric and status schema, but closes no additional business/release milestone; delta relative to retro-applied Build119 v1 baseline=0. Future snapshots must supply new evidence before marking a gate complete.",
-  "previous_file": "build119-retrospective-baseline.json",
+  "notes": "Build121 +2 for LD03 only: a runnable offline synthetic business discovery producing exact URL/date provenance and domain deduplication verified in fast CI 43558920955. Not a live lead pipeline; 42 other gate statuses unchanged. Build120 snapshot retained.",
+  "previous_file": "build120-evidence-baseline.json",
   "previous_earned_points": 22,
-  "delta_points": 0,
-  "newly_closed_ids": [],
-  "regressed_ids": []
+  "delta_points": 2,
+  "newly_closed_ids": [
+    "LD03"
+  ],
+  "regressed_ids": [],
+  "previous_comparable_baseline_points": 22
 }
