@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Sparkles, Users, FileSearch, ChevronDown, ChevronUp, TriangleAlert } from "lucide-react";
 import type { CandidateMatch, DeepCandidateMatch } from "@/lib/ai.server";
+import { useAuth } from "@/hooks/use-auth";
+import { canUseCandidateAiMatching } from "@/lib/crm-sensitive-route-access";
 
 export const Route = createFileRoute("/_app/ai-match")({ component: Page });
 
@@ -29,7 +31,6 @@ function scoreTone(score: number): PillTone {
 
 function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
   const [open, setOpen] = useState(false);
-  const [showResumeText, setShowResumeText] = useState(false);
   const runDeepMatch = useServerFn(matchCandidateWithResume);
   const deepMut = useMutation({
     mutationFn: () => runDeepMatch({ data: { jobId, candidateId: match.candidateId } }),
@@ -41,7 +42,7 @@ function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
     if (nextOpen && !deepMut.data && !deepMut.isPending) deepMut.mutate();
   };
 
-  const deep = deepMut.data as { match: DeepCandidateMatch; resumeText: string } | undefined;
+  const deep = deepMut.data as { match: DeepCandidateMatch } | undefined;
 
   return (
     <div className="rounded-md border border-border">
@@ -98,7 +99,7 @@ function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
           {deepMut.isError && !deepMut.isPending && (
             <div className="flex items-start gap-2 text-sm text-destructive">
               <TriangleAlert className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>{(deepMut.error as any)?.message ?? "Couldn't score this candidate's resume."}</span>
+              <span>Resume matching is unavailable. No candidate details were disclosed.</span>
             </div>
           )}
 
@@ -126,20 +127,7 @@ function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
                 </div>
               )}
 
-              <div className="pt-1">
-                <button
-                  type="button"
-                  className="text-xs font-medium text-primary underline underline-offset-2"
-                  onClick={() => setShowResumeText((v) => !v)}
-                >
-                  {showResumeText ? "Hide" : "View"} extracted resume text (proof this read the actual file)
-                </button>
-                {showResumeText && (
-                  <pre className="mt-2 max-h-64 overflow-y-auto whitespace-pre-wrap rounded border border-border bg-background p-2 text-xs text-muted-foreground">
-                    {deep.resumeText || "(no text extracted)"}
-                  </pre>
-                )}
-              </div>
+
             </div>
           )}
         </div>
@@ -149,6 +137,13 @@ function MatchRow({ jobId, match }: { jobId: string; match: CandidateMatch }) {
 }
 
 function Page() {
+  const { user, profile, role } = useAuth();
+  if (!canUseCandidateAiMatching(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Candidate AI processing is paused pending independent privacy, provider and release approval.</p>;
+  return <AiMatchingWorkspace key={user?.id} />;
+}
+
+function AiMatchingWorkspace() {
   const [jobs, setJobs] = useState<JobOption[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
@@ -162,7 +157,7 @@ function Page() {
         .in("status", ["open", "on_hold"])
         .order("created_at", { ascending: false });
       setJobsLoading(false);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error("Job options could not be loaded.");
       setJobs((data as JobOption[]) ?? []);
     };
     load();
@@ -171,7 +166,7 @@ function Page() {
   const runMatch = useServerFn(matchCandidates);
   const matchMut = useMutation({
     mutationFn: (jobId: string) => runMatch({ data: { jobId } }),
-    onError: (err: any) => toast.error(err?.message ?? "Matching failed"),
+    onError: () => toast.error("Matching is unavailable."),
   });
 
   const result = matchMut.data as { job: JobOption & { description: string | null; requirements: string | null }; matches: CandidateMatch[]; consideredCount: number } | undefined;

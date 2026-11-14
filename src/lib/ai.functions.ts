@@ -36,7 +36,10 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     assertExternalEffectReleased("candidate_ai_processing");
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
-    return matchCandidateResume(context.supabase, data.jobId, data.candidateId);
+    // Never return raw extracted resume text or candidate contact fields to
+    // a browser client. Only the bounded scored result is necessary here.
+    const { match } = await matchCandidateResume(context.supabase, data.jobId, data.candidateId);
+    return { match };
   });
 
 // Standalone resume summary (no job involved) — manually triggered from a
