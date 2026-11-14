@@ -88,6 +88,7 @@ on:
       - 'security/build123/**'
       - 'security/build124/**'
       - 'security/build125/**'
+      - 'security/build126/**'
       - 'src/lib/crm-sensitive-route-access.ts'
       - 'src/routes/_app.users.tsx'
       - 'src/routes/_app.activities.tsx'
@@ -140,6 +141,8 @@ jobs:
           node-version: '22'
       - name: Test fail-closed webhook and account authorization without credentials
         run: node --experimental-strip-types --test security/build34/*.test.mjs security/build36/*.test.mjs security/build37/*.test.mjs
+      - name: Verify Build126 import and candidate-board privacy contracts
+        run: node --experimental-strip-types --test security/build126/import-and-board-privacy.test.mjs
   application-compile:
     runs-on: ubuntu-latest
     timeout-minutes: 15
