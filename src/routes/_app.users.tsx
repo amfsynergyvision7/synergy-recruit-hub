@@ -19,7 +19,7 @@ function Page() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPrivateUserDirectory(user?.id, profile, role);
   const isAdmin = allowed;
-  const canManageUsers = allowed && CRM_USER_ADMIN_MUTATIONS_ENABLED;
+  const canManageUsers = isAdmin && CRM_USER_ADMIN_MUTATIONS_ENABLED;
   const [users, setUsers] = useState<any[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);

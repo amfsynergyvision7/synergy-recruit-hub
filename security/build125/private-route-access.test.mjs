@@ -80,7 +80,8 @@ test("Build125 ambiguous multiple roles or stale auth fetches cannot silently pr
 });
 test("Build125 suspended admin cannot trigger mutation callbacks or see directory",()=>{
  const s=src("src/routes/_app.users.tsx");
- assert(s.includes("const canManageUsers = allowed && CRM_USER_ADMIN_MUTATIONS_ENABLED"));
+ assert(s.includes("const isAdmin = allowed;"));
+ assert(s.includes("const canManageUsers = isAdmin && CRM_USER_ADMIN_MUTATIONS_ENABLED"));
  assert(s.includes("if (!canManageUsers)"));
  assert(s.includes("CRM_USER_ADMIN_MUTATIONS_ENABLED"));
 });
