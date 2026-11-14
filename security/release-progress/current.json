@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 126,
+  "snapshot_build": 127,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -10,7 +10,7 @@
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "d40e12a7d879634c687ede0712d36df54c606060",
+      "pr12_head": "62b024a7fa0cb18066aaa6651e66e85d10f95d9d",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -153,6 +153,31 @@
       "independent_rls_review_accepted": false,
       "staging_or_production_writes": 0,
       "finance_or_ai_external_effects_enabled": false
+    },
+    "import_and_board_hardening": {
+      "stage": "DRAFT_OFFLINE_IMPORT_LIMITS_AND_BOARD_COMPLETENESS",
+      "first_fast_ci_run": "43569581900",
+      "first_fast_ci_passed": 502,
+      "first_fast_ci_failed": 0,
+      "first_guarded_ci_run": "43569581948",
+      "prior_build126_guarded_unexpected_failure_fixed_in_source": true,
+      "file_size_limit_bytes": 2097152,
+      "local_csv_excel_max_rows": 500,
+      "local_max_columns": 80,
+      "local_max_cell_chars": 16384,
+      "failed_or_stale_file_reads_discarded": true,
+      "malformed_csv_fails_closed": true,
+      "unknown_candidate_stages_rejected": true,
+      "board_manual_refresh": true,
+      "board_unrestricted_realtime": false,
+      "candidate_stage_mutations_released": false,
+      "import_writes_released": false,
+      "lab_auth_users": 0,
+      "lab_public_rls_policies": 0,
+      "signed_hosted_uat_accepted": 0,
+      "production_security_fixes_accepted": 0,
+      "formal_release_signoffs": 0,
+      "live_deployments_created_by_this_build": 0
     }
   },
   "statuses": [
@@ -404,8 +429,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build126 actual draft app changes: bulk-import preview uses file-local validation only, no private CRM read; admin identity-gated/keyed workspace; recruiter picker uses scoped active-role IDs without email directory; candidate-board read reconciles exact counts, rejects cap/duplicates, cancels stale responses, and removes unfiltered realtime. New tests and CI wiring committed; the first fast test run succeeded on source head. No accepted server/RLS review, protected main, signed hosted UAT or production release. Score remains 26/100: 12/43 evidenced, 31 open, 74 points outstanding. Git SHA is the last verified pre-snapshot repository head.",
-  "previous_file": "build125-evidence-baseline.json",
+  "notes": "Build127 draft engineering on PR12: corrected Build126 guarded CI Build60 recruiter source-contract mismatch without weakening role checks; bounded offline file import (2 MiB, 500 rows, 80 headers, 16,384-char cells), rejects malformed CSV/Excel and stale parser results; board rejects unknown stages and adds manual refresh without unrestricted realtime. First exact-head fast suite: 502/502 PASS. Guarded CI must be checked on final head separately, retaining intentional production release hold. Read-only lab: healthy, 19 RLS-enabled public tables, 0 Auth users/fixture rows/public policies. Fixed score remains 26/100, 12/43 evidenced, 31 open. No production/staging changes, financial activation, AI provider sends or outbound communications.",
+  "previous_file": "build126-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
