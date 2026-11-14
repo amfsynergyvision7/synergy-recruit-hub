@@ -10,18 +10,30 @@ import { toast } from "sonner";
 import { CRM_USER_ADMIN_MUTATIONS_ENABLED, manageCRMUser } from "@/lib/user-administration";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
+import { readCompleteCrmRows, sortCompleteCrmRows, CRM_MAX_ROWS } from "@/lib/bounded-crm-read";
+import { reconcileAdminDirectory, type VerifiedDirectoryUser } from "@/lib/admin-directory-integrity";
 
 export const Route = createFileRoute("/_app/users")({ component: Page });
 
 const ROLES = ["admin","recruiter","operations","finance","viewer"] as const;
 
 function Page() {
+  const { user, profile, role, loading } = useAuth();
+  // Never mount private directory state before the exact administrator is
+  // verified. Switching subject/role destroys the old private row cache.
+  if (loading || !canReadPrivateUserDirectory(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">User directory access requires a verified administrator account.</p>;
+  return <VerifiedAdminDirectory key={user!.id + ":" + role} />;
+}
+
+function VerifiedAdminDirectory() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPrivateUserDirectory(user?.id, profile, role);
   const isAdmin = allowed;
   const canManageUsers = isAdmin && CRM_USER_ADMIN_MUTATIONS_ENABLED;
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<VerifiedDirectoryUser[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -29,32 +41,37 @@ function Page() {
     const controller = new AbortController();
     setUsers([]);
     setLoadFailed(false);
+    setLoading(true);
     if (!allowed) return () => { active = false; controller.abort(); };
     const load = async () => {
       try {
-        const [{ data: profs, error: profError, count: profileCount }, { data: roles, error: rolesError, count: roleCount }] = await Promise.all([
-          supabase.from("profiles")
-            .select("id, full_name, email, department, status, is_active, created_at", { count: "exact" })
-            .order("created_at", { ascending: false }).limit(200).abortSignal(controller.signal),
-          supabase.from("user_roles")
-            .select("user_id, role", { count: "exact" }).limit(200).abortSignal(controller.signal),
+        // Both sources must be complete and role-visible. A one-shot
+        // limit(200) would otherwise report a false or partial directory.
+        const [profs, roles] = await Promise.all([
+          readCompleteCrmRows(async (from, to, signal) => {
+            const result = await supabase.from("profiles")
+              .select("id, full_name, email, department, status, is_active, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+            return { data: result.data, count: result.count, error: result.error };
+          }, controller.signal),
+          readCompleteCrmRows(async (from, to, signal) => {
+            const result = await supabase.from("user_roles")
+              .select("id, user_id, role", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+            return { data: result.data, count: result.count, error: result.error };
+          }, controller.signal),
         ]);
         if (!active || controller.signal.aborted) return;
-        if (profError || rolesError || !profs || !roles ||
-            !Number.isSafeInteger(profileCount) || !Number.isSafeInteger(roleCount) ||
-            profileCount! > 200 || roleCount! > 200 ||
-            profs.length !== profileCount || roles.length !== roleCount)
-          throw new Error("Directory data incomplete or unavailable");
-        const roleMap = new Map<string, string>();
-        for (const item of roles) {
-          if (roleMap.has(item.user_id)) throw new Error("Ambiguous role assignments");
-          roleMap.set(item.user_id, item.role);
-        }
-        setUsers(profs.map((entry: any) => ({
-          ...entry, role: roleMap.get(entry.id) ?? "unassigned"
-        })));
+        // An unlisted, orphan, duplicate or malformed role must not appear
+        // as a plausible verified single-user role.
+        setUsers(sortCompleteCrmRows(reconcileAdminDirectory(profs, roles), "created_at", false));
       } catch {
-        if (active && !controller.signal.aborted) { setUsers([]); setLoadFailed(true); }
+        if (active && !controller.signal.aborted) {
+          setUsers([]);
+          setLoadFailed(true);
+        }
+      } finally {
+        if (active && !controller.signal.aborted) setLoading(false);
       }
     };
     void load();
@@ -94,7 +111,7 @@ function Page() {
       {!isAdmin && <Badge variant="secondary">Read-only — admin actions disabled</Badge>}
       {isAdmin && !canManageUsers && <Badge variant="secondary">User approvals and role changes are paused pending secure release</Badge>}
       {loadFailed && <p className="text-sm text-destructive">Unable to retrieve the authorized user directory.</p>}
-      <Card><CardHeader><CardTitle className="text-base">{users.length} users</CardTitle></CardHeader>
+      <Card><CardHeader><CardTitle className="text-base">{loading ? "Verifying directory…" : loadFailed ? "Directory count unavailable" : `${users.length} verified users (maximum ${CRM_MAX_ROWS})`}</CardTitle></CardHeader>
         <CardContent className="overflow-auto">
           <Table>
             <TableHeader><TableRow>
@@ -126,7 +143,7 @@ function Page() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!users.length && <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">No users</TableCell></TableRow>}
+              {!loading && !loadFailed && !users.length && <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">No users in the verified complete directory</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
