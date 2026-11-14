@@ -246,8 +246,10 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     setLoadFailed(false);
     try {
       // Full role-visible snapshot, up to 2,500 rows, read in checked ID
-      // pages. Refuse truncation, count drift, duplicated IDs and over-cap
-      // lists before showing records, enabling edits or exporting CSV.
+      // pages. Browser completeness is not server RLS: the independent
+      // server-side role and row authorization contract is authoritative.
+      // Refuse truncation, count drift, duplicated IDs and over-cap lists
+      // before showing records, enabling edits or exporting CSV.
       const data = await readCompleteCrmRows((from, to, signal) =>
         supabase.from(table as any)
           .select("*", { count: "exact" })
