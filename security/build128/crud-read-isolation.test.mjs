@@ -66,7 +66,7 @@ test("Build128 shared CRUD UI is keyed to exact approved subject, role and table
 
 test("Build128 record lists retain count verification after Build131 page-based scale-up",()=>{
  assert(ui.includes('select("*", { count: "exact" })'));
- assert(ui.includes("readCompleteCrmRows((from, to, signal) =>"));
+ assert(ui.includes("readCompleteCrmRows(async (from, to, signal) =>"));
  assert(ui.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  assert(ui.includes("sortCompleteCrmRows(data"));
  assert(!ui.includes(".limit(MAX_CRUD_ROWS)"));
@@ -74,7 +74,7 @@ test("Build128 record lists retain count verification after Build131 page-based 
 
 test("Build128 relation choices stay exact-count verified after Build131 page-based scale-up",()=>{
  assert(ui.includes('select(field.relation!.select ?? "*", { count: "exact" })'));
- assert(ui.includes("readCompleteCrmRows((from, to, signal) =>"));
+ assert(ui.includes("readCompleteCrmRows(async (from, to, signal) =>"));
  assert(ui.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  assert(ui.includes("setRelationsFailed(true)"));
  assert(!ui.includes(".limit(MAX_RELATION_ROWS)"));
