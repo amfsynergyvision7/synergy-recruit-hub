@@ -26,3 +26,20 @@ LD02 — management-approved real-source whitelist and ICP; LD04 — human appro
 ## CI contract
 
 The GitHub fast CI workflow executes the full end-to-end synthetic discovery suite alongside the fixed deployment scorecard tests, and the guarded workflow also triggers on these paths. **LD03 is not counted until an actual exact-head CI run passes the recorded 3-business deduplication/provenance proof.**
+
+## Build 122 synthetic human-review/handoff stage
+
+The following *local test-only* commands require no credentials, network access, CRM or third-party service:
+
+```sh
+node security/lead-discovery/review.mjs queue security/lead-discovery/manifest.synthetic.json
+node security/lead-discovery/review.mjs handoff security/lead-discovery/manifest.synthetic.json security/lead-discovery/review-decisions.synthetic.json
+node --test security/build122/lead-review-and-handoff.test.mjs
+```
+
+- In `queue` mode all three fictional company-only rows remain **pending review**. There is no automatic approval.
+- In `handoff` mode, explicitly supplied **fictional** growth and CRM reviewer identities independently approve one synthetic record, a second fictional business is rejected and a third awaits CRM review. The example reviewer identities are only fixtures, **not real human signatures or accepted live leads**.
+- Growth approval requires a cited archived synthetic source and date; only a distinct CRM reviewer can promote the lead to an **offline, no-send JSON handoff preview**. Rejections are final, duplicate/conflicting source facts fail closed, email/phone/person fields never enter handoff.
+- Review decisions, rejections and preview creation are traced with deterministic SHA-256 hash-chained audit events. The chain is tamper-evident in the printed preview; its chain is **not an externally signed or persisted compliance ledger**.
+- No live business sourcing/ICP whitelist approval (LD02), operational sales contact, CRM write, public database insert, email or outreach occurs. An actual growth/CRM owner must separately authorize live integration.
+

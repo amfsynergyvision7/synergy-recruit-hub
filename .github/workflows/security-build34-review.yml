@@ -84,6 +84,7 @@ on:
       - 'security/build119/**'
       - 'security/build120/**'
       - 'security/build121/**'
+      - 'security/build122/**'
       - 'security/lead-discovery/**'
       - 'security/release-progress/**'
       - 'src/lib/private-query-cache-fence.ts'
