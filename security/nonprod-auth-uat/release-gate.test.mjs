@@ -1212,7 +1212,7 @@ test('Build143 standalone fixture writers refuse privileged or unverified Auth b
    const fake=rollbackFake(mapping,{extended,returned:'exact'});
    const fn=extended?()=>seedExtendedFixture(fake.client,mapping):
      ()=>seedInertBaseFixture(fake.client,mapping);
-   await assert.rejects(fn(),/exact nine nonproduction GoTrue users|exact nine synthetic Auth users/,
+   await assert.rejects(fn(),/exact nine nonproduction GoTrue users|exact nine synthetic Auth users/i,
     label+' must prevent standalone test-data writes');
    assert.equal(fake.deleteCalls(),0,'No cleanup is needed before any inserts');
   }
