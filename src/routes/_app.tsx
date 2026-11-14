@@ -55,20 +55,33 @@ function ApprovedAppShell({
 }: { userId: string; fullName: string; role: AppRole }) {
   const { theme, toggle } = useTheme();
   const [unread, setUnread] = useState(0);
+  const [unreadVerified, setUnreadVerified] = useState(false);
 
   useEffect(() => {
     let active = true;
     let latest = 0;
     setUnread(0);
+    setUnreadVerified(false);
     const load = async () => {
       const request = ++latest;
       try {
         const { count, error } = await supabase.from("notifications")
           .select("id", { count: "exact", head: true })
           .eq("user_id", userId).eq("is_read", false);
-        if (active && request === latest) setUnread(error ? 0 : (count ?? 0));
+        if (active && request === latest) {
+          if (error || !Number.isSafeInteger(count) || count! < 0) {
+            setUnread(0);
+            setUnreadVerified(false);
+          } else {
+            setUnread(count!);
+            setUnreadVerified(true);
+          }
+        }
       } catch {
-        if (active && request === latest) setUnread(0);
+        if (active && request === latest) {
+          setUnread(0);
+          setUnreadVerified(false);
+        }
       }
     };
     void load();
@@ -103,10 +116,15 @@ function ApprovedAppShell({
                 <Button variant="ghost" size="icon" aria-label="Notifications">
                   <Bell className="h-4 w-4" />
                 </Button>
-                {unread > 0 && (
+                {unreadVerified && unread > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold flex items-center justify-center">
                     {unread > 9 ? "9+" : unread}
                   </span>
+                )}
+                {!unreadVerified && (
+                  <span aria-label="Unread notification count not verified"
+                    title="Unread count unavailable; open notifications to verify"
+                    className="absolute -top-0.5 -right-0.5 rounded-full border bg-muted px-1 text-[9px] font-semibold">?</span>
                 )}
               </Link>
               <div className="hidden sm:flex items-center gap-2 pl-2 ml-1 border-l">
