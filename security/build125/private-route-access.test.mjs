@@ -99,7 +99,9 @@ test("Build125 activity timeline requires approved admin before Supabase request
 });
 test("Build125 activity timeline selects only action/time/module, no candidate notes or names",()=>{
  const s=src("src/routes/_app.activities.tsx");
- assert(s.includes('.select("id, created_at, action_type, module_created")'));
+ assert(s.includes('.select("id, created_at, action_type, module_created", { count: "exact" })'));
+ assert(s.includes("readCompleteCrmRows(async (from, to, signal) =>"));
+ assert(s.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  for(const forbidden of ['.select("*")','r.notes','r.candidate_name','r.recruiter_name','r.user_email'])
   assert(!s.includes(forbidden),forbidden);
 });
@@ -108,7 +110,9 @@ test("Build125 activity timeline no longer opens unrestricted all-candidate real
  assert(!s.includes('.on("postgres_changes"'));
  assert(!s.includes('supabase.channel('));
  assert(s.includes("controller.abort()"));
- assert(s.includes("if (error || !data)"));
+ assert(s.includes("setRows(sortCompleteCrmRows(data, \"created_at\", false))"));
+ assert(s.includes("setRows([]); setFailed(true);"));
+ assert(s.includes("{!rows.length && !failed && ("));
 });
 test("Build125 sidebar hides directory, timeline and AI matching under same exact policies",()=>{
  const s=src("src/components/AppSidebar.tsx");
