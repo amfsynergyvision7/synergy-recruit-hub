@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 127,
+  "snapshot_build": 128,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -10,7 +10,7 @@
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "62b024a7fa0cb18066aaa6651e66e85d10f95d9d",
+      "pr12_head": "2b5cf78089fdbd7a779cd1bfa9cd5c78f2fbf7a9",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -178,6 +178,47 @@
       "production_security_fixes_accepted": 0,
       "formal_release_signoffs": 0,
       "live_deployments_created_by_this_build": 0
+    },
+    "import_format_hardening": {
+      "stage": "DRAFT_OFFLINE_ONLY",
+      "detects_papaparse_renamed_headers": true,
+      "verifies_sheetjs_fullref": true,
+      "rejects_multi_sheet_workbooks": true,
+      "checks_raw_excel_headers": true,
+      "ambiguous_header_aliases_rejected": true,
+      "unknown_data_columns_rejected": true,
+      "finite_numbers_only": true,
+      "canonical_iso_dates_only": true,
+      "real_crm_imports_executed": 0,
+      "production_writes": 0
+    },
+    "shared_crud_read_hardening": {
+      "stage": "DRAFT_CLIENT_DEFENCE_IN_DEPTH_NOT_ACCEPTED_RLS",
+      "verified_subject_role_keying": true,
+      "main_list_bound": 250,
+      "relation_list_bound": 250,
+      "exact_counts_required": true,
+      "duplicate_ids_rejected": true,
+      "stale_read_abort": true,
+      "unscoped_realtime_subscriptions": 0,
+      "sensitive_dialogs_cleared_on_refresh": true,
+      "raw_backend_errors_in_affected_paths": false,
+      "manual_refresh_enabled": true,
+      "accepted_hosted_role_rls": false,
+      "signed_hosted_uat": 0
+    },
+    "build128_evidence": {
+      "baseline_guarded_build127_substantive_jobs_passed": 36,
+      "baseline_guarded_build127_intentional_release_hold_failed": 1,
+      "first_fast_ci_run": "43573058727",
+      "first_fast_ci_tests_passed": 547,
+      "first_fast_ci_tests_failed": 0,
+      "nonprod_lab_auth_users": 0,
+      "nonprod_lab_rows": 0,
+      "nonprod_lab_public_rls_policies": 0,
+      "nonprod_lab_rls_enabled_tables": 19,
+      "formal_production_changes": 0,
+      "release_gate_signoffs": 0
     }
   },
   "statuses": [
@@ -429,8 +470,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build127 draft engineering on PR12: corrected Build126 guarded CI Build60 recruiter source-contract mismatch without weakening role checks; bounded offline file import (2 MiB, 500 rows, 80 headers, 16,384-char cells), rejects malformed CSV/Excel and stale parser results; board rejects unknown stages and adds manual refresh without unrestricted realtime. First exact-head fast suite: 502/502 PASS. Guarded CI must be checked on final head separately, retaining intentional production release hold. Read-only lab: healthy, 19 RLS-enabled public tables, 0 Auth users/fixture rows/public policies. Fixed score remains 26/100, 12/43 evidenced, 31 open. No production/staging changes, financial activation, AI provider sends or outbound communications.",
-  "previous_file": "build126-evidence-baseline.json",
+  "notes": "Build128 draft engineering: hardened offline CSV/Excel import against parser-renamed duplicate headers, truncated full worksheet ranges, multiple sheets, semantic header collisions, invalid/misleading dates and non-finite numbers; tightened shared CrudModule client account/role mounting, exact bounded main and relation reads, stale request cancellation, manual refresh, and generic backend error handling. First live fast CI at intermediate head: 547/547 passed; final workflow must be checked separately. Last verified Build127 guarded CI 36 substantive successes and one intentional release hold. No DB writes, protected main, independent code review, hosted UAT or production/financial activation. Fixed score 26/100: 12/43 evidenced, 31 open. Git head in observations is the inspected pre-snapshot commit, not claimed final head.",
+  "previous_file": "build127-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
