@@ -162,10 +162,10 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   // referenced selector have been confirmed. Do not edit partial data.
   const verifiedForMutation = rowsVerified && relationsLoaded && !loading &&
     !loadFailed && !relationsFailed;
-  const editable = canEdit(role, module) && !candidateMutationPaused &&
-    !billingMutationPaused && verifiedForMutation;
-  const deletable = canDelete(role) && !candidateMutationPaused &&
-    !billingMutationPaused && verifiedForMutation;
+  const editable = canEdit(role, module) &&
+    !candidateMutationPaused && !billingMutationPaused && verifiedForMutation;
+  const deletable = canDelete(role) && !candidateMutationPaused && !billingMutationPaused &&
+    verifiedForMutation;
   const rowsEpoch = useRef(0);
   const rowsController = useRef<AbortController | null>(null);
   const relationEpoch = useRef(0);
