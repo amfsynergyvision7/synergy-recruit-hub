@@ -26,12 +26,16 @@ export function validateImportGrid(grid: ImportGrid): string | null {
       grid.rows.length > MAX_IMPORT_PREVIEW_ROWS)
     return "The file must have 1–500 data rows.";
   const names = new Set<string>();
+  const semanticNames = new Set<string>();
   for (const value of grid.headers) {
     if (typeof value !== "string" || value.trim().length === 0 ||
         value.length > 200) return "Column headers must be nonempty and short.";
     const normal = value.trim().toLocaleLowerCase("en");
-    if (names.has(normal)) return "Duplicate column names are not supported.";
+    const semantic = normal.replace(/[^a-z0-9]/g, "");
+    if (!semantic || names.has(normal) || semanticNames.has(semantic))
+      return "Duplicate or ambiguous column names are not supported.";
     names.add(normal);
+    semanticNames.add(semantic);
   }
   // Deny pathological cell payloads before rendering or further processing.
   for (const row of grid.rows) {
@@ -46,6 +50,8 @@ export function validateImportGrid(grid: ImportGrid): string | null {
     for (const value of Object.values(row)) {
       if (typeof value === "string" && value.length > MAX_IMPORT_CELL_CHARS)
         return "A cell exceeds the preview length limit.";
+      if (typeof value === "number" && !Number.isFinite(value))
+        return "A cell contains a non-finite number.";
       if (value !== null && value !== undefined && typeof value === "object")
         return "Nested spreadsheet values are unsupported.";
     }
