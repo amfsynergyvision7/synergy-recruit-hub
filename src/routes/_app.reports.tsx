@@ -15,19 +15,21 @@ import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
 import { readBoundedReportRows } from "@/lib/bounded-report-read";
+import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertReportSourceIntegrity, validReportWindow } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
-const STAGE_ORDER = [
-  "lead_received", "contacted", "interested", "resume_collected", "submitted_to_client",
-  "interview_scheduled", "interview_completed", "selected", "offer_released", "joined",
-  "rejected", "dropped",
-];
+const STAGE_ORDER = ALLOWED_REPORT_STAGES;
+
+function localDateIso(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 function isoDateNDaysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return localDateIso(d);
 }
 
 /** Whether an ISO timestamp falls within [from, to] — both plain
@@ -110,7 +112,8 @@ function Reports() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPipelineReports(user?.id, profile, role);
   const [from, setFrom] = useState(() => isoDateNDaysAgo(30));
-  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [to, setTo] = useState(() => localDateIso(new Date()));
+  const validWindow = validReportWindow(from, to);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["reports-data", user?.id ?? "signed-out", role ?? "none"],
@@ -143,6 +146,7 @@ function Reports() {
               .select("id, company_name", { count: "exact" })
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
         ]);
+        assertReportSourceIntegrity({ candidates, submissions, interviews, offers, clients });
         return { candidates, submissions, interviews, offers, clients };
       } catch {
         // Avoid exposing a raw database error or silently computing on
@@ -175,10 +179,10 @@ function Reports() {
     return m;
   }, [clients]);
 
-  const candidatesInRange = useMemo(() => candidates.filter((c: any) => inRange(c.created_at, from, to)), [candidates, from, to]);
-  const submissionsInRange = useMemo(() => submissions.filter((s: any) => inRange(s.created_at, from, to)), [submissions, from, to]);
-  const interviewsInRange = useMemo(() => interviews.filter((i: any) => inRange(i.created_at, from, to)), [interviews, from, to]);
-  const offersInRange = useMemo(() => offers.filter((o: any) => inRange(o.created_at, from, to)), [offers, from, to]);
+  const candidatesInRange = useMemo(() => validWindow ? candidates.filter((c: any) => inRange(c.created_at, from, to)) : [], [candidates, from, to, validWindow]);
+  const submissionsInRange = useMemo(() => validWindow ? submissions.filter((s: any) => inRange(s.created_at, from, to)) : [], [submissions, from, to, validWindow]);
+  const interviewsInRange = useMemo(() => validWindow ? interviews.filter((i: any) => inRange(i.created_at, from, to)) : [], [interviews, from, to, validWindow]);
+  const offersInRange = useMemo(() => validWindow ? offers.filter((o: any) => inRange(o.created_at, from, to)) : [], [offers, from, to, validWindow]);
 
   // --- Report 1: Candidate pipeline by stage ---
   const pipelineRows = useMemo(() => {
@@ -199,25 +203,24 @@ function Reports() {
     const rec: Record<string, { added: number; submissions: number; interviews: number; offers: number; joined: number }> = {};
     const ensure = (id: string) => (rec[id] ??= { added: 0, submissions: 0, interviews: 0, offers: 0, joined: 0 });
 
-    candidatesInRange.forEach((c: any) => { if (c.assigned_recruiter) ensure(c.assigned_recruiter).added++; });
+    candidatesInRange.forEach((c: any) => { ensure(c.assigned_recruiter || UNASSIGNED_REPORT_KEY).added++; });
     submissionsInRange.forEach((s: any) => {
-      const rid = recruiterOfCandidate[s.candidate_uuid ?? s.candidate_id];
-      if (rid) ensure(rid).submissions++;
+      const rid = recruiterOfCandidate[s.candidate_uuid ?? s.candidate_id] || UNASSIGNED_REPORT_KEY;
+      ensure(rid).submissions++;
     });
     interviewsInRange.forEach((i: any) => {
-      const rid = recruiterOfCandidate[i.candidate_uuid ?? i.candidate_id];
-      if (rid) ensure(rid).interviews++;
+      const rid = recruiterOfCandidate[i.candidate_uuid ?? i.candidate_id] || UNASSIGNED_REPORT_KEY;
+      ensure(rid).interviews++;
     });
     offersInRange.forEach((o: any) => {
-      const rid = recruiterOfCandidate[o.candidate_uuid ?? o.candidate_id];
-      if (!rid) return;
+      const rid = recruiterOfCandidate[o.candidate_uuid ?? o.candidate_id] || UNASSIGNED_REPORT_KEY;
       ensure(rid).offers++;
       if (o.joining_status === "joined") ensure(rid).joined++;
     });
 
     return Object.entries(rec)
       .sort((a, b) => b[1].added - a[1].added)
-      .map(([id, v]) => [recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
+      .map(([id, v]) => [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
   }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate]);
 
   // --- Report 3: Client-wise pipeline summary ---
@@ -242,8 +245,8 @@ function Reports() {
       ] as (string | number)[]);
   }, [submissionsInRange, interviewsInRange, offersInRange, clientNames]);
 
-  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(new Date().toISOString().slice(0, 10)); };
-  const applyAllTime = () => { setFrom("2000-01-01"); setTo(new Date().toISOString().slice(0, 10)); };
+  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(localDateIso(new Date())); };
+  const applyAllTime = () => { setFrom("2000-01-01"); setTo(localDateIso(new Date())); };
 
   if (!allowed)
     return <p className="text-sm text-muted-foreground">Recruitment reporting requires an approved recruiter, operations or administrator role.</p>;
@@ -278,6 +281,10 @@ function Reports() {
         </CardContent>
       </Card>
 
+      {!validWindow ? (
+        <p className="text-sm text-destructive">Choose a valid date range in YYYY-MM-DD format, with From on or before To. No metrics or exports are shown.</p>
+      ) : (
+        <>
       <ReportTable
         title="Candidate Pipeline by Stage"
         description="Candidates added in the selected window, grouped by their current stage."
@@ -307,6 +314,8 @@ function Reports() {
         loading={isLoading}
         emptyLabel="No client activity in this window."
       />
+        </>
+      )}
 
     </div>
   );
