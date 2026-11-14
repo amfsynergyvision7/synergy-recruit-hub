@@ -6,7 +6,7 @@ import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const read=name=>JSON.parse(readFileSync(new URL("../release-progress/"+name,import.meta.url),"utf8"));
 const rubric=read("v1-rubric.json");
 const before=read("build135-evidence-baseline.json");
-const current=read("current.json");
+const current=read("build136-evidence-baseline.json");
 
 test("Build136 fixed 43-milestone accepted score remains exactly 26/100",()=>{
  assert.equal(before.snapshot_build,135);
