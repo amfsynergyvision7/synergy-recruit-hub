@@ -72,7 +72,8 @@ test("Build127 importer checks files before parsing and the grid before renderin
 
 test("Build127 rejects malformed PapaParse CSV instead of silently showing partial rows", () => {
   const page=src("src/routes/_app.import.tsx");
-  assert(page.includes('if (res.errors.length) reject(new Error("Malformed CSV input"))'));
+  assert(page.includes("res.errors.length || Object.keys("));
+  assert(page.includes('reject(new Error("Malformed or ambiguous CSV headers"))'));
   assert(page.includes('toast.error("Unable to parse this file safely.")'));
   assert(!page.includes('"Parse failed: " + e.message'));
 });
