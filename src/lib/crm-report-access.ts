@@ -3,7 +3,7 @@
  * actual DB RLS, server ownership checks and independent acceptance must
  * enforce authorization. Finance and billing reporting remain INACTIVE.
  */
-import { canMountApprovedCrm } from "./crm-shell-access";
+import { canMountApprovedCrm } from "./crm-shell-access.ts";
 
 export const FINANCIAL_ANALYTICS_RELEASE_HOLD = true as const;
 
