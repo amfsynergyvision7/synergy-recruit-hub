@@ -103,7 +103,9 @@ test("Build127 original guarded Build60 source contract matches safe recruiter s
   assert(testFile.includes('roleResult'));
   assert(testFile.includes('profileResult'));
   const route=src("src/routes/_app.candidates.tsx");
-  assert(route.includes('.in("id", ids).eq("status", "approved").eq("is_active", true)'));
+  assert(route.includes('.in("id", Array.from(ids)).eq("status", "approved")'));
+  assert(route.includes('.eq("is_active", true)'));
+  assert(route.includes("readVerifiedRecruiterChoices("));
 });
 
 test("Build127 CSV parser limits extraction to 501 entries to detect overflow", () => {
