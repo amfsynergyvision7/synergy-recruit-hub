@@ -82,7 +82,7 @@ test("Build129 settings suppresses raw database and storage errors in affected p
 
 test("Build129 settings admin controls remain limited to verified administrator",()=>{
  assert(settings.includes('if (role !== "admin") return;'));
- assert(settings.includes('isAdmin={role === "admin"}'));
+ assert(settings.includes('isAdmin={role === "admin" && !CRM_ORG_SETTINGS_MUTATIONS_PAUSED}'));
  assert(settings.includes('{role === "admin" && ('));
 });
 
