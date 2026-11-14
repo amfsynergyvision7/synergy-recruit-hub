@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { supabase } from "@/integrations/supabase/client";
+import { readVerifiedRecruiterChoices } from "@/lib/recruiter-selector-read";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { ResumeSummaryButton } from "@/components/ResumeSummaryButton";
@@ -46,37 +47,49 @@ function Page() {
 
 function CandidateWorkspace() {
   const [recruiters, setRecruiters] = useState<{ value: string; label: string }[]>([]);
+  const [recruiterDirectoryReady, setRecruiterDirectoryReady] = useState(false);
+  const [recruiterDirectoryFailed, setRecruiterDirectoryFailed] = useState(false);
   const [view, setView] = useState<"table" | "board">("table");
 
   useEffect(() => {
-    // Only active, approved recruiters are offered as assignees. No global
-    // employee directory is fetched on an unverified account.
+    // Only active, approved recruiters may be offered as assignees.
+    // The owner/role-keyed candidate workspace is not mounted before login.
     const controller = new AbortController();
     let current = true;
+    setRecruiters([]);
+    setRecruiterDirectoryReady(false);
+    setRecruiterDirectoryFailed(false);
     const fetchRecruiters = async () => {
       try {
-        const roleResult = await supabase.from("user_roles")
-          .select("user_id, role", { count: "exact" }).eq("role", "recruiter")
-          .order("user_id").limit(150).abortSignal(controller.signal);
+        const choices = await readVerifiedRecruiterChoices(
+          async (from, to, signal) => {
+            const result = await supabase.from("user_roles")
+              .select("id, user_id, role", { count: "exact" })
+              .eq("role", "recruiter")
+              .order("id", { ascending: true }).range(from, to)
+              .abortSignal(signal);
+            return { data: result.data, count: result.count, error: result.error };
+          },
+          async (ids, signal) => {
+            const result = await supabase.from("profiles")
+              .select("id, full_name", { count: "exact" })
+              .in("id", Array.from(ids)).eq("status", "approved")
+              .eq("is_active", true)
+              .order("id", { ascending: true })
+              .range(0, ids.length - 1).abortSignal(signal);
+            return { data: result.data, count: result.count, error: result.error };
+          },
+          controller.signal,
+        );
         if (!current || controller.signal.aborted) return;
-        const roles = roleResult.data ?? [];
-        if (roleResult.error || !Number.isSafeInteger(roleResult.count) ||
-            roleResult.count! > 150 || roles.length !== roleResult.count) return;
-        const ids = [...new Set(roles.map(r => r.user_id))];
-        if (ids.length !== roles.length) return;
-        if (!ids.length) { setRecruiters([]); return; }
-        const profileResult = await supabase.from("profiles")
-          .select("id, full_name", { count: "exact" })
-          .in("id", ids).eq("status", "approved").eq("is_active", true)
-          .order("full_name").limit(150).abortSignal(controller.signal);
-        if (!current || controller.signal.aborted) return;
-        const data = profileResult.data ?? [];
-        if (profileResult.error || !Number.isSafeInteger(profileResult.count) ||
-            profileResult.count! > 150 || data.length !== profileResult.count ||
-            data.some(p => !ids.includes(p.id))) return;
-        setRecruiters(data.map(p => ({ value: p.id, label: p.full_name || p.id.slice(0, 8) })));
+        setRecruiters(choices);
+        setRecruiterDirectoryReady(true);
       } catch {
-        if (current && !controller.signal.aborted) setRecruiters([]);
+        if (current && !controller.signal.aborted) {
+          setRecruiters([]);
+          setRecruiterDirectoryReady(false);
+          setRecruiterDirectoryFailed(true);
+        }
       }
     };
     void fetchRecruiters();
@@ -96,6 +109,13 @@ function CandidateWorkspace() {
           </Button>
         </div>
       </div>
+      {!recruiterDirectoryReady && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {recruiterDirectoryFailed
+            ? "Recruiter assignee choices could not be verified. Candidate editing and exports remain held."
+            : "Verifying complete recruiter assignee choices; candidate editing and exports remain held."}
+        </p>
+      )}
       {view === "board" ? (
         <div className="space-y-4">
           <div>
@@ -110,6 +130,7 @@ function CandidateWorkspace() {
       description="Full candidate pipeline with automated stage tracking."
       table="candidates"
       module="candidates"
+      requiredReferenceReady={recruiterDirectoryReady}
       detailView
       emailField="email"
       searchFields={["full_name","email","mobile","candidate_code","position_applied"]}
