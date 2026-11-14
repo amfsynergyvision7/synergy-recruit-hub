@@ -290,7 +290,7 @@ function AdminDuplicateReview({ userId }: { userId: string }) {
         <Alert variant="destructive">
           <TriangleAlert className="h-4 w-4" />
           <AlertTitle>Couldn't scan for duplicates</AlertTitle>
-          <AlertDescription>{(query.error as any)?.message ?? "Unknown error."}</AlertDescription>
+          <AlertDescription>Complete duplicate review is unavailable. No candidate records or diagnostic details are displayed.</AlertDescription>
         </Alert>
       )}
 
