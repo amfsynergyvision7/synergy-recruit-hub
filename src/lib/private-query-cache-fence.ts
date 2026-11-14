@@ -29,3 +29,11 @@ export function clearPrivateCacheForIdentity(
   client.clear();
   return true;
 }
+
+/** A same-user role downgrade/revocation also invalidates cached private data. */
+export function needsRoleTransitionPurge(
+  previousRole: string | null,
+  nextRole: string | null,
+): boolean {
+  return previousRole !== null && previousRole !== nextRole;
+}

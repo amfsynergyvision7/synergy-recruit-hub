@@ -11,3 +11,5 @@
 ## Limits
 
 Query cache clearing is browser-only defense-in-depth; it does not replace Postgres RLS, signed-user server checks or cancellation of every possible imperative fetch. Existing in-flight callbacks must still enforce identity freshness, and PR #12 remains draft under release hold. PR #15 stays unchanged for eligible independent review. No database writes, email, finance activation, merge or production deployment.
+
+- A follow-up to Build119 also tracks the last effective approved role. On a same-account role downgrade, suspension, revocation or profile-read failure, it purges the cache **before** the newly resolved role/profile is rendered. An actual account switch resets the previously authorized role. Three additional regression tests cover this condition.

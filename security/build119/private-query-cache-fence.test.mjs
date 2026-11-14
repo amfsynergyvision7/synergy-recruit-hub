@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createPrivateCacheFence, clearPrivateCacheForIdentity } from "../../src/lib/private-query-cache-fence.ts";
+import { createPrivateCacheFence, clearPrivateCacheForIdentity, needsRoleTransitionPurge } from "../../src/lib/private-query-cache-fence.ts";
 const file = path => readFileSync(new URL("../../" + path, import.meta.url), "utf8");
 const auth = file("src/hooks/use-auth.tsx"), root = file("src/routes/__root.tsx");
 test("Build119 account A to B to A removes all cached private data",()=>{
@@ -53,4 +53,24 @@ test("Build119 root error boundary cannot display or log exception messages",()=
  assert(e.includes("This page could not be loaded."));
  assert(!e.includes("console.error(error)"));assert(!e.includes("error.message"));
  assert(!e.includes("error instanceof Error"));
+});
+
+test("Build119 an approved admin downgraded to viewer must purge private query cache",()=>{
+ assert.equal(needsRoleTransitionPurge("admin","viewer"),true);
+ assert.equal(needsRoleTransitionPurge("admin","recruiter"),true);
+ assert.equal(needsRoleTransitionPurge("recruiter","recruiter"),false);
+});
+test("Build119 a suspended or unreadable approved profile forces cache purge",()=>{
+ assert.equal(needsRoleTransitionPurge("admin",null),true);
+ assert.equal(needsRoleTransitionPurge("viewer",null),true);
+ assert.equal(needsRoleTransitionPurge(null,null),false);
+ assert.equal(needsRoleTransitionPurge(null,"admin"),false);
+});
+test("Build119 role revocation is handled before rendering new profile",()=>{
+ const start=auth.indexOf("const nextRole = !rolesError");
+ const purge=auth.indexOf("purgePrivateQueries(ticket.userId, true);",start);
+ const role=auth.indexOf("setRole(nextRole);",start);
+ assert(start>=0 && purge>start && role>purge);
+ assert(auth.includes("if (priorId !== ticket.userId) lastApprovedRole.current = null;"));
+ assert(auth.includes("needsRoleTransitionPurge(lastApprovedRole.current, null)"));
 });

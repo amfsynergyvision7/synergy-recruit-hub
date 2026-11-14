@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import type { Session, User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createPrivateCacheFence, clearPrivateCacheForIdentity } from "@/lib/private-query-cache-fence";
+import { createPrivateCacheFence, clearPrivateCacheForIdentity, needsRoleTransitionPurge } from "@/lib/private-query-cache-fence";
 import {
   authorizedRoleForProfile,
   createAuthIdentityEpoch,
@@ -43,6 +43,7 @@ const Ctx = createContext<AuthCtx>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const privateCacheOwner = useRef(createPrivateCacheFence());
+  const lastApprovedRole = useRef<AppRole | null>(null);
   const purgePrivateQueries = (userId: string | null, force = false) =>
     clearPrivateCacheForIdentity(privateCacheOwner.current, queryClient, userId, force);
   const [session, setSession] = useState<Session | null>(null);
@@ -66,12 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!gate.accepts(ticket)) return;
       const matchedProfile: Profile | null =
         !profileError && prof?.id === ticket.userId ? (prof as Profile) : null;
-      setProfile(matchedProfile);
-      setRole(!rolesError
+      const nextRole = !rolesError
         ? authorizedRoleForProfile(ticket.userId, matchedProfile, roles)
-        : null);
+        : null;
+      // Account unchanged, but privileges may have been suspended,
+      // revoked or downgraded since the previous signed-in event.
+      if (needsRoleTransitionPurge(lastApprovedRole.current, nextRole))
+        purgePrivateQueries(ticket.userId, true);
+      lastApprovedRole.current = nextRole;
+      setProfile(matchedProfile);
+      setRole(nextRole);
     } catch {
       if (gate.accepts(ticket)) {
+        if (needsRoleTransitionPurge(lastApprovedRole.current, null))
+          purgePrivateQueries(ticket.userId, true);
+        lastApprovedRole.current = null;
         setProfile(null);
         setRole(null);
       }
@@ -104,7 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const ticket = gate.issue(next?.user?.id ?? null);
       if (!ticket) return;
       // Clear query AND mutation caches before rendering a new Auth subject.
+      const priorId = privateCacheOwner.current.current();
       purgePrivateQueries(ticket.userId);
+      if (priorId !== ticket.userId) lastApprovedRole.current = null;
       // Clear old privileges synchronously with the session identity change.
       setSession(next);
       setProfile(null);
@@ -150,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     identity.current.issue(null);
     // Purge prior-user queries before awaiting a remote Auth request.
     purgePrivateQueries(null, true);
+    lastApprovedRole.current = null;
     setSession(null);
     setProfile(null);
     setRole(null);
