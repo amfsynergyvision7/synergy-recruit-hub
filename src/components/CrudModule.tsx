@@ -89,6 +89,9 @@ interface Props {
    * candidates, not recruiters), so without this a recruiter has no way to
    * find their own public page short of knowing the URL. */
   headerActions?: ReactNode;
+  /** Some modules depend on additional verified, role-scoped selector data.
+   * Never enable editing/export while that prerequisite is incomplete. */
+  requiredReferenceReady?: boolean;
 }
 
 const ALL_FILTER = "__all__";
@@ -148,7 +151,7 @@ export function CrudModule(props: Props) {
   return <VerifiedCrudWorkspace key={user!.id + ":" + role + ":" + props.table} {...props} />;
 }
 
-function VerifiedCrudWorkspace({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
+function VerifiedCrudWorkspace({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions, requiredReferenceReady = true }: Props) {
   const { role } = useAuth();
   const candidateMutationPaused = module === "candidates" && LEGACY_CANDIDATE_WRITES_PAUSED;
   const billingMutationPaused = module === "billing" && LEGACY_BILLING_MUTATIONS_PAUSED;
@@ -162,7 +165,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   // Mutations are unavailable until both the entire row snapshot and every
   // referenced selector have been confirmed. Do not edit partial data.
   const verifiedForMutation = rowsVerified && relationsLoaded && !loading &&
-    !loadFailed && !relationsFailed;
+    !loadFailed && !relationsFailed && requiredReferenceReady;
   const editable = canEdit(role, module) &&
     !candidateMutationPaused && !billingMutationPaused && verifiedForMutation;
   const deletable = canDelete(role) && !candidateMutationPaused && !billingMutationPaused &&
