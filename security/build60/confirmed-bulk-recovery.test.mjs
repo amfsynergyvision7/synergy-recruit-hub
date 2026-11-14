@@ -71,9 +71,13 @@ test("PR11 active-only recruiter selection safely ported; no candidate DML bypas
  // status filter, which uses double quotes. Test the actual safe contract,
  // not obsolete quote style or global profile scanning.
  assert.match(route,/\.eq\("role", "recruiter"\)/);
- assert.match(route,/\.in\("id", ids\)\.eq\("status", "approved"\)\.eq\("is_active", true\)/);
- assert.match(route,/roleResult\.count! > 150/);
- assert.match(route,/profileResult\.count! > 150/);
+ assert.match(route,/\.in\("id", Array\.from\(ids\)\)\.eq\("status", "approved"\)/);
+ assert.match(route,/\.eq\("is_active", true\)/);
+ assert.match(route,/readVerifiedRecruiterChoices\(/);
+ const helper=readFileSync("src/lib/recruiter-selector-read.ts","utf8");
+ assert.match(helper,/readBoundedReportRows\(readRoles, signal\)/);
+ assert.match(helper,/reply\.data\.length !== reply\.count/);
+ assert.match(route,/requiredReferenceReady=\{recruiterDirectoryReady\}/);
  assert.match(board,/LEGACY_CANDIDATE_WRITES_PAUSED/);
  assert.match(board,/changeCandidateStage/);
  assert.doesNotMatch(board,/\.update\(\{ stage: newStage \}\)/);
