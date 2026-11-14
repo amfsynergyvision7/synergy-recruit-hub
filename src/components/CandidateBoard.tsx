@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canEdit } from "@/hooks/use-auth";
+import { CRM_MAX_ROWS, CRM_PAGE_SIZE, readCompleteCrmRows } from "@/lib/bounded-crm-read";
 import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { changeCandidateStage, isReviewableStageTarget } from "@/lib/candidate-stage";
 import { TONE_VAR, type PillTone } from "@/components/StatusPill";
@@ -29,15 +30,11 @@ interface CandidateRow {
   stage: string;
 }
 
-// Standalone board view, deliberately not built on CrudModule — it needs its
-// own data flow entirely (grouped-by-stage rendering, drag-and-drop) rather
-// than a row-per-line table, and keeping it separate means it can't regress
-// the other seven modules that share CrudModule's generic engine. Same
-// realtime-subscription pattern CrudModule itself uses, just scoped to the
-// handful of fields the board actually displays.
+// Standalone, ID-paginated board view. Keep a separate stage-focused
+// projection from generic CrudModule and never subscribe to unrestricted
+// candidate realtime feeds. Server-side RLS remains authoritative.
 export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoardProps) {
   const { role } = useAuth();
-  const editable = canEdit(role, "candidates") && !LEGACY_CANDIDATE_WRITES_PAUSED;
   const [rows, setRows] = useState<CandidateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -52,6 +49,8 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
 
   const [loadFailed, setLoadFailed] = useState(false);
   const [lastSuccessfulRead, setLastSuccessfulRead] = useState<string | null>(null);
+  const editable = canEdit(role, "candidates") && !LEGACY_CANDIDATE_WRITES_PAUSED &&
+    !loading && !loadFailed && !!lastSuccessfulRead;
   const loadEpoch = useRef(0);
   const requestController = useRef<AbortController | null>(null);
   const load = async () => {
@@ -64,17 +63,16 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
     setLoadFailed(false);
     setLastSuccessfulRead(null);
     try {
-      // Do not show apparently complete stage totals from capped Data API
-      // responses. Refuse a partial board until server aggregates are approved.
-      const { data, error, count } = await supabase.from("candidates")
-        .select("id, candidate_code, full_name, position_applied, assigned_recruiter, stage", { count: "exact" })
-        .order("id", { ascending: true }).limit(250)
-        .abortSignal(controller.signal);
+      // Count-reconciled role-visible ID pages, not browser authorization.
+      // Never render partial stage totals when a backend cap truncates results.
+      const data = await readCompleteCrmRows((from, to, signal) =>
+        supabase.from("candidates")
+          .select("id, candidate_code, full_name, position_applied, assigned_recruiter, stage", { count: "exact" })
+          .order("id", { ascending: true }).range(from, to).abortSignal(signal),
+        controller.signal);
       if (controller.signal.aborted || epoch !== loadEpoch.current) return;
       const stageValues = new Set(stages.map(stage => stage.value));
-      if (error || !Array.isArray(data) || !Number.isSafeInteger(count) || count! > 250 ||
-          data.length !== count || new Set(data.map(row => row.id)).size !== data.length ||
-          data.some(row => typeof row.id !== "string" || !row.id ||
+      if (data.some(row => typeof row.id !== "string" || !row.id ||
               typeof row.stage !== "string" || !stageValues.has(row.stage))) {
         setLoadFailed(true);
         return;
@@ -132,7 +130,7 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">
           {lastSuccessfulRead && !loadFailed && !loading
-            ? `Current read: ${rows.length} role-visible candidates (maximum 250); no realtime updates.`
+            ? `Current read: ${rows.length} role-visible candidates (maximum ${CRM_MAX_ROWS}, in ${CRM_PAGE_SIZE}-row pages); no realtime updates.`
             : "Candidate data has not been fully verified for this read."}
         </span>
         <button type="button" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
