@@ -159,6 +159,9 @@ function AdminImportWorkspace() {
 
   const onFile = async (f: File) => {
     const epoch = ++previewEpoch.current;
+    // Reject a second file without retaining a previous file's sensitive preview.
+    setFile(null); setRawRows([]); setMappedRows([]); setFileHeaders([]);
+    setMapping({}); setStep("upload");
     const fileError = validateImportFileMetadata(f);
     if (fileError) { toast.error(fileError); return; }
     importRequestId.current = null;
