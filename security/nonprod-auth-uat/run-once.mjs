@@ -259,6 +259,54 @@ export async function verifyInertHostedContents(client){
    const rows=await read(table,projection,count);
    if(!rows.every(check))reject(table);
  }
+ // Build142: the hosted fixture may have correct row counts and safe-looking
+ // statuses while uninspected columns contain real PII, scheduling tokens,
+ // external sheet details or sync diagnostics. Inspect exactly the columns
+ // expected to be null/empty, plus the precise fictional source values.
+ // This is a NONPRODUCTION-only SELECT audit; no row contents are logged.
+ const privateChecks=[
+  ['candidate_activities',
+   'candidate_name,recruiter_name,module_created,related_record_id',1,r=>
+     r.candidate_name==null&&r.recruiter_name==null&&
+     r.module_created==null&&r.related_record_id==null],
+  ['audit_logs','user_email,record_id',1,r=>
+     r.user_email==null&&r.record_id==null],
+  ['clients','active_positions',1,r=>r.active_positions==null],
+  ['job_openings','location,salary_min,salary_max,priority,requirements,description',2,r=>
+     [r.location,r.salary_min,r.salary_max,r.priority,
+      r.requirements,r.description].every(x=>x==null)],
+  ['submissions','submission_date,remarks',2,r=>
+     r.submission_date==null&&r.remarks==null],
+  ['interviews','round,interview_date,interview_time,mode,feedback,scheduling_token,proposed_slots',2,r=>
+     [r.round,r.interview_date,r.interview_time,r.mode,r.feedback,
+      r.scheduling_token,r.proposed_slots].every(x=>x==null)],
+  ['offers','offer_date',1,r=>r.offer_date==null],
+  ['google_integrations',
+   'user_id,sheet_name,header_row,sync_frequency_minutes,last_synced_row,last_sync,last_error,column_mapping,mapping',1,r=>
+     r.user_id===ids[0]&&r.sheet_name==='SYNTHETIC_DISCONNECTED'&&
+     r.header_row===1&&r.sync_frequency_minutes===60&&
+     r.last_synced_row===1&&r.last_sync==null&&r.last_error==null&&
+     r.column_mapping!=null&&typeof r.column_mapping==='object'&&
+     !Array.isArray(r.column_mapping)&&Object.keys(r.column_mapping).length===0&&
+     r.mapping!=null&&typeof r.mapping==='object'&&
+     !Array.isArray(r.mapping)&&Object.keys(r.mapping).length===0],
+  ['integrations',
+   'module,sheet_name,header_row,column_mapping,last_synced_row,last_sync_at,last_error',1,r=>
+     r.module==='synthetic_manual_hold'&&r.sheet_name==null&&
+     r.header_row===1&&r.last_synced_row===1&&
+     r.last_sync_at==null&&r.last_error==null&&
+     r.column_mapping!=null&&typeof r.column_mapping==='object'&&
+     !Array.isArray(r.column_mapping)&&Object.keys(r.column_mapping).length===0],
+  ['sync_logs','module,triggered_by,errors,message',1,r=>
+     r.module==='synthetic_no_connection'&&
+     r.triggered_by==='synthetic_fixture_no_execution'&&
+     Array.isArray(r.errors)&&r.errors.length===0&&
+     r.message==='No external sync executed']
+ ];
+ for(const [table,projection,count,check] of privateChecks){
+   const rows=await read(table,projection,count);
+   if(!rows.every(check))reject(table+' private fields');
+ }
  // Build141: row counts and inert flags cannot establish relational integrity.
  // Verify source-shaped client -> job -> submission -> interview -> offer ->
  // billing links, including legacy and UUID columns, using read-only narrow
