@@ -6,6 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { buildSafeGlobalSearchOr, safeGlobalSearchTerm } from "@/lib/safe-global-search";
+import { decodeSearchBuckets, MAX_SEARCH_PREVIEW_ROWS } from "@/lib/global-search-results";
 import { Search, Users, Building2, Briefcase } from "lucide-react";
 
 interface ResultRow {
@@ -74,36 +75,30 @@ export function GlobalSearch() {
           supabase.from("candidates")
             .select("id, full_name, candidate_code, position_applied")
             .or(buildSafeGlobalSearchOr(term, "candidates"))
-            .limit(6).abortSignal(controller.signal),
+            .order("id", { ascending: true }).limit(MAX_SEARCH_PREVIEW_ROWS).abortSignal(controller.signal),
           supabase.from("clients")
             .select("id, company_name, contact_person")
             .or(buildSafeGlobalSearchOr(term, "clients"))
-            .limit(6).abortSignal(controller.signal),
+            .order("id", { ascending: true }).limit(MAX_SEARCH_PREVIEW_ROWS).abortSignal(controller.signal),
           supabase.from("job_openings")
             .select("id, job_title, location")
             .or(buildSafeGlobalSearchOr(term, "jobs"))
-            .limit(6).abortSignal(controller.signal),
+            .order("id", { ascending: true }).limit(MAX_SEARCH_PREVIEW_ROWS).abortSignal(controller.signal),
         ]);
         if (!active) return;
         if (candidatesRes.error || clientsRes.error || jobsRes.error) {
           setFailed(true);
           return;
         }
-        setSnapshot({
-          term,
-          results: {
-            candidates: (candidatesRes.data ?? []).map((c: any) => ({
-              id: c.id, label: c.full_name,
-              sublabel: [c.candidate_code, c.position_applied].filter(Boolean).join(" · "),
-            })),
-            clients: (clientsRes.data ?? []).map((c: any) => ({
-              id: c.id, label: c.company_name, sublabel: c.contact_person ?? "",
-            })),
-            jobs: (jobsRes.data ?? []).map((j: any) => ({
-              id: j.id, label: j.job_title, sublabel: j.location ?? "",
-            })),
-          },
+        // Decode all three RLS-visible buckets in one atomic boundary.
+        // A malformed row in any module invalidates the whole preview.
+        const results = decodeSearchBuckets({
+          candidates: candidatesRes.data,
+          clients: clientsRes.data,
+          jobs: jobsRes.data,
         });
+        if (!active || controller.signal.aborted) return;
+        setSnapshot({ term, results });
       } catch {
         if (active) setFailed(true);
       } finally {
@@ -147,9 +142,13 @@ export function GlobalSearch() {
           ) : failed ? (
             <CommandEmpty>Search is temporarily unavailable.</CommandEmpty>
           ) : !hasAny ? (
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>No matches in the first six RLS-visible suggestions per category. Open a CRM module for a complete list.</CommandEmpty>
           ) : (
-            buckets.map(([bucket, rows]) => {
+            <>
+            <div className="px-2 py-1 text-xs text-muted-foreground">
+              Showing up to {MAX_SEARCH_PREVIEW_ROWS} matches per category; open a module for complete results.
+            </div>
+            {buckets.map(([bucket, rows]) => {
               if (rows.length === 0) return null;
               const meta = BUCKET_META[bucket];
               return (
@@ -165,7 +164,8 @@ export function GlobalSearch() {
                   ))}
                 </CommandGroup>
               );
-            })
+            })}
+            </>
           )}
         </CommandList>
       </CommandDialog>
