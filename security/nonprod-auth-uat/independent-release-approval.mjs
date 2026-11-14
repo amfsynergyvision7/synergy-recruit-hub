@@ -16,6 +16,16 @@ export const EXPECTED_ACTOR='amfsynergyvision7';
  * substantive checks. Effective branch rules from GitHub GET
  * /rules/branches/main omit disabled and evaluate-only rulesets.
  */
+/**
+ * Build149: a required arbitrary green/decorative check does not mean the
+ * repository requires the real no-secret isolated security contract job.
+ * Accept the GitHub check context as either the job name or its workflow-
+ * qualified spelling. Do not accept a generic/empty status as evidence.
+ */
+export const REQUIRED_NONPROD_CONTRACT_CHECKS=Object.freeze([
+ 'Nonprod Auth runner contracts — no secrets',
+ 'Nonprod Synthetic Auth UAT — Manual Only / Nonprod Auth runner contracts — no secrets'
+]);
 export function verifyMinimumEnforcedMainRules(rules){
  if(!Array.isArray(rules)||rules.length===0||rules.length>=100)
   throw new Error('Complete active main rules inventory unavailable');
@@ -32,7 +42,8 @@ export function verifyMinimumEnforcedMainRules(rules){
   const checks=rule?.parameters?.required_status_checks;
   return Array.isArray(checks)&&checks.length>0&&checks.length<100&&
    checks.every(c=>typeof c?.context==='string'&&c.context.trim()!==''&&
-    c.context!=='production-release-hold');
+    c.context!=='production-release-hold')&&
+   checks.some(c=>REQUIRED_NONPROD_CONTRACT_CHECKS.includes(c.context));
  });
  if(!validPr||!validChecks||
     byType('non_fast_forward').length===0||
@@ -104,6 +115,7 @@ export const PINNED_RELEASE_PATHS=Object.freeze([
   "security/nonprod-auth-uat/build92-hosted-schema-observation.json",
   "security/nonprod-auth-uat/compose-and-seed-remaining-fixture.mjs",
   "security/nonprod-auth-uat/independent-release-approval.mjs",
+  "security/nonprod-auth-uat/release-blocker-report.mjs",
   "security/nonprod-auth-uat/provision-nine-auth-users.mjs",
   "security/nonprod-auth-uat/release-gate.test.mjs",
   "security/nonprod-auth-uat/run-once.mjs",

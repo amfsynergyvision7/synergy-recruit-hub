@@ -188,3 +188,13 @@ A GitHub branch can report `protected=true` without guaranteeing the specific ma
 A denied or unavailable response does not grant access. This automatic check validates minimum effective rules, **not bypass actor restrictions**, which an independent repository administrator must separately inspect and attest. It also deliberately rejects classic branch protection with no observable active ruleset; an independent reviewer should decide whether to configure an equivalent active GitHub ruleset rather than bypass the gate. Four tests cover positive enforcement, missing rules, weak review/status protections, and correct no-secret CI ordering. No GitHub settings were changed by this draft source-only build.
 
 Source: https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch .
+
+## Build 149 — required status context and source-hash completeness
+
+The active-rules proof must now contain the **actual no-secret Auth safety-contract check**, not simply any green status such as `lint`, a Vercel preview or a fabricated check name. The accepted GitHub status contexts are the direct CI job name and its workflow-qualified form, with the deliberately failing production-release hold excluded. A qualified repository administrator must confirm the exact required-check context matches the current GitHub checks after enabling the ruleset.
+
+The newly added `security/nonprod-auth-uat/release-blocker-report.mjs` is now also in `PINNED_RELEASE_PATHS`. Its content cannot drift between the approved PR head and the protected manual dispatch without raising a source mismatch. Regression tests prove the hash-pin rejection, mandatory real check and the documented bypass-evidence gap.
+
+**Ruleset bypass limitation:** GitHub's own REST docs state that `bypass_actors` may be hidden unless the caller has write access to the ruleset. The GitHub Action uses only read permissions and therefore cannot attest that no admin, app or role can bypass protected rules. The workflow explicitly reports this outstanding **human administrator attestation**. Do not interpret `verified` branch rule settings or a passing offline CI suite as full release clearance; the user must arrange distinct, authorized independent reviewers and administrative proof. No protection setting, credential or database was changed by this source patch.
+
+References: https://docs.github.com/en/rest/repos/rules .

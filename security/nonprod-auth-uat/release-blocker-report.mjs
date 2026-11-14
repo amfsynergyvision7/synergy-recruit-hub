@@ -112,6 +112,10 @@ export async function runReadonlyReleaseReport(env=process.env){
   'Verified: '+result.checked+'; blocked: '+result.blocked+
   '; unverified: '+result.unverified+'.',
   '',
+  'Active rule checks are necessary but do not prove ruleset bypass actors.',
+  'The read-only GitHub token cannot establish the full bypass_actor list;',
+  'the repository administrator must inspect and separately attest those grants.',
+  '',
   'Formal hosted UAT, production DB remediation, restore rehearsal and',
   'business/legal/finance signoffs are independent requirements.',
   ''

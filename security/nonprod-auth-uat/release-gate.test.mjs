@@ -1568,3 +1568,48 @@ test('Build148 rules API is consulted before privileged environment secrets',()=
  assert(workflow.indexOf('run: node security/nonprod-auth-uat/independent-release-approval.mjs')<
   workflow.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
 });
+
+
+// Build149: prevent a decorative green status check from satisfying an
+// otherwise strongly configured ruleset. The production deliberate HOLD
+// is deliberately never eligible as the required passing safety signal.
+test('Build149 requires the actual nonprod contract CI context, not any green check',()=>{
+ const exact=reviewedMainRules();
+ assert.deepEqual(verifyMinimumEnforcedMainRules(exact),{
+  reviewRule:true,statusChecks:true,forcePushBlocked:true,deletionBlocked:true
+ });
+ for(const unrelated of [
+  'trivial-pass', 'Vercel', 'lint', 'production-release-hold',
+  'Nonprod Auth runner contracts — no secrets but actually another job'
+ ]){
+  const rules=structuredClone(exact);
+  rules[1].parameters.required_status_checks=[{context:unrelated}];
+  assert.throws(()=>verifyMinimumEnforcedMainRules(rules),
+    /Active main rules lack reviews|active main rules/i,unrelated);
+ }
+ const fullyQualified=structuredClone(exact);
+ fullyQualified[1].parameters.required_status_checks=[{
+  context:'Nonprod Synthetic Auth UAT — Manual Only / Nonprod Auth runner contracts — no secrets'
+ }];
+ assert.equal(verifyMinimumEnforcedMainRules(fullyQualified).statusChecks,true);
+});
+test('Build149 advisory source file is pinned to independently reviewed tree',()=>{
+ const path='security/nonprod-auth-uat/release-blocker-report.mjs';
+ assert(PINNED_RELEASE_PATHS.includes(path),'Missing source-hash pin for new advisory');
+ const tree=()=>({truncated:false,tree:PINNED_RELEASE_PATHS.map((p,i)=>
+  ({path:p,sha:String(i+1).padStart(40,'a'),type:'blob'}))});
+ const approved=tree(),running=tree();
+ assert.equal(verifyPinnedReviewedSource(approved,running).reviewedSourceFiles,
+  PINNED_RELEASE_PATHS.length);
+ const v=running.tree.find(x=>x.path===path);
+ v.sha='b'.repeat(40);
+ assert.throws(()=>verifyPinnedReviewedSource(approved,running),
+  /Unreviewed change or missing release source file/);
+});
+test('Build149 advisory report explicitly records manual ruleset-bypass limitation',()=>{
+ const src=readFileSync(new URL('./release-blocker-report.mjs',import.meta.url),'utf8');
+ const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
+ assert(src.includes('the repository administrator must inspect and separately attest'));
+ assert(gate.includes('REQUIRED_NONPROD_CONTRACT_CHECKS'));
+ assert(gate.includes('"security/nonprod-auth-uat/release-blocker-report.mjs"'));
+});
