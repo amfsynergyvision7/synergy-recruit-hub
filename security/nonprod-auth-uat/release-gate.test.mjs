@@ -1064,3 +1064,129 @@ test('Build142 extended failure rechecks all 16 targets and stable base/Auth, in
   assert.equal(fake.deleteCalls(),1);
  }
 });
+
+
+// Build143: a renamed real Auth identity may have a correct slot email and
+// RLS role but still contain a genuine phone, privileged app claim, unconfirmed
+// email, or external IdP. None is valid for invented-only hosted acceptance.
+test('Build143 confirmed synthetic Auth allows only nine email-only unprivileged fictional slots',()=>{
+ for(let slot=1;slot<=9;slot++){
+  assert.equal(isExactSyntheticAuthUser(mockSyntheticAuth(slot),slot),true);
+  assert.equal(isExactSyntheticAuthUser(mockSyntheticAuth(slot),slot===9?1:slot+1),false);
+ }
+ const accepted=mockSyntheticAuth(1);
+ accepted.last_sign_in_at='2026-11-14T10:00:00Z';
+ accepted.updated_at='2026-11-14T10:00:00Z';
+ assert.equal(isExactSyntheticAuthUser(accepted,1),true);
+});
+test('Build143 synthetic Auth rejects unconfirmed, contactable, privileged, external or modified identities',()=>{
+ const variants=[
+  ['unconfirmed',u=>{u.email_confirmed_at=null;}],
+  ['invalid confirmation',u=>{u.email_confirmed_at='invalid-date';}],
+  ['privileged role',u=>{u.role='service_role';}],
+  ['anonymous audience',u=>{u.aud='anon';}],
+  ['real phone',u=>{u.phone='+919876543210';}],
+  ['confirmed phone',u=>{u.phone_confirmed_at='2026-11-14T10:00:00Z';}],
+  ['invited subject',u=>{u.invited_at='2026-11-14T10:00:00Z';}],
+  ['banned subject',u=>{u.banned_until='2027-11-14T10:00:00Z';}],
+  ['deleted subject',u=>{u.deleted_at='2026-11-14T10:00:00Z';}],
+  ['pending email migration',u=>{u.new_email='customer@example.com';}],
+  ['pending phone migration',u=>{u.new_phone='+919876543210';}],
+  ['anonymous',u=>{u.is_anonymous=true;}],
+  ['sso user',u=>{u.is_sso_user=true;}],
+  ['enrolled factor',u=>{u.factors=[{factor_type:'phone'}];}],
+  ['privileged app claim',u=>{u.app_metadata.role='admin';}],
+  ['external app provider',u=>{u.app_metadata.provider='google';}],
+  ['external app provider list',u=>{u.app_metadata.providers.push('google');}],
+  ['unexpected user metadata',u=>{u.user_metadata.full_name='Real Person';}],
+  ['changed metadata email',u=>{u.user_metadata.email='actual@business.com';}],
+  ['unverified user metadata',u=>{u.user_metadata.email_verified=false;}],
+  ['phone-verified user metadata',u=>{u.user_metadata.phone_verified=true;}],
+  ['external identity provider',u=>{u.identities[0].provider='google';}],
+  ['identity owned by other subject',u=>{u.identities[0].user_id='00000000-0000-0000-0000-000000000009';}],
+  ['identity points to real email',u=>{u.identities[0].identity_data.email='real@business.com';}],
+  ['identity verified for another subject',u=>{u.identities[0].identity_data.sub='00000000-0000-0000-0000-000000000009';}],
+  ['no known identity',u=>{u.identities=[];}],
+  ['multiple identity providers',u=>{u.identities.push({...u.identities[0]});}],
+  ['no application metadata',u=>{u.app_metadata=null;}],
+  ['array user metadata',u=>{u.user_metadata=['someone'];}]
+ ];
+ for(const [label,mutate] of variants){
+  const u=mockSyntheticAuth(1); mutate(u);
+  assert.equal(isExactSyntheticAuthUser(u,1),false,label);
+ }
+});
+test('Build143 hosted full audit refuses hidden Auth metadata even with exact 9 users and 38 rows',async()=>{
+ const {client,users,writes}=fakeFullInertClient();
+ const payloads=[
+  ['phone','+918888888888'],
+  ['email_confirmed_at',null],
+  ['app_metadata',{provider:'email',providers:['email'],role:'admin'}],
+  ['identities',[{user_id:users[0].id,provider:'google'}]],
+  ['user_metadata',{private_candidate_email:'real@business.com'}]
+ ];
+ for(const [field,bad] of payloads){
+  const old=users[0][field];users[0][field]=bad;
+  await assert.rejects(runGuardedHostUat({operation:'AUDIT_ONLY'},client),
+   /Auth identit|Auth identity inventory changed/,
+   'Hosted audit must reject '+field);
+  await assert.rejects(verifyInertHostedContents(client),
+   /malformed synthetic Auth subject mapping/,
+   'Private content audit must reject '+field);
+  users[0][field]=old;
+ }
+ assert.equal(writes(),0);
+});
+test('Build143 nine genuinely confirmed fake GoTrue subjects pass provisioning with sanitized mapping',async()=>{
+ const plan=syntheticNinePlan(),created=[];
+ const admin={
+  listUsers:async()=>({data:{users:created.map(u=>({...u}))},error:null}),
+  createUser:async({email,email_confirm,password})=>{
+   assert.equal(email_confirm,true);
+   assert.equal(typeof password,'string');
+   const slot=plan.users.find(u=>u.email===email)?.slot;
+   assert(Number.isInteger(slot));
+   const subject=mockSyntheticAuth(slot);
+   created.push(subject);
+   return {data:{user:subject},error:null};
+  },
+  deleteUser:async()=>{throw new Error('Must not delete successful test users');}
+ };
+ let mapping=null;
+ const result=await provisionNine(plan,admin,async m=>{mapping=m;});
+ assert.equal(result.created_count,9);
+ assert.equal(result.auth_tenant_verified,true);
+ assert.equal(mapping.project_id,project);
+ assert.equal(mapping.users.length,9);
+ assert(mapping.users.every(x=>Object.keys(x).sort().join(',')==='email,id,slot'));
+});
+test('Build143 failed postcreation identity check refuses mapping and cleans exact invented IDs',async()=>{
+ const plan=syntheticNinePlan(),created=[];
+ const admin={
+  listUsers:async()=>({data:{users:created.map(u=>({...u}))},error:null}),
+  createUser:async({email})=>{
+   const slot=plan.users.find(u=>u.email===email)?.slot;
+   const subject=mockSyntheticAuth(slot);
+   created.push(subject);
+   return {data:{user:subject},error:null};
+  },
+  deleteUser:async id=>{
+   const i=created.findIndex(u=>u.id===id);
+   if(i>=0)created.splice(i,1);
+   return {error:null};
+  }
+ };
+ let listed=0;
+ const original=admin.listUsers;
+ admin.listUsers=async()=>{
+  const out=await original();
+  if(++listed===2)out.data.users[0].app_metadata.role='admin';
+  return out;
+ };
+ let saved=false;
+ await assert.rejects(provisionNine(plan,admin,async()=>{saved=true;}),
+  /Synthetic provisioning aborted; 0 cleanup operations unconfirmed/);
+ assert.equal(saved,false);
+ assert.equal(created.length,0);
+ assert.equal(listed,3);
+});
