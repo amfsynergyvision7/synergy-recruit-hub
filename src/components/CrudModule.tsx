@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
-import { CRM_MAX_ROWS, CRM_PAGE_SIZE, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
+import { CRM_MAX_ROWS, CRM_PAGE_SIZE, checkedCrmPageIds, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
 import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail, RefreshCw } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
@@ -252,12 +252,9 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
         const result = await supabase.from(table as any)
           .select("*", { count: "exact" })
           .order("id", { ascending: true }).range(from, to).abortSignal(signal);
-        // Supabase's dynamic table union includes a numeric-id settings table.
-        // Do not cast that union as valid CRM IDs until each returned row has
-        // been checked. The paging adapter also enforces nonempty unique IDs.
-        if (result.data?.some(row => typeof row.id !== "string" || !row.id.trim()))
-          throw new Error("Unsupported CRM record identifier");
-        return { data: result.data as unknown as { id: string }[] | null,
+        // Narrow dynamic PostgREST table unions only after runtime inspection.
+        // The common paging adapter subsequently verifies ID order and count.
+        return { data: checkedCrmPageIds(result.data),
           count: result.count, error: result.error };
       }, controller.signal);
       if (controller.signal.aborted || epoch !== rowsEpoch.current) return;
@@ -296,9 +293,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
           const result = await supabase.from(field.relation!.table as any)
             .select(field.relation!.select ?? "*", { count: "exact" })
             .order("id", { ascending: true }).range(from, to).abortSignal(signal);
-          if (result.data?.some(row => typeof row.id !== "string" || !row.id.trim()))
-            throw new Error("Unsupported CRM relationship identifier");
-          return { data: result.data as unknown as { id: string }[] | null,
+          return { data: checkedCrmPageIds(result.data),
             count: result.count, error: result.error };
         }, controller.signal);
         return [field.name, data] as const;
