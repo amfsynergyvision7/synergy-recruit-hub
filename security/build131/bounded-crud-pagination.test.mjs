@@ -155,7 +155,8 @@ test("Build131 source uses checked ID paging and account-scoped verified tables"
 
 test("Build131 incomplete selector list blocks editing and CSV rather than showing blank foreign labels",()=>{
  const ui=readFileSync(new URL("../../src/components/CrudModule.tsx",import.meta.url),"utf8");
- assert(ui.includes("hasCompleteIdList(data, count, MAX_RELATION_ROWS)"));
+ assert(ui.includes('select(field.relation!.select ?? "*", { count: "exact" })'));
+ assert(ui.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  assert(ui.includes("setRelationsLoaded(false)"));
  assert(ui.includes("setRelationsFailed(true)"));
  assert(ui.includes("&& verifiedForMutation"));
@@ -169,4 +170,25 @@ test("Build131 previous candidate/finance/joined status mutation holds still app
  for(const hold of ["LEGACY_CANDIDATE_WRITES_PAUSED","LEGACY_BILLING_MUTATIONS_PAUSED",
                     "LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED","bulkMutationPending.current"])
    assert(ui.includes(hold),hold);
+});
+
+test("Build131 relation selector reads complete 251-row snapshots, not partial 250 rows",async()=>{
+ const x=mock(sample(251));
+ const rows=await readCompleteCrmRows(x.reader,new AbortController().signal);
+ assert.equal(rows.length,251);
+ assert.equal(x.calls,2);
+});
+
+test("Build131 relation selector refuses over-cap 2501 rows",async()=>{
+ const x=mock(sample(2501));
+ await assert.rejects(readCompleteCrmRows(x.reader,new AbortController().signal),/exceeds verified row limit/);
+ assert.equal(x.calls,1);
+});
+
+test("Build131 related selector source uses the same ID count-reconciled reader as main records",()=>{
+ const ui=readFileSync(new URL("../../src/components/CrudModule.tsx",import.meta.url),"utf8");
+ assert.equal((ui.match(/readCompleteCrmRows\(\(from, to, signal\) =>/g)||[]).length,2);
+ assert(ui.includes("if (!controller.signal.aborted && epoch === relationEpoch.current) {"));
+ assert(ui.includes("setRelationsLoaded(true)"));
+ assert(ui.includes("setRelationsLoaded(false)"));
 });
