@@ -104,3 +104,25 @@ test("Build127 original guarded Build60 source contract matches safe recruiter s
   const route=src("src/routes/_app.candidates.tsx");
   assert(route.includes('.in("id", ids).eq("status", "approved").eq("is_active", true)'));
 });
+
+test("Build127 CSV parser limits extraction to 501 entries to detect overflow", () => {
+  const page=src("src/routes/_app.import.tsx");
+  assert(page.includes("preview: MAX_IMPORT_PREVIEW_ROWS + 1"));
+  assert(page.includes("validateImportGrid({ headers, rows })"));
+});
+
+test("Build127 Excel decode caps worksheet rows and columns before converting to JSON", () => {
+  const page=src("src/routes/_app.import.tsx");
+  assert(page.includes("sheetRows: MAX_IMPORT_PREVIEW_ROWS + 2"));
+  assert(page.includes('if (!ws || !ws["!ref"])'));
+  assert(page.includes('XLSX.utils.decode_range(ws["!ref"])'));
+  assert(page.includes("range.e.r - range.s.r > MAX_IMPORT_PREVIEW_ROWS"));
+  assert(page.includes("range.e.c - range.s.c + 1 > MAX_IMPORT_PREVIEW_COLUMNS"));
+});
+
+test("Build127 importer never exports raw parser exception text", () => {
+  const page=src("src/routes/_app.import.tsx");
+  assert(!page.includes("toast.error(error.message)"));
+  assert(!page.includes("toast.error(e.message)"));
+  assert(!page.includes('"Parse failed: "'));
+});
