@@ -91,6 +91,7 @@ on:
       - 'security/build126/**'
       - 'security/build127/**'
       - 'security/build128/**'
+      - 'security/build129/**'
       - 'src/lib/import-file-guard.ts'
       - 'src/lib/offline-import-coerce.ts'
       - 'src/lib/crm-list-integrity.ts'
@@ -148,7 +149,7 @@ jobs:
       - name: Test fail-closed webhook and account authorization without credentials
         run: node --experimental-strip-types --test security/build34/*.test.mjs security/build36/*.test.mjs security/build37/*.test.mjs
       - name: Verify Build126 import and candidate-board privacy contracts
-        run: node --experimental-strip-types --test security/build126/import-and-board-privacy.test.mjs security/build126/scorecard-progression.test.mjs security/build127/offline-import-guard.test.mjs security/build127/candidate-board-completeness.test.mjs security/build127/scorecard-progression.test.mjs security/build128/import-parser-integrity.test.mjs security/build128/crud-read-isolation.test.mjs security/build128/scorecard-progression.test.mjs
+        run: node --experimental-strip-types --test security/build126/import-and-board-privacy.test.mjs security/build126/scorecard-progression.test.mjs security/build127/offline-import-guard.test.mjs security/build127/candidate-board-completeness.test.mjs security/build127/scorecard-progression.test.mjs security/build128/import-parser-integrity.test.mjs security/build128/crud-read-isolation.test.mjs security/build128/scorecard-progression.test.mjs security/build129/private-admin-settings-gates.test.mjs security/build129/notifications-complete-owner.test.mjs
   application-compile:
     runs-on: ubuntu-latest
     timeout-minutes: 15
