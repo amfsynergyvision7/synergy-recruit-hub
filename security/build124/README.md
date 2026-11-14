@@ -20,3 +20,7 @@ The existing Reports page and Dashboard used a single Supabase SELECT response t
 - Run `node --test security/build124/report-completeness.test.mjs security/build124/report-ui-binding.test.mjs`. Exact-head fast and guarded GitHub workflows are required before reporting a compiled build.
 
 References: Supabase JavaScript range documentation https://supabase.com/docs/reference/javascript/using-modifiers-range ; draft PR12 release register, not an authorization to deploy.
+
+## Fixed scorecard delta and independent blockers
+
+Only development code changed. **26/100 previous → 26/100 current**, zero accepted new IDs. CI tests prove code behavior with synthetic mocks but cannot certify real production role/row security, a signed management KPI dictionary or source reconciliation. BI01–BI05 remain open, as do all REL gates. No staged or production schema/policy writes, actual data exports, email or financial activation.

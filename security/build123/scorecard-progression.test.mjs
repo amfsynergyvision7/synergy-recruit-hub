@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const read=n=>JSON.parse(readFileSync(new URL("../release-progress/"+n,import.meta.url),"utf8"));
-const rubric=read("v1-rubric.json"),prior=read("build122-evidence-baseline.json"),now=read("current.json");
+const rubric=read("v1-rubric.json"),prior=read("build122-evidence-baseline.json"),now=read("build123-evidence-baseline.json");
 
 test("Build123 43-gate deployment score honestly remains 26/100 with zero new milestones",()=>{
  assert.deepEqual(compareSnapshots(rubric,prior,now),{

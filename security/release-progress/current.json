@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 123,
+  "snapshot_build": 124,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -10,7 +10,7 @@
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "9d764f936037e1a79c250965ffd2bf503b33a469",
+      "pr12_head": "f31968a57bc54b0f80cd15409ffbaeec46219a9f",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -103,6 +103,22 @@
       "independent_bi_approval": false,
       "production_database_changes": 0,
       "real_financial_flows_activated": false
+    },
+    "reporting_completeness": {
+      "stage": "DRAFT_NO_ACCEPTED_BI_BACKEND",
+      "source_commit": "f31968a57bc54b0f80cd15409ffbaeec46219a9f",
+      "initial_fast_ci_run": "43564699697",
+      "page_size": 250,
+      "max_rows_per_source": 2500,
+      "truncated_pages_rejected": true,
+      "drifting_count_rejected": true,
+      "duplicate_id_rejected": true,
+      "abort_on_account_or_refresh_switch": true,
+      "real_cross_transaction_snapshot": false,
+      "independent_bi_data_contract_accepted": false,
+      "hosted_signed_bi_uat": 0,
+      "production_database_writes": 0,
+      "financial_reporting_enabled": false
     }
   },
   "statuses": [
@@ -354,8 +370,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build123 releases no milestone: score 26/100 unchanged, 12/43 gates. Draft CRM reporting/account role gates, audit metadata minimization, financial analytics hold, CSV formula neutralization, and 403/403 fast CI are code security changes only. BI02 demands independently accepted server/RLS data contract and is uncredited, as are all REL and production security gates.",
-  "previous_file": "build122-evidence-baseline.json",
+  "notes": "Build124 actual engineering: exact counted and ordered bounded page reads for 5 recruitment report sources and two dashboard detail sources; rejects silent row truncation, server-cap partial pages, changed counts and duplicate IDs; aborts stale refreshes; hides report errors. Source-only tests 430/430 PASS at 43564699697. Fixed v1 score remains 26/100, no new milestone, because BI02 needs independent RLS-safe backend contract and BI03 accepted authorized dashboards; this build does not pass those gates.",
+  "previous_file": "build123-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
