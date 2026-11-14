@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const read=name=>JSON.parse(readFileSync(new URL("../release-progress/"+name,import.meta.url),"utf8"));
-const rubric=read("v1-rubric.json"),prior=read("build127-evidence-baseline.json"),current=read("current.json");
+const rubric=read("v1-rubric.json"),prior=read("build127-evidence-baseline.json"),current=read("build128-evidence-baseline.json");
 
 test("Build128 unchanged programme score is exactly 26/100",()=>{
  assert.equal(prior.snapshot_build,127);
