@@ -122,17 +122,38 @@ export function reviewAndPreviewHandoff(queue,manifest) {
      queue.network_requests!==0 || queue.outbound_messages!==0 ||
      !Array.isArray(queue.leads) || queue.leads.length>100)
     throw new Error("Only a safe synthetic review queue is supported");
-  if(manifest?.mode!==REVIEW_MODE ||
+  if(!exactKeys(manifest,new Set(["mode","research_owner","decisions"]))||
+     manifest?.mode!==REVIEW_MODE ||
      !Array.isArray(manifest.decisions) || manifest.decisions.length>200 ||
      typeof manifest.research_owner!=="string" ||
      !/^[a-z][a-z0-9-]{4,40}$/.test(manifest.research_owner))
     throw new Error("Invalid offline reviewer manifest");
-  const queueIndex=new Map(queue.leads.map(x=>[x.business_website,x]));
-  if(queueIndex.size!==queue.leads.length)throw new Error("Duplicate queue company");
+  if(queue.review_required!==true||queue.actions_executed!==0)
+    throw new Error("A reviewed queue may not claim execution or skip human review");
+  const queueIndex=new Map();
+  for(const row of queue.leads){
+    if(!exactKeys(row,new Set([
+       "lead_id","company_name","business_website","location","industry",
+       "evidence","review_status","outreach_authorized","crm_write_authorized",
+    ]))||row.review_status!=="pending_growth_review"||
+       row.outreach_authorized!==false||row.crm_write_authorized!==false||
+       !businessText(row.company_name,120)||!businessText(row.location,90)||
+       !businessText(row.industry,90))
+      throw new Error("Review queue contains unauthorized or private fields");
+    const site=canonicalWebsite(row.business_website);
+    if(!site||site!==row.business_website||
+       row.lead_id!=="SYN-"+digest(site).slice(0,16)||
+       !Array.isArray(row.evidence)||!row.evidence.length||
+       row.evidence.length>30||row.evidence.some(x=>!proofRecord(x)))
+      throw new Error("Review queue has forged identity or provenance");
+    if(queueIndex.has(site))throw new Error("Duplicate queue company");
+    queueIndex.set(site,row);
+  }
   const states=new Map(queue.leads.map(x=>[x.business_website,{
     ...x,review_status:"pending_growth_review",review_records:[]
   }]));
   const audit=[];
+  addAudit(audit,{action:"REVIEW_QUEUE_INITIALIZED",lead_id:null,reviewer:"system",reviewed_on:null});
   for(const row of queue.leads)
     addAudit(audit,{action:"QUEUED",lead_id:row.lead_id,reviewer:"system",reviewed_on:null});
   for(const decision of manifest.decisions) {
