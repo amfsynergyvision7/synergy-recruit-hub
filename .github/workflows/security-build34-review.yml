@@ -86,6 +86,8 @@ on:
       - 'security/build121/**'
       - 'security/build122/**'
       - 'security/build123/**'
+      - 'security/build124/**'
+      - 'src/lib/bounded-report-read.ts'
       - 'src/lib/crm-report-access.ts'
       - 'src/lib/csv.ts'
       - 'src/routes/_app.reports.tsx'
