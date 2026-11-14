@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { filterOwnedNotificationRows } from "@/lib/notification-owner";
+import { hasCompleteIdList } from "@/lib/crm-list-integrity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, Calendar, Check, Clock, IndianRupee, UserCheck } from "lucide-react";
@@ -41,25 +42,44 @@ function Page() {
 function OwnedNotifications({ userId }: { userId: string }) {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
     let newestRequest = 0;
+    let requestController: AbortController | null = null;
     setItems([]);
     setLoading(true);
+    setLoadFailed(false);
     const load = async () => {
       const ticket = ++newestRequest;
+      requestController?.abort();
+      const controller = new AbortController();
+      requestController = controller;
+      setItems([]);
+      setLoading(true);
+      setLoadFailed(false);
       try {
-        const { data, error } = await supabase.from("notifications")
-          .select("id,user_id,title,message,type,is_read,created_at")
+        const { data, error, count } = await supabase.from("notifications")
+          .select("id,user_id,title,message,type,is_read,created_at", { count: "exact" })
           .eq("user_id", userId)
-          .order("created_at", { ascending: false }).limit(100);
-        if (!active || ticket !== newestRequest) return;
-        setItems(error ? [] : filterOwnedNotificationRows(data, userId) as NotificationItem[]);
+          .order("created_at", { ascending: false }).limit(100)
+          .abortSignal(controller.signal);
+        if (!active || controller.signal.aborted || ticket !== newestRequest) return;
+        // A default API cap or unexpected owner cannot become a plausible
+        // "100 notifications" or "nothing to see" claim.
+        if (error || !hasCompleteIdList(data, count, 100) ||
+            data.some(row => row.user_id !== userId)) {
+          setLoadFailed(true);
+          return;
+        }
+        setItems(filterOwnedNotificationRows(data, userId) as NotificationItem[]);
       } catch {
-        if (active && ticket === newestRequest) setItems([]);
+        if (active && !controller.signal.aborted && ticket === newestRequest)
+          setLoadFailed(true);
       } finally {
-        if (active && ticket === newestRequest) setLoading(false);
+        if (active && !controller.signal.aborted && ticket === newestRequest)
+          setLoading(false);
       }
     };
     void load();
@@ -70,6 +90,7 @@ function OwnedNotifications({ userId }: { userId: string }) {
       }, () => { void load(); }).subscribe();
     return () => {
       active = false;
+      requestController?.abort();
       void supabase.removeChannel(channel);
     };
   }, [userId]);
@@ -102,7 +123,9 @@ function OwnedNotifications({ userId }: { userId: string }) {
       </div>
       <Card>
         <CardHeader><CardTitle className="text-base">
-          {loading ? "Checking notifications…" : `${items.length} notification(s)`}
+          {loading ? "Checking notifications…" : loadFailed
+            ? "Notification list unavailable"
+            : `${items.length} notification(s)`}
         </CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {items.map(n => {
@@ -124,7 +147,10 @@ function OwnedNotifications({ userId }: { userId: string }) {
               </div>
             );
           })}
-          {!loading && !items.length && (
+          {!loading && loadFailed && (
+            <div className="text-sm text-destructive text-center py-8">Notification list is incomplete or unavailable. No partial results are displayed.</div>
+          )}
+          {!loading && !loadFailed && !items.length && (
             <div className="text-sm text-muted-foreground text-center py-8">No notifications</div>
           )}
         </CardContent>
