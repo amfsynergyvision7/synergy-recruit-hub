@@ -197,6 +197,19 @@ jobs:
       - name: Fail fast on TypeScript compilation defects
         run: npx tsc --noEmit
 
+  # The Build131/early Build132 write-hold regressions lived only in
+  # slower guarded jobs. Catch both independent source contracts immediately.
+  critical-write-hold-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify candidate mutation and financial-join holds
+        run: node --test security/build50/source-contract.test.mjs security/build56/source-contract.test.mjs
+
   hosted-uat-offline-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 6
