@@ -13,3 +13,6 @@
 This is draft code under release HOLD. Search still requires approved profile, authorization and proper RLS to be safe; front-end query validation is defense-in-depth. The new expression grammar deliberately rejects underscores, percent signs, commas, parentheses, quotes, slash and long searches rather than attempting to interpret them. Operators and database modifications were not changed.
 
 Neither PR #12 nor PR #15 may be self-approved, merged, deployed or permitted to bypass signed hosted UAT. PR #15 remains unchanged for independent review.
+
+- `src/routes/_app.notifications.tsx` and `src/lib/notification-owner.ts`: the full notifications page now repeats account approval gating and remounts by identity; its read query and Realtime subscription explicitly filter `user_id`, reject cross-owner rows even after a permissive API response, and avoid stale async updates. Mark-read additionally requires a current owned unread item and an exactly acknowledged `id + user_id` update. The direct `Create test reminder` live insert is removed.
+- `security/build117/notification-owner-scoping.test.mjs`: four additional no-secret tests cover actual in-memory row filtering, approval-gated mount, owner-scoped reads/Reatime, exact mark-read acknowledgement and removal of the test-insert path. Both CI workflows include the new paths and fast CI runs this suite.

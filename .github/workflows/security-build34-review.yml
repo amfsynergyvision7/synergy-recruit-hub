@@ -83,6 +83,8 @@ on:
       - 'src/lib/safe-global-search.ts'
       - 'src/components/GlobalSearch.tsx'
       - 'src/components/ResumeSummaryButton.tsx'
+      - 'src/lib/notification-owner.ts'
+      - 'src/routes/_app.notifications.tsx'
       - 'src/routes/_app.tsx'
       - 'src/lib/crm-shell-access.ts'
       - 'src/lib/logo-upload-safety.ts'
