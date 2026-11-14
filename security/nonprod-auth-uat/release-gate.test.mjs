@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {executionPlan,validateSnapshot,validateReadOnlyAudit,verifyInertHostedContents,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {makeBaseFixture,seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture,seedExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
-import {slotEmail,provisionNine,PROJECT_URL} from './provision-nine-auth-users.mjs';
+import {slotEmail,provisionNine,PROJECT_URL,isExactSyntheticAuthUser} from './provision-nine-auth-users.mjs';
 import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
@@ -24,11 +24,22 @@ const env=()=>{
  return e;
 };
 
+// Full GoTrue-shaped fake identities, wholly in memory; no real Auth access.
+const mockSyntheticAuth=slot=>{
+ const id='00000000-0000-0000-0000-'+String(slot).padStart(12,'0');
+ const email=slotEmail(slot);
+ return {
+  slot,id,email,role:'authenticated',aud:'authenticated',
+  email_confirmed_at:'2026-11-13T09:00:00Z',
+  confirmed_at:'2026-11-13T09:00:00Z',phone:'',
+  app_metadata:{provider:'email',providers:['email']},
+  user_metadata:{},is_anonymous:false,is_sso_user:false,factors:[],
+  identities:[{user_id:id,provider:'email',
+   identity_data:{email,sub:id,email_verified:true,phone_verified:false}}]
+ };
+};
 const fakeFullInertClient=()=>{
- const users=Array.from({length:9},(_,i)=>({
-  slot:i+1,id:'00000000-0000-0000-0000-'+String(i+1).padStart(12,'0'),
-  email:slotEmail(i+1),role:'authenticated'
- }));
+ const users=Array.from({length:9},(_,i)=>mockSyntheticAuth(i+1));
  const mapping={project_id:project,users};
  const now='2026-11-13T09:00:00.000Z';
  const base=makeBaseFixture(mapping,now);
@@ -818,7 +829,7 @@ const syntheticNinePlan=()=>({
  }))
 });
 test('Build140 unknown createUser outcome rechecks Auth even with zero returned IDs',async()=>{
- const ghost={id:'00000000-0000-0000-0000-000000000001',email:slotEmail(1)};
+ const ghost=mockSyntheticAuth(1);
  let reads=0,deletes=0;
  const admin={
   listUsers:async()=>({data:{users:++reads===1?[]:[ghost]},error:null}),
@@ -831,7 +842,7 @@ test('Build140 unknown createUser outcome rechecks Auth even with zero returned 
  assert.equal(deletes,0);
 });
 test('Build140 successful deleteUser HTTP response does not mask surviving Auth subject',async()=>{
- const ghost={id:'00000000-0000-0000-0000-000000000001',email:slotEmail(1),role:'authenticated'};
+ const ghost=mockSyntheticAuth(1);
  let reads=0,created=0,deletes=0;
  const admin={
   listUsers:async()=>({data:{users:++reads===1?[]:[ghost]},error:null}),
