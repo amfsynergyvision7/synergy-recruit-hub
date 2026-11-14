@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {executionPlan,validateSnapshot,validateReadOnlyAudit,verifyInertHostedContents,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {makeBaseFixture,seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture,seedExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
-import {slotEmail} from './provision-nine-auth-users.mjs';
+import {slotEmail,provisionNine,PROJECT_URL} from './provision-nine-auth-users.mjs';
 import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
@@ -805,4 +805,56 @@ test('Build140 extended rollback flags silent and incorrect deleted IDs',async()
  const exact=rollbackFake(mapping,{extended:true,returned:'exact'});
  await assert.rejects(seedExtendedFixture(exact.client,mapping),
   /0 table cleanup results unconfirmed/);
+});
+
+ 
+// Build140: a failed createUser may have committed an account even when no
+// subject ID came back, and a successful deleteUser response is not proof
+// that the account disappeared. Independently count the exact lab Auth state.
+const syntheticNinePlan=()=>({
+ url:PROJECT_URL,
+ users:Array.from({length:9},(_,i)=>({
+  slot:i+1,email:slotEmail(i+1),password:'in-memory-only-test-password-'+(i+1)
+ }))
+});
+test('Build140 unknown createUser outcome rechecks Auth even with zero returned IDs',async()=>{
+ const ghost={id:'00000000-0000-0000-0000-000000000001',email:slotEmail(1)};
+ let reads=0,deletes=0;
+ const admin={
+  listUsers:async()=>({data:{users:++reads===1?[]:[ghost]},error:null}),
+  createUser:async()=>{throw new Error('simulated remote timeout after commit');},
+  deleteUser:async()=>{deletes++;return {error:null};}
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
+  /1 cleanup operations unconfirmed/);
+ assert.equal(reads,2);
+ assert.equal(deletes,0);
+});
+test('Build140 successful deleteUser HTTP response does not mask surviving Auth subject',async()=>{
+ const ghost={id:'00000000-0000-0000-0000-000000000001',email:slotEmail(1),role:'authenticated'};
+ let reads=0,created=0,deletes=0;
+ const admin={
+  listUsers:async()=>({data:{users:++reads===1?[]:[ghost]},error:null}),
+  createUser:async()=>{
+   if(++created===1)return {data:{user:ghost},error:null};
+   throw new Error('simulated timeout after another Auth creation');
+  },
+  deleteUser:async()=>{deletes++;return {error:null};}
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
+  /1 cleanup operations unconfirmed/);
+ assert.equal(reads,2);
+ assert.equal(deletes,1);
+});
+test('Build140 Auth rollback reports zero unconfirmed only after independently empty readback',async()=>{
+ let reads=0;
+ const admin={
+  listUsers:async()=>({data:{users:[]},error:null}),
+  createUser:async()=>{throw new Error('simulated refusal without provider commit');},
+  deleteUser:async()=>({error:null})
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),{
+  ...admin,listUsers:async()=>{reads++;return admin.listUsers();}
+ },async()=>{}),/0 cleanup operations unconfirmed/);
+ assert.equal(reads,2);
 });
