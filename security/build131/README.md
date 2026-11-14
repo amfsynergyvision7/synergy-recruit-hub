@@ -8,7 +8,7 @@ Build130 final head `8e07cda5f709e67c600ad91416917f7e4e9c4ef0` passed **610/610 
 
 ## Implemented engineering changes
 
-1. Created `src/lib/bounded-crm-read.ts`, reusing the previously tested `readBoundedReportRows` transport contract. Every list reads **250 records per ID-ordered page, with an absolute 2,500-record maximum** and an exact count on every page. It rejects count drift, duplicated/out-of-order IDs, incomplete server pages, timeouts/aborts and over-limit totals; no partial result is returned.
+1. Created `src/lib/bounded-crm-read.ts`, reusing the previously tested `readBoundedReportRows` transport contract. Every list reads **250 records per ID-ordered page, with an absolute 2,500-record maximum** and an exact count on every page. It rejects count drift, duplicated/out-of-order IDs, incomplete server pages, aborted requests and over-limit totals; no partial result is returned.
 2. `src/components/CrudModule.tsx`: replaced the prior one-shot 250-row query with the count-complete ID-page snapshot. Sort complete records locally on its configured order column, with stable ID tie-breaking, preserving the usual newest-first display. Calls remain account/role keyed and cancellable, with no unscoped realtime.
 3. Every relation-selector source uses the same count-verified 2500-record paging, rather than returning only 250 options. If a relation source is incomplete or unavailable, its choices are cleared and **Add/Edit/Delete and CSV export are withheld**; the record source must also have completed before actions become available.
 4. `src/components/CandidateBoard.tsx`: uses count-reconciled pages and the same absolute cap, still projects only `id, candidate_code, full_name, position_applied, assigned_recruiter, stage`. Unknown stages invalidate the entire snapshot; stage drag/drop can only be enabled after a verified complete read, and the unconditional candidate mutation release hold remains active.
@@ -37,7 +37,7 @@ The present GitHub integration exposes neither branch-protection mutation nor pr
 
 ## Fresh nonproduction read-only observation
 
-Dedicated Supabase project `dhlhlasnaapzckjyvffn` is `ACTIVE_HEALTHY`, with **19 public RLS-enabled tables**, **0 Auth users**, **0 public RLS policies**, **0 public enabled application triggers**, and **0 table rows reported**. No DB writes or account creations performed.
+Dedicated Supabase project `dhlhlasnaapzckjyvffn` is `ACTIVE_HEALTHY`, with **19 public RLS-enabled tables**, **0 Auth users**, **0 public RLS policies**, **0 public enabled application triggers**, and **0 exact rows across 19 public tables** (confirmed by separate `count(*)` for each table). No DB writes or account creations performed.
 
 ## Programme and evidence
 
