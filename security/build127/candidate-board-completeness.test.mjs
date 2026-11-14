@@ -59,5 +59,6 @@ test("Build127 candidate board remains stage-mutation paused", () => {
 test("Build127 browser candidate route requires approved role and account key", () => {
   assert(route.includes("canMountApprovedCrm(user?.id, profile, role)"));
   assert(route.includes('<CandidateWorkspace key={user!.id + ":" + role} />'));
-  assert(route.includes('roleResult.count! > 150'));
+  assert(route.includes("readVerifiedRecruiterChoices("));
+  assert(route.includes('requiredReferenceReady={recruiterDirectoryReady}'));
 });
