@@ -15,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
-import { validateImportFileMetadata, validateImportGrid } from "@/lib/import-file-guard";
+import { MAX_IMPORT_PREVIEW_ROWS, MAX_IMPORT_PREVIEW_COLUMNS, validateImportFileMetadata, validateImportGrid } from "@/lib/import-file-guard";
 import { LEGACY_BULK_IMPORT_WRITES_PAUSED, BULK_IMPORT_HOLD_REASON } from "@/lib/release-safety";
 import { commitCandidateImport } from "@/lib/candidate-batch-import";
 import { IMPORT_SCHEMAS, type ImportSchema, type ImportFieldDef } from "@/lib/import-schemas";
@@ -59,7 +59,7 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: Record<
   if (ext === "csv") {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
-        header: true, skipEmptyLines: true,
+        header: true, skipEmptyLines: true, preview: MAX_IMPORT_PREVIEW_ROWS + 1,
         complete: (res) => {
           if (res.errors.length) reject(new Error("Malformed CSV input"));
           else resolve({ headers: res.meta.fields ?? [], rows: res.data as any[] });
@@ -69,8 +69,13 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: Record<
     });
   }
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
+  const wb = XLSX.read(buf, { type: "array", sheetRows: MAX_IMPORT_PREVIEW_ROWS + 2 });
   const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws || !ws["!ref"]) throw new Error("Empty worksheet");
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  if (range.e.r - range.s.r > MAX_IMPORT_PREVIEW_ROWS ||
+      range.e.c - range.s.c + 1 > MAX_IMPORT_PREVIEW_COLUMNS)
+    throw new Error("Worksheet exceeds local preview bounds");
   const json: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
   const headers = json.length ? Object.keys(json[0]) : [];
   return { headers, rows: json };
