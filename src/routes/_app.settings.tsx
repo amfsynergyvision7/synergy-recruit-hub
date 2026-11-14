@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { useBranding } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,16 @@ export const Route = createFileRoute("/_app/settings")({ component: Page });
 const LOGO_STORAGE_PATH = "company-logo";
 
 function Page() {
+  const { user, profile, role, loading } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Checking settings access…</p>;
+  if (!canMountApprovedCrm(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Approved CRM access is required.</p>;
+  // Reset profile inputs, branding controls and pending local state when
+  // the authenticated subject or role changes.
+  return <ApprovedSettingsWorkspace key={user!.id + ":" + role} />;
+}
+
+function ApprovedSettingsWorkspace() {
   const { profile, role, refresh } = useAuth();
   const { logoUrl, defaultColorTheme, refresh: refreshBranding } = useBranding();
   const [form, setForm] = useState({
@@ -36,9 +47,13 @@ function Page() {
 
   useEffect(() => {
     if (role !== "admin") return;
-    getAdminResumeFolder().then(({ data, error }) => {
-      if (!error) setDriveFolderUrl(data ?? "");
+    let active = true;
+    void getAdminResumeFolder().then(({ data, error }) => {
+      if (active && !error) setDriveFolderUrl(data ?? "");
+    }).catch(() => {
+      if (active) setDriveFolderUrl("");
     });
+    return () => { active = false; };
   }, [role]);
 
   const saveDriveFolder = async () => {
@@ -49,14 +64,14 @@ function Page() {
     setSavingFolder(true);
     const { error } = await updateAdminSetting("resume_import_folder_url", driveFolderUrl.trim() || null);
     setSavingFolder(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Resume import folder saved");
   };
 
   const save = async () => {
     if (!profile) return;
     const { error } = await updateOwnCRMProfile(form);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Profile updated"); refresh();
   };
 
@@ -81,20 +96,20 @@ function Page() {
       .upload(LOGO_STORAGE_PATH, file, { upsert: true, contentType: file.type });
     if (uploadError) {
       setUploading(false);
-      return toast.error(uploadError.message);
+      return toast.error("Logo upload could not be verified.");
     }
     const { data } = supabase.storage.from("branding").getPublicUrl(LOGO_STORAGE_PATH);
     const versionedUrl = `${data.publicUrl}?v=${Date.now()}`;
     const { error: dbError } = await updateAdminSetting("logo_url", versionedUrl);
     setUploading(false);
-    if (dbError) return toast.error(dbError.message);
+    if (dbError) return toast.error("Branding update could not be verified.");
     toast.success("Logo updated");
     refreshBranding();
   };
 
   const setOrgDefaultTheme = async (id: ColorThemeId) => {
     const { error } = await updateAdminSetting("default_color_theme", id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Organization default theme updated");
     refreshBranding();
   };
@@ -104,7 +119,7 @@ function Page() {
     await supabase.storage.from("branding").remove([LOGO_STORAGE_PATH]);
     const { error } = await updateAdminSetting("logo_url", null);
     setUploading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Logo removed — showing the default mark again");
     refreshBranding();
   };
