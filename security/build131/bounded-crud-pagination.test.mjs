@@ -146,7 +146,7 @@ test("Build131 snapshot contract remains browser-only with no privileged key",()
 test("Build131 source uses checked ID paging and account-scoped verified tables",()=>{
  const ui=readFileSync(new URL("../../src/components/CrudModule.tsx",import.meta.url),"utf8");
  assert(ui.includes("canMountApprovedCrm(user?.id, profile, role)"));
- assert(ui.includes("readCompleteCrmRows((from, to, signal) =>"));
+ assert(ui.includes("readCompleteCrmRows(async (from, to, signal) =>"));
  assert(ui.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  assert(ui.includes("sortCompleteCrmRows(data, orderBy?.column"));
  assert(ui.includes("setRowsVerified(true)"));
@@ -187,7 +187,7 @@ test("Build131 relation selector refuses over-cap 2501 rows",async()=>{
 
 test("Build131 related selector source uses the same ID count-reconciled reader as main records",()=>{
  const ui=readFileSync(new URL("../../src/components/CrudModule.tsx",import.meta.url),"utf8");
- assert.equal((ui.match(/readCompleteCrmRows\(\(from, to, signal\) =>/g)||[]).length,2);
+ assert.equal((ui.match(/readCompleteCrmRows\(async \(from, to, signal\) =>/g)||[]).length,2);
  assert(ui.includes("if (!controller.signal.aborted && epoch === relationEpoch.current) {"));
  assert(ui.includes("setRelationsLoaded(true)"));
  assert(ui.includes("setRelationsLoaded(false)"));
