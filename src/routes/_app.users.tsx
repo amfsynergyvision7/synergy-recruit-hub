@@ -9,39 +9,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { CRM_USER_ADMIN_MUTATIONS_ENABLED, manageCRMUser } from "@/lib/user-administration";
 import { useAuth } from "@/hooks/use-auth";
+import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
 
 export const Route = createFileRoute("/_app/users")({ component: Page });
 
 const ROLES = ["admin","recruiter","operations","finance","viewer"] as const;
 
 function Page() {
-  const { role } = useAuth();
-  const isAdmin = role === "admin";
-  const canManageUsers = isAdmin && CRM_USER_ADMIN_MUTATIONS_ENABLED;
+  const { user, profile, role } = useAuth();
+  const allowed = canReadPrivateUserDirectory(user?.id, profile, role);
+  const isAdmin = allowed;
+  const canManageUsers = allowed && CRM_USER_ADMIN_MUTATIONS_ENABLED;
   const [users, setUsers] = useState<any[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const load = async () => {
-    const [{ data: profs }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("*").order("created_at",{ascending:false}),
-      supabase.from("user_roles").select("user_id,role"),
-    ]);
-    const roleMap: Record<string,string> = {};
-    (roles||[]).forEach((r:any)=>{ roleMap[r.user_id]=r.role; });
-    setUsers((profs||[]).map((p:any)=>({ ...p, role: roleMap[p.id] ?? "viewer" })));
-  };
-  useEffect(()=>{ load(); },[]);
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    setUsers([]);
+    setLoadFailed(false);
+    if (!allowed) return () => { active = false; controller.abort(); };
+    const load = async () => {
+      try {
+        const [{ data: profs, error: profError }, { data: roles, error: rolesError }] = await Promise.all([
+          supabase.from("profiles")
+            .select("id, full_name, email, department, status, is_active, created_at")
+            .order("created_at", { ascending: false }).limit(200).abortSignal(controller.signal),
+          supabase.from("user_roles")
+            .select("user_id, role").limit(200).abortSignal(controller.signal),
+        ]);
+        if (!active || controller.signal.aborted) return;
+        if (profError || rolesError || !profs || !roles) throw new Error("Directory data unavailable");
+        const roleMap = new Map(roles.map((r: any) => [r.user_id, r.role]));
+        setUsers(profs.map((p: any) => ({ ...p, role: roleMap.get(p.id) ?? "unassigned" })));
+      } catch {
+        if (active && !controller.signal.aborted) { setUsers([]); setLoadFailed(true); }
+      }
+    };
+    void load();
+    return () => { active = false; controller.abort(); };
+  }, [allowed, user?.id, reloadKey]);
 
   const updateStatus = async (id: string, status: "approved"|"pending"|"rejected"|"suspended") => {
     if (!canManageUsers) return toast.error("User administration is paused");
     const { error } = await manageCRMUser({ targetId: id, operation: "set_status", value: status });
     if (error) return toast.error(error.message);
-    toast.success("Account status updated"); await load();
+    toast.success("Account status updated"); setReloadKey((n) => n + 1);
   };
   const updateActive = async (id: string, is_active: boolean) => {
     if (!canManageUsers) return toast.error("User administration is paused");
     const { error } = await manageCRMUser({ targetId: id, operation: "set_active", value: String(is_active) as "true"|"false" });
     if (error) return toast.error(error.message);
-    toast.success("Account activity updated"); await load();
+    toast.success("Account activity updated"); setReloadKey((n) => n + 1);
   };
   const updateRole = async (userId: string, newRole: string) => {
     if (!canManageUsers) return toast.error("User administration is paused");
@@ -50,9 +70,11 @@ function Page() {
       targetId: userId, operation: "set_role", value: newRole as (typeof ROLES)[number],
     });
     if (error) return toast.error(error.message);
-    toast.success("Account role updated"); await load();
+    toast.success("Account role updated"); setReloadKey((n) => n + 1);
   };
 
+  if (!allowed)
+    return <p className="text-sm text-muted-foreground">User directory access requires a verified administrator account.</p>;
   return (
     <div className="space-y-4">
       <div>
@@ -61,6 +83,7 @@ function Page() {
       </div>
       {!isAdmin && <Badge variant="secondary">Read-only — admin actions disabled</Badge>}
       {isAdmin && !canManageUsers && <Badge variant="secondary">User approvals and role changes are paused pending secure release</Badge>}
+      {loadFailed && <p className="text-sm text-destructive">Unable to retrieve the authorized user directory.</p>}
       <Card><CardHeader><CardTitle className="text-base">{users.length} users</CardTitle></CardHeader>
         <CardContent className="overflow-auto">
           <Table>
