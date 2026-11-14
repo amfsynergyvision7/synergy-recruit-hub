@@ -18,7 +18,8 @@ export function summarizeReleaseBlockers({main,pr,reviews,environment}={}){
    main.name==='main'&&main.protected===true?'VERIFIED':
    'BLOCKED');
  check('Isolated PR #15 source and state',!pr?'UNVERIFIED':
-   pr.number===EXPECTED_PR&&pr.head?.ref===EXPECTED_BRANCH&&
+   pr.number===EXPECTED_PR&&pr.state==='open'&&pr.merged===false&&
+   pr.head?.ref===EXPECTED_BRANCH&&
    pr.base?.ref==='main'&&pr.user?.login===EXPECTED_ACTOR&&
    typeof pr.head?.sha==='string'&&/^[a-f0-9]{40}$/.test(pr.head.sha)?
    'VERIFIED':'BLOCKED');

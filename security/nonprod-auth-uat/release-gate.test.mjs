@@ -1427,7 +1427,7 @@ test('Build146 unavailable Auth precleanup inventory blocks deletion and reports
  assert.equal(reads,3);assert.equal(deletes,0);assert.equal(subjects.length,1);
 });
 
-const releaseReportPR=()=>({number:15,state:'open',user:{login:'amfsynergyvision7'},
+const releaseReportPR=()=>({number:15,state:'open',merged:false,user:{login:'amfsynergyvision7'},
  head:{sha:'a'.repeat(40),ref:'release/nonprod-auth-uat-gate-20261113'},base:{ref:'main'}});
 const releaseReportApproval=sha=>({user:{login:'independent-human'},state:'APPROVED',
  author_association:'COLLABORATOR',commit_id:sha,submitted_at:'2026-11-14T16:00:00Z'});
@@ -1488,4 +1488,23 @@ test('Build147 unprotected environment and malformed PR both remain HOLD',()=>{
  assert.equal(r.status,'HOLD');
  assert.equal(r.rows[1].verdict,'BLOCKED');
  assert.equal(r.rows[3].verdict,'BLOCKED');
+});
+
+
+test('Build147 closed-but-unmerged or falsely merged PR is not verified source state',()=>{
+ const pr=releaseReportPR();
+ for(const wrong of [
+  {...pr,state:'closed'},
+  {...pr,merged:true},
+  {...pr,number:12},
+  {...pr,head:{...pr.head,sha:'not-a-valid-sha'}}
+ ]){
+  const result=summarizeReleaseBlockers({
+   main:{name:'main',protected:true},pr:wrong,
+   reviews:[releaseReportApproval(pr.head.sha)],
+   environment:releaseReportEnvironment()
+  });
+  assert.equal(result.rows[1].verdict,'BLOCKED');
+  assert.equal(result.status,'HOLD');
+ }
 });
