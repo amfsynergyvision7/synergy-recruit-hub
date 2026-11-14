@@ -11,7 +11,7 @@ export type ImportFileMetadata = { name: string; size: number };
 export type ImportGrid = { headers: readonly string[]; rows: readonly Record<string, unknown>[] };
 
 export function validateImportFileMetadata(file: ImportFileMetadata): string | null {
-  if (typeof file?.name !== "string" || !/\.(csv|xlsx|xls)$/i.test(file.name))
+  if (typeof file?.name !== "string" || file.name.startsWith(".") || !/\.(csv|xlsx|xls)$/i.test(file.name))
     return "Use a CSV or Excel (.xlsx/.xls) file.";
   if (!Number.isSafeInteger(file.size) || file.size <= 0 || file.size > MAX_IMPORT_FILE_BYTES)
     return "The file must be nonempty and no larger than 2 MiB.";
