@@ -328,7 +328,10 @@
       "auth_users": 0,
       "fixture_rows_reported": 0,
       "public_enabled_application_triggers": 0,
-      "mutations_executed": 0
+      "mutations_executed": 0,
+      "fixture_rows_exact_count": 0,
+      "exact_counted_tables": 19,
+      "row_validation_method": "read_only_select_count_per_each_public_table"
     }
   },
   "statuses": [
@@ -580,7 +583,7 @@
       "evidence": []
     }
   ],
-  "notes": "Build131 draft only: reused count-reconciled 250-page / 2500-max ID-pagination for shared CRM rows, relation selectors and candidate board. Full ID snapshot is sorted locally for former created_at / configured display order, and failed/partial relation metadata blocks editing and CSV. Offline tests: corrected intermediate head 647/647 PASS; exact final-head runs must be rechecked. Build130 verified 610/610 fast, 36 substantive guarded jobs and only intentional production hold failed. Dedicated lab remains 19/19 public RLS enabled, 0 public policies, 0 Auth users/rows/triggers in read-only audit. No hosted write, main merge, deployment, production/finance activation or independent approvals. Fixed 43-gate programme score 26/100, 12 evidenced and 31 open.",
+  "notes": "Build131 draft only: reused count-reconciled 250-page / 2500-max ID-pagination for shared CRM rows, relation selectors and candidate board. Full ID snapshot is sorted locally for former created_at / configured display order, and failed/partial relation metadata blocks editing and CSV. Offline tests: corrected intermediate head 647/647 PASS; exact final-head runs must be rechecked. Build130 verified 610/610 fast, 36 substantive guarded jobs and only intentional production hold failed. Dedicated lab remains 19/19 public RLS enabled, 0 public policies, 0 Auth users/triggers and exactly zero rows across individually counted 19 tables in read-only audit. No hosted write, main merge, deployment, production/finance activation or independent approvals. Fixed 43-gate programme score 26/100, 12 evidenced and 31 open.",
   "previous_file": "build130-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
