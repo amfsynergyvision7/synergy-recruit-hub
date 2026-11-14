@@ -6,7 +6,7 @@ import { changeCandidateStage, isReviewableStageTarget } from "@/lib/candidate-s
 import { TONE_VAR, type PillTone } from "@/components/StatusPill";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface StageDef {
@@ -51,6 +51,7 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
   }, [recruiters]);
 
   const [loadFailed, setLoadFailed] = useState(false);
+  const [lastSuccessfulRead, setLastSuccessfulRead] = useState<string | null>(null);
   const loadEpoch = useRef(0);
   const requestController = useRef<AbortController | null>(null);
   const load = async () => {
@@ -61,6 +62,7 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
     setRows([]);
     setLoading(true);
     setLoadFailed(false);
+    setLastSuccessfulRead(null);
     try {
       // Do not show apparently complete stage totals from capped Data API
       // responses. Refuse a partial board until server aggregates are approved.
@@ -69,12 +71,16 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
         .order("id", { ascending: true }).limit(250)
         .abortSignal(controller.signal);
       if (controller.signal.aborted || epoch !== loadEpoch.current) return;
-      if (error || !data || !Number.isSafeInteger(count) || count! > 250 ||
-          data.length !== count || new Set(data.map(row => row.id)).size !== data.length) {
+      const stageValues = new Set(stages.map(stage => stage.value));
+      if (error || !Array.isArray(data) || !Number.isSafeInteger(count) || count! > 250 ||
+          data.length !== count || new Set(data.map(row => row.id)).size !== data.length ||
+          data.some(row => typeof row.id !== "string" || !row.id ||
+              typeof row.stage !== "string" || !stageValues.has(row.stage))) {
         setLoadFailed(true);
         return;
       }
       setRows(data as CandidateRow[]);
+      setLastSuccessfulRead(new Date().toISOString());
     } catch {
       if (!controller.signal.aborted && epoch === loadEpoch.current) setLoadFailed(true);
     } finally {
@@ -123,6 +129,17 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
   return (
     <div className="space-y-3">
       {loadFailed && <p className="text-sm text-destructive">Candidate board data is incomplete or unavailable. No partial pipeline is displayed.</p>}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">
+          {lastSuccessfulRead && !loadFailed && !loading
+            ? `Current read: ${rows.length} role-visible candidates (maximum 250); no realtime updates.`
+            : "Candidate data has not been fully verified for this read."}
+        </span>
+        <button type="button" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+          disabled={loading} onClick={() => { void load(); }}>
+          <RefreshCw className="h-3.5 w-3.5" />Refresh candidate board
+        </button>
+      </div>
       <div className="relative w-64">
         <Search
           className="pointer-events-none absolute text-muted-foreground"
