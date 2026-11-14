@@ -12,6 +12,21 @@ import {
   type ReportPageReader,
 } from "./bounded-report-read.ts";
 
+/**
+ * Safely narrow the mixed Supabase dynamic-table response to rows with
+ * nonempty string IDs. Some generated tables use numeric keys and
+ * parameterized relation projections can infer compiler-only error types.
+ * Never assert that their runtime shape is valid without inspecting it.
+ */
+export function checkedCrmPageIds(rows: unknown): Array<{ id: string }> | null {
+  if (rows === null) return null;
+  if (!Array.isArray(rows) ||
+      rows.some(row => !row || typeof row !== "object" || Array.isArray(row) ||
+        typeof row.id !== "string" || !row.id.trim()))
+    throw new Error("CRM page has unsupported or malformed record identifiers");
+  return rows as Array<{ id: string }>;
+}
+
 export const CRM_PAGE_SIZE = REPORT_PAGE_SIZE;
 export const CRM_MAX_ROWS = REPORT_MAX_ROWS;
 
