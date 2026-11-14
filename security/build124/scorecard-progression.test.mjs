@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const read=n=>JSON.parse(readFileSync(new URL("../release-progress/"+n,import.meta.url),"utf8"));
-const rubric=read("v1-rubric.json"),prior=read("build123-evidence-baseline.json"),current=read("current.json");
+const rubric=read("v1-rubric.json"),prior=read("build123-evidence-baseline.json"),current=read("build124-evidence-baseline.json");
 test("Build124 fixed score remains 26/100 with exactly zero new or regressed gates",()=>{
  const change=compareSnapshots(rubric,prior,current);
  assert.deepEqual(change,{previous:26,current:26,delta:0,newGates:[],regressed:[]});

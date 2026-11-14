@@ -20,3 +20,7 @@ The previous User Management route ran `select("*")` over all employee profiles 
 ## Release acceptance
 
 No fixed scorecard gate is newly completed: no independent PR approval, no signed hosted UAT or production authorization, no accepted role-safe Postgres policy and no approved AI usage. Keep **26/100** until formal criteria are met.
+
+## Fixed v1 progress status
+
+Build124 **26/100** → Build125 **26/100**, delta **+0**. No fixed programme milestone closed; security engineering work reduces browser overfetching and raw AI resume disclosure without independently accepted server security and provider release. All financial, CRM writes and outbound holds continue. 12/43 evidenced, 31 open, 74 points remain. No real candidate or employee records were read as part of these source tests.
