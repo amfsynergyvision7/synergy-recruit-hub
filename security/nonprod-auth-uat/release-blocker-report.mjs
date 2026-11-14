@@ -8,15 +8,22 @@ import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 import {
   EXPECTED_REPO,EXPECTED_PR,EXPECTED_BRANCH,
-  EXPECTED_ACTOR,EXPECTED_ENVIRONMENT,verifyProtectedEnvironment
+  EXPECTED_ACTOR,EXPECTED_ENVIRONMENT,verifyProtectedEnvironment,
+  verifyMinimumEnforcedMainRules
 } from './independent-release-approval.mjs';
 
-export function summarizeReleaseBlockers({main,pr,reviews,environment}={}){
+export function summarizeReleaseBlockers({main,mainRules,pr,reviews,environment}={}){
  const rows=[];
  const check=(name,verdict)=>rows.push({name,verdict});
  check('Protected main',!main?'UNVERIFIED':
    main.name==='main'&&main.protected===true?'VERIFIED':
    'BLOCKED');
+ let branchRulesVerdict='UNVERIFIED';
+ if(mainRules!==null&&mainRules!==undefined){
+  try{verifyMinimumEnforcedMainRules(mainRules);branchRulesVerdict='VERIFIED';}
+  catch{branchRulesVerdict='BLOCKED';}
+ }
+ check('Active main PR/review/status/force-push rules',branchRulesVerdict);
  check('Isolated PR #15 source and state',!pr?'UNVERIFIED':
    pr.number===EXPECTED_PR&&pr.state==='open'&&pr.merged===false&&
    pr.head?.ref===EXPECTED_BRANCH&&
@@ -76,6 +83,7 @@ async function readJson(path,token){
 export async function runReadonlyReleaseReport(env=process.env){
  const resources=[
   '/branches/main',
+  '/rules/branches/main?per_page=100',
   '/pulls/'+EXPECTED_PR,
   '/pulls/'+EXPECTED_PR+'/reviews?per_page=100',
   '/environments/'+EXPECTED_ENVIRONMENT
@@ -83,13 +91,14 @@ export async function runReadonlyReleaseReport(env=process.env){
  const token=env.GH_TOKEN;
  const responses=typeof token==='string'&&token.length>=20?
    await Promise.all(resources.map(path=>readJson(path,token).catch(()=>null))):
-   [null,null,null,null];
- // An exact 100-review page might have additional unseen reviews.
- // Fail closed instead of inferring independent approval from a partial list.
- if(Array.isArray(responses[2])&&responses[2].length>=100)responses[2]=null;
+   [null,null,null,null,null];
+ // A 100-item first page may be incomplete. Never mark either review or
+ // branch-rules inventory VERIFIED on a possible partial response.
+ if(Array.isArray(responses[1])&&responses[1].length>=100)responses[1]=null;
+ if(Array.isArray(responses[3])&&responses[3].length>=100)responses[3]=null;
  const result=summarizeReleaseBlockers({
-   main:responses[0],pr:responses[1],
-   reviews:responses[2],environment:responses[3]
+   main:responses[0],mainRules:responses[1],pr:responses[2],
+   reviews:responses[3],environment:responses[4]
  });
  const summary=[
   '### Nonproduction Auth release gate: '+result.status,

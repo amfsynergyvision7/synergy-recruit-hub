@@ -11,7 +11,37 @@ export const EXPECTED_PR=15;
 export const EXPECTED_BRANCH='release/nonprod-auth-uat-gate-20261113';
 export const EXPECTED_ACTOR='amfsynergyvision7';
 
-export function verifyIndependentReleaseGate({pr,reviews,main,context}){
+/**
+ * Build148: protected=true alone does not prove independent reviews or
+ * substantive checks. Effective branch rules from GitHub GET
+ * /rules/branches/main omit disabled and evaluate-only rulesets.
+ */
+export function verifyMinimumEnforcedMainRules(rules){
+ if(!Array.isArray(rules)||rules.length===0||rules.length>=100)
+  throw new Error('Complete active main rules inventory unavailable');
+ const byType=type=>rules.filter(r=>r?.type===type);
+ const validPr=byType('pull_request').some(rule=>{
+  const p=rule?.parameters;
+  return Number.isInteger(p?.required_approving_review_count)&&
+   p.required_approving_review_count>=1&&
+   p.dismiss_stale_reviews_on_push===true&&
+   p.require_last_push_approval===true&&
+   p.required_review_thread_resolution===true;
+ });
+ const validChecks=byType('required_status_checks').some(rule=>{
+  const checks=rule?.parameters?.required_status_checks;
+  return Array.isArray(checks)&&checks.length>0&&checks.length<100&&
+   checks.every(c=>typeof c?.context==='string'&&c.context.trim()!==''&&
+    c.context!=='production-release-hold');
+ });
+ if(!validPr||!validChecks||
+    byType('non_fast_forward').length===0||
+    byType('deletion').length===0)
+  throw new Error('Active main rules lack reviews, checks, no-force-push or deletion protection');
+ return Object.freeze({reviewRule:true,statusChecks:true,forcePushBlocked:true,deletionBlocked:true});
+}
+
+export function verifyIndependentReleaseGate({pr,reviews,main,context,mainRules}){
  if(context?.repository!==EXPECTED_REPO||
     context?.eventName!=='workflow_dispatch'||
     context?.ref!=='refs/heads/main'||
@@ -22,6 +52,7 @@ export function verifyIndependentReleaseGate({pr,reviews,main,context}){
  if(!main?.protected||main?.name!=='main'||
     main?.commit?.sha!==context.sha)
    throw new Error('Main branch must be protected and unmodified since manual dispatch');
+ verifyMinimumEnforcedMainRules(mainRules);
  if(pr?.number!==EXPECTED_PR||pr?.merged!==true||pr?.state!=='closed'||
     pr?.base?.ref!=='main'||pr?.head?.ref!==EXPECTED_BRANCH||
     pr?.user?.login!==EXPECTED_ACTOR||
@@ -156,13 +187,14 @@ export async function assertGitHubReleaseGate(env=process.env){
    sha:env.GITHUB_SHA
  };
  // Bound, exact read-only API URLs; no GitHub writes or Supabase access.
- const [pr,reviews,main,environment]=await Promise.all([
+ const [pr,reviews,main,mainRules,environment]=await Promise.all([
    getGitHubJson('/pulls/'+EXPECTED_PR,token),
    getGitHubJson('/pulls/'+EXPECTED_PR+'/reviews?per_page=100',token),
    getGitHubJson('/branches/main',token),
+   getGitHubJson('/rules/branches/main?per_page=100',token),
    getGitHubJson('/environments/'+EXPECTED_ENVIRONMENT,token)
  ]);
- const approved=verifyIndependentReleaseGate({pr,reviews,main,context});
+ const approved=verifyIndependentReleaseGate({pr,reviews,main,mainRules,context});
  const protectedEnvironment=verifyProtectedEnvironment(environment);
  // GitHub's immutable commit API returns the tree SHA for each exact commit.
  const getSourceTree=async sha=>{

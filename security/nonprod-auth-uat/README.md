@@ -180,3 +180,11 @@ This advisory step cannot change GitHub settings, request reviews, expose secret
 ### Build 147 follow-up — refuse stale or closed PR candidates
 
 The advisory GitHub status check now additionally requires PR #15 to be **open and unmerged** when verifying the review candidate's source and state. A closed-but-unmerged, unexpectedly merged, wrong-number or malformed-head PR produces `BLOCKED`, never an apparently verified pending-review source. This is a read-only evidence quality fix; after a legitimately approved merge, the separate privileged runtime gate, not this PR diagnostic, remains authoritative.
+
+## Build 148 — require verifiable active GitHub rules, not a protection checkbox
+
+A GitHub branch can report `protected=true` without guaranteeing the specific mandatory controls needed for sensitive release activity. The protected manual Auth gate and the read-only CI diagnostic now query GitHub's documented **effective active branch rules** endpoint `GET /rules/branches/main?per_page=100` and require all of the following: at least one mandatory independent PR approval, stale-review dismissal, independent last-push approval, resolved review conversations, required substantive status checks, a non-fast-forward (no force push) rule, and branch deletion protection. The intentionally failing `production-release-hold` cannot be the only enforced status check.
+
+A denied or unavailable response does not grant access. This automatic check validates minimum effective rules, **not bypass actor restrictions**, which an independent repository administrator must separately inspect and attest. It also deliberately rejects classic branch protection with no observable active ruleset; an independent reviewer should decide whether to configure an equivalent active GitHub ruleset rather than bypass the gate. Four tests cover positive enforcement, missing rules, weak review/status protections, and correct no-secret CI ordering. No GitHub settings were changed by this draft source-only build.
+
+Source: https://docs.github.com/en/rest/repos/rules#get-rules-for-a-branch .

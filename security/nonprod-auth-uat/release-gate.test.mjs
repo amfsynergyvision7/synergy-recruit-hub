@@ -5,7 +5,7 @@ import {executionPlan,validateSnapshot,validateReadOnlyAudit,readHostedSnapshot,
 import {makeBaseFixture,seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture,seedExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
 import {slotEmail,provisionNine,PROJECT_URL,isExactSyntheticAuthUser,syntheticAuthEvidenceFingerprint} from './provision-nine-auth-users.mjs';
-import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
+import { verifyIndependentReleaseGate,verifyMinimumEnforcedMainRules,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 import {summarizeReleaseBlockers} from './release-blocker-report.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
@@ -211,9 +211,19 @@ test('BUILD88 GitHub manual workflow requires fresh preflight only for write ope
 });
 
 
+const reviewedMainRules=()=>[
+ {type:'pull_request',parameters:{
+  required_approving_review_count:1,dismiss_stale_reviews_on_push:true,
+  require_last_push_approval:true,required_review_thread_resolution:true}},
+ {type:'required_status_checks',parameters:{
+  required_status_checks:[{context:'Nonprod Auth runner contracts — no secrets'}]}},
+ {type:'non_fast_forward'},
+ {type:'deletion'}
+];
 const githubGateFixture=()=>{
  const reviewSha='b'.repeat(40);
  return {
+  mainRules:reviewedMainRules(),
   context:{repository:'amfsynergyvision7/synergy-recruit-hub',eventName:'workflow_dispatch',
    ref:'refs/heads/main',actor:'amfsynergyvision7',sha:'a'.repeat(40)},
   main:{name:'main',protected:true,commit:{sha:'a'.repeat(40)}},
@@ -1449,19 +1459,19 @@ test('Build147 live gate summary is HOLD when main is unprotected and PR lacks r
  });
  assert.equal(b.status,'HOLD');
  assert.deepEqual(b.rows.map(x=>x.verdict),
-  ['BLOCKED','VERIFIED','BLOCKED','UNVERIFIED']);
+  ['BLOCKED','UNVERIFIED','VERIFIED','BLOCKED','UNVERIFIED']);
 });
 test('Build147 inaccessible metadata never becomes a passing release control',()=>{
  const b=summarizeReleaseBlockers();
  assert.equal(b.status,'UNVERIFIED');
  assert.equal(b.checked,0);
- assert.equal(b.unverified,4);
+ assert.equal(b.unverified,5);
 });
 test('Build147 source SHA and independent approval cannot be replaced by stale or self review',()=>{
  const pr=releaseReportPR(),yes=releaseReportApproval(pr.head.sha);
  const env=releaseReportEnvironment();
  assert.equal(summarizeReleaseBlockers({main:{name:'main',protected:true},
-  pr,reviews:[yes],environment:env}).status,'OWNER_REVIEW_REQUIRED');
+  mainRules:reviewedMainRules(),pr,reviews:[yes],environment:env}).status,'OWNER_REVIEW_REQUIRED');
  for(const stale of [
   {...yes,commit_id:'b'.repeat(40)},
   {...yes,user:{login:'amfsynergyvision7'}},
@@ -1507,4 +1517,54 @@ test('Build147 closed-but-unmerged or falsely merged PR is not verified source s
   assert.equal(result.rows[1].verdict,'BLOCKED');
   assert.equal(result.status,'HOLD');
  }
+});
+
+
+test('Build148 protected=true without effective PR/status rules must fail closed',()=>{
+ const x=githubGateFixture();
+ for(const mainRules of [undefined,null,[],[{type:'non_fast_forward'}]]){
+  assert.throws(()=>verifyIndependentReleaseGate({...x,mainRules}),
+   /main rules|active main rules/i);
+ }
+});
+test('Build148 actively enforced branch rules require independent reviews and no bypass by direct push',()=>{
+ assert.deepEqual(verifyMinimumEnforcedMainRules(reviewedMainRules()),{
+  reviewRule:true,statusChecks:true,forcePushBlocked:true,deletionBlocked:true
+ });
+ const alterations=[
+  x=>{x[0].parameters.required_approving_review_count=0;},
+  x=>{x[0].parameters.dismiss_stale_reviews_on_push=false;},
+  x=>{x[0].parameters.require_last_push_approval=false;},
+  x=>{x[0].parameters.required_review_thread_resolution=false;},
+  x=>{x[1].parameters.required_status_checks=[];},
+  x=>{x[1].parameters.required_status_checks=[{context:'production-release-hold'}];},
+  x=>{x.splice(2,1);},
+  x=>{x.pop();}
+ ];
+ for(const mutate of alterations){
+  const x=structuredClone(reviewedMainRules());mutate(x);
+  assert.throws(()=>verifyMinimumEnforcedMainRules(x),/active main rules/i);
+ }
+});
+test('Build148 advisory labels missing mandatory effective rules UNVERIFIED not release ready',()=>{
+ const pr=releaseReportPR(),approved=releaseReportApproval(pr.head.sha);
+ const b=summarizeReleaseBlockers({main:{name:'main',protected:true},
+  mainRules:null,pr,reviews:[approved],environment:releaseReportEnvironment()});
+ assert.equal(b.rows[0].verdict,'VERIFIED');
+ assert.equal(b.rows[1].verdict,'UNVERIFIED');
+ assert.equal(b.status,'UNVERIFIED');
+ const bad=summarizeReleaseBlockers({main:{name:'main',protected:true},
+  mainRules:[],pr,reviews:[approved],environment:releaseReportEnvironment()});
+ assert.equal(bad.rows[1].verdict,'BLOCKED');
+ assert.equal(bad.status,'HOLD');
+});
+test('Build148 rules API is consulted before privileged environment secrets',()=>{
+ const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
+ const reporter=readFileSync(new URL('./release-blocker-report.mjs',import.meta.url),'utf8');
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ assert(gate.includes("getGitHubJson('/rules/branches/main?per_page=100',token)"));
+ assert(gate.includes('verifyMinimumEnforcedMainRules(mainRules)'));
+ assert(reporter.includes("'/rules/branches/main?per_page=100'"));
+ assert(workflow.indexOf('run: node security/nonprod-auth-uat/independent-release-approval.mjs')<
+  workflow.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
 });
