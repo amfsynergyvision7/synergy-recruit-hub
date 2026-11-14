@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 // The review branch cannot enable these consequential account changes merely
 // because an admin is logged in. The database RPC must also be installed,
 // independently reviewed and tested against genuine hosted Auth sessions.
-export const CRM_USER_ADMIN_MUTATIONS_ENABLED =
-  import.meta.env.VITE_CRM_USER_ADMIN_MUTATIONS_ENABLED === "true";
+// Unconditionally held on this review branch. A browser environment flag
+// must never independently authorize role, activation or approval changes.
+// Release requires separately reviewed server RPC/RLS and hosted Auth tests.
+export const CRM_USER_ADMIN_MUTATIONS_ENABLED = false as const;
 
 export type AdminUserMutation =
   | { targetId: string; operation: "set_status"; value: "pending" | "approved" | "rejected" | "suspended" }
