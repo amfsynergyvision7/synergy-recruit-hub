@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 133,
+  "snapshot_build": 134,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -10,7 +10,7 @@
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "263d7dc9b3c7aa690ac7b1b335d367701bf04034",
+      "pr12_head": "e02d457054396927206fa7f51ef98819d5dd21a4",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -426,6 +426,65 @@
       "main_protected": false,
       "independent_pr12_reviews": 0,
       "independent_pr15_reviews": 0
+    },
+    "build134_audit_integrity": {
+      "stage": "DRAFT_ADMIN_ONLY_PRIVACY_CORRECTNESS_NOT_HOSTED_ACCEPTED",
+      "exact_approved_admin_workspace_keyed_to_subject": true,
+      "old_silent_limit_200_removed": true,
+      "complete_metadata_id_paging_250_max_2500": true,
+      "direct_server_rls_and_column_grants_independently_accepted": false,
+      "payload_and_email_columns_excluded": true,
+      "failed_read_visible_not_falsely_empty": true,
+      "aborts_on_role_and_identity_changes": true
+    },
+    "build134_private_user_directory": {
+      "stage": "DRAFT_COMPLETE_USERS_AND_ROLES_WITHOUT_AUTH_SIDE_EFFECTS",
+      "exact_approved_admin_workspace_keyed_to_subject": true,
+      "profiles_and_roles_both_count_reconciled": true,
+      "duplicate_or_orphan_membership_rejected": true,
+      "role_status_profile_validation": true,
+      "old_silent_limit_200_removed": true,
+      "browser_user_management_hard_disabled": true,
+      "frontend_build_environment_cannot_enable_role_changes": true,
+      "authorized_hosted_admin_rpc_review_passed": false,
+      "production_user_role_mutations": 0
+    },
+    "build134_recruiter_selector": {
+      "stage": "DRAFT_AUTHORIZED_RECRUITER_SELECTOR_INERT",
+      "old_silent_limit_150_removed": true,
+      "verified_recruiter_role_id_paging_250_max_2500": true,
+      "approved_active_profile_choices_batched_to_100_per_query": true,
+      "foreign_role_or_profile_identity_refused": true,
+      "hidden_suspended_or_pending_recruiters_not_offered": true,
+      "editing_and_csv_held_without_complete_assignee_verification": true,
+      "unchanged_candidate_write_hold": true,
+      "server_rls_acceptance_signed": false
+    },
+    "build134_ci_evidence": {
+      "prior_final_build133_fast_offline_pass": 733,
+      "prior_final_build133_independent_finance_candidate_pass": 11,
+      "prior_final_build133_app_compilation_pass": true,
+      "prior_final_build133_guarded_jobs_pass": 36,
+      "prior_final_build133_intentional_production_hold_failure": 1,
+      "current_intermediate_fast_source_contract_run": "43586553632",
+      "current_intermediate_offline_tests_passed": 785,
+      "current_intermediate_offline_test_failures": 0,
+      "final_exact_head_fast_verified": false,
+      "final_exact_head_guarded_verified": false,
+      "independent_pr_review_count": 0,
+      "new_formally_accepted_milestones": 0
+    },
+    "build134_nonprod_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "health": "ACTIVE_HEALTHY",
+      "public_tables_exactly_counted": 19,
+      "public_tables_rls_enabled": 19,
+      "public_rls_policies": 0,
+      "hosted_auth_users": 0,
+      "enabled_public_triggers": 0,
+      "verified_total_rows": 0,
+      "database_writes_performed": 0,
+      "authenticated_signed_uat_case_acceptances": 0
     }
   },
   "statuses": [
@@ -677,8 +736,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build133 draft source hardening: retired active workflow-rule authoring UI and the null-role page mount; new exact approved administrator-only, account-scoped, read-only review has no rule update/delete/activation, count-complete projection excluding notification templates. Existing server triggers can still run; hosted RLS/trigger disable not accepted and no SQL writes. Removed generic CRM select(*), replaced with reviewed module-field column projection and no wildcard relations; stage/role/finance holds unchanged. Admin activity timeline now count-verifies complete ID pages up to 2500, with no false empty on failures. Read-only lab 19/19 RLS base tables, zero public policies, Auth users, active public triggers and exact zero rows in each of 19 tables. Prior Build132 final fast 678 offline plus 11 independent holds and build/tsc pass; guarded 36/37 substantive pass with deliberate production hold. Current final-head CI must be verified independently. Fixed programme 26/100, 12 of 43 accepted and 31 open; no merge, prod deploy or financial activation.",
-  "previous_file": "build132-evidence-baseline.json",
+  "notes": "Build134 draft: admin audit history now account-keyed, count-complete ID pages up to 2500, no false zero or raw before/after; user management directory account-keyed, exact 250-page profiles/user_roles, reconciliation rejects duplicate and orphan role memberships, hard-coded browser role/admin mutation HOLD (not env-toggleable); recruiter assignee selector now count-checks up to 2500 recruiter role rows and batches 100 approved active profile IDs, keeps candidate edit/export withheld on incomplete data and original candidate/finance holds. Prior Build133 exact-head offline 733 + critical safety 11 tests, app build and TypeScript passed, substantive guarded 36 jobs passed with one intentionally failed release hold. First intermediate Build134 offline 785/785 passed after historical source-shape assertions updated; new final head must be verified separately. Isolated Supabase 19 RLS-enabled tables all exact zero rows; no real Auth users or public policies. No staging/production DB mutation, merge, deployment, mail or financial activation; fixed gate score 26/100, 12/43 evidenced and 31 open.",
+  "previous_file": "build133-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
