@@ -945,3 +945,86 @@ test('Build141 relational audit uses narrow SELECT projections, never full row o
  assert(selections.every(q=>q.projection!=='*'));
  assert.equal(writes(),0);
 });
+
+
+test('Build142 accepts only invented and empty private fields in every synthetic fixture',async()=>{
+ const {client,writes}=fakeFullInertClient();
+ assert.deepEqual(await verifyInertHostedContents(client),
+  {verifiedNonproductionInertTables:19,contentMutations:0});
+ assert.equal(writes(),0);
+});
+test('Build142 rejects concealed PII, scheduling content, sync errors and integration links',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ const invalids=[
+  ['candidate_activities','candidate_name','Real Person'],
+  ['candidate_activities','recruiter_name','Real Recruiter'],
+  ['candidate_activities','module_created','real_crm'],
+  ['candidate_activities','related_record_id','00000000-0000-0000-0000-000000000009'],
+  ['audit_logs','user_email','private@example.com'],
+  ['audit_logs','record_id','real-candidate-id'],
+  ['clients','active_positions',2],
+  ['job_openings','location','Private customer address'],
+  ['job_openings','salary_min',1],
+  ['job_openings','salary_max',90000],
+  ['job_openings','priority','high'],
+  ['job_openings','requirements','Real candidate profile'],
+  ['job_openings','description','Identifying job details'],
+  ['submissions','submission_date','2026-11-14'],
+  ['submissions','remarks','Real customer details'],
+  ['interviews','round','HR'],
+  ['interviews','interview_date','2026-11-18'],
+  ['interviews','interview_time','09:00'],
+  ['interviews','mode','video'],
+  ['interviews','feedback','Real interview notes'],
+  ['interviews','scheduling_token','00000000-0000-0000-0000-000000000009'],
+  ['interviews','proposed_slots',[{date:'2026-11-18'}]],
+  ['offers','offer_date','2026-11-18'],
+  ['google_integrations','sheet_name','Customer spreadsheet'],
+  ['google_integrations','header_row',2],
+  ['google_integrations','sync_frequency_minutes',5],
+  ['google_integrations','last_synced_row',9],
+  ['google_integrations','last_sync','2026-11-14T10:00:00Z'],
+  ['google_integrations','last_error','Sensitive spreadsheet error'],
+  ['google_integrations','column_mapping',{name:'private_person'}],
+  ['google_integrations','mapping',{email:'real_person'}],
+  ['integrations','module','real_google_sheet'],
+  ['integrations','sheet_name','Connected sheet'],
+  ['integrations','header_row',9],
+  ['integrations','column_mapping',{id:'private'}],
+  ['integrations','last_synced_row',20],
+  ['integrations','last_sync_at','2026-11-14T10:00:00Z'],
+  ['integrations','last_error','User identifier'],
+  ['sync_logs','module','real_sync'],
+  ['sync_logs','triggered_by','actual_user'],
+  ['sync_logs','errors',['secret']],
+  ['sync_logs','message','Real API response']
+ ];
+ for(const [table,field,bad] of invalids){
+  const prior=tables[table][0][field];
+  tables[table][0][field]=bad;
+  await assert.rejects(verifyInertHostedContents(client),
+   /Hosted inert fixture HOLD: non-inert or mismatched/,
+   'Must reject concealed '+table+'.'+field);
+  if(prior===undefined)delete tables[table][0][field];
+  else tables[table][0][field]=prior;
+ }
+ assert.equal(writes(),0);
+});
+test('Build142 reject malformed JSON empty-state variants and fabricated integration owner',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ for(const [table,field,bad] of [
+  ['google_integrations','column_mapping',[]],
+  ['google_integrations','mapping',[]],
+  ['google_integrations','column_mapping',null],
+  ['integrations','column_mapping',null],
+  ['integrations','column_mapping',['user']],
+  ['sync_logs','errors',{message:'hidden'}],
+  ['google_integrations','user_id','00000000-0000-0000-0000-000000000009']
+ ]){
+  const old=tables[table][0][field];tables[table][0][field]=bad;
+  await assert.rejects(verifyInertHostedContents(client),
+   /Hosted inert fixture HOLD: non-inert or mismatched/);
+  tables[table][0][field]=old;
+ }
+ assert.equal(writes(),0);
+});
