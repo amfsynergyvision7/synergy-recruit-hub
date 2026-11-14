@@ -4,13 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Users, UserPlus, CalendarCheck, CheckCircle2, FileSignature, Trophy,
-  Building2, Briefcase, Wallet, Clock, Inbox, UserX, type LucideIcon,
+  Building2, Briefcase, Inbox, UserX, type LucideIcon,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LineChart, Line,
   PieChart, Pie, Cell, CartesianGrid, Legend,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/use-auth";
+import { canReadPipelineReports } from "@/lib/crm-report-access";
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
@@ -87,6 +89,8 @@ function ChartSkeleton() {
 }
 
 function Dashboard() {
+  const { user, profile, role } = useAuth();
+  const allowed = canReadPipelineReports(user?.id, profile, role);
   const [stats, setStats] = useState<any>({});
   const [monthly, setMonthly] = useState<any[]>([]);
   const [funnel, setFunnel] = useState<any[]>([]);
@@ -95,7 +99,8 @@ function Dashboard() {
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = async (isCurrent: () => boolean) => {
+    if (!allowed || !isCurrent()) return;
     const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0,0,0,0);
     const [
       { count: totalCand },
@@ -106,7 +111,6 @@ function Dashboard() {
       { count: joined },
       { count: clients },
       { count: jobs },
-      { data: bills },
       { data: candAll },
       { data: candByMonth },
     ] = await Promise.all([
@@ -118,13 +122,12 @@ function Dashboard() {
       supabase.from("offers").select("*", { count: "exact", head: true }).eq("joining_status","joined"),
       supabase.from("clients").select("*", { count: "exact", head: true }).eq("status","active"),
       supabase.from("job_openings").select("*", { count: "exact", head: true }).eq("status","open"),
-      supabase.from("billing").select("invoice_amount,outstanding_amount,payment_status,invoice_date"),
       supabase.from("candidates").select("stage,source,assigned_recruiter,created_at"),
       supabase.from("offers").select("joining_date,joining_status").eq("joining_status","joined"),
     ]);
 
-    const revenue = (bills||[]).filter(b=>b.payment_status==="paid").reduce((s,b)=>s+Number(b.invoice_amount||0),0);
-    const pending = (bills||[]).reduce((s,b)=>s+Number(b.outstanding_amount||0),0);
+    // Discard any in-flight records after account or role revocation.
+    if (!isCurrent()) return;
 
     // Current-stage snapshot per candidate, reused below for the funnel,
     // source effectiveness, and recruiter performance calculations — one
@@ -134,7 +137,7 @@ function Dashboard() {
     const exitedCount = (stageCount["rejected"]||0) + (stageCount["dropped"]||0);
     const exitRate = (candAll||[]).length > 0 ? Math.round((exitedCount / (candAll||[]).length) * 100) : 0;
 
-    setStats({ totalCand, newCand, intSched, intDone, offers, joined, clients, jobs, revenue, pending, exitRate });
+    setStats({ totalCand, newCand, intSched, intDone, offers, joined, clients, jobs, exitRate });
 
     // Monthly joining trend
     const months: Record<string, number> = {};
@@ -223,6 +226,7 @@ function Dashboard() {
         .select('id, full_name')
         .in('id', recruiterIds);
 
+      if (!isCurrent()) return;
       if (profiles) {
         profiles.forEach(profile => {
           if (rec[profile.id]) {
@@ -242,11 +246,29 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    load();
-    const ch = supabase.channel("dash").on("postgres_changes", { event: "*", schema: "public" }, load).subscribe();
-    const t = setInterval(load, 60000);
-    return () => { supabase.removeChannel(ch); clearInterval(t); };
-  }, []);
+    let active = true;
+    setStats({});
+    setMonthly([]);
+    setFunnel([]);
+    setSources([]);
+    setSourceEffectiveness([]);
+    setRecruiters([]);
+    if (!allowed) {
+      setLoading(false);
+      return () => { active = false; };
+    }
+    setLoading(true);
+    const refresh = () => { void load(() => active); };
+    refresh();
+    const ch = supabase.channel(`dash-${user?.id}`)
+      .on("postgres_changes", { event: "*", schema: "public" }, refresh).subscribe();
+    const t = setInterval(refresh, 60000);
+    return () => { active = false; void supabase.removeChannel(ch); clearInterval(t); };
+  }, [allowed, user?.id]);
+
+  if (!allowed) return (
+    <p className="text-sm text-muted-foreground">Recruitment dashboard access requires an approved recruiter, operations or administrator role.</p>
+  );
 
   return (
     <div className="space-y-6">
@@ -263,8 +285,6 @@ function Dashboard() {
         <Kpi label="Joined Candidates" value={stats.joined ?? 0} icon={Trophy} tone="success" loading={loading}/>
         <Kpi label="Active Clients" value={stats.clients ?? 0} icon={Building2} tone="primary" loading={loading}/>
         <Kpi label="Open Positions" value={stats.jobs ?? 0} icon={Briefcase} tone="cyan" loading={loading}/>
-        <Kpi label="Revenue" value={`₹${(stats.revenue ?? 0).toLocaleString()}`} icon={Wallet} tone="success" loading={loading}/>
-        <Kpi label="Pending Payments" value={`₹${(stats.pending ?? 0).toLocaleString()}`} icon={Clock} tone="danger" loading={loading}/>
         <Kpi label="Rejected / Dropped" value={`${stats.exitRate ?? 0}%`} hint="of total pipeline" icon={UserX} tone="danger" loading={loading}/>
       </div>
 

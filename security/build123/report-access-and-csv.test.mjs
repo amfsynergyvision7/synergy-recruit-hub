@@ -95,3 +95,25 @@ test("Build123 reports are role-gated, identity-bound and avoid finance fetches 
  assert(!src.includes('title="Billing Summary by Client"'));
  assert(src.includes("Unable to retrieve authorized reporting data"));
 });
+
+
+test("Build123 dashboard excludes billing fetches and financial KPI cards",()=>{
+ const src=file("src/routes/_app.dashboard.tsx");
+ assert(src.includes("const allowed = canReadPipelineReports(user?.id, profile, role);"));
+ assert(src.includes("if (!allowed || !isCurrent()) return;"));
+ assert(src.includes("if (!isCurrent()) return;"));
+ assert(!src.includes('supabase.from("billing")'));
+ assert(!src.includes('label="Revenue"'));
+ assert(!src.includes('label="Pending Payments"'));
+ assert(src.includes("if (!allowed) return ("));
+});
+test("Build123 dashboard auth change resets state and invalidates polling and realtime",()=>{
+ const src=file("src/routes/_app.dashboard.tsx");
+ assert(src.includes("let active = true;"));
+ assert(src.includes("setStats({});"));
+ assert(src.includes("setRecruiters([]);"));
+ assert(src.includes("void load(() => active);"));
+ assert(src.includes("active = false;"));
+ assert(src.includes("}, [allowed, user?.id]);"));
+ assert(src.includes("supabase.channel(" + String.fromCharCode(96) + "dash-"));
+});
