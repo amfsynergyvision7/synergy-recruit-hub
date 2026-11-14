@@ -42,6 +42,7 @@ test("Build132 page decoder and mutation checks remain browser-only defenses",()
  assert.equal(x.all_four_crud_callbacks_verify_approved_data_and_permission,true);
  assert.equal(x.candidate_and_billing_holds_unconditionally_preserved,true);
  assert.equal(x.fast_workflow_runs_npm_build_then_tsc,true);
+ assert.equal(x.fast_independent_candidate_finance_contracts_added,true);
 });
 test("Build132 hosted nonproduction lab remains empty, pending independent signoff",()=>{
  const x=current.observations.build132_lab_readonly;
