@@ -67,7 +67,13 @@ test("both selection controls locked during bulk mutation",()=>{
 test("PR11 active-only recruiter selection safely ported; no candidate DML bypass",()=>{
  const route=readFileSync("src/routes/_app.candidates.tsx","utf8");
  const board=readFileSync("src/components/CandidateBoard.tsx","utf8");
- assert.match(route,/\.eq\('status', 'approved'\)\s*\.eq\('is_active', true\)/);
+ // Build127: the picker is now recruiter-role-ID scoped before the profile
+ // status filter, which uses double quotes. Test the actual safe contract,
+ // not obsolete quote style or global profile scanning.
+ assert.match(route,/\.eq\("role", "recruiter"\)/);
+ assert.match(route,/\.in\("id", ids\)\.eq\("status", "approved"\)\.eq\("is_active", true\)/);
+ assert.match(route,/roleResult\.count! > 150/);
+ assert.match(route,/profileResult\.count! > 150/);
  assert.match(board,/LEGACY_CANDIDATE_WRITES_PAUSED/);
  assert.match(board,/changeCandidateStage/);
  assert.doesNotMatch(board,/\.update\(\{ stage: newStage \}\)/);
