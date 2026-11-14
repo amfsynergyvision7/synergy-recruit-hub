@@ -365,6 +365,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!editable) { toast.error("Record updates require a verified account and complete CRM data."); return; }
     // Joined offers currently trigger BOTH legacy billing handlers. This
     // checks the submitted form and stored record, not just changed fields:
     // the old offer trigger runs on any status-column UPDATE, including an
@@ -473,6 +474,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!deletable) { toast.error("Record deletion requires a verified administrator and complete CRM data."); return; }
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
         row.joining_status === "joined") {
       toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
@@ -610,6 +612,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   const bulkDelete = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!deletable) { toast.error("Bulk delete requires verified permissions and complete CRM data."); return; }
     if (bulkMutationPending.current) return;
     if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
         rows.some((row) => selected.has(row.id) && row.joining_status === "joined")) {
@@ -655,6 +658,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   const applyBulkEdit = async () => {
     if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!editable) { toast.error("Bulk edit requires verified permissions and complete CRM data."); return; }
     if (bulkMutationPending.current) return;
     const field = activeBulkEditField;
     const ids = Array.from(selected);
