@@ -753,15 +753,15 @@ test('Build114 synthetic profile/CRM egress fields cannot hide real contact data
 // Build140 regression: the service-role REST endpoint can return HTTP 200 but
 // delete zero rows under an unexpected policy/permission state. That is NOT a
 // verified compensating rollback. All mocks remain local/in-memory.
-const rollbackFake=(mapping,{extended,returned='empty'}={})=>{
+const rollbackFake=(mapping,{extended,returned='empty',residualTable=null,authDrift=false}={})=>{
  const users=mapping.users;
  let deletes=0;
  return {
   client:{
-   auth:{admin:{listUsers:async()=>({data:{users},error:null})}},
+   auth:{admin:{listUsers:async()=>({data:{users:deletes>0&&authDrift?users.slice(0,8):users},error:null})}},
    from:table=>({
     select:async(_projection,opts)=>{
-     if(opts?.head)return {count:extended?(BASE_COUNTS[table]??0):0,error:null};
+     if(opts?.head)return {count:(extended?(BASE_COUNTS[table]??0):0)+((deletes>0&&table===residualTable)?1:0),error:null};
      if(table==='candidates')return {data:users.slice(1,3).map(u=>({
       id:u.id,assigned_recruiter:u.id
      })),error:null};
@@ -1027,4 +1027,29 @@ test('Build142 reject malformed JSON empty-state variants and fabricated integra
   tables[table][0][field]=old;
  }
  assert.equal(writes(),0);
+});
+
+
+test('Build142 base failure cannot claim complete rollback with residual rows or changed Auth roster',async()=>{
+ const {users}=fakeFullInertClient(),mapping={project_id:project,users};
+ for(const opts of [{residualTable:'candidates'},{residualTable:'profiles'},{authDrift:true}]){
+  const fake=rollbackFake(mapping,{extended:false,returned:'exact',...opts});
+  await assert.rejects(seedInertBaseFixture(fake.client,mapping),
+   /1 cleanup calls unconfirmed/);
+  assert.equal(fake.deleteCalls(),1);
+ }
+});
+test('Build142 extended failure rechecks all 16 targets and stable base/Auth, including untouched tables',async()=>{
+ const {users}=fakeFullInertClient(),mapping={project_id:project,users};
+ for(const opts of [
+  {residualTable:'workflow_rules'},
+  {residualTable:'clients'},
+  {residualTable:'candidates'},
+  {authDrift:true}
+ ]){
+  const fake=rollbackFake(mapping,{extended:true,returned:'exact',...opts});
+  await assert.rejects(seedExtendedFixture(fake.client,mapping),
+   /1 table cleanup results unconfirmed/);
+  assert.equal(fake.deleteCalls(),1);
+ }
 });
