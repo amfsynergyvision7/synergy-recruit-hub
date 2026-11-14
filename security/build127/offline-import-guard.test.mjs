@@ -100,8 +100,8 @@ test("Build127 original guarded Build60 source contract matches safe recruiter s
   const testFile=src("security/build60/confirmed-bulk-recovery.test.mjs");
   // The original guarded contract now validates recruiter-role and profile
   // count controls instead of assuming a particular quote style.
-  assert(testFile.includes('roleResult'));
-  assert(testFile.includes('profileResult'));
+  assert(testFile.includes('readVerifiedRecruiterChoices'));
+  assert(testFile.includes('readBoundedReportRows'));
   const route=src("src/routes/_app.candidates.tsx");
   assert(route.includes('.in("id", Array.from(ids)).eq("status", "approved")'));
   assert(route.includes('.eq("is_active", true)'));
