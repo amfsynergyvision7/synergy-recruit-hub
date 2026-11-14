@@ -194,8 +194,15 @@ export async function seedExtendedFixture(client,mapping,opts={}){
   let cleanupUnconfirmed=0;
   for(const {table,ids} of touched.reverse()){
    try{
-    const response=await client.from(table).delete().in('id',ids);
-    if(response.error)cleanupUnconfirmed++;
+    // Verify exact returned deleted IDs: an RLS-silent HTTP success with
+    // zero affected rows cannot be treated as confirmed compensation.
+    const response=await client.from(table).delete().in('id',ids).select('id');
+    const removed=response?.data;
+    if(response?.error || !Array.isArray(removed) ||
+       removed.length!==ids.length ||
+       new Set(removed.map(r=>r.id)).size!==ids.length ||
+       ids.some(id=>!removed.some(r=>r.id===id)))
+      cleanupUnconfirmed++;
    }catch{cleanupUnconfirmed++;}
   }
   throw new Error(`Build79 extended fixture aborted; ${cleanupUnconfirmed} table cleanup results unconfirmed. Inspect isolated lab before retry.`);
