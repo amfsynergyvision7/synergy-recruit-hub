@@ -61,7 +61,10 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: Record<
       Papa.parse(file, {
         header: true, skipEmptyLines: true, preview: MAX_IMPORT_PREVIEW_ROWS + 1,
         complete: (res) => {
-          if (res.errors.length) reject(new Error("Malformed CSV input"));
+          // PapaParse silently renames repeated header names. Never treat
+          // normalized duplicates as distinct import fields.
+          if (res.errors.length || Object.keys(res.meta.renamedHeaders ?? {}).length > 0)
+            reject(new Error("Malformed or ambiguous CSV headers"));
           else resolve({ headers: res.meta.fields ?? [], rows: res.data as any[] });
         },
         error: reject,
@@ -70,14 +73,22 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: Record<
   }
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array", sheetRows: MAX_IMPORT_PREVIEW_ROWS + 2 });
+  // Do not silently ignore additional worksheets or rows hidden by sheetRows.
+  if (wb.SheetNames.length !== 1) throw new Error("Expected one worksheet");
   const ws = wb.Sheets[wb.SheetNames[0]];
   if (!ws || !ws["!ref"]) throw new Error("Empty worksheet");
   const range = XLSX.utils.decode_range(ws["!ref"]);
-  if (range.e.r - range.s.r > MAX_IMPORT_PREVIEW_ROWS ||
+  const originalRange = XLSX.utils.decode_range(ws["!fullref"] ?? ws["!ref"]);
+  if (originalRange.e.r - originalRange.s.r > MAX_IMPORT_PREVIEW_ROWS ||
+      originalRange.e.c - originalRange.s.c + 1 > MAX_IMPORT_PREVIEW_COLUMNS ||
+      range.e.r - range.s.r > MAX_IMPORT_PREVIEW_ROWS ||
       range.e.c - range.s.c + 1 > MAX_IMPORT_PREVIEW_COLUMNS)
     throw new Error("Worksheet exceeds local preview bounds");
+  // Read actual header cells before SheetJS auto-disambiguates duplicates.
+  const firstRow = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" })[0] as unknown;
+  if (!Array.isArray(firstRow)) throw new Error("Worksheet headers unavailable");
+  const headers = firstRow.map(String);
   const json: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-  const headers = json.length ? Object.keys(json[0]) : [];
   return { headers, rows: json };
 }
 
