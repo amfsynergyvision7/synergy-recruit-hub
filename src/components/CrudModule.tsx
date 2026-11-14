@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
+import { hasCompleteIdList } from "@/lib/crm-list-integrity";
 import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail, RefreshCw } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
@@ -244,10 +245,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
         : q.order("created_at", { ascending: false }))
         .limit(MAX_CRUD_ROWS).abortSignal(controller.signal);
       if (controller.signal.aborted || epoch !== rowsEpoch.current) return;
-      if (error || !Array.isArray(data) || !Number.isSafeInteger(count) ||
-          count! > MAX_CRUD_ROWS || data.length !== count ||
-          new Set(data.map((row: any) => row.id)).size !== data.length ||
-          data.some((row: any) => typeof row.id !== "string" || !row.id)) {
+      if (error || !hasCompleteIdList(data, count, MAX_CRUD_ROWS)) {
         setLoadFailed(true);
         return;
       }
@@ -273,9 +271,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
         const { data, error, count } = await supabase.from(field.relation!.table as any)
           .select(field.relation!.select ?? "*", { count: "exact" })
           .order("id").limit(MAX_RELATION_ROWS).abortSignal(controller.signal);
-        if (error || !Array.isArray(data) || !Number.isSafeInteger(count) ||
-            count! > MAX_RELATION_ROWS || data.length !== count ||
-            new Set(data.map((row: any) => row.id)).size !== data.length)
+        if (error || !hasCompleteIdList(data, count, MAX_RELATION_ROWS))
           throw new Error("Incomplete relation metadata");
         return [field.name, data] as const;
       }));
