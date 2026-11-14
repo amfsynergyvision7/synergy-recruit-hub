@@ -1,22 +1,5 @@
-// Zoho gap this closes: "Reporting/export" — the Dashboard already has fixed
-// KPIs and charts (recharts, all-time or this-month snapshots), but there was
-// nowhere to slice the pipeline by a custom date range and get an exportable
-// table out of it. This page is deliberately tabular and date-scoped rather
-// than another set of charts, and every table has its own "Export CSV"
-// button (src/lib/csv.ts — the same helper CrudModule's per-module export
-// uses), so a recruiter or finance user can pull exactly the slice they need
-// (say, last quarter's placements) straight into Excel.
-//
-// Data model: like Dashboard's existing `candAll`/`bills` fetches, this pulls
-// each table's relevant columns in full (unfiltered) and does the date-range
-// filtering + aggregation client-side. That's a deliberate match to the
-// established pattern here, not a shortcut — recruiter/client attribution
-// for a submission or offer requires looking up the *candidate's*
-// assigned_recruiter, and an interview or offer can easily reference a
-// candidate added well before the report's date window, so the candidate ->
-// recruiter map has to come from the whole table regardless of which window
-// is selected. At this app's free-tier/prototype scale that's a handful of
-// small selects, not a performance concern.
+// Build124: Only return role-permitted, count-complete and bounded source data.
+// Rejected/partial pages are never turned into a zero-valued KPI or CSV export.
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -31,6 +14,7 @@ import { Download, Inbox } from "lucide-react";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
+import { readBoundedReportRows } from "@/lib/bounded-report-read";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
@@ -59,9 +43,8 @@ function inRange(iso: string | null | undefined, from: string, to: string): bool
   return t >= fromT && t <= toT;
 }
 
-function recruiterLabel(id: string | null, names: Record<string, string>): string {
-  if (!id) return "Unassigned";
-  return names[id] ?? `${id.slice(0, 6)}…`;
+function recruiterLabel(id: string | null): string {
+  return id ? `Recruiter ${id.slice(0, 8)}…` : "Unassigned";
 }
 
 interface ReportTableProps {
@@ -132,31 +115,40 @@ function Reports() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["reports-data", user?.id ?? "signed-out", role ?? "none"],
     enabled: allowed,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!allowed) throw new Error("Reporting requires an approved account and role");
-      const [
-        { data: candidates, error: candidatesError },
-        { data: submissions, error: submissionsError },
-        { data: interviews, error: interviewsError },
-        { data: offers, error: offersError },
-        { data: clients, error: clientsError },
-        { data: profiles, error: profilesError },
-      ] = await Promise.all([
-        supabase.from("candidates").select("id, stage, assigned_recruiter, created_at"),
-        supabase.from("submissions").select("id, candidate_uuid, candidate_id, client_uuid, client_id, created_at"),
-        supabase.from("interviews").select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, created_at"),
-        // Financial salary, CTC and invoice fields are not part of recruitment analytics.
-        supabase.from("offers").select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, created_at"),
-        supabase.from("clients").select("id, company_name"),
-        supabase.from("profiles").select("id, full_name"),
-      ]);
-      if ([candidatesError, submissionsError, interviewsError,
-           offersError, clientsError, profilesError].some(Boolean))
+      // The PostgREST default row limit is not proof that all matching rows
+      // were fetched. Each authorized table is read with a count, ordered
+      // by unique ID, in bounded explicit pages. Failure is NOT "zero".
+      try {
+        const [candidates, submissions, interviews, offers, clients] = await Promise.all([
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("candidates")
+              .select("id, stage, assigned_recruiter, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("submissions")
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("interviews")
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("offers")
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("clients")
+              .select("id, company_name", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+        ]);
+        return { candidates, submissions, interviews, offers, clients };
+      } catch {
+        // Avoid exposing a raw database error or silently computing on
+        // inconsistent/missing pages. Server-side RLS is still authoritative.
         throw new Error("Unable to retrieve authorized reporting data");
-      return {
-        candidates: candidates ?? [], submissions: submissions ?? [], interviews: interviews ?? [],
-        offers: offers ?? [], clients: clients ?? [], profiles: profiles ?? [],
-      };
+      }
     },
     staleTime: 60_000,
   });
@@ -166,12 +158,6 @@ function Reports() {
   const interviews = data?.interviews ?? [];
   const offers = data?.offers ?? [];
   const clients = data?.clients ?? [];
-
-  const recruiterNames = useMemo(() => {
-    const m: Record<string, string> = {};
-    (data?.profiles ?? []).forEach((p: any) => { m[p.id] = p.full_name; });
-    return m;
-  }, [data?.profiles]);
 
   // Candidate id -> assigned recruiter, built from the WHOLE candidates
   // table (not the date-filtered slice below) — see the file-level note on
@@ -231,8 +217,8 @@ function Reports() {
 
     return Object.entries(rec)
       .sort((a, b) => b[1].added - a[1].added)
-      .map(([id, v]) => [recruiterLabel(id, recruiterNames), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
-  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate, recruiterNames]);
+      .map(([id, v]) => [recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
+  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate]);
 
   // --- Report 3: Client-wise pipeline summary ---
   const clientRows = useMemo(() => {
@@ -305,7 +291,7 @@ function Reports() {
       <ReportTable
         title="Recruiter Performance"
         description="Activity attributed to each recruiter's assigned candidates within the window."
-        headers={["Recruiter", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]}
+        headers={["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]}
         rows={recruiterRows}
         filenamePrefix="recruiter-performance"
         loading={isLoading}
