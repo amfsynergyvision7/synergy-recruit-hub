@@ -1167,7 +1167,11 @@ test('Build143 nine genuinely confirmed fake GoTrue subjects pass provisioning w
 test('Build143 failed postcreation identity check refuses mapping and cleans exact invented IDs',async()=>{
  const plan=syntheticNinePlan(),created=[];
  const admin={
-  listUsers:async()=>({data:{users:created.map(u=>({...u}))},error:null}),
+  // Clone nested metadata too: the simulated API response can be altered
+  // without changing what the provider actually stored.
+  listUsers:async()=>({data:{users:created.map(u=>({
+   ...u,app_metadata:{...u.app_metadata}
+  }))},error:null}),
   createUser:async({email})=>{
    const slot=plan.users.find(u=>u.email===email)?.slot;
    const subject=mockSyntheticAuth(slot);
