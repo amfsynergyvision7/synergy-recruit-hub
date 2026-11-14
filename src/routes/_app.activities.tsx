@@ -41,9 +41,6 @@ function Page() {
   }, [allowed, user?.id]);
   if (!allowed)
     return <p className="text-sm text-muted-foreground">Candidate activity metadata requires administrator access.</p>;
-  return () => { supabase.removeChannel(ch); };
-  }, []);
-
   return (
     <div className="space-y-4">
       <div>
