@@ -13,14 +13,18 @@ test("Build127 board validates all candidate stage keys against configured stage
 
 test("Build127 missing or malformed candidate IDs are refused", () => {
   assert(board.includes('typeof row.id !== "string" || !row.id'));
-  assert(board.includes("new Set(data.map(row => row.id)).size !== data.length"));
+  const paging=read("src/lib/bounded-report-read.ts");
+  assert(paging.includes("seen.has(row.id)"));
+  assert(paging.includes('typeof row.id !== "string" || !row.id'));
 });
 
-test("Build127 verifies exact row count and refuses client-side truncation", () => {
+test("Build127 still verifies exact count with complete Build131 ID pages", () => {
   assert(board.includes('{ count: "exact" }'));
-  assert(board.includes("!Number.isSafeInteger(count)"));
-  assert(board.includes("count! > 250"));
-  assert(board.includes("data.length !== count"));
+  assert(board.includes("readCompleteCrmRows((from, to, signal) =>"));
+  const paging=read("src/lib/bounded-report-read.ts");
+  assert(paging.includes("!Number.isSafeInteger(result.count)"));
+  assert(paging.includes("result.count! > REPORT_MAX_ROWS"));
+  assert(paging.includes("result.data.length !== needed"));
 });
 
 test("Build127 stale board requests never populate cleared data", () => {
@@ -41,7 +45,7 @@ test("Build127 manually refreshes read-only board after removing realtime", () =
 test("Build127 board does not advertise partial results as authoritative", () => {
   assert(board.includes("No partial pipeline is displayed."));
   assert(board.includes("no realtime updates."));
-  assert(board.includes("maximum 250"));
+  assert(board.includes("maximum ${CRM_MAX_ROWS}"));
   assert(board.includes("Candidate data has not been fully verified for this read."));
 });
 
