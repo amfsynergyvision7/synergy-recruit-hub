@@ -25,7 +25,7 @@ test("Build117 notification feed scopes both SQL query and realtime subscription
   assert(page.includes('filter: `user_id=eq.${userId}`'));
   assert(page.includes('supabase.channel(`notif-rt-${userId}`)'));
   assert(page.includes("filterOwnedNotificationRows(data, userId)"));
-  assert(page.includes("if (!active || ticket !== newestRequest) return"));
+  assert(page.includes("if (!active || controller.signal.aborted || ticket !== newestRequest) return"));
   assert(page.includes("active = false;"));
   assert(page.includes("supabase.removeChannel(channel)"));
   assert(!page.includes('supabase.channel("notif-rt")'));
