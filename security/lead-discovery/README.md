@@ -22,3 +22,7 @@ Direct offline Node tests: `node --test security/build121/lead-discovery.test.mj
 ### What remains open
 
 LD02 — management-approved real-source whitelist and ICP; LD04 — human approval queue and CRM handoff; LD05 — production KPI baselines and signed acceptance. The present tool does not send requests, crawl websites or create live leads, and must not be represented as a production lead-generation service.
+
+## CI contract
+
+The GitHub fast CI workflow executes the full end-to-end synthetic discovery suite alongside the fixed deployment scorecard tests, and the guarded workflow also triggers on these paths. **LD03 is not counted until an actual exact-head CI run passes the recorded 3-business deduplication/provenance proof.**

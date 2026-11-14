@@ -84,7 +84,7 @@ test("Build121 missing or real source URLs fail closed rather than probing the n
 
 test("Build121 HTML JSON-LD script is parsed as inert data and never executes",()=>{
  const injected="<script type='application/ld+json'>"+JSON.stringify({
- "@type":"Organization",name:"<script>alert(1)</script>",url:"https://safe.example.invalid",
+ "@type":"Organization",name:"<img src=x onerror=alert(1)>",url:"https://safe.example.invalid",
  industry:"Consulting",address:{addressLocality:"Kolkata"}})+"</script>";
  const results=discoverFromSnapshots([{source_url:"https://source.example.invalid",captured_on:"2026-11-14",html:injected}]);
  assert.equal(results.lead_count,0);

@@ -83,6 +83,8 @@ on:
       - 'security/build118/**'
       - 'security/build119/**'
       - 'security/build120/**'
+      - 'security/build121/**'
+      - 'security/lead-discovery/**'
       - 'security/release-progress/**'
       - 'src/lib/private-query-cache-fence.ts'
       - 'src/routes/__root.tsx'
