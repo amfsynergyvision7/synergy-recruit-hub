@@ -19,16 +19,19 @@ function Page() {
     setFailed(false);
     if (!allowed) return () => { active = false; };
     // Never fetch raw before/after payloads, email addresses or tokens.
-    void supabase.from("audit_logs")
-      .select("id, created_at, user_id, action, table_name, record_id")
-      .order("created_at",{ascending:false}).limit(200)
-      .then(({data, error})=>{
-        if (!active) return;
-        if (error) { setRows([]); setFailed(true); }
-        else setRows(data ?? []);
-      }).catch(()=>{
-        if (active) { setRows([]); setFailed(true); }
-      });
+    // A Supabase query builder is PromiseLike, not a full Promise;
+    // wrap it to attach a catch without hiding type or authorization errors.
+    void Promise.resolve(
+      supabase.from("audit_logs")
+        .select("id, created_at, user_id, action, table_name, record_id")
+        .order("created_at",{ascending:false}).limit(200)
+    ).then(({data, error})=>{
+      if (!active) return;
+      if (error) { setRows([]); setFailed(true); }
+      else setRows(data ?? []);
+    }).catch(()=>{
+      if (active) { setRows([]); setFailed(true); }
+    });
     return () => { active = false; };
   }, [allowed, user?.id]);
   if (!allowed) return <p className="text-sm text-muted-foreground">Audit records require verified administrator access.</p>;
