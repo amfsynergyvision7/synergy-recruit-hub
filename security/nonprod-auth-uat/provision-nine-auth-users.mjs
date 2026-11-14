@@ -108,6 +108,16 @@ export async function provisionNine(plan, admin, saveMapping) {
         if (response?.error) cleanupFailures++;
       } catch { cleanupFailures++; }
     }
+    // A createUser request may time out AFTER GoTrue committed the account
+    // but BEFORE it returned a UUID. A successful delete response is also
+    // insufficient to prove the subject is gone. Independently re-read the
+    // exact isolated tenant even if created[] remained empty.
+    try {
+      const readback = await admin.listUsers({page:1,perPage:100});
+      if (readback?.error || !Array.isArray(readback?.data?.users) ||
+          readback.data.users.length !== 0)
+        cleanupFailures++;
+    } catch { cleanupFailures++; }
     throw new Error(`Synthetic provisioning aborted; ${cleanupFailures} cleanup operations unconfirmed. Inspect lab Auth tenant before retrying. No credentials logged.`);
   }
 }
