@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
+import { finiteImportNumber, canonicalImportDate } from "@/lib/offline-import-coerce";
 import { MAX_IMPORT_PREVIEW_ROWS, MAX_IMPORT_PREVIEW_COLUMNS, validateImportFileMetadata, validateImportGrid } from "@/lib/import-file-guard";
 import { LEGACY_BULK_IMPORT_WRITES_PAUSED, BULK_IMPORT_HOLD_REASON } from "@/lib/release-safety";
 import { commitCandidateImport } from "@/lib/candidate-batch-import";
@@ -63,7 +64,7 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: Record<
         complete: (res) => {
           // PapaParse silently renames repeated header names. Never treat
           // normalized duplicates as distinct import fields.
-          if (res.errors.length || Object.keys(res.meta.renamedHeaders ?? {}).length > 0)
+          if (res.errors.length || Object.keys((res.meta as { renamedHeaders?: Record<string, string> }).renamedHeaders ?? {}).length > 0)
             reject(new Error("Malformed or ambiguous CSV headers"));
           else resolve({ headers: res.meta.fields ?? [], rows: res.data as any[] });
         },
@@ -114,18 +115,20 @@ function coerce(value: any, field: ImportFieldDef): { value: any; error?: string
   }
   const s = String(value).trim();
   if (field.type === "number") {
-    const n = Number(s);
-    if (isNaN(n)) return { value: null, error: "Not a number" };
+    const n = finiteImportNumber(s);
+    if (n === null) return { value: null, error: "Invalid or non-finite number" };
     return { value: n };
   }
   if (field.type === "date") {
     if (typeof value === "number") {
       const d = XLSX.SSF.parse_date_code(value);
-      if (d) return { value: `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}` };
+      const normalized = d
+        ? canonicalImportDate(`${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`)
+        : null;
+      return normalized ? { value: normalized } : { value: null, error: "Invalid Excel date" };
     }
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return { value: null, error: "Invalid date" };
-    return { value: d.toISOString().slice(0, 10) };
+    const normalized = canonicalImportDate(s);
+    return normalized ? { value: normalized } : { value: null, error: "Use YYYY-MM-DD date" };
   }
   if (field.type === "email" && !/^\S+@\S+\.\S+$/.test(s)) return { value: s, error: "Invalid email" };
   if (field.enum && !field.enum.includes(s)) return { value: null, error: `Must be one of: ${field.enum.join(", ")}` };
