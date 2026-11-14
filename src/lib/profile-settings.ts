@@ -2,8 +2,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 // The review branch does not enable the restricted self-profile RPC until
 // the database migration and genuine hosted user acceptance are approved.
-export const CRM_PROFILE_MUTATIONS_ENABLED =
-  import.meta.env.VITE_CRM_PROFILE_MUTATIONS_ENABLED === "true";
+// Draft release hold is unconditional: a public browser build variable
+// cannot independently activate a not-yet-approved hosted profile RPC.
+export const CRM_PROFILE_MUTATIONS_ENABLED = false as const;
 
 type ProfileRpcError = { message: string } | null;
 type ProfileRpcClient = {
