@@ -24,3 +24,7 @@ Pure and source regression suite `node --test security/build123/report-access-an
 
 Build123 does not close BI01 approved KPI dictionary, BI02 accepted role-safe server/RLS reporting model, BI03 signed dashboard acceptance, BI04 monitored reconciliation or BI05 owner signoff. It is a draft application-security remediation only. Existing 48 production permission objects and 140 hosted signed UAT cases are not accepted from browser tests, and no production/staging DB writes, merge or deployment are authorized.
 
+
+## Fixed deployment score — nonclosure
+
+All Build123 changes are engineering security work, not a new signed milestone. The v1 programme score remains **26/100** and release-governance **0/20**. The BI02 acceptance demands independently accepted role-safe backend/RLS aggregate contracts; this build supplies client defense-in-depth only. The signed 140 hosted UAT, 48 production remediations, nine formal release approvals and independent GitHub reviewer have not advanced. A successful test suite is not a production authorization.

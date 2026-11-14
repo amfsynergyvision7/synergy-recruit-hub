@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const load=n=>JSON.parse(readFileSync(new URL("../release-progress/"+n,import.meta.url),"utf8"));
-const rubric=load("v1-rubric.json"),previous=load("build121-evidence-baseline.json"),current=load("current.json");
+const rubric=load("v1-rubric.json"),previous=load("build121-evidence-baseline.json"),current=load("build122-evidence-baseline.json");
 test("Build122 fixed 43-gate rubric changes only LD04 from 24/100 to 26/100",()=>{
  const change=compareSnapshots(rubric,previous,current);
  assert.deepEqual(change,{previous:24,current:26,delta:2,newGates:["LD04"],regressed:[]});
