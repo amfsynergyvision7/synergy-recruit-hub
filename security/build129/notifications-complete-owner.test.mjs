@@ -37,9 +37,9 @@ test("Build129 owner predicate cannot accept a cross-account notification",()=>{
 test("Build129 live feed query checks exact total, ordered and bounded by owner",()=>{
  assert(page.includes('.select("id,user_id,title,message,type,is_read,created_at", { count: "exact" })'));
  assert(page.includes('.eq("user_id", userId)'));
- assert(page.includes('.order("created_at", { ascending: false }).limit(100)'));
- assert(page.includes('hasCompleteIdList(data, count, 100)'));
- assert(page.includes('data.some(row => row.user_id !== userId)'));
+ assert(page.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
+ assert(page.includes('readCompleteCrmRows<NotificationItem>('));
+ assert(page.includes('verifyOwnedNotificationRows(data, userId)'));
 });
 
 test("Build129 notifications never show apparently complete number when read is unverified",()=>{
@@ -52,7 +52,7 @@ test("Build129 notifications never show apparently complete number when read is 
 test("Build129 notifications abort stale reads on overlap and unmount",()=>{
  assert(page.includes("requestController?.abort()"));
  assert(page.includes("new AbortController()"));
- assert(page.includes(".abortSignal(controller.signal)"));
+ assert(page.includes(".abortSignal(signal)"));
  assert(page.includes("ticket !== newestRequest"));
  assert(page.includes("controller.signal.aborted"));
  assert(page.includes("active = false"));
@@ -61,7 +61,7 @@ test("Build129 notifications abort stale reads on overlap and unmount",()=>{
 test("Build129 notifications retain account-keyed mount and server owner check",()=>{
  assert(page.includes('canMountApprovedCrm(user.id, profile, role)'));
  assert(page.includes('return <OwnedNotifications key={user.id} userId={user.id} />'));
- assert(page.includes('filterOwnedNotificationRows(data, userId)'));
+ assert(page.includes('filterOwnedNotificationRows(verified, userId)'));
 });
 
 test("Build129 realtime channel stays owner-scoped and is disposed on unmount",()=>{
@@ -73,7 +73,8 @@ test("Build129 realtime channel stays owner-scoped and is disposed on unmount",(
 
 test("Build129 owner and ID are both checked before mark-read mutation",()=>{
  assert(page.includes("items.some(n => n.id === id && n.user_id === userId && !n.is_read)"));
- assert(page.includes('.update({ is_read: true }).eq("id", id).eq("user_id", userId).select("id")'));
+ assert(page.includes('.update({ is_read: true }).eq("id", id).eq("user_id", userId).select("id,user_id")'));
  assert(page.includes("data?.length !== 1 || data[0]?.id !== id"));
+ assert(page.includes("data[0]?.user_id !== userId"));
  assert(page.includes("Notification update was not confirmed."));
 });
