@@ -38,7 +38,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
   const fetchLogs = useServerFn(getSyncLogs);
 
   const integQ = useQuery({ queryKey: ["integration", userId], queryFn: () => fetchIntegration() });
-  const logsQ = useQuery({ queryKey: ["sync-logs", userId], queryFn: () => fetchLogs(), refetchInterval: 10000 });
+  const logsQ = useQuery({ queryKey: ["sync-logs", userId], queryFn: () => fetchLogs() });
 
   const [form, setForm] = useState({ sheet_url: "", sheet_name: "Form Responses 1", header_row: 1, auto_sync_enabled: false, sync_frequency_minutes: 2 });
   const [headers, setHeaders] = useState<string[]>([]);
@@ -145,7 +145,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
-        <p className="text-sm text-muted-foreground">Connect external services. Auto-sync runs every 2 minutes.</p>
+        <p className="text-sm text-muted-foreground">External synchronization is paused pending release approval. Configuration and history are admin-only.</p>
       </div>
 
       <Card>
@@ -241,7 +241,13 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Sync history</CardTitle><CardDescription>Most recent 50 runs.</CardDescription></CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div><CardTitle>Sync history</CardTitle><CardDescription>Most recent 50 runs. Refresh manually; no background polling.</CardDescription></div>
+          <Button type="button" variant="outline" size="sm" disabled={logsQ.isFetching}
+            onClick={() => { void logsQ.refetch(); }}>
+            <RefreshCw className="h-4 w-4 mr-2" />Refresh history
+          </Button>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader><TableRow>
