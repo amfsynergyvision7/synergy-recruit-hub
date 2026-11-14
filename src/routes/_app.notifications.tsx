@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { filterOwnedNotificationRows } from "@/lib/notification-owner";
-import { hasCompleteIdList } from "@/lib/crm-list-integrity";
+import { CRM_MAX_ROWS, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
+import { verifyOwnedNotificationRows } from "@/lib/notifications-read-integrity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, Calendar, Check, Clock, IndianRupee, UserCheck } from "lucide-react";
@@ -60,20 +61,22 @@ function OwnedNotifications({ userId }: { userId: string }) {
       setLoading(true);
       setLoadFailed(false);
       try {
-        const { data, error, count } = await supabase.from("notifications")
-          .select("id,user_id,title,message,type,is_read,created_at", { count: "exact" })
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false }).limit(100)
-          .abortSignal(controller.signal);
+        // Role-visible, owner-scoped complete list: 250 ID pages to an
+        // absolute 2,500. Never silently report 100 rows as the whole feed.
+        const data = await readCompleteCrmRows<NotificationItem>(
+          async (from, to, signal) => {
+            const result = await supabase.from("notifications")
+              .select("id,user_id,title,message,type,is_read,created_at", { count: "exact" })
+              .eq("user_id", userId)
+              .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+            return { data: result.data, count: result.count, error: result.error };
+          }, controller.signal);
         if (!active || controller.signal.aborted || ticket !== newestRequest) return;
-        // A default API cap or unexpected owner cannot become a plausible
-        // "100 notifications" or "nothing to see" claim.
-        if (error || !hasCompleteIdList(data, count, 100) ||
-            data.some(row => row.user_id !== userId)) {
-          setLoadFailed(true);
-          return;
-        }
-        setItems(filterOwnedNotificationRows(data, userId) as NotificationItem[]);
+        // A foreign-owner row is a source integrity failure, not permission
+        // to silently filter it out and show a misleading complete count.
+        const verified = verifyOwnedNotificationRows(data, userId);
+        setItems(sortCompleteCrmRows(
+          filterOwnedNotificationRows(verified, userId), "created_at", false));
       } catch {
         if (active && !controller.signal.aborted && ticket === newestRequest)
           setLoadFailed(true);
@@ -98,11 +101,13 @@ function OwnedNotifications({ userId }: { userId: string }) {
   const markRead = async (id: string) => {
     // Neither a stale selection nor a malformed identifier can mutate another
     // account's notifications. The server must acknowledge the exact row.
-    if (!items.some(n => n.id === id && n.user_id === userId && !n.is_read)) return;
+    if (loading || loadFailed ||
+        !items.some(n => n.id === id && n.user_id === userId && !n.is_read)) return;
     try {
       const { data, error } = await supabase.from("notifications")
-        .update({ is_read: true }).eq("id", id).eq("user_id", userId).select("id");
-      if (error || data?.length !== 1 || data[0]?.id !== id) {
+        .update({ is_read: true }).eq("id", id).eq("user_id", userId).select("id,user_id");
+      if (error || data?.length !== 1 || data[0]?.id !== id ||
+          data[0]?.user_id !== userId) {
         toast.error("Notification update was not confirmed.");
         return;
       }
@@ -119,6 +124,7 @@ function OwnedNotifications({ userId }: { userId: string }) {
         <h1 className="text-2xl font-semibold">Notifications</h1>
         <p className="text-sm text-muted-foreground">
           Account-specific reminders for interviews, follow-ups, joinings and payments.
+          Verified complete feed, maximum {CRM_MAX_ROWS} records.
         </p>
       </div>
       <Card>
