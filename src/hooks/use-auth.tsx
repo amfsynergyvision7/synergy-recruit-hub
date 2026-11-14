@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createPrivateCacheFence, clearPrivateCacheForIdentity } from "@/lib/private-query-cache-fence";
 import {
   authorizedRoleForProfile,
   createAuthIdentityEpoch,
@@ -39,6 +41,10 @@ const Ctx = createContext<AuthCtx>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+  const privateCacheOwner = useRef(createPrivateCacheFence());
+  const purgePrivateQueries = (userId: string | null, force = false) =>
+    clearPrivateCacheForIdentity(privateCacheOwner.current, queryClient, userId, force);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
@@ -80,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userId) return;
     const ticket = gate.issue(userId);
     if (!ticket) return;
+    // A permission refresh may revoke access to cached private records.
+    purgePrivateQueries(userId, true);
     // Role and profile are invalid until the NEW request completes.
     setProfile(null);
     setRole(null);
@@ -95,6 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const publish = (next: Session | null) => {
       const ticket = gate.issue(next?.user?.id ?? null);
       if (!ticket) return;
+      // Clear query AND mutation caches before rendering a new Auth subject.
+      purgePrivateQueries(ticket.userId);
       // Clear old privileges synchronously with the session identity change.
       setSession(next);
       setProfile(null);
@@ -133,11 +143,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       for (const timer of timers) clearTimeout(timer);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     // Invalidate pending role fetches before awaiting a remote sign-out.
     identity.current.issue(null);
+    // Purge prior-user queries before awaiting a remote Auth request.
+    purgePrivateQueries(null, true);
     setSession(null);
     setProfile(null);
     setRole(null);
