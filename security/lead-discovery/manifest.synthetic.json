@@ -1,0 +1,15 @@
+{
+  "mode": "SYNTHETIC_OFFLINE_ONLY",
+  "sources": [
+    {
+      "source_url": "https://directory.example.invalid/logistics",
+      "captured_on": "2026-11-12",
+      "snapshot": "fixtures/directory-a.html"
+    },
+    {
+      "source_url": "https://partners.example.invalid/listings",
+      "captured_on": "2026-11-13",
+      "snapshot": "fixtures/directory-b.html"
+    }
+  ]
+}

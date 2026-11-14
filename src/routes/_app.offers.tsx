@@ -21,7 +21,7 @@ function Page() {
   return (
     <CrudModule
       title="Offers & Joining"
-      description="Track offers released and joinings. Auto-updates pipeline & billing."
+      description="Offer records remain reviewable. Joined transitions and automatic billing require separate financial approval."
       table="offers"
       module="offers"
       fields={[
@@ -54,7 +54,7 @@ function Page() {
           label: "Joining Status",
           type: "select",
           options: [
-            { value:"pending", label:"Pending" },{ value:"joined", label:"Joined" },{ value:"no_show", label:"No Show" }
+            { value:"pending", label:"Pending" },{ value:"no_show", label:"No Show" } // Joined remains display-only until finance signoff.
           ],
           default: "pending",
           essential: true,

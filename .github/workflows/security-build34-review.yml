@@ -1,0 +1,1355 @@
+name: Build 34 guarded sync and role-gate review
+on:
+  push:
+    branches:
+      - security/build34-guarded-sync-review-20261111
+  pull_request:
+    paths:
+      - 'src/lib/cron-auth.server.ts'
+      - 'src/lib/access-gates.server.ts'
+      - 'src/lib/approved-role-policy.ts'
+      - 'src/lib/ai.functions.ts'
+      - 'src/lib/sheets-sync.server.ts'
+      - 'src/routes/api/public/hooks/sheets-sync.ts'
+      - 'security/build34/**'
+      - 'security/build36/**'
+      - 'security/build37/**'
+      - 'security/build38/**'
+      - 'security/build40/**'
+      - 'security/build41/**'
+      - 'security/build42/**'
+      - 'security/build43/**'
+      - 'security/build44/**'
+      - 'security/build45/**'
+      - 'security/build46/**'
+      - 'security/build47/**'
+      - 'security/build48/**'
+      - 'security/build49/**'
+      - 'security/build50/**'
+      - 'security/build51/**'
+      - 'security/build52/**'
+      - 'security/build53/**'
+      - 'security/build54/**'
+      - 'security/build55/**'
+      - 'security/build56/**'
+      - 'security/build57/**'
+      - 'security/build58/**'
+      - 'security/build59/**'
+      - 'security/build60/**'
+      - 'security/build61/**'
+      - 'security/build62/**'
+      - 'security/build63/**'
+      - 'security/build64/**'
+      - 'security/build65/**'
+      - 'security/build66/**'
+      - 'security/build67/**'
+      - 'security/build68/**'
+      - 'security/build69/**'
+      - 'security/build70/**'
+      - 'security/build71/**'
+      - 'security/build72/**'
+      - 'security/build73/**'
+      - 'security/build74/**'
+      - 'security/build75/**'
+      - 'security/build77/**'
+      - 'security/build78/**'
+      - 'security/build79/**'
+      - 'security/build80/**'
+      - 'security/build81/**'
+      - 'security/build82/**'
+      - 'security/build83/**'
+      - 'security/build84/**'
+      - 'security/build85/**'
+      - 'security/build86/**'
+      - 'src/lib/confirmed-bulk-mutation.ts'
+      - 'src/routes/_app.candidates.tsx'
+      - 'src/routes/_app.offers.tsx'
+      - 'src/lib/candidate-batch-import.ts'
+      - 'src/lib/duplicate-review-export.ts'
+      - 'src/routes/_app.duplicates.tsx'
+      - 'src/lib/candidate-write.ts'
+      - 'src/lib/candidate-stage.ts'
+      - 'src/lib/release-safety.ts'
+      - 'src/components/CrudModule.tsx'
+      - 'src/components/CandidateBoard.tsx'
+      - 'src/routes/_app.import.tsx'
+      - 'src/routes/_app.duplicates.tsx'
+      - 'src/lib/user-administration.ts'
+      - 'src/hooks/use-auth.tsx'
+      - 'src/lib/auth-identity-epoch.ts'
+      - 'security/build115/**'
+      - 'security/build116/**'
+      - 'security/build117/**'
+      - 'security/build118/**'
+      - 'security/build119/**'
+      - 'security/build120/**'
+      - 'security/build121/**'
+      - 'security/build122/**'
+      - 'security/build123/**'
+      - 'security/build124/**'
+      - 'security/build125/**'
+      - 'security/build126/**'
+      - 'security/build127/**'
+      - 'security/build128/**'
+      - 'security/build129/**'
+      - 'security/build130/**'
+      - 'security/build131/**'
+      - 'security/build132/**'
+      - 'security/build133/**'
+      - 'security/build134/**'
+      - 'security/build135/**'
+      - 'security/build136/**'
+      - 'security/build137/**'
+      - 'security/build138/**'
+      - 'src/routes/_app.integrations.tsx'
+      - 'src/lib/sheets-sync.server.ts'
+      - 'src/lib/global-search-results.ts'
+      - 'src/components/GlobalSearch.tsx'
+      - 'src/routes/_app.duplicates.tsx'
+      - 'src/lib/admin-settings.ts'
+      - 'src/lib/notifications-read-integrity.ts'
+      - 'src/routes/_app.notifications.tsx'
+      - 'src/lib/admin-directory-integrity.ts'
+      - 'src/lib/recruiter-selector-read.ts'
+      - 'src/lib/user-administration.ts'
+      - 'src/routes/_app.audit.tsx'
+      - 'src/routes/_app.users.tsx'
+      - 'src/lib/workflow-rules-review.ts'
+      - 'src/lib/crm-read-projection.ts'
+      - 'src/routes/_app.workflow-rules.tsx'
+      - 'src/routes/_app.activities.tsx'
+      - 'src/lib/bounded-crm-read.ts'
+      - 'src/lib/import-file-guard.ts'
+      - 'src/lib/offline-import-coerce.ts'
+      - 'src/lib/crm-list-integrity.ts'
+      - 'src/lib/import-file-guard.ts'
+      - 'src/lib/crm-sensitive-route-access.ts'
+      - 'src/routes/_app.users.tsx'
+      - 'src/routes/_app.activities.tsx'
+      - 'src/routes/_app.ai-match.tsx'
+      - 'src/lib/ai.functions.ts'
+      - 'src/lib/bounded-report-read.ts'
+      - 'src/lib/crm-report-access.ts'
+      - 'src/lib/csv.ts'
+      - 'src/routes/_app.reports.tsx'
+      - 'src/routes/_app.dashboard.tsx'
+      - 'src/routes/_app.audit.tsx'
+      - 'src/routes/_app.billing.tsx'
+      - 'src/components/AppSidebar.tsx'
+      - 'security/lead-discovery/**'
+      - 'security/release-progress/**'
+      - 'src/lib/private-query-cache-fence.ts'
+      - 'src/routes/__root.tsx'
+      - 'src/components/EmailComposeDialog.tsx'
+      - 'src/lib/safe-global-search.ts'
+      - 'src/components/GlobalSearch.tsx'
+      - 'src/components/ResumeSummaryButton.tsx'
+      - 'src/lib/notification-owner.ts'
+      - 'src/routes/_app.notifications.tsx'
+      - 'src/routes/_app.tsx'
+      - 'src/lib/crm-shell-access.ts'
+      - 'src/lib/logo-upload-safety.ts'
+      - 'src/lib/profile-settings.ts'
+      - 'src/routes/_app.users.tsx'
+      - 'src/routes/_app.settings.tsx'
+      - 'src/lib/integrations.functions.ts'
+      - 'src/lib/drive-import.server.ts'
+      - 'src/components/DriveImportButton.tsx'
+      - 'src/lib/sync-lease.server.ts'
+      - '.github/workflows/security-build34-review.yml'
+permissions:
+  contents: read
+# Supersede stale review-branch workflows when many approved edits land in bulk.
+# This never disables the latest production-release hold.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  offline-authorization-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test fail-closed webhook and account authorization without credentials
+        run: node --experimental-strip-types --test security/build34/*.test.mjs security/build36/*.test.mjs security/build37/*.test.mjs
+      - name: Verify Build126 import and candidate-board privacy contracts
+        run: node --experimental-strip-types --test security/build126/import-and-board-privacy.test.mjs security/build126/scorecard-progression.test.mjs security/build127/offline-import-guard.test.mjs security/build127/candidate-board-completeness.test.mjs security/build127/scorecard-progression.test.mjs security/build128/import-parser-integrity.test.mjs security/build128/crud-read-isolation.test.mjs security/build128/scorecard-progression.test.mjs security/build129/private-admin-settings-gates.test.mjs security/build129/notifications-complete-owner.test.mjs security/build129/scorecard-progression.test.mjs security/build130/report-source-integrity.test.mjs security/build130/notification-badge-integrity.test.mjs security/build130/scorecard-progression.test.mjs security/build131/bounded-crud-pagination.test.mjs security/build131/bounded-candidate-board.test.mjs security/build131/scorecard-progression.test.mjs security/build132/typed-crud-compile-and-write-guards.test.mjs security/build132/scorecard-progression.test.mjs security/build133/workflow-rule-readonly.test.mjs security/build133/crm-projection-minimization.test.mjs security/build133/activity-timeline-completeness.test.mjs security/build133/scorecard-progression.test.mjs security/build134/admin-directory-audit-completeness.test.mjs security/build134/recruiter-selector-completeness.test.mjs security/build134/scorecard-progression.test.mjs security/build135/notifications-complete-owner.test.mjs security/build135/organization-settings-hold.test.mjs security/build135/scorecard-progression.test.mjs security/build136/duplicate-review-error-safety.test.mjs security/build136/lab-object-reconciliation.test.mjs security/build136/scorecard-progression.test.mjs security/build137/global-search-preview-integrity.test.mjs security/build137/nonprod-auth-parity-review.test.mjs security/build137/scorecard-progression.test.mjs security/build138/integration-release-readonly.test.mjs security/build138/scorecard-progression.test.mjs
+  application-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build application
+        run: npm run build
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+  synthetic-lease-mechanics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse synthetic lease transitions in disposable PostgreSQL 17
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build36/synthetic-sync-lease.sql
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build37/sync-lease.integration.sql
+      - name: Verify two PostgreSQL sessions cannot acquire the same owner lease
+        env:
+          PGPASSWORD: postgres
+        run: bash security/build37/two-session-lease.test.sh
+  source-shaped-rls-and-grants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run production-shaped 140-case RLS and 16-table grant SQL suites in isolated PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: bash security/build38/run_database_contracts.sh
+      - name: Validate Build80 135-case real RLS in disposable PostgreSQL17 with unconditional rollback
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build80_policy_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -f security/build80/pg17-135-read-rehearsal.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -c "SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='r'")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build80_policy_lab -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated')")" = "0"
+          dropdb -h localhost -U postgres amf_build80_policy_lab
+      - name: Validate all 38 invented CRM rows against the actual 19-table production-shaped catalog and 75 constraints in disposable PostgreSQL17
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build81_full_fixture_lab
+          node security/build81/generate-pg17-source-38-fixture.mjs > /tmp/amf_build81_source_38_fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build81_full_fixture_lab -f /tmp/amf_build81_source_38_fixture.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build81_full_fixture_lab -c "SELECT count(*) FROM pg_catalog.pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind IN ('r','v','m')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build81_full_fixture_lab -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
+          dropdb -h localhost -U postgres amf_build81_full_fixture_lab
+  expanded-public-security-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify 19 tables, 13 views and 16 privileged functions in isolated PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: bash security/build40/run_full_scope.sh
+      - name: Audit actual CRM callsites affected by proposed grants
+        run: node security/build40/repository-compatibility-audit.mjs
+      - name: Reproduce five exact live recruiter views and review-only role correction in disposable PostgreSQL 17
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build70_recruiter_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build70_recruiter_lab -f security/build70/five-recruiter-view-semantics.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build70_recruiter_lab -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v'")" = "0"
+          dropdb -h localhost -U postgres amf_build70_recruiter_lab
+      - name: Demonstrate thirteen actual default-definer view anonymous leaks and invoker/RLS/grant fixes in disposable PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build71_view_leak_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build71_view_leak_lab -f security/build71/all-13-view-anonymous-exposure.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build71_view_leak_lab -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v'")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build71_view_leak_lab -c "SELECT count(*) FROM pg_roles WHERE rolname='b71_anon'")" = "0"
+          dropdb -h localhost -U postgres amf_build71_view_leak_lab
+      - name: Demonstrate 19 RLS tables vulnerable to anonymous TRUNCATE, then prove revocation in disposable PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build72_truncate_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build72_truncate_lab -f security/build72/all-19-anon-truncate-rls-bypass.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build72_truncate_lab -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build72_truncate_lab -c "SELECT count(*) FROM pg_roles WHERE rolname='b72_anon'")" = "0"
+          dropdb -h localhost -U postgres amf_build72_truncate_lab
+      - name: Demonstrate nine inherited PUBLIC function grants after anon-only revoke and proper two-layer privileges cleanup
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build72_func_acl_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build72_func_acl_lab -f security/build72/all-16-function-public-fallback.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build72_func_acl_lab -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build72_func_acl_lab -c "SELECT count(*) FROM pg_roles WHERE rolname IN ('b72_fn_anon','b72_fn_authenticated')")" = "0"
+          dropdb -h localhost -U postgres amf_build72_func_acl_lab
+      - name: Prove full 48-object schema permission gate HOLD then conditional pass in disposable PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build73_permissions_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build73_permissions_lab -f security/build73/48-object-permission-before-after.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build73_permissions_lab -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build73_permissions_lab -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build73_permissions_lab -c "SELECT count(*) FROM pg_roles WHERE rolname IN ('b73_anon','b73_authenticated')")" = "0"
+          dropdb -h localhost -U postgres amf_build73_permissions_lab
+      - name: Prove live-structure auth auto-profile hazard and 9-user fixture positive/negative integrity with rollback
+        env:
+          PGPASSWORD: postgres
+        run: |
+          createdb -h localhost -U postgres amf_build75_auth_lab
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -f security/build75/auth-autoprofile-and-nine-slot.rollback.sql
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -f security/build75/auth-bootstrap-no-email-admin.rollback.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -c "SELECT count(*) FROM pg_catalog.pg_namespace WHERE nspname='auth'")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d amf_build75_auth_lab -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname='synthetic_auth_autoprofile'")" = "0"
+          dropdb -h localhost -U postgres amf_build75_auth_lab
+
+  admin-settings-rpc-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify CRM Settings uses protected admin RPC calls
+        run: node --test security/build40/admin-settings-source.test.mjs
+      - name: Test anonymous, recruiter, pending, inactive and admin SQL access
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build40/admin-settings-rpc.integration.sql
+  signed-jwt-http-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rehearse signed JWT via actual isolated PostgREST HTTP
+        env:
+          PGPASSWORD: postgres
+          B41_JWT_SECRET: b41-synthetic-hmac-only-0123456789abcdefghijklmnopqrstuvwxyz
+        run: bash security/build41/run_signed_http.sh
+      - name: Upload synthetic signed HTTP case evidence without tokens
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build41-synthetic-jwt-http-evidence
+          path: /tmp/build41-signed-http-evidence.json
+          if-no-files-found: ignore
+  gotrue-issued-signed-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test real Supabase GoTrue-issued signed sessions in isolated PostgreSQL and PostgREST
+        env:
+          PGPASSWORD: postgres
+          B42_JWT_SECRET: build42-only-disposable-jwt-secret-with-long-fake-seed-abcd1234
+        run: bash security/build42/run_gotrue_auth_http.sh
+      - name: Archive synthetic case outcomes without credentials
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build42-synthetic-gotrue-auth-evidence
+          path: /tmp/build42-gotrue-issued-auth-results.json
+          if-no-files-found: ignore
+  fenced-atomic-sync-row-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Review atomic sync source and fail-closed scheduled integration
+        run: node --test security/build43/atomic-contract.test.mjs
+      - name: Rehearse fenced candidate row create, replay, rollback and expiry in disposable PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build43/atomic-row-commit.integration.sql
+  atomic-concurrency-and-snapshot-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test concurrent commits, expiry rollback and synthetic full backup restore
+        env:
+          PGPASSWORD: postgres
+        run: bash security/build43/atomic-concurrency-restore.test.sh
+  production-derived-trigger-and-manual-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test manual Sheet fencing, full-history hold and Drive bulk pause
+        run: node --test security/build44/manual-and-trigger-contract.test.mjs
+      - name: Test seven real trigger function definitions and nine trigger attachments with synthetic atomic rows
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build44/production-trigger-compat.integration.sql
+  recruiter-assignment-and-financial-hold-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check fail-closed recruiter assignment and financial automation guard proposals
+        run: node --test security/build45/assignment-finance-contract.test.mjs
+      - name: Reproduce actual current joined-stage automatic billing risk in disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build45/financial-automation-baseline.integration.sql
+      - name: Rehearse review-only financial hold and ensure unrelated notifications still work
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build45/financial-hold-rehearsal.integration.sql
+  drive-resume-atomic-ledger-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check Drive ledger, safe server adapter and unconditional import pause
+        run: node --test security/build46/drive-ledger-contract.test.mjs
+      - name: Rehearse atomic Drive candidate and ledger commit with synthetic rollback
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build46/drive-ledger-rollback.integration.sql
+      - name: Exercise source-derived real candidate triggers with synthetic Drive import
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build46/drive-production-trigger.integration.sql
+  drive-import-concurrency-and-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test two real Drive import worker sessions and synthetic snapshot restore
+        env:
+          PGPASSWORD: postgres
+        run: bash security/build46/drive-concurrency-restore.test.sh
+  security-48-object-catalog-lockdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate exact 48-object catalog, preflight and release-only invariants
+        run: node --test security/build47/security-contract.test.mjs
+      - name: Rehearse 48-object lockdown, reject changed catalog and roll back
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build47/48-object-lockdown.integration.sql
+  security-48-plus-31-rls-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse 48-object lockdown plus 31 restrictive RLS policies under real PostgreSQL roles
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build47/48-object-and-rls.integration.sql
+  exact-67-live-policy-replacement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check exact 67-policy catalog, legacy exposure and full replacement controls
+        run: node --test security/build48/security-contract.test.mjs
+      - name: Recreate 67 current policies, reject drift and test 35 restrictive replacements in one rollback
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build48/67-policy-replacement.integration.sql
+  unsafe-legacy-restoration-rehearsal-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate disposable 35-policy tightening and full legacy ACL restoration
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build48/unsafe-recovery.integration.sql
+  audited-account-and-profile-transaction-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify user/profile RPCs, locked-down UI and release hold source contracts
+        run: node --test security/build49/source-contract.test.mjs
+      - name: Rehearse approved admin status/role edits and audit rollback in disposable SQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build49/user-admin-transaction.integration.sql
+      - name: Rehearse narrow self-profile edits and audit rollback in disposable SQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build49/self-profile-transaction.integration.sql
+  account-compatibility-under-67-policy-lockdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse admin/profile RPCs after live 67-policy replacement and legacy DML revocation
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build49/67-policy-admin-profile-compat.integration.sql
+  build50-browser-write-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify legacy candidate CRUD, board, duplicate delete and bulk import remain paused
+        run: node --test security/build50/source-contract.test.mjs
+
+  build51-stage-transaction-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify stage RPC and client safety contracts
+        run: node --test security/build51/source-contract.test.mjs
+      - name: Rehearse scoped stage mutations with synthetic signed subjects and legacy billing trap
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build51/stage-transaction.integration.sql
+      - name: Run stage-RPC after full original 67-policy replay and 35 restrictive replacement
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build51/compose-67-policy-stage.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build51-full-67-policy-stage.integration.sql
+
+
+  build52-candidate-write-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check candidate write RPC and client source contracts
+        run: node --test security/build52/source-contract.test.mjs
+      - name: Run role-aware candidate write, audit rollback and billing trap on disposable PostgreSQL
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build52/candidate-write.integration.sql
+      - name: Run candidate RPC after full original 67 policy replay and 35 restrictive policies
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build52/compose-67-policy-candidate-write.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build52-full-policy-candidate-write.integration.sql
+
+  build53-candidate-atomic-import-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify atomic import safety and repair of Build52 full-policy composer
+        run: node --experimental-strip-types --test security/build53/source-contract.test.mjs security/build53/duplicates-review.test.mjs
+      - name: Rehearse atomic idempotent 50-row-bound candidate batches and failure rollback
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build53/compose-atomic-import.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build53-candidate-atomic-import.integration.sql
+      - name: Rehearse candidate batch after original 67 RLS policies and 35 restrictive replacements
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build53/compose-full-67-policy-import.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build53-full-67-policy-atomic-import.integration.sql
+      - name: Integrate stage, candidate CRUD and import under one full 67-policy replacement
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build53/compose-consolidated-candidate-release.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build53-consolidated-candidate-release.integration.sql
+
+  build54-guarded-candidate-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate deterministic non-executable review bundle and isolated rollback-only migration
+        run: node security/build54/assemble-release-review.mjs
+      - name: Verify release hold, exact source SHA256, and hosted Auth mock preflight
+        run: node --test security/build54/source-contract.test.mjs security/build54/hosted-auth-preflight.test.mjs security/build54/pr-reconciliation-contract.test.mjs security/build63/readback-contract.test.mjs
+      - name: Simulate a SQL client that continues on error; release refusal must have no executable DDL
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=0 -h localhost -U postgres -d postgres -f /tmp/build54-release-review/release-review-hold.sql > /tmp/build54-refusal.log 2>&1 || true
+          grep -Fq 'Build54 release BLOCKED' /tmp/build54-refusal.log
+          ! grep -Eq '^((CREATE|ALTER|DROP|INSERT|UPDATE|DELETE|TRUNCATE|COMMIT|BEGIN|ROLLBACK)[[:space:];])' /tmp/build54-release-review/release-review-hold.sql
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename='candidates'")" = "0"
+      - name: Execute exact source-composed policy, account and candidate migration inside disposable rollback
+        env:
+          PGPASSWORD: postgres
+        run: psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build54-release-review/full-release-rollback.integration.sql
+      - name: Reconcile true combined release candidate with 22 privileged functions and 35 policies in separate rolled-back PostgreSQL rehearsal
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build74/compose-postrelease-permission-check.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build54-release-review/build74-22-function-rollback.integration.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef")" = "0"
+      - name: Prove exact combined release rejects reintroduced anon candidate-import RPC and destructive TRUNCATE grants
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build74/compose-negative-release-replays.mjs
+          for case in anonymous_candidate_rpc anonymous_table_truncate; do
+            if psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f "/tmp/build54-release-review/build74-negative-${case}.integration.sql" > "/tmp/build74-negative-${case}.log" 2>&1; then
+              echo "FAIL: expected Build74 postflight to reject unsafe grant in ${case}"
+              exit 1
+            fi
+            grep -Fq "Build74 22-function permission postflight failed" "/tmp/build74-negative-${case}.log"
+          done
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v')")" = "0"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prosecdef")" = "0"
+
+
+      - name: Confirm no schema changes persisted from rollback-only rehearsal
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','profiles','billing');" | grep -x 0
+
+  build55-deletion-impact-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate non-destructive candidate impact RPC and exact live FK/trigger catalog source
+        run: node --test security/build55/source-contract.test.mjs security/build55/catalog-contract.test.mjs security/build55/pr11-confirmed-ux.test.mjs
+      - name: Rehearse administrative read-only deletion impact, cascade loss and billing detach in disposable rollback
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build55/compose-delete-impact.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build55-candidate-delete-impact.integration.sql
+      - name: Prove rollback retained no synthetic candidate or dependent records
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','billing','offers','submissions','interviews')")" = "0"
+
+  build56-financial-joined-hold-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check financial guard SQL, exact-source risk and browser release holds
+        run: node --test security/build56/source-contract.test.mjs
+      - name: Reproduce actual live financial triggers producing two synthetic bills and prove joined transition hold
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build56/production-financial-source.integration.sql
+      - name: Prove no persisted billing or CRM tables in disposable runner
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('billing','offers','candidates')")" = "0"
+
+  build57-billing-lockdown-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate read-only billing source audit and release hold contracts
+        run: node --test security/build57/source-contract.test.mjs security/build57/financial-write-surface.test.mjs
+      - name: Rehearse locked invoice grants, false RLS write policy, and row/statement trigger vetoes
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build57/compose-billing-lockdown.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build57-billing-lockdown.integration.sql
+      - name: Prove full rollback left no invoice or offer tables
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('billing','offers','candidates')")" = "0"
+
+  build58-exact-function-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source-frozen function fingerprints and review source safety
+        run: node --test security/build58/source-contract.test.mjs
+      - name: Rehearse all four exact production function bodies, source guard, anon denial and trigger compatibility
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build58/exact-four-function-replay.integration.sql
+      - name: Prove rollback left no public candidate tables
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('candidates','profiles','candidate_stage_history')")" = "0"
+
+  build59-exact-13-view-dml-lockdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate exactly 13 source-verified views, invoker mode and no write grants
+        run: node --test security/build59/source-contract.test.mjs security/build59/view-consumer-contract.test.mjs
+      - name: Rehearse independent 13-view / 19-table source-shaped ACL and privilege isolation
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build59/compose-13-view-review.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/build59-13-view-security.integration.sql
+      - name: Prove all source-shaped views rolled back
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='v'")" = "0"
+
+  build60-pr-reconciliation-and-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test confirmed batch writes, unknown outcomes and PR11 safety reconciliation
+        run: node --experimental-strip-types --test security/build60/confirmed-bulk-recovery.test.mjs security/build60/recovery-contract.test.mjs
+      - name: Run true synthetic pg_dump backup, simulated damage, pg_restore and authorization/financial guard verification
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: postgres
+          B60_DISPOSABLE_ONLY: 'yes'
+        run: bash security/build60/recovery-disposable-ci.sh
+      - name: Ensure disposable source and recovery databases were removed
+        env:
+          PGPASSWORD: postgres
+        run: |
+          test "$(psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -Atc "SELECT count(*) FROM pg_database WHERE datname IN ('b60_synthetic_source','b60_synthetic_restored')")" = "0"
+
+  build64-hosted-readonly-135-case-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate historical 135-case source and read-only hosted runner with invented users
+        run: node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs security/build74/live-release-source-fingerprints.test.mjs security/build75/trigger-and-hosted-fixture-contract.test.mjs security/build75/auth-bootstrap-hardening-contract.test.mjs security/build75/inert-defaults-contract.test.mjs security/build77/source-contract.test.mjs security/build78/source-contract.test.mjs security/build78/provision-nine-auth-users.test.mjs security/build78/seed-inert-base-fixture.test.mjs security/build79/compose-and-seed-remaining-fixture.test.mjs security/build79/live-source-column-fk-check-contract.test.mjs security/build79/minimal-three-policy-review-only.test.mjs security/build79/full-synthetic-postseed-contract.test.mjs security/build80/role-read-oracle.test.mjs security/build80/15-surface-read-policy.test.mjs security/build80/role-coverage-contract.test.mjs security/build80/pg17-135-read-rehearsal-contract.test.mjs security/build81/server-unique-role-gate.test.mjs security/build81/source-shaped-38-fixture.test.mjs security/build81/candidate-provider-error-redaction.test.mjs security/build81/pg17-full-source-135-rls-addon.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build83/sync-configuration-and-duplicate-privacy.test.mjs security/build84/remote-download-boundary.test.mjs security/build85/core-data-access-privacy.test.mjs security/build86/crm-email-record-scope.test.mjs
+
+  build104-verified-public-application-atomic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rehearse service-only proof and atomic applicant submissions (disposable PostgreSQL 17)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f security/build104/verified-public-application.integration.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT pg_catalog.to_regclass('crm_private.verified_public_applications') IS NULL")" = "t"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
+
+  build105-source-shaped-public-application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rehearse actual candidate/submission trigger definitions with atomic applicant writes
+        env:
+          PGPASSWORD: postgres
+        run: |
+          node security/build105/compose-source-shaped-public-application.mjs
+          psql -X -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -f /tmp/amf-build105-source-trigger-rehearsal.sql
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT pg_catalog.to_regclass('public.candidates') IS NULL")" = "t"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT pg_catalog.to_regclass('crm_private.verified_public_applications') IS NULL")" = "t"
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
+
+  build106-concurrent-verified-applications:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Race synthetic applicant claims in isolated PG17 and verify cleanup
+        env:
+          PGPASSWORD: postgres
+        run: |
+          bash security/build106/run-concurrent-application.sh
+          test "$(psql -X -At -v ON_ERROR_STOP=1 -h localhost -U postgres -d postgres -c "SELECT count(*) FROM pg_catalog.pg_roles WHERE rolname IN ('anon','authenticated','service_role')")" = "0"
+
+  substantive-security-summary:
+    if: always()
+    needs:
+      - offline-authorization-tests
+      - application-compile
+      - synthetic-lease-mechanics
+      - source-shaped-rls-and-grants
+      - expanded-public-security-contracts
+      - admin-settings-rpc-compatibility
+      - signed-jwt-http-rls
+      - gotrue-issued-signed-http
+      - fenced-atomic-sync-row-contract
+      - atomic-concurrency-and-snapshot-recovery
+      - production-derived-trigger-and-manual-sync
+      - recruiter-assignment-and-financial-hold-review
+      - drive-resume-atomic-ledger-review
+      - drive-import-concurrency-and-restore
+      - security-48-object-catalog-lockdown
+      - security-48-plus-31-rls-integration
+      - exact-67-live-policy-replacement
+      - unsafe-legacy-restoration-rehearsal-only
+      - audited-account-and-profile-transaction-review
+      - account-compatibility-under-67-policy-lockdown
+      - build50-browser-write-safety
+      - build51-stage-transaction-review
+      - build52-candidate-write-review
+      - build53-candidate-atomic-import-review
+      - build54-guarded-candidate-release
+      - build55-deletion-impact-review
+      - build56-financial-joined-hold-review
+      - build57-billing-lockdown-review
+      - build58-exact-function-security
+      - build59-exact-13-view-dml-lockdown
+      - build60-pr-reconciliation-and-recovery
+      - build64-hosted-readonly-135-case-contract
+      - build104-verified-public-application-atomic
+      - build105-source-shaped-public-application
+      - build106-concurrent-verified-applications
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail if any substantive security or application job did not succeed
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          jobs=json.loads(os.environ["NEEDS_JSON"])
+          results={name:obj.get('result') for name,obj in jobs.items()}
+          failed={name:state for name,state in results.items() if state!='success'}
+          summary={
+              "source_sha": os.environ.get("GITHUB_SHA",""),
+              "expected_substantive_jobs": 35,
+              "observed_substantive_jobs": len(results),
+              "passed_jobs": len(results)-len(failed),
+              "all_substantive_pass": len(results)==35 and not failed,
+              "job_outcomes": results,
+              "release_hold_excluded": True,
+              "hosted_formal_acceptance": False
+          }
+          with open("build65-substantive-ci-summary.json","w") as target:
+              json.dump(summary,target,sort_keys=True,indent=2)
+          print("Substantive security CI: "+str(summary["passed_jobs"])+"/"+str(summary["observed_substantive_jobs"])+" jobs succeeded")
+          if len(results)!=35 or failed:
+              print("Substantive CI failures or missing jobs: "+str(failed),file=sys.stderr)
+              sys.exit(1)
+          PY
+      - name: Archive 35-job substantive CI evidence without secrets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build65-substantive-ci-summary
+          path: build65-substantive-ci-summary.json
+          if-no-files-found: error
+          retention-days: 30
+
+  production-release-hold:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo 'PRODUCTION RELEASE BLOCKED: nine formal release gates and independent authorization remain incomplete.'
+          exit 1

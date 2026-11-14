@@ -1,22 +1,5 @@
-// Zoho gap this closes: "Reporting/export" — the Dashboard already has fixed
-// KPIs and charts (recharts, all-time or this-month snapshots), but there was
-// nowhere to slice the pipeline by a custom date range and get an exportable
-// table out of it. This page is deliberately tabular and date-scoped rather
-// than another set of charts, and every table has its own "Export CSV"
-// button (src/lib/csv.ts — the same helper CrudModule's per-module export
-// uses), so a recruiter or finance user can pull exactly the slice they need
-// (say, last quarter's placements) straight into Excel.
-//
-// Data model: like Dashboard's existing `candAll`/`bills` fetches, this pulls
-// each table's relevant columns in full (unfiltered) and does the date-range
-// filtering + aggregation client-side. That's a deliberate match to the
-// established pattern here, not a shortcut — recruiter/client attribution
-// for a submission or offer requires looking up the *candidate's*
-// assigned_recruiter, and an interview or offer can easily reference a
-// candidate added well before the report's date window, so the candidate ->
-// recruiter map has to come from the whole table regardless of which window
-// is selected. At this app's free-tier/prototype scale that's a handful of
-// small selects, not a performance concern.
+// Build124: Only return role-permitted, count-complete and bounded source data.
+// Rejected/partial pages are never turned into a zero-valued KPI or CSV export.
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -29,19 +12,24 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Inbox } from "lucide-react";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
+import { useAuth } from "@/hooks/use-auth";
+import { canReadPipelineReports } from "@/lib/crm-report-access";
+import { readBoundedReportRows } from "@/lib/bounded-report-read";
+import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertReportSourceIntegrity, validReportWindow } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
-const STAGE_ORDER = [
-  "lead_received", "contacted", "interested", "resume_collected", "submitted_to_client",
-  "interview_scheduled", "interview_completed", "selected", "offer_released", "joined",
-  "rejected", "dropped",
-];
+const STAGE_ORDER = ALLOWED_REPORT_STAGES;
+
+function localDateIso(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 function isoDateNDaysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return localDateIso(d);
 }
 
 /** Whether an ISO timestamp falls within [from, to] — both plain
@@ -57,13 +45,8 @@ function inRange(iso: string | null | undefined, from: string, to: string): bool
   return t >= fromT && t <= toT;
 }
 
-function fmtCurrency(n: number): string {
-  return `₹${Math.round(n).toLocaleString("en-IN")}`;
-}
-
-function recruiterLabel(id: string | null, names: Record<string, string>): string {
-  if (!id) return "Unassigned";
-  return names[id] ?? `${id.slice(0, 6)}…`;
+function recruiterLabel(id: string | null): string {
+  return id ? `Recruiter ${id.slice(0, 8)}…` : "Unassigned";
 }
 
 interface ReportTableProps {
@@ -126,33 +109,50 @@ function ReportTable({ title, description, headers, rows, filenamePrefix, loadin
 }
 
 function Reports() {
+  const { user, profile, role } = useAuth();
+  const allowed = canReadPipelineReports(user?.id, profile, role);
   const [from, setFrom] = useState(() => isoDateNDaysAgo(30));
-  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [to, setTo] = useState(() => localDateIso(new Date()));
+  const validWindow = validReportWindow(from, to);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["reports-data"],
-    queryFn: async () => {
-      const [
-        { data: candidates },
-        { data: submissions },
-        { data: interviews },
-        { data: offers },
-        { data: clients },
-        { data: billing },
-        { data: profiles },
-      ] = await Promise.all([
-        supabase.from("candidates").select("id, stage, assigned_recruiter, created_at"),
-        supabase.from("submissions").select("id, candidate_uuid, candidate_id, client_uuid, client_id, created_at"),
-        supabase.from("interviews").select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, created_at"),
-        supabase.from("offers").select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, ctc, salary, created_at"),
-        supabase.from("clients").select("id, company_name, active_positions"),
-        supabase.from("billing").select("id, client_uuid, client_id, invoice_amount, outstanding_amount, payment_status, invoice_date"),
-        supabase.from("profiles").select("id, full_name"),
-      ]);
-      return {
-        candidates: candidates ?? [], submissions: submissions ?? [], interviews: interviews ?? [],
-        offers: offers ?? [], clients: clients ?? [], billing: billing ?? [], profiles: profiles ?? [],
-      };
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["reports-data", user?.id ?? "signed-out", role ?? "none"],
+    enabled: allowed,
+    queryFn: async ({ signal }) => {
+      if (!allowed) throw new Error("Reporting requires an approved account and role");
+      // The PostgREST default row limit is not proof that all matching rows
+      // were fetched. Each authorized table is read with a count, ordered
+      // by unique ID, in bounded explicit pages. Failure is NOT "zero".
+      try {
+        const [candidates, submissions, interviews, offers, clients] = await Promise.all([
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("candidates")
+              .select("id, stage, assigned_recruiter, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("submissions")
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("interviews")
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("offers")
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+          readBoundedReportRows((from, to, abort) =>
+            supabase.from("clients")
+              .select("id, company_name", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+        ]);
+        assertReportSourceIntegrity({ candidates, submissions, interviews, offers, clients });
+        return { candidates, submissions, interviews, offers, clients };
+      } catch {
+        // Avoid exposing a raw database error or silently computing on
+        // inconsistent/missing pages. Server-side RLS is still authoritative.
+        throw new Error("Unable to retrieve authorized reporting data");
+      }
     },
     staleTime: 60_000,
   });
@@ -162,13 +162,6 @@ function Reports() {
   const interviews = data?.interviews ?? [];
   const offers = data?.offers ?? [];
   const clients = data?.clients ?? [];
-  const billing = data?.billing ?? [];
-
-  const recruiterNames = useMemo(() => {
-    const m: Record<string, string> = {};
-    (data?.profiles ?? []).forEach((p: any) => { m[p.id] = p.full_name; });
-    return m;
-  }, [data?.profiles]);
 
   // Candidate id -> assigned recruiter, built from the WHOLE candidates
   // table (not the date-filtered slice below) — see the file-level note on
@@ -186,11 +179,10 @@ function Reports() {
     return m;
   }, [clients]);
 
-  const candidatesInRange = useMemo(() => candidates.filter((c: any) => inRange(c.created_at, from, to)), [candidates, from, to]);
-  const submissionsInRange = useMemo(() => submissions.filter((s: any) => inRange(s.created_at, from, to)), [submissions, from, to]);
-  const interviewsInRange = useMemo(() => interviews.filter((i: any) => inRange(i.created_at, from, to)), [interviews, from, to]);
-  const offersInRange = useMemo(() => offers.filter((o: any) => inRange(o.created_at, from, to)), [offers, from, to]);
-  const billingInRange = useMemo(() => billing.filter((b: any) => inRange(b.invoice_date, from, to)), [billing, from, to]);
+  const candidatesInRange = useMemo(() => validWindow ? candidates.filter((c: any) => inRange(c.created_at, from, to)) : [], [candidates, from, to, validWindow]);
+  const submissionsInRange = useMemo(() => validWindow ? submissions.filter((s: any) => inRange(s.created_at, from, to)) : [], [submissions, from, to, validWindow]);
+  const interviewsInRange = useMemo(() => validWindow ? interviews.filter((i: any) => inRange(i.created_at, from, to)) : [], [interviews, from, to, validWindow]);
+  const offersInRange = useMemo(() => validWindow ? offers.filter((o: any) => inRange(o.created_at, from, to)) : [], [offers, from, to, validWindow]);
 
   // --- Report 1: Candidate pipeline by stage ---
   const pipelineRows = useMemo(() => {
@@ -211,26 +203,25 @@ function Reports() {
     const rec: Record<string, { added: number; submissions: number; interviews: number; offers: number; joined: number }> = {};
     const ensure = (id: string) => (rec[id] ??= { added: 0, submissions: 0, interviews: 0, offers: 0, joined: 0 });
 
-    candidatesInRange.forEach((c: any) => { if (c.assigned_recruiter) ensure(c.assigned_recruiter).added++; });
+    candidatesInRange.forEach((c: any) => { ensure(c.assigned_recruiter || UNASSIGNED_REPORT_KEY).added++; });
     submissionsInRange.forEach((s: any) => {
-      const rid = recruiterOfCandidate[s.candidate_uuid ?? s.candidate_id];
-      if (rid) ensure(rid).submissions++;
+      const rid = recruiterOfCandidate[s.candidate_uuid ?? s.candidate_id] || UNASSIGNED_REPORT_KEY;
+      ensure(rid).submissions++;
     });
     interviewsInRange.forEach((i: any) => {
-      const rid = recruiterOfCandidate[i.candidate_uuid ?? i.candidate_id];
-      if (rid) ensure(rid).interviews++;
+      const rid = recruiterOfCandidate[i.candidate_uuid ?? i.candidate_id] || UNASSIGNED_REPORT_KEY;
+      ensure(rid).interviews++;
     });
     offersInRange.forEach((o: any) => {
-      const rid = recruiterOfCandidate[o.candidate_uuid ?? o.candidate_id];
-      if (!rid) return;
+      const rid = recruiterOfCandidate[o.candidate_uuid ?? o.candidate_id] || UNASSIGNED_REPORT_KEY;
       ensure(rid).offers++;
       if (o.joining_status === "joined") ensure(rid).joined++;
     });
 
     return Object.entries(rec)
       .sort((a, b) => b[1].added - a[1].added)
-      .map(([id, v]) => [recruiterLabel(id, recruiterNames), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
-  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate, recruiterNames]);
+      .map(([id, v]) => [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
+  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate]);
 
   // --- Report 3: Client-wise pipeline summary ---
   const clientRows = useMemo(() => {
@@ -254,37 +245,20 @@ function Reports() {
       ] as (string | number)[]);
   }, [submissionsInRange, interviewsInRange, offersInRange, clientNames]);
 
-  // --- Report 4: Billing summary by client ---
-  const billingRows = useMemo(() => {
-    const byClient: Record<string, { invoiced: number; collected: number; outstanding: number }> = {};
-    const ensure = (id: string) => (byClient[id] ??= { invoiced: 0, collected: 0, outstanding: 0 });
+  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(localDateIso(new Date())); };
+  const applyAllTime = () => { setFrom("2000-01-01"); setTo(localDateIso(new Date())); };
 
-    billingInRange.forEach((b: any) => {
-      const cid = b.client_uuid ?? b.client_id;
-      if (!cid) return;
-      const row = ensure(cid);
-      row.invoiced += Number(b.invoice_amount ?? 0);
-      if (b.payment_status === "paid") row.collected += Number(b.invoice_amount ?? 0);
-      row.outstanding += Number(b.outstanding_amount ?? 0);
-    });
-
-    return Object.entries(byClient)
-      .sort((a, b) => b[1].invoiced - a[1].invoiced)
-      .map(([id, v]) => [
-        clientNames[id] ?? `${id.slice(0, 6)}…`,
-        fmtCurrency(v.invoiced), fmtCurrency(v.collected), fmtCurrency(v.outstanding),
-      ] as (string | number)[]);
-  }, [billingInRange, clientNames]);
-
-  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(new Date().toISOString().slice(0, 10)); };
-  const applyAllTime = () => { setFrom("2000-01-01"); setTo(new Date().toISOString().slice(0, 10)); };
+  if (!allowed)
+    return <p className="text-sm text-muted-foreground">Recruitment reporting requires an approved recruiter, operations or administrator role.</p>;
+  if (isError)
+    return <p className="text-sm text-destructive">Unable to load authorized reports. Please retry.</p>;
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Reports</h1>
         <p className="text-sm text-muted-foreground">
-          Date-ranged, exportable pipeline and billing reports — pick a window below, every table exports to CSV.
+          Date-ranged recruitment pipeline reports. Financial and billing reporting remains paused.
         </p>
       </div>
 
@@ -307,6 +281,10 @@ function Reports() {
         </CardContent>
       </Card>
 
+      {!validWindow ? (
+        <p className="text-sm text-destructive">Choose a valid date range in YYYY-MM-DD format, with From on or before To. No metrics or exports are shown.</p>
+      ) : (
+        <>
       <ReportTable
         title="Candidate Pipeline by Stage"
         description="Candidates added in the selected window, grouped by their current stage."
@@ -320,7 +298,7 @@ function Reports() {
       <ReportTable
         title="Recruiter Performance"
         description="Activity attributed to each recruiter's assigned candidates within the window."
-        headers={["Recruiter", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]}
+        headers={["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]}
         rows={recruiterRows}
         filenamePrefix="recruiter-performance"
         loading={isLoading}
@@ -336,16 +314,9 @@ function Reports() {
         loading={isLoading}
         emptyLabel="No client activity in this window."
       />
+        </>
+      )}
 
-      <ReportTable
-        title="Billing Summary by Client"
-        description="Invoiced, collected, and outstanding amounts, by invoice date within the window."
-        headers={["Client", "Invoiced", "Collected", "Outstanding"]}
-        rows={billingRows}
-        filenamePrefix="billing-summary"
-        loading={isLoading}
-        emptyLabel="No invoices in this window."
-      />
     </div>
   );
 }

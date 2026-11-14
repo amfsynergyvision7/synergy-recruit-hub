@@ -1,0 +1,360 @@
+{
+  "evidence_type": "NON_EXECUTABLE_SYNTHETIC_ONLY_HOSTED_FIXTURE_BLUEPRINT",
+  "produced_on": "2026-11-12",
+  "source_catalog": "security/build69/fixture-source-catalog.json",
+  "source_views": "security/build68/view-fixture-dependencies.json",
+  "deliberately_nonexecutable": true,
+  "executable_sql_included": false,
+  "authorizes_nonproduction_writes": false,
+  "requires_independent_trigger_safety_review": true,
+  "minimum_planned_go_true_accounts": 9,
+  "ordered_table_plans": [
+    {
+      "table": "profiles",
+      "sequence": 1,
+      "minimum_illustrative_rows": 8,
+      "required_no_default_columns": [
+        "id",
+        "full_name",
+        "email"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "t_profiles_u"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Exactly eight synthetic profile rows for nine invented GoTrue users: slots 01–08 have the role/status/active combinations in hosted_account_slots, while slot 09 MUST have no profile and no user_role row; invalid-domain addresses only"
+    },
+    {
+      "table": "clients",
+      "sequence": 2,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "company_name"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "clients_updated_at_trigger",
+        "t_clients_u",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Fully invented company and contact; never a real customer or identifier"
+    },
+    {
+      "table": "candidates",
+      "sequence": 3,
+      "minimum_illustrative_rows": 2,
+      "required_no_default_columns": [
+        "full_name"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "candidates_sync_defaults_trigger",
+        "candidates_updated_at_trigger",
+        "set_assigned_recruiter_trigger",
+        "set_candidate_sync_defaults_trigger",
+        "track_stage_changes_trigger",
+        "trg_candidate_stage_change",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "trg_candidate_stage_change",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Exactly two invented candidates with IDs matching the approved recruiter A/B slot UUIDs and assigned_recruiter matching the corresponding approved GoTrue users; no joined/offered stages"
+    },
+    {
+      "table": "job_openings",
+      "sequence": 4,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "job_title"
+      ],
+      "direct_references": [
+        "clients"
+      ],
+      "app_trigger_names": [
+        "job_openings_updated_at_trigger",
+        "normalize_job_openings_relationships_trigger"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Invented job associated with invented client; no external publishing"
+    },
+    {
+      "table": "candidate_stage_history",
+      "sequence": 5,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "new_stage"
+      ],
+      "direct_references": [
+        "candidates",
+        "profiles"
+      ],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Invented candidate ID, synthetic changed_by profile and explicit new_stage; ADMIN policy required and independently verified"
+    },
+    {
+      "table": "submissions",
+      "sequence": 6,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "candidate_id"
+      ],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "job_openings"
+      ],
+      "app_trigger_names": [
+        "normalize_submissions_relationships_trigger",
+        "submissions_stage_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "submissions_stage_trigger",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Invented candidate/client/job references; source insertion may update candidate stage via trigger; isolate all side effects"
+    },
+    {
+      "table": "interviews",
+      "sequence": 7,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "candidate_id"
+      ],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "submissions"
+      ],
+      "app_trigger_names": [
+        "interviews_stage_trigger",
+        "normalize_interviews_relationships_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "interviews_stage_trigger",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Invented candidate/client/submission references; stage-change trigger must be isolated"
+    },
+    {
+      "table": "offers",
+      "sequence": 8,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "candidate_id"
+      ],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "interviews",
+        "submissions"
+      ],
+      "app_trigger_names": [
+        "normalize_offers_relationships_trigger",
+        "offers_stage_billing_trigger",
+        "offers_updated_at_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "offers_stage_billing_trigger",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Invented candidate/client/interview/submission reference; never 'joined' or finance-effective status; offer-stage billing trigger must be isolated"
+    },
+    {
+      "table": "billing",
+      "sequence": 9,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "offers"
+      ],
+      "app_trigger_names": [
+        "billing_invoice_number_trigger",
+        "billing_updated_at_trigger",
+        "normalize_billing_relationships_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Synthetic draft-like record only after independently approved finance trigger isolation; cannot issue invoice or generate real invoice number"
+    },
+    {
+      "table": "app_settings",
+      "sequence": 10,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [],
+      "direct_references": [],
+      "app_trigger_names": [
+        "t_app_settings_u"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Synthetic branding only; explicitly NULL sensitive folder URL/updated_by; no live Google Drive links"
+    },
+    {
+      "table": "email_log",
+      "sequence": 11,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "related_table",
+        "related_id",
+        "to_email",
+        "subject",
+        "body"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Invented address at example.invalid only; explicitly set neutral non-sent status, never use default 'sent'; do not enqueue or send"
+    },
+    {
+      "table": "workflow_rules",
+      "sequence": 12,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "name",
+        "table_name",
+        "field_name",
+        "field_value",
+        "action_type"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "workflow_rules_set_updated_at"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Explicit is_active=false (production default is true); action fields reviewed for inert data; do not allow rule invocation"
+    }
+  ],
+  "known_live_defaults_requiring_override": {
+    "public.workflow_rules.is_active": "true (must explicitly set false for any invented rule)",
+    "public.email_log.status": "'sent'::text (must explicitly choose an inert, never-sent synthetic state)"
+  },
+  "mandatory_preflight": "security/build69/hosted-fixture-readiness.readonly.sql",
+  "verified_anonymous_read_tests": "security/build68/hosted-positive-controls.mjs",
+  "historical_140_case_coverage": "NOT_COMPLETED",
+  "formal_accepted_cases": 0,
+  "source_order_verification": "Every foreign-key referenced table must appear earlier than dependent table; optional links must be resolved only to invented identifiers.",
+  "explicit_holds": [
+    "No live or staging database inserts/updates, no user creation or producer-side effects authorized by this draft",
+    "No invoice numbers, outgoing email, SMS, webhooks, recruitment notifications or third-party workflow activation",
+    "All 29 production-trigger definitions need separate review; 10 matching lifecycle/workflow triggers flagged high risk",
+    "Run only on an independently approved disposable synthetic lab after source DDL and exact RLS/view/function policy reconciliation",
+    "Never copy production employee/candidate/client/customer/billing records or contacts to the fixture environment",
+    "Do not disable/re-enable triggers on production or staging; any synthetic trigger isolation requires separate reviewed gate"
+  ],
+  "hosted_account_slots": [
+    {
+      "slot": 1,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "admin",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_01_EXPECTED_UUID"
+    },
+    {
+      "slot": 2,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_02_EXPECTED_UUID"
+    },
+    {
+      "slot": 3,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_03_EXPECTED_UUID"
+    },
+    {
+      "slot": 4,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "finance",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_04_EXPECTED_UUID"
+    },
+    {
+      "slot": 5,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "operations",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_05_EXPECTED_UUID"
+    },
+    {
+      "slot": 6,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "pending",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_06_EXPECTED_UUID"
+    },
+    {
+      "slot": 7,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "recruiter",
+      "profile_status": "approved",
+      "profile_active": false,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_07_EXPECTED_UUID"
+    },
+    {
+      "slot": 8,
+      "go_true_account_required": true,
+      "profile_record_required": true,
+      "user_role_record_required": true,
+      "expected_role": "viewer",
+      "profile_status": "approved",
+      "profile_active": true,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_08_EXPECTED_UUID"
+    },
+    {
+      "slot": 9,
+      "go_true_account_required": true,
+      "profile_record_required": false,
+      "user_role_record_required": false,
+      "expected_role": null,
+      "profile_status": null,
+      "profile_active": null,
+      "credential_source": "APPROVED_EXTERNAL_SECRETS_ONLY",
+      "expected_uuid_env": "AMF_UAT_CASE_09_EXPECTED_UUID"
+    }
+  ],
+  "minimum_planned_profiles": 8,
+  "proposed_minimum_fixture_rows_across_twelve_tables": 20
+}

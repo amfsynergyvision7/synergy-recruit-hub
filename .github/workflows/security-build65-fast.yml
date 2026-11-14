@@ -1,0 +1,273 @@
+name: Build65 hosted UAT safety contracts - fast feedback
+on:
+  push:
+    branches:
+      - security/build34-guarded-sync-review-20261111
+    paths:
+      - 'security/build41/signed-http-135-read-matrix.json'
+      - 'security/build64/**'
+      - 'security/build65/**'
+      - 'security/build66/**'
+      - 'security/build67/**'
+      - 'security/build68/**'
+      - 'security/build69/**'
+      - 'security/build70/**'
+      - 'security/build71/**'
+      - 'security/build72/**'
+      - 'security/build73/**'
+      - 'security/build74/**'
+      - 'security/build75/**'
+      - 'security/build77/**'
+      - 'security/build78/**'
+      - 'security/build79/**'
+      - 'security/build80/**'
+      - 'security/build81/**'
+      - 'security/build82/**'
+      - 'security/build83/**'
+      - 'security/build84/**'
+      - 'security/build85/**'
+      - 'security/build86/**'
+      - 'security/build115/**'
+      - 'security/build116/**'
+      - 'security/build117/**'
+      - 'security/build118/**'
+      - 'security/build119/**'
+      - 'security/build120/**'
+      - 'security/build121/**'
+      - 'security/build122/**'
+      - 'security/build123/**'
+      - 'security/build124/**'
+      - 'security/build125/**'
+      - 'security/build126/**'
+      - 'security/build127/**'
+      - 'security/build128/**'
+      - 'security/build129/**'
+      - 'security/build130/**'
+      - 'security/build131/**'
+      - 'security/build132/**'
+      - 'security/build133/**'
+      - 'security/build134/**'
+      - 'security/build135/**'
+      - 'security/build136/**'
+      - 'security/build137/**'
+      - 'security/build138/**'
+      - 'src/routes/_app.integrations.tsx'
+      - 'src/lib/sheets-sync.server.ts'
+      - 'src/lib/global-search-results.ts'
+      - 'src/components/GlobalSearch.tsx'
+      - 'src/routes/_app.duplicates.tsx'
+      - 'src/lib/profile-settings.ts'
+      - 'src/lib/admin-settings.ts'
+      - 'src/lib/notifications-read-integrity.ts'
+      - 'src/routes/_app.notifications.tsx'
+      - 'src/lib/admin-directory-integrity.ts'
+      - 'src/lib/recruiter-selector-read.ts'
+      - 'src/lib/user-administration.ts'
+      - 'src/routes/_app.audit.tsx'
+      - 'src/routes/_app.users.tsx'
+      - 'src/lib/workflow-rules-review.ts'
+      - 'src/lib/crm-read-projection.ts'
+      - 'src/routes/_app.workflow-rules.tsx'
+      - 'src/routes/_app.activities.tsx'
+      - 'src/lib/bounded-crm-read.ts'
+      - 'src/lib/import-file-guard.ts'
+      - 'src/lib/offline-import-coerce.ts'
+      - 'src/lib/crm-list-integrity.ts'
+      - 'src/lib/import-file-guard.ts'
+      - 'src/routes/_app.import.tsx'
+      - 'src/routes/_app.candidates.tsx'
+      - 'src/components/CandidateBoard.tsx'
+      - 'security/lead-discovery/**'
+      - 'security/release-progress/**'
+      - 'src/hooks/use-auth.tsx'
+      - 'src/lib/auth-identity-epoch.ts'
+      - 'src/lib/crm-shell-access.ts'
+      - 'src/routes/_app.tsx'
+      - 'src/routes/_app.settings.tsx'
+      - 'src/lib/logo-upload-safety.ts'
+      - 'src/lib/safe-global-search.ts'
+      - 'src/components/GlobalSearch.tsx'
+      - 'src/components/ResumeSummaryButton.tsx'
+      - 'src/lib/notification-owner.ts'
+      - 'src/routes/_app.notifications.tsx'
+      - 'src/components/EmailComposeDialog.tsx'
+      - 'src/components/CrudModule.tsx'
+      - 'src/lib/release-safety.ts'
+      - 'src/lib/private-query-cache-fence.ts'
+      - 'src/lib/crm-report-access.ts'
+      - 'src/lib/crm-sensitive-route-access.ts'
+      - 'src/routes/_app.users.tsx'
+      - 'src/routes/_app.activities.tsx'
+      - 'src/routes/_app.ai-match.tsx'
+      - 'src/lib/ai.functions.ts'
+      - 'src/lib/bounded-report-read.ts'
+      - 'src/lib/csv.ts'
+      - 'src/routes/_app.reports.tsx'
+      - 'src/routes/_app.dashboard.tsx'
+      - 'src/routes/_app.audit.tsx'
+      - 'src/routes/_app.billing.tsx'
+      - 'src/components/AppSidebar.tsx'
+      - 'src/routes/__root.tsx'
+      - '.github/workflows/security-build65-fast.yml'
+  pull_request:
+    paths:
+      - 'security/build41/signed-http-135-read-matrix.json'
+      - 'security/build64/**'
+      - 'security/build65/**'
+      - 'security/build66/**'
+      - 'security/build67/**'
+      - 'security/build68/**'
+      - 'security/build69/**'
+      - 'security/build70/**'
+      - 'security/build71/**'
+      - 'security/build72/**'
+      - 'security/build73/**'
+      - 'security/build74/**'
+      - 'security/build75/**'
+      - 'security/build77/**'
+      - 'security/build78/**'
+      - 'security/build79/**'
+      - 'security/build80/**'
+      - 'security/build81/**'
+      - 'security/build82/**'
+      - 'security/build83/**'
+      - 'security/build84/**'
+      - 'security/build85/**'
+      - 'security/build86/**'
+      - 'security/build115/**'
+      - 'security/build116/**'
+      - 'security/build117/**'
+      - 'security/build118/**'
+      - 'security/build119/**'
+      - 'security/build120/**'
+      - 'security/build121/**'
+      - 'security/build122/**'
+      - 'security/build123/**'
+      - 'security/build124/**'
+      - 'security/build125/**'
+      - 'security/build126/**'
+      - 'security/build127/**'
+      - 'security/build128/**'
+      - 'security/build129/**'
+      - 'security/build130/**'
+      - 'security/build131/**'
+      - 'security/build132/**'
+      - 'security/build133/**'
+      - 'security/build134/**'
+      - 'security/build135/**'
+      - 'security/build136/**'
+      - 'security/build137/**'
+      - 'security/build138/**'
+      - 'src/routes/_app.integrations.tsx'
+      - 'src/lib/sheets-sync.server.ts'
+      - 'src/lib/global-search-results.ts'
+      - 'src/components/GlobalSearch.tsx'
+      - 'src/routes/_app.duplicates.tsx'
+      - 'src/lib/notifications-read-integrity.ts'
+      - 'src/routes/_app.notifications.tsx'
+      - 'src/lib/admin-directory-integrity.ts'
+      - 'src/lib/recruiter-selector-read.ts'
+      - 'src/lib/user-administration.ts'
+      - 'src/routes/_app.audit.tsx'
+      - 'src/routes/_app.users.tsx'
+      - 'src/lib/workflow-rules-review.ts'
+      - 'src/lib/crm-read-projection.ts'
+      - 'src/routes/_app.workflow-rules.tsx'
+      - 'src/routes/_app.activities.tsx'
+      - 'src/lib/bounded-crm-read.ts'
+      - 'src/lib/import-file-guard.ts'
+      - 'src/lib/offline-import-coerce.ts'
+      - 'src/lib/crm-list-integrity.ts'
+      - 'src/lib/import-file-guard.ts'
+      - 'src/routes/_app.import.tsx'
+      - 'src/routes/_app.candidates.tsx'
+      - 'src/components/CandidateBoard.tsx'
+      - 'security/lead-discovery/**'
+      - 'security/release-progress/**'
+      - 'src/hooks/use-auth.tsx'
+      - 'src/lib/auth-identity-epoch.ts'
+      - 'src/lib/crm-shell-access.ts'
+      - 'src/routes/_app.tsx'
+      - 'src/routes/_app.settings.tsx'
+      - 'src/lib/logo-upload-safety.ts'
+      - 'src/lib/safe-global-search.ts'
+      - 'src/components/GlobalSearch.tsx'
+      - 'src/components/ResumeSummaryButton.tsx'
+      - 'src/lib/notification-owner.ts'
+      - 'src/routes/_app.notifications.tsx'
+      - 'src/components/EmailComposeDialog.tsx'
+      - 'src/components/CrudModule.tsx'
+      - 'src/lib/release-safety.ts'
+      - 'src/lib/private-query-cache-fence.ts'
+      - 'src/lib/crm-report-access.ts'
+      - 'src/lib/crm-sensitive-route-access.ts'
+      - 'src/routes/_app.users.tsx'
+      - 'src/routes/_app.activities.tsx'
+      - 'src/routes/_app.ai-match.tsx'
+      - 'src/lib/ai.functions.ts'
+      - 'src/lib/bounded-report-read.ts'
+      - 'src/lib/csv.ts'
+      - 'src/routes/_app.reports.tsx'
+      - 'src/routes/_app.dashboard.tsx'
+      - 'src/routes/_app.audit.tsx'
+      - 'src/routes/_app.billing.tsx'
+      - 'src/components/AppSidebar.tsx'
+      - 'src/routes/__root.tsx'
+      - '.github/workflows/security-build65-fast.yml'
+permissions:
+  contents: read
+# Supersede stale review-branch workflows when many approved edits land in bulk.
+# This never disables the latest production-release hold.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  # Build132: tests of .ts source do not invoke TypeScript. This small,
+  # independent compilation check catches broken PostgREST/RLS adapter types
+  # before guarded CI completes, without ever accessing hosted credentials.
+  application-typecheck-fast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies without scripts or network audits
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      # TanStack file-route types are generated by the Vite plugin during build.
+      # Running tsc directly from a clean checkout yields false routeTree errors.
+      - name: Generate routes and compile the app before typecheck
+        run: npm run build
+      - name: Fail fast on TypeScript compilation defects
+        run: npx tsc --noEmit
+
+  # The Build131/early Build132 write-hold regressions lived only in
+  # slower guarded jobs. Catch both independent source contracts immediately.
+  critical-write-hold-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify candidate mutation and financial-join holds
+        run: node --test security/build50/source-contract.test.mjs security/build56/source-contract.test.mjs
+
+  hosted-uat-offline-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run historic read-matrix, exact-role fixture, scope-gap and CI integrity tests
+        run: |
+          node --test security/build64/hosted-135-readonly.test.mjs security/build64/aggregate-ci-contract.test.mjs security/build65/coverage-contract.test.mjs security/build66/hosted-anon-extra-scope.test.mjs security/build66/coverage-and-key-contract.test.mjs security/build66/extra-public-surfaces-contract.test.mjs security/build67/data-minimization-contract.test.mjs security/build68/hosted-positive-controls.test.mjs security/build68/view-fixture-dependencies.test.mjs security/build68/exact-content-range.test.mjs security/build69/fixture-source-contract.test.mjs security/build69/hosted-readiness-contract.test.mjs security/build69/recruiter-view-scope.test.mjs security/build69/complete-19-fixture-contract.test.mjs security/build70/source-replay-contract.test.mjs security/build71/anonymous-view-replay-contract.test.mjs security/build72/truncate-and-function-contract.test.mjs security/build72/function-public-fallback-contract.test.mjs security/build72/release-review-bridge.test.mjs security/build73/48-object-preflight-contract.test.mjs security/build73/live-gate-observation.test.mjs security/build74/combined-postflight.test.mjs security/build74/negative-release-replay.test.mjs security/build74/live-release-source-fingerprints.test.mjs security/build75/trigger-and-hosted-fixture-contract.test.mjs security/build75/auth-bootstrap-hardening-contract.test.mjs security/build75/inert-defaults-contract.test.mjs security/build77/source-contract.test.mjs security/build78/source-contract.test.mjs security/build78/provision-nine-auth-users.test.mjs security/build78/seed-inert-base-fixture.test.mjs security/build79/compose-and-seed-remaining-fixture.test.mjs security/build79/live-source-column-fk-check-contract.test.mjs security/build79/minimal-three-policy-review-only.test.mjs security/build79/full-synthetic-postseed-contract.test.mjs security/build80/role-read-oracle.test.mjs security/build80/15-surface-read-policy.test.mjs security/build80/role-coverage-contract.test.mjs security/build80/pg17-135-read-rehearsal-contract.test.mjs security/build81/server-unique-role-gate.test.mjs security/build81/source-shaped-38-fixture.test.mjs security/build81/candidate-provider-error-redaction.test.mjs security/build81/pg17-full-source-135-rls-addon.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build83/sync-configuration-and-duplicate-privacy.test.mjs security/build84/remote-download-boundary.test.mjs security/build85/core-data-access-privacy.test.mjs security/build86/crm-email-record-scope.test.mjs security/build115/auth-identity-epoch.test.mjs security/build116/crm-shell-account-isolation.test.mjs security/build116/logo-upload-safety.test.mjs security/build116/public-drive-sharing-hold.test.mjs security/build117/search-and-resume-isolation.test.mjs security/build117/notification-owner-scoping.test.mjs security/build118/email-compose-release-hold.test.mjs security/build119/private-query-cache-fence.test.mjs security/build120/release-progress-contract.test.mjs security/build121/lead-discovery.test.mjs security/build121/scorecard-progression.test.mjs security/build122/lead-review-and-handoff.test.mjs security/build122/scorecard-progression.test.mjs security/build123/report-access-and-csv.test.mjs security/build123/scorecard-progression.test.mjs security/build124/report-completeness.test.mjs security/build124/report-ui-binding.test.mjs security/build124/scorecard-progression.test.mjs security/build125/private-route-access.test.mjs security/build125/scorecard-progression.test.mjs security/build126/import-and-board-privacy.test.mjs security/build126/scorecard-progression.test.mjs security/build127/offline-import-guard.test.mjs security/build127/candidate-board-completeness.test.mjs security/build127/scorecard-progression.test.mjs security/build128/import-parser-integrity.test.mjs security/build128/crud-read-isolation.test.mjs security/build128/scorecard-progression.test.mjs security/build129/private-admin-settings-gates.test.mjs security/build129/notifications-complete-owner.test.mjs security/build129/scorecard-progression.test.mjs security/build130/report-source-integrity.test.mjs security/build130/notification-badge-integrity.test.mjs security/build130/scorecard-progression.test.mjs security/build131/bounded-crud-pagination.test.mjs security/build131/bounded-candidate-board.test.mjs security/build131/scorecard-progression.test.mjs security/build132/typed-crud-compile-and-write-guards.test.mjs security/build132/scorecard-progression.test.mjs security/build133/workflow-rule-readonly.test.mjs security/build133/crm-projection-minimization.test.mjs security/build133/activity-timeline-completeness.test.mjs security/build133/scorecard-progression.test.mjs security/build134/admin-directory-audit-completeness.test.mjs security/build134/recruiter-selector-completeness.test.mjs security/build134/scorecard-progression.test.mjs security/build135/notifications-complete-owner.test.mjs security/build135/organization-settings-hold.test.mjs security/build135/scorecard-progression.test.mjs security/build136/duplicate-review-error-safety.test.mjs security/build136/lab-object-reconciliation.test.mjs security/build136/scorecard-progression.test.mjs security/build137/global-search-preview-integrity.test.mjs security/build137/nonprod-auth-parity-review.test.mjs security/build137/scorecard-progression.test.mjs security/build138/integration-release-readonly.test.mjs security/build138/scorecard-progression.test.mjs
+      - name: Preserve no-secret, offline-only run scope
+        run: |
+          test -f security/build65/production-hosted-coverage.json
+          ! grep -E 'AMF_UAT_CASE_[0-9]+_(EMAIL|PASSWORD):' .github/workflows/security-build65-fast.yml

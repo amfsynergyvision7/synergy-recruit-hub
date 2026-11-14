@@ -1,0 +1,970 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_build": 138,
+  "as_of": "2026-11-14",
+  "scorecard_version": "v1",
+  "prior_comparable_baseline_points": 22,
+  "expected_earned_points": 26,
+  "observations": {
+    "git": {
+      "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
+      "main_protected": false,
+      "ruleset_count": 0,
+      "pr12_head": "892f0667a6e8e0e91f28540d91bc0ffa5d5815b8",
+      "pr12_draft": true,
+      "pr12_merged": false,
+      "pr12_independent_reviews": 0,
+      "pr15_head": "9db170d4e131a513d5216e571d3f7a7af85d65f3",
+      "pr15_merged": false,
+      "pr15_independent_reviews": 0
+    },
+    "lab": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "public_tables": 19,
+      "rls_tables": 19,
+      "invoker_views": 13,
+      "views": 13,
+      "disabled_app_triggers": 32,
+      "app_triggers": 32,
+      "auth_users": 0,
+      "fixture_rows": 0,
+      "public_policies": 0
+    },
+    "formal_acceptance": {
+      "hosted_signed_uat": {
+        "accepted": 0,
+        "required": 140
+      },
+      "production_security_remediations": {
+        "accepted": 0,
+        "required": 48
+      },
+      "release_signoffs": {
+        "signed": 0,
+        "required": 9
+      },
+      "closed_workstreams": {
+        "accepted": 0,
+        "required": 6
+      },
+      "source": "Last recorded formal release register, not a new signed acceptance audit."
+    },
+    "lead_discovery": {
+      "mode": "SYNTHETIC_OFFLINE_ONLY",
+      "observed_ci_run": "43558920955",
+      "recorded_manifest": "security/lead-discovery/manifest.synthetic.json",
+      "synthetic_sources": 2,
+      "structured_business_entries": 4,
+      "duplicates_merged": 1,
+      "canonical_business_leads": 3,
+      "source_dates_verified": true,
+      "no_personal_contacts": true,
+      "outbound_messages": 0,
+      "crm_writes": 0,
+      "network_requests": 0,
+      "real_source_discovery_approved": false
+    },
+    "lead_review": {
+      "mode": "SYNTHETIC_OFFLINE_REVIEW",
+      "ci_run": "43561219866",
+      "fictional_company_records": 3,
+      "approval_queue_tested": true,
+      "source_provenance_verified": true,
+      "duplicate_protection_tested": true,
+      "separate_growth_and_crm_reviewers_required": true,
+      "fictional_growth_approvals": 2,
+      "fictional_crm_approvals": 1,
+      "fictional_rejections": 1,
+      "pending_crm_review": 1,
+      "offline_handoff_count": 1,
+      "audit_verified": true,
+      "audited_events_are_cryptographic_signatures": false,
+      "actual_human_reviews": 0,
+      "actual_crm_handoffs": 0,
+      "crm_writes": 0,
+      "outbound_messages": 0,
+      "network_requests": 0,
+      "real_contacts_authorized": false,
+      "synthetic_only": true
+    },
+    "reporting_security": {
+      "stage": "DRAFT_UI_DEFENSE_IN_DEPTH",
+      "source_commit": "9d764f936037e1a79c250965ffd2bf503b33a469",
+      "fast_ci_run": "43562933034",
+      "candidate_reporting_rbac_tested": true,
+      "account_bound_report_cache": true,
+      "financial_analytics_release_hold": true,
+      "billing_dashboard_fetches": 0,
+      "billing_report_fetches": 0,
+      "audit_admin_only": true,
+      "audit_payload_minimized": true,
+      "csv_formula_neutralization_tested": true,
+      "actual_signed_rls_uat_cases": 0,
+      "independent_bi_approval": false,
+      "production_database_changes": 0,
+      "real_financial_flows_activated": false
+    },
+    "reporting_completeness": {
+      "stage": "DRAFT_NO_ACCEPTED_BI_BACKEND",
+      "source_commit": "f31968a57bc54b0f80cd15409ffbaeec46219a9f",
+      "initial_fast_ci_run": "43564699697",
+      "page_size": 250,
+      "max_rows_per_source": 2500,
+      "truncated_pages_rejected": true,
+      "drifting_count_rejected": true,
+      "duplicate_id_rejected": true,
+      "abort_on_account_or_refresh_switch": true,
+      "real_cross_transaction_snapshot": false,
+      "independent_bi_data_contract_accepted": false,
+      "hosted_signed_bi_uat": 0,
+      "production_database_writes": 0,
+      "financial_reporting_enabled": false
+    },
+    "private_route_security": {
+      "stage": "DRAFT_BROWSER_AND_RESPONSE_PRIVACY_ONLY",
+      "tested_source_commit": "ad8b5d2b0e50df692dfe0c3b80a2236a2d88659b",
+      "first_fast_ci_run": "43566450653",
+      "unrestricted_user_directory_reads": 0,
+      "unrestricted_timeline_subscriptions": 0,
+      "candidate_timeline_personal_fields_selected": false,
+      "user_directory_admin_only": true,
+      "user_directory_count_and_role_ambiguity_rejected": true,
+      "revoked_profile_access_rejected": true,
+      "ai_browser_provider_activation": false,
+      "deep_match_raw_resume_returned_to_browser": false,
+      "actual_signed_hosted_uat": 0,
+      "independent_role_rls_accepted": false,
+      "external_messages_sent": 0,
+      "production_writes": 0
+    },
+    "import_board_privacy": {
+      "stage": "DRAFT_LOCAL_PREVIEW_AND_ROLE_SCOPED_BROWSER_ONLY",
+      "reviewed_source_commit": "102118c1609806df8b054c194b3e240c4a3fae60",
+      "first_fast_ci_run": "43568314046",
+      "import_reads_private_crm_tables": false,
+      "importer_requires_verified_admin": true,
+      "imported_file_duplicates_checked_locally": true,
+      "existing_record_conflicts_verified": false,
+      "candidate_board_partial_counts_refused": true,
+      "candidate_board_unfiltered_realtime_enabled": false,
+      "candidate_board_cap": 250,
+      "recruiter_lookup_email_directory_read": false,
+      "hosted_signed_uat_accepted": 0,
+      "independent_rls_review_accepted": false,
+      "staging_or_production_writes": 0,
+      "finance_or_ai_external_effects_enabled": false
+    },
+    "import_and_board_hardening": {
+      "stage": "DRAFT_OFFLINE_IMPORT_LIMITS_AND_BOARD_COMPLETENESS",
+      "first_fast_ci_run": "43569581900",
+      "first_fast_ci_passed": 502,
+      "first_fast_ci_failed": 0,
+      "first_guarded_ci_run": "43569581948",
+      "prior_build126_guarded_unexpected_failure_fixed_in_source": true,
+      "file_size_limit_bytes": 2097152,
+      "local_csv_excel_max_rows": 500,
+      "local_max_columns": 80,
+      "local_max_cell_chars": 16384,
+      "failed_or_stale_file_reads_discarded": true,
+      "malformed_csv_fails_closed": true,
+      "unknown_candidate_stages_rejected": true,
+      "board_manual_refresh": true,
+      "board_unrestricted_realtime": false,
+      "candidate_stage_mutations_released": false,
+      "import_writes_released": false,
+      "lab_auth_users": 0,
+      "lab_public_rls_policies": 0,
+      "signed_hosted_uat_accepted": 0,
+      "production_security_fixes_accepted": 0,
+      "formal_release_signoffs": 0,
+      "live_deployments_created_by_this_build": 0
+    },
+    "import_format_hardening": {
+      "stage": "DRAFT_OFFLINE_ONLY",
+      "detects_papaparse_renamed_headers": true,
+      "verifies_sheetjs_fullref": true,
+      "rejects_multi_sheet_workbooks": true,
+      "checks_raw_excel_headers": true,
+      "ambiguous_header_aliases_rejected": true,
+      "unknown_data_columns_rejected": true,
+      "finite_numbers_only": true,
+      "canonical_iso_dates_only": true,
+      "real_crm_imports_executed": 0,
+      "production_writes": 0
+    },
+    "shared_crud_read_hardening": {
+      "stage": "DRAFT_CLIENT_DEFENCE_IN_DEPTH_NOT_ACCEPTED_RLS",
+      "verified_subject_role_keying": true,
+      "main_list_bound": 250,
+      "relation_list_bound": 250,
+      "exact_counts_required": true,
+      "duplicate_ids_rejected": true,
+      "stale_read_abort": true,
+      "unscoped_realtime_subscriptions": 0,
+      "sensitive_dialogs_cleared_on_refresh": true,
+      "raw_backend_errors_in_affected_paths": false,
+      "manual_refresh_enabled": true,
+      "accepted_hosted_role_rls": false,
+      "signed_hosted_uat": 0
+    },
+    "build128_evidence": {
+      "baseline_guarded_build127_substantive_jobs_passed": 36,
+      "baseline_guarded_build127_intentional_release_hold_failed": 1,
+      "first_fast_ci_run": "43573058727",
+      "first_fast_ci_tests_passed": 547,
+      "first_fast_ci_tests_failed": 0,
+      "nonprod_lab_auth_users": 0,
+      "nonprod_lab_rows": 0,
+      "nonprod_lab_public_rls_policies": 0,
+      "nonprod_lab_rls_enabled_tables": 19,
+      "formal_production_changes": 0,
+      "release_gate_signoffs": 0
+    },
+    "build129_private_routes": {
+      "stage": "DRAFT_BROWSER_ONLY_NOT_ACCEPTED_HOSTED_RLS",
+      "integration_reads_admin_gated": true,
+      "integration_cache_keyed_by_verified_user": true,
+      "integration_server_admin_assertions_retained": true,
+      "integration_external_sync_hold_retained": true,
+      "settings_route_approved_account_gated": true,
+      "settings_workspace_account_role_keyed": true,
+      "settings_late_admin_read_discarded": true,
+      "notifications_exact_count_required": true,
+      "notifications_cap": 100,
+      "notifications_unexpected_owner_rejected": true,
+      "notifications_stale_reads_aborted": true,
+      "notifications_real_time_filtered_to_owner": true,
+      "no_credentials_exposed_in_source": true,
+      "no_production_or_staging_writes": true,
+      "no_main_merge": true,
+      "no_finance_activation": true,
+      "accepted_new_programme_gates": 0
+    },
+    "build129_evidence": {
+      "baseline_build128_fast_tests_passed": 553,
+      "first_ci_failure_build117_legacy_assertion": true,
+      "stale_assertion_updated_to_aborted_request_guard": true,
+      "first_fixed_fast_ci_run": "43574971031",
+      "first_fixed_fast_ci_tests_passed": 573,
+      "first_fixed_fast_ci_tests_failed": 0,
+      "guarded_ci_exact_final_head": "NOT_YET_VERIFIED",
+      "protected_main": false,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "hosted_signed_uat_cases_accepted": 0,
+      "production_fixes_accepted": 0,
+      "release_signoffs": 0
+    },
+    "build130_reports": {
+      "stage": "DRAFT_BI_SOURCE_CORRECTNESS_NOT_SIGNED_HOSTED_UAT",
+      "all_candidate_stages_verified": true,
+      "related_candidate_client_links_checked": true,
+      "conflicting_legacy_id_aliases_rejected": true,
+      "unassigned_recruiter_counts_included": true,
+      "invalid_date_windows_block_metrics_and_exports": true,
+      "local_calendar_today_used_for_date_presets": true,
+      "source_page_reconciliation_preserved": true,
+      "finance_analytics_still_held": true,
+      "hosted_data_validation_accepted": false,
+      "signed_real_rls_matrix_cases": 0
+    },
+    "build130_notification_badge": {
+      "owner_scoped_exact_unread_count": true,
+      "unknown_failed_count_not_presented_as_zero": true,
+      "no_cross_account_realtime": true
+    },
+    "build130_lab_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "public_table_rows_exact_counts": 0,
+      "public_tables_exactly_counted": 19,
+      "public_tables_rls_enabled": 19,
+      "auth_users_exact_count": 0,
+      "public_rls_policies_exact_count": 0,
+      "enabled_public_application_triggers": 0,
+      "performed_only_readonly_sql": true,
+      "accepted_hosted_uat_cases": 0,
+      "lab_go_true_and_fixture_provisioning_done": false
+    },
+    "build131_paged_browser_crm": {
+      "stage": "DRAFT_BOUNDED_CLIENT_READS_PENDING_SIGNED_SERVER_RLS",
+      "crm_page_size": 250,
+      "crm_max_rows": 2500,
+      "main_list_count_reconciled": true,
+      "relation_lists_count_reconciled": true,
+      "candidate_board_count_reconciled": true,
+      "count_drift_or_duplicate_ids_fail_closed": true,
+      "stale_requests_abort": true,
+      "invalid_candidate_board_stages_fail_closed": true,
+      "edits_deletions_exports_withheld_until_source_and_relation_verified": true,
+      "candidate_stage_write_hold_retained": true,
+      "finance_mutation_holds_retained": true,
+      "shared_crud_wildcard_projection_remains_unapproved": true,
+      "hosted_role_rls_accepted": false,
+      "production_mutations_or_db_writes_executed": 0,
+      "branch_merged": false
+    },
+    "build131_evidence": {
+      "previous_build130_fast_passed": 610,
+      "previous_build130_guarded_substantive_jobs_success": 36,
+      "previous_build130_guarded_intentional_hold_failure": 1,
+      "current_intermediate_fast_ci_run": "43579124590",
+      "current_intermediate_fast_tests_passed": 647,
+      "current_intermediate_fast_failed": 0,
+      "final_head_fast_ci_verified": false,
+      "final_head_guarded_ci_verified": false,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "protected_main": false,
+      "hosted_signed_uat_accepted": 0,
+      "production_security_remediations_accepted": 0,
+      "release_signoffs": 0
+    },
+    "build131_lab_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "project_status": "ACTIVE_HEALTHY",
+      "public_tables": 19,
+      "public_rls_enabled": 19,
+      "public_rls_policies": 0,
+      "auth_users": 0,
+      "fixture_rows_reported": 0,
+      "public_enabled_application_triggers": 0,
+      "mutations_executed": 0,
+      "fixture_rows_exact_count": 0,
+      "exact_counted_tables": 19,
+      "row_validation_method": "read_only_select_count_per_each_public_table"
+    },
+    "build132_repaired_guards": {
+      "stage": "DRAFT_CI_REGRESSION_REPAIR_ONLY",
+      "build131_final_fast_tests_passed": 654,
+      "build131_final_guarded_jobs_total": 37,
+      "build131_final_guarded_jobs_successful": 33,
+      "build131_final_guarded_unexpected_failures": [
+        "application-compile",
+        "build50-browser-write-safety"
+      ],
+      "build131_final_guarded_summary_failed_due_to_substantive_failures": true,
+      "build131_intentional_production_release_hold_failed": true,
+      "raw_sql_or_credential_access_used": false,
+      "runtime_checked_page_identifier_shape": true,
+      "mixed_dynamic_supabase_result_awaited": true,
+      "all_four_crud_callbacks_verify_approved_data_and_permission": true,
+      "candidate_and_billing_holds_unconditionally_preserved": true,
+      "fast_workflow_runs_npm_build_then_tsc": true,
+      "intermediate_typecheck_and_fast_passed": true,
+      "expected_final_guarded_passes": 36,
+      "final_guarded_completed_and_verified": false,
+      "independent_review_evidence_obtained": false,
+      "production_release_enabled": false,
+      "fast_independent_candidate_finance_contracts_added": true
+    },
+    "build132_lab_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "health": "ACTIVE_HEALTHY",
+      "public_tables": 19,
+      "public_tables_rls_enabled": 19,
+      "auth_users": 0,
+      "public_policies": 0,
+      "enabled_public_application_triggers": 0,
+      "observed_table_rows_reported": 0,
+      "verified_readonly": true
+    },
+    "build133_workflow_rules": {
+      "stage": "DRAFT_ADMIN_READONLY_NO_HOSTED_TRIGGER_RELEASE",
+      "old_unverified_role_ui_mount_removed": true,
+      "exact_approved_admin_gate_before_private_workspace": true,
+      "account_and_role_scoped_workspace": true,
+      "no_browser_rule_create_update_delete_or_active_toggle": true,
+      "unconditional_workflow_browser_mutation_hold": true,
+      "previous_unreviewed_rule_writes_removed": true,
+      "existing_hosted_triggers_or_rules_disabled": false,
+      "read_projection_excludes_notification_text_templates": true,
+      "exact_count_reconciled_2500_bound": true,
+      "failed_or_partial_queries_not_displayed_as_empty": true,
+      "hosted_rls_and_trigger_effects_accepted": false
+    },
+    "build133_crm_projection": {
+      "stage": "DRAFT_BROWSER_MINIMAL_COLUMNS_PENDING_COLUMN_GRANT_AUDIT",
+      "shared_crm_select_star_removed": true,
+      "reviewed_module_table_pairing_enforced": true,
+      "extra_candidate_resume_summary_and_ats_issues_preserved": true,
+      "extra_interview_scheduling_fields_preserved": true,
+      "virtual_ui_fields_excluded": true,
+      "relation_select_star_fallback_removed": true,
+      "arbitrary_column_expression_rejected": true,
+      "server_column_grants_accepted": false
+    },
+    "build133_activity_timeline": {
+      "stage": "DRAFT_ADMIN_METADATA_INTEGRITY",
+      "exact_count_page_250_max_2500": true,
+      "metadata_projection_excludes_candidate_and_recruiter_names": true,
+      "incomplete_or_unverified_history_not_shown_as_zero": true,
+      "exact_admin_gate_preserved": true,
+      "authorizing_server_rls_accepted": false
+    },
+    "build133_lab_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "project_status": "ACTIVE_HEALTHY",
+      "public_tables": 19,
+      "rls_enabled_tables": 19,
+      "public_policies": 0,
+      "actual_auth_users": 0,
+      "enabled_public_app_triggers": 0,
+      "exact_counted_public_tables": 19,
+      "exact_total_fixture_rows": 0,
+      "production_or_staging_database_writes": 0,
+      "authorized_fictional_hosted_uat_started": false
+    },
+    "build133_evidence": {
+      "prior_build132_final_fast_offline_tests": 678,
+      "prior_build132_final_critical_write_hold_tests": 11,
+      "prior_build132_final_fast_compiler_success": true,
+      "prior_build132_guarded_jobs_successful": 36,
+      "prior_build132_guarded_intentional_production_hold_failure": 1,
+      "new_workflow_and_crm_activity_fast_tests_added": true,
+      "final_head_fast_and_guarded_ci_success_verified": false,
+      "new_accepted_milestones": 0,
+      "main_protected": false,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0
+    },
+    "build134_audit_integrity": {
+      "stage": "DRAFT_ADMIN_ONLY_PRIVACY_CORRECTNESS_NOT_HOSTED_ACCEPTED",
+      "exact_approved_admin_workspace_keyed_to_subject": true,
+      "old_silent_limit_200_removed": true,
+      "complete_metadata_id_paging_250_max_2500": true,
+      "direct_server_rls_and_column_grants_independently_accepted": false,
+      "payload_and_email_columns_excluded": true,
+      "failed_read_visible_not_falsely_empty": true,
+      "aborts_on_role_and_identity_changes": true
+    },
+    "build134_private_user_directory": {
+      "stage": "DRAFT_COMPLETE_USERS_AND_ROLES_WITHOUT_AUTH_SIDE_EFFECTS",
+      "exact_approved_admin_workspace_keyed_to_subject": true,
+      "profiles_and_roles_both_count_reconciled": true,
+      "duplicate_or_orphan_membership_rejected": true,
+      "role_status_profile_validation": true,
+      "old_silent_limit_200_removed": true,
+      "browser_user_management_hard_disabled": true,
+      "frontend_build_environment_cannot_enable_role_changes": true,
+      "authorized_hosted_admin_rpc_review_passed": false,
+      "production_user_role_mutations": 0
+    },
+    "build134_recruiter_selector": {
+      "stage": "DRAFT_AUTHORIZED_RECRUITER_SELECTOR_INERT",
+      "old_silent_limit_150_removed": true,
+      "verified_recruiter_role_id_paging_250_max_2500": true,
+      "approved_active_profile_choices_batched_to_100_per_query": true,
+      "foreign_role_or_profile_identity_refused": true,
+      "hidden_suspended_or_pending_recruiters_not_offered": true,
+      "editing_and_csv_held_without_complete_assignee_verification": true,
+      "unchanged_candidate_write_hold": true,
+      "server_rls_acceptance_signed": false
+    },
+    "build134_ci_evidence": {
+      "prior_final_build133_fast_offline_pass": 733,
+      "prior_final_build133_independent_finance_candidate_pass": 11,
+      "prior_final_build133_app_compilation_pass": true,
+      "prior_final_build133_guarded_jobs_pass": 36,
+      "prior_final_build133_intentional_production_hold_failure": 1,
+      "current_intermediate_fast_source_contract_run": "43586553632",
+      "current_intermediate_offline_tests_passed": 785,
+      "current_intermediate_offline_test_failures": 0,
+      "final_exact_head_fast_verified": false,
+      "final_exact_head_guarded_verified": false,
+      "independent_pr_review_count": 0,
+      "new_formally_accepted_milestones": 0
+    },
+    "build134_nonprod_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "health": "ACTIVE_HEALTHY",
+      "public_tables_exactly_counted": 19,
+      "public_tables_rls_enabled": 19,
+      "public_rls_policies": 0,
+      "hosted_auth_users": 0,
+      "enabled_public_triggers": 0,
+      "verified_total_rows": 0,
+      "database_writes_performed": 0,
+      "authenticated_signed_uat_case_acceptances": 0
+    },
+    "build135_guarded_recovery": {
+      "prior_build134_final_fast_offline_passed": 793,
+      "prior_build134_fast_candidate_finance_guards_passed": 11,
+      "prior_build134_fast_application_compilation_passed": true,
+      "prior_build134_guarded_total": 37,
+      "prior_build134_guarded_successful": 33,
+      "prior_build134_guarded_unexpected_failures": [
+        "build60-pr-reconciliation-and-recovery",
+        "audited-account-and-profile-transaction-review"
+      ],
+      "prior_build134_guarded_dependent_summary_failure": true,
+      "prior_build134_intentional_production_release_hold_failure": true,
+      "two_outdated_contracts_updated_to_stronger_safety": true,
+      "exact_build135_guarded_ci_success_verified": false,
+      "new_formal_gate_acceptances": 0
+    },
+    "build135_notifications": {
+      "stage": "DRAFT_COMPLETE_OWNER_SCOPED_NOTIFICATION_READER_PENDING_HOSTED_RLS",
+      "old_hard_limit_100_removed": true,
+      "count_reconciled_id_pages_250_max_2500": true,
+      "malformed_and_nullable_owner_or_read_status_rejected_before_type_narrowing": true,
+      "cross_user_row_fails_entire_page_not_silently_filtered": true,
+      "notification_source_sorts_newest_first_after_complete_read": true,
+      "stale_overlapping_user_requests_aborted": true,
+      "realtime_filter_preserved": true,
+      "mark_read_owner_sql_filter_preserved": true,
+      "mark_read_receipt_owner_and_id_verified": true,
+      "empty_or_partial_response_does_not_claim_complete_state": true,
+      "hosted_signed_notification_rls_acceptance": false
+    },
+    "build135_account_and_branding_holds": {
+      "stage": "DRAFT_UNCONDITIONAL_BROWSER_HOLDS_NOT_SERVER_AUTHORIZATION",
+      "user_administration_mutations_held": true,
+      "self_profile_mutations_hard_held": true,
+      "organization_branding_and_settings_mutations_hard_held": true,
+      "branding_storage_upload_and_delete_blocked_before_rpc_or_storage": true,
+      "global_default_theme_update_blocked": true,
+      "local_theme_selection_preserved": true,
+      "external_delivery_and_financial_holds_preserved": true,
+      "server_rpc_and_storage_grants_independently_accepted": false,
+      "production_or_staging_mutations_executed": 0
+    },
+    "build135_lab_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "health": "ACTIVE_HEALTHY",
+      "public_tables": 19,
+      "public_tables_rls_enabled": 19,
+      "public_rls_policies": 0,
+      "hosted_auth_users": 0,
+      "enabled_public_application_triggers": 0,
+      "exact_counted_public_tables": 19,
+      "exact_rows": 0,
+      "database_writes": 0
+    },
+    "build136_duplicate_review": {
+      "stage": "DRAFT_ADMIN_PRIVATE_ERROR_REDACTION",
+      "error_diagnostics_removed_from_browser": true,
+      "approved_admin_entry_gate_preserved": true,
+      "unique_admin_server_gate_preserved": true,
+      "no_candidate_delete_or_stage_write": true,
+      "complete_two_pass_candidate_scan_preserved": true,
+      "signed_hosted_rls_not_accepted": true
+    },
+    "build136_isolated_lab_catalog": {
+      "stage": "READONLY_NONPROD_CATALOG_RECONCILIATION_NOT_PRODUCTION_ACCEPTANCE",
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "dated": "2026-11-14",
+      "public_tables": 19,
+      "tables_rls_enabled": 19,
+      "tables_rls_forced": 19,
+      "public_views": 13,
+      "public_views_security_invoker": 13,
+      "public_security_definer_functions": 7,
+      "historic_production_review_catalog_security_definer_functions": 16,
+      "historic_reference_date": "2026-11-11",
+      "lab_privileged_function_name_discrepancy_count": 9,
+      "lab_missing_relative_to_historic_catalog": [
+        "generate_reminders",
+        "get_user_role",
+        "handle_new_user",
+        "has_role",
+        "is_approved",
+        "resolve_candidate_uuid",
+        "resolve_client_uuid",
+        "resolve_job_uuid",
+        "rls_auto_enable"
+      ],
+      "catalog_evidence_file": "security/build136/read-only-lab-object-evidence.json",
+      "reproducible_sql_file": "security/build136/lab-readonly-reconciliation.sql",
+      "lab_absence_is_not_production_absence": true,
+      "public_rls_policies": 0,
+      "auth_users": 0,
+      "public_enabled_application_triggers": 0,
+      "anon_and_authenticated_table_view_select_grants": 0,
+      "anon_and_authenticated_security_definer_execute_grants": 0,
+      "exact_public_table_rows": 0,
+      "signed_hosted_uat_acceptances": 0,
+      "independently_accepted_production_security_remediations": 0,
+      "lab_or_production_database_mutations_executed": 0
+    },
+    "build136_release_gate_dependencies": {
+      "stage": "REQUIRES_INDEPENDENT_ADMIN_AND_SECURITY_EVIDENCE",
+      "protected_main": false,
+      "ruleset_count": 0,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "auth_fixture_required": 9,
+      "auth_fixture_verified": 0,
+      "inert_rows_required": 38,
+      "inert_rows_verified": 0,
+      "signed_hosted_uat_required": 140,
+      "signed_hosted_uat_verified": 0,
+      "production_security_objects_required": 48,
+      "production_security_objects_accepted": 0,
+      "release_signoffs_required": 9,
+      "release_signoffs_verified": 0,
+      "build135_exact_head_fast_tests_passed": 848,
+      "build135_exact_head_guarded_substantive_jobs_passed": 36,
+      "build135_exact_head_intentional_release_hold_failed": 1,
+      "build136_final_ci_status": "PENDING_AT_PREPARATION",
+      "new_independently_accepted_milestones": 0
+    },
+    "build137_source": {
+      "stage": "DRAFT_FAIL_CLOSED_SEARCH_PREVIEW_AND_NONPROD_AUTH_REVIEW_HANDOFF",
+      "global_search_checked_all_three_buckets_before_display": true,
+      "global_search_malformed_rows_and_duplicate_ids_rejected": true,
+      "global_search_six_per_module_not_completeness_claim": true,
+      "global_search_account_keyed_shell_and_query_abort_preserved": true,
+      "global_search_privacy_role_http_acceptance": false,
+      "archived_build136_formal_acceptance_unchanged": true,
+      "peer_review_or_main_merge_performed": false
+    },
+    "build137_nonprod_auth": {
+      "stage": "READ_ONLY_LAB_PARITY_REVIEW_NOT_SIGNED_HOSTED_AUTH_UAT",
+      "lab_project_id": "dhlhlasnaapzckjyvffn",
+      "lab_public_tables": 19,
+      "lab_forced_rls_tables": 19,
+      "lab_public_views": 13,
+      "lab_security_invoker_views": 13,
+      "lab_privileged_functions": 7,
+      "historical_privileged_function_reference": 16,
+      "missing_from_lab_vs_historical_reference": 9,
+      "role_approval_helpers_missing_from_lab": [
+        "get_user_role(uuid)",
+        "has_role(uuid,app_role)",
+        "is_approved(uuid)",
+        "handle_new_user()"
+      ],
+      "lab_public_policies": 0,
+      "lab_auth_users": 0,
+      "lab_enabled_public_app_triggers": 0,
+      "lab_anon_authenticated_table_select_grants": 0,
+      "lab_table_rows": 0,
+      "lab_data_and_schema_writes_performed": 0,
+      "historical_reference_not_current_prod_source": true,
+      "real_signed_uat_accepted": 0,
+      "complete_pinned_handoff_file": "security/build137/nonprod-auth-parity-review.json"
+    },
+    "build137_release_gate": {
+      "stage": "INDEPENDENT_OWNER_BLOCKED_NO_AUTO_SIGNOFF",
+      "main_protected": false,
+      "main_rulesets": 0,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "auth_pr15_open_unmerged": true,
+      "auth_pr15_latest_head": "9db170d4e131a513d5216e571d3f7a7af85d65f3",
+      "auth_pr15_ci_passed": true,
+      "protected_environment_configuration_verified": false,
+      "auth_users_created": 0,
+      "fictional_rows_created": 0,
+      "signed_hosted_uat_accepted": 0,
+      "accepted_production_security_remediations": 0,
+      "signed_release_approvals": 0,
+      "production_merge_or_deploy_performed": false,
+      "new_accepted_milestones": 0
+    },
+    "build138_integration_release": {
+      "stage": "DRAFT_BROWSER_AND_SERVER_SHEETS_SYNC_READ_ONLY_NOT_HOSTED_UAT",
+      "browser_configuration_mutations_hard_held": true,
+      "browser_candidate_sync_mutations_hard_held": true,
+      "browser_sheet_url_header_and_mapping_inputs_disabled": true,
+      "browser_save_detect_sync_handlers_refuse_before_server_calls": true,
+      "server_external_effect_holds_preserved": true,
+      "admin_identity_exact_subject_gate_preserved": true,
+      "historical_sheet_url_redacted_in_diagnostics": true,
+      "sync_history_raw_provider_row_error_messages_withheld": true,
+      "sync_log_privileged_database_projection_reduced": true,
+      "sync_history_failure_not_presented_as_zero_runs": true,
+      "sync_history_maximum_preview_rows": 50,
+      "signed_hosted_integrations_acceptance": false
+    },
+    "build138_nonprod_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "health": "ACTIVE_HEALTHY",
+      "public_tables": 19,
+      "rls_tables": 19,
+      "public_rls_policies": 0,
+      "hosted_auth_users": 0,
+      "enabled_public_app_triggers": 0,
+      "exact_counted_public_tables": 19,
+      "exact_public_rows": 0,
+      "database_writes": 0
+    },
+    "build138_release_state": {
+      "build137_exact_head_fast_offline_passed": 896,
+      "build137_fast_independent_safety_passed": 11,
+      "build137_exact_head_guarded_substantive_jobs_passed": 36,
+      "build137_intentional_production_hold_failed": 1,
+      "intermediate_build138_fast_offline_passed": 909,
+      "intermediate_build138_independent_safety_passed": 11,
+      "intermediate_build138_app_build_typecheck_passed": true,
+      "final_build138_fast_verified": false,
+      "final_build138_guarded_verified": false,
+      "main_protected": false,
+      "repo_rulesets": 0,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "protected_environment_configuration_verified": false,
+      "hosted_signed_uat_accepted": 0,
+      "production_security_remediations_accepted": 0,
+      "release_signoffs_accepted": 0,
+      "external_delivery_or_finance_activated": false,
+      "new_independently_accepted_milestones": 0
+    }
+  },
+  "statuses": [
+    {
+      "id": "KB01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/15qZiquZb4c9AEcoI-MftLHiDfZNoW-ibrt78XWf5EKc/edit"
+      ]
+    },
+    {
+      "id": "KB02",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/15qZiquZb4c9AEcoI-MftLHiDfZNoW-ibrt78XWf5EKc/edit"
+      ]
+    },
+    {
+      "id": "KB03",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "KB04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "KB05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "KB06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "LD02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD03",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/429d05b070d65c323adb8b6e76656964b83a1227/security/lead-discovery/discover.mjs",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43558920955",
+        "https://docs.google.com/document/d/1i5SVldFxYaSi2Ew1i4YJ0pUAxtGTXJ2AyKRGck8w6Gk/edit"
+      ]
+    },
+    {
+      "id": "LD04",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/f7d6375db0160b153b7e7bca4945ce445f2e56ab/security/lead-discovery/review.mjs",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43561219866",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/f7d6375db0160b153b7e7bca4945ce445f2e56ab/security/build122/lead-review-and-handoff.test.mjs"
+      ]
+    },
+    {
+      "id": "LD05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "MK02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "SO02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM01",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43555301488",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12"
+      ]
+    },
+    {
+      "id": "CRM02",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43555301454",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12"
+      ]
+    },
+    {
+      "id": "CRM03",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43502912428",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/15"
+      ]
+    },
+    {
+      "id": "CRM04",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/13",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/15"
+      ]
+    },
+    {
+      "id": "CRM05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM07",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM08",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM09",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM10",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI01",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL01",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL07",
+      "complete": false,
+      "evidence": []
+    }
+  ],
+  "notes": "Build138 draft changes: independent GitHub read confirms Build137 final guarded CI completed 36/37 jobs passing, only intentional production-release-hold. Browser integration config detect/save/sync controls now mirror permanent server release holds; Sheets links and raw historical row/provider errors are withheld, and admin-only history is explicitly a maximum 50-run preview with no misleading empty state on errors. Privileged sync_logs query now selects only sanitizable fields instead of select(*). One historical Build129 notice assertion was restored without weakening restrictions. Intermediate Build138 fast 909/909 offline, 11 independent safety cases plus app build/TypeScript passed; exact final commit requires new verification. Isolated nonprod lab read-only: 19/19 public RLS tables, zero policies/Auth users/app triggers, exact zero rows in every table. No SQL writes, protected merge or deploy. Acceptance 26/100, 12/43 evidenced and 31 open. main unprotected, PR12/15 reviews zero, GitHub protected environment unverified; Vercel build-rate-limit remains external.",
+  "previous_file": "build137-evidence-baseline.json",
+  "previous_earned_points": 26,
+  "delta_points": 0,
+  "newly_closed_ids": [],
+  "regressed_ids": [],
+  "previous_comparable_baseline_points": 22
+}

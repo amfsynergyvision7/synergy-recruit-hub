@@ -1,0 +1,367 @@
+{
+  "evidence_type": "LIVE_READONLY_19_TABLE_TRUNCATE_AND_16_FUNCTION_DEFNER_ACCESS_AUDIT",
+  "observed_date": "2026-11-12",
+  "scope": "public schema, production catalog metadata ONLY",
+  "read_only": true,
+  "no_business_records_retrieved": true,
+  "no_live_db_changes": true,
+  "tables": [
+    {
+      "table_name": "app_settings",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "audit_logs",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "billing",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "candidate_activities",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "candidate_stage_history",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "candidates",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "clients",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "email_log",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "google_integrations",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "integrations",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "interviews",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "job_openings",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "notifications",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "offers",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "profiles",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "submissions",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "sync_logs",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "user_roles",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    },
+    {
+      "table_name": "workflow_rules",
+      "owner_role": "postgres",
+      "rls_enabled": true,
+      "anon_truncate": true,
+      "authenticated_truncate": true,
+      "anon_select": true
+    }
+  ],
+  "security_definer_functions": [
+    {
+      "signature": "generate_reminders()",
+      "function_name": "generate_reminders",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "6f0850f552236fe1c4aadb2d13c6ea44",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "get_user_role(uuid)",
+      "function_name": "get_user_role",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "83d72d3932a91c90ffa33f431063a831",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "handle_new_user()",
+      "function_name": "handle_new_user",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "46329135f1c4754fe71fe5d6a81bed36",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "has_role(uuid,app_role)",
+      "function_name": "has_role",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "6dbb959d68dbb079fc69e37f01f3bffc",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "is_approved(uuid)",
+      "function_name": "is_approved",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "b001be894ffd87ad17165cf28adea82e",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "on_candidate_stage_change()",
+      "function_name": "on_candidate_stage_change",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "dd20fc0b4ddf8f11d8a7788942321d12",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "on_interview_change()",
+      "function_name": "on_interview_change",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "d2d016a1a9689aeb57ce29124ebddf52",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "on_offer_change()",
+      "function_name": "on_offer_change",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "d2c141f7d297ec7bdd96f70c1ad76079",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "on_submission_insert()",
+      "function_name": "on_submission_insert",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "4feb3b6d8daeba95e6cd282876209be6",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "resolve_candidate_uuid(text)",
+      "function_name": "resolve_candidate_uuid",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "0a3206460da7a881b0a7ec709f8ff388",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "resolve_client_uuid(text)",
+      "function_name": "resolve_client_uuid",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "afed7639ab4165c032361d67d90c9207",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "resolve_job_uuid(text)",
+      "function_name": "resolve_job_uuid",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "3485616dd6d8cea51723d6de4d3bc23f",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "rls_auto_enable()",
+      "function_name": "rls_auto_enable",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "6998ea6b4c2480f5d2e34b5dcf3f8d36",
+      "function_config": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "signature": "run_workflow_rules()",
+      "function_name": "run_workflow_rules",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "a935a8de320a15354a988ae5b980064a",
+      "function_config": [
+        "search_path=public"
+      ]
+    },
+    {
+      "signature": "set_assigned_recruiter()",
+      "function_name": "set_assigned_recruiter",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "e400aad0d20359265b58d9718d4f48a4",
+      "function_config": null
+    },
+    {
+      "signature": "track_stage_changes()",
+      "function_name": "track_stage_changes",
+      "owner_role": "postgres",
+      "security_definer": true,
+      "anon_execute": true,
+      "authenticated_execute": true,
+      "definition_md5": "86c1f9eb50c225a673ae61e82d4e7397",
+      "function_config": null
+    }
+  ],
+  "public_table_count": 19,
+  "anon_truncate_count": 19,
+  "authenticated_truncate_count": 19,
+  "rls_enabled_count": 19,
+  "security_definer_function_count": 16,
+  "anon_execute_security_definer_count": 16,
+  "missing_function_search_path_count": 2,
+  "public_search_path_function_count": 13,
+  "production_remediation_accepted": 0,
+  "caveats": [
+    "Table-level TRUNCATE privileges bypass row-level SELECT/DELETE policies; API routing and direct SQL exposure must also be reviewed.",
+    "EXECUTE grants on SECURITY DEFINER functions are a capability risk, not evidence that anonymous callers successfully invoked every function.",
+    "Function bodies intentionally excluded; MD5 hashes and signatures are sufficient to anchor reviewer inventory.",
+    "No permission changes to production or hosted nonproduction were attempted."
+  ]
+}

@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createSupabaseSyncLeaseOperations, withCandidateSyncLease } from "./sync-lease.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 import {
   runCandidateSync,
   fetchSheetValues,
@@ -9,7 +12,6 @@ import {
   getSavedGoogleIntegration,
   saveGoogleIntegrationSettings,
   saveDetectedHeaders,
-  resetGoogleIntegrationSyncCursor,
   getCandidateSyncLogs,
   diagnosticsForIntegration,
 } from "./sheets-sync.server";
@@ -18,7 +20,7 @@ export const getIntegration = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdminUser(context.userId);
-    const integration = await getSavedGoogleIntegration({ userId: context.userId });
+    const integration = await getSavedGoogleIntegration({ backfillLegacy: false, userId: context.userId });
     return { integration, diagnostics: diagnosticsForIntegration(integration, null, { loggedUserId: context.userId }) };
   });
 
@@ -34,6 +36,7 @@ export const saveIntegration = createServerFn({ method: "POST" })
       column_mapping: z.record(z.string(), z.string()).optional(),
     }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("integration_configuration");
     await assertAdminUser(context.userId);
     const integration = await saveGoogleIntegrationSettings({ ...data, user_id: context.userId });
     return { integration, diagnostics: diagnosticsForIntegration(integration, null, { loggedUserId: context.userId, saveSuccess: true, saveError: null }) };
@@ -43,8 +46,9 @@ export const detectHeaders = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({}).optional().parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("integration_configuration");
     await assertAdminUser(context.userId);
-    const integration = await getSavedGoogleIntegration({ userId: context.userId });
+    const integration = await getSavedGoogleIntegration({ backfillLegacy: false, userId: context.userId });
     if (!integration?.spreadsheet_id) throw new Error("Google Sheet not configured");
     const sheetName = integration.sheet_name || "Form Responses 1";
     const headerRow = integration.header_row || 1;
@@ -61,14 +65,29 @@ export const triggerSync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ fullHistory: z.boolean().optional() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_sync");
     await assertAdminUser(context.userId);
-    if (data.fullHistory) {
-      const integration = await getSavedGoogleIntegration({ userId: context.userId });
-      if (!integration?.spreadsheet_id) throw new Error("Google Sheet not configured");
-      await resetGoogleIntegrationSyncCursor(integration.id);
+    if (process.env.CANDIDATE_SYNC_MANUAL_ENABLED !== "true") {
+      throw new Error("Manual candidate sync is disabled until release approval");
     }
-    const result = await runCandidateSync({ fullHistory: !!data.fullHistory, triggeredBy: data.fullHistory ? "manual_full" : "manual", userId: context.userId });
-    return result;
+    // Full history previously rewound a cursor without reconciling the
+    // idempotency ledger. Block it until an approved, reversible replay plan exists.
+    if (data.fullHistory) {
+      throw new Error("Full-history resync is paused pending safe ledger reconciliation");
+    }
+    const execution = await withCandidateSyncLease(
+      context.userId,
+      (heartbeat, token) => runCandidateSync({
+        fullHistory: false, triggeredBy: "manual", userId: context.userId,
+        leaseHeartbeat: heartbeat, leaseToken: token, atomicRowWrites: true,
+      }),
+      createSupabaseSyncLeaseOperations(supabaseAdmin as any),
+    );
+    if (!execution.acquired) throw new Error("Candidate synchronization already in progress");
+    if (execution.value.errors !== 0) {
+      throw new Error("Candidate synchronization stopped on an error; review the sync log");
+    }
+    return execution.value;
   });
 
 export const getSyncLogs = createServerFn({ method: "GET" })

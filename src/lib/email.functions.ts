@@ -2,6 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { sendEmail, textToHtml } from "./email.server";
+import { assertApprovedRole } from "./access-gates.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
+import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
+import { assertCrmEmailRecordReadAccess } from "./crm-email-record-access.server";
 
 // Which CrudModule tables can currently send email from their row actions
 // (Candidates, Clients — see emailField on those two route configs). Kept as
@@ -29,14 +33,48 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     // only blocks the LOG write, and by then a real email would already be
     // on its way to a real person. So the same admin/recruiter check is
     // enforced here too, before anything is sent.
-    const { data: roles } = await context.supabase
+    // A compile-time server release interlock precedes all SMTP, database
+    // logging and recipient processing. No environment toggle bypasses it.
+    assertExternalEffectReleased("crm_email");
+    // When reviewed for release, use the exact-one-role, approved+active
+    // service-side gate rather than the old any-matching-role query.
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
+    // A legitimate admin/recruiter may not use the SMTP relay to address
+    // arbitrary third parties. Bind the recipient to an actually readable
+    // candidate/client record, and bind recruiter access to ownership.
+    const { data: memberships, error: membershipError } = await context.supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", context.userId);
-    const allowed = (roles ?? []).some((r: any) => r.role === "admin" || r.role === "recruiter");
-    if (!allowed) {
-      throw new Error("Only an admin or recruiter can send email from the CRM.");
+    if (membershipError || memberships?.length !== 1) {
+      throw new Error("Email recipient authorization denied");
     }
+    const role = memberships[0]?.role;
+    if (role !== "admin" && role !== "recruiter") {
+      throw new Error("Email recipient authorization denied");
+    }
+
+    let record: { email: string | null; assigned_recruiter?: string | null } | null;
+    if (data.relatedTable === "candidates") {
+      const { data: candidate, error: lookupError } = await context.supabase
+        .from("candidates").select("email,assigned_recruiter")
+        .eq("id", data.relatedId).maybeSingle();
+      if (lookupError) throw new Error("Email recipient authorization denied");
+      record = candidate;
+    } else {
+      const { data: client, error: lookupError } = await context.supabase
+        .from("clients").select("email")
+        .eq("id", data.relatedId).maybeSingle();
+      if (lookupError) throw new Error("Email recipient authorization denied");
+      record = client;
+    }
+    if (!isCrmEmailRecipientBound({
+      relatedTable: data.relatedTable,
+      requestedAddress: data.toEmail,
+      record,
+      actingUserId: context.userId,
+      approvedRole: role,
+    })) throw new Error("Email recipient authorization denied");
 
     const result = await sendEmail({
       to: data.toEmail,
@@ -62,7 +100,7 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     if (logError) {
       // Don't mask a real send failure behind a logging failure, but do
       // surface both if the send itself also failed.
-      console.error("[email_log] insert failed:", logError.message);
+      console.error("[email_log] insert failed; review restricted server diagnostics");
     }
 
     if (!result.success) {
@@ -77,14 +115,23 @@ export const listEmailHistory = createServerFn({ method: "POST" })
     z.object({ relatedTable: z.enum(EMAIL_RELATED_TABLES), relatedId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
+    // Verify record ownership separately from the user's broad role, before
+    // disclosing correspondence or template merge details for this ID.
+    await assertCrmEmailRecordReadAccess({
+      supabase: context.supabase,
+      actorId: context.userId,
+      relatedTable: data.relatedTable,
+      relatedId: data.relatedId,
+    });
     const { data: rows, error } = await context.supabase
       .from("email_log" as any)
-      .select("*")
+      .select("id,subject,status,created_at,to_email")
       .eq("related_table", data.relatedTable)
       .eq("related_id", data.relatedId)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error("Email history is unavailable");
     return rows ?? [];
   });
 
@@ -105,6 +152,15 @@ export const getEmailMergeContext = createServerFn({ method: "POST" })
     z.object({ relatedTable: z.enum(EMAIL_RELATED_TABLES), relatedId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }): Promise<EmailMergeContext> => {
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
+    // Verify record ownership separately from the user's broad role, before
+    // disclosing correspondence or template merge details for this ID.
+    await assertCrmEmailRecordReadAccess({
+      supabase: context.supabase,
+      actorId: context.userId,
+      relatedTable: data.relatedTable,
+      relatedId: data.relatedId,
+    });
     // Resolves a profile id to a human name, falling back to whoever is
     // actually composing this email when the record itself has no owner
     // set — so the signature is never blank just because a candidate or

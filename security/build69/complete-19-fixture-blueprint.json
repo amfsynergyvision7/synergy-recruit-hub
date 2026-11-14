@@ -1,0 +1,388 @@
+{
+  "evidence_type": "NON_EXECUTABLE_FULL_19_TABLE_HISTORICAL_HOSTED_UAT_FIXTURE_PLAN",
+  "derived_from_live_source": "security/build69/fixture-source-catalog.json and additional-seven-source-catalog.json",
+  "captured_date": "2026-11-12",
+  "all_production_public_tables_exact": [
+    "app_settings",
+    "audit_logs",
+    "billing",
+    "candidate_activities",
+    "candidate_stage_history",
+    "candidates",
+    "clients",
+    "email_log",
+    "google_integrations",
+    "integrations",
+    "interviews",
+    "job_openings",
+    "notifications",
+    "offers",
+    "profiles",
+    "submissions",
+    "sync_logs",
+    "user_roles",
+    "workflow_rules"
+  ],
+  "all_expected_historical_source_tables_exact": [
+    "audit_logs",
+    "billing",
+    "candidate_activities",
+    "candidates",
+    "clients",
+    "google_integrations",
+    "integrations",
+    "interviews",
+    "job_openings",
+    "notifications",
+    "offers",
+    "profiles",
+    "submissions",
+    "sync_logs",
+    "user_roles"
+  ],
+  "ordered_table_plans": [
+    {
+      "table": "profiles",
+      "sequence": 1,
+      "minimum_illustrative_rows": 8,
+      "required_no_default_columns": [
+        "id",
+        "full_name",
+        "email"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "t_profiles_u"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Exactly eight synthetic profile rows for nine invented GoTrue users: slots 01–08 have the role/status/active combinations in hosted_account_slots, while slot 09 MUST have no profile and no user_role row; invalid-domain addresses only"
+    },
+    {
+      "table": "user_roles",
+      "minimum_illustrative_rows": 8,
+      "required_no_default_columns": [
+        "user_id",
+        "role"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Exactly eight invented role assignments matched to approved GoTrue/profile slots 1–8; no user_roles record for slot 9; no owner escalation",
+      "sequence": 2
+    },
+    {
+      "table": "clients",
+      "sequence": 3,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "company_name"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "clients_updated_at_trigger",
+        "t_clients_u",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Fully invented company and contact; never a real customer or identifier"
+    },
+    {
+      "table": "candidates",
+      "sequence": 4,
+      "minimum_illustrative_rows": 2,
+      "required_no_default_columns": [
+        "full_name"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "candidates_sync_defaults_trigger",
+        "candidates_updated_at_trigger",
+        "set_assigned_recruiter_trigger",
+        "set_candidate_sync_defaults_trigger",
+        "track_stage_changes_trigger",
+        "trg_candidate_stage_change",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "trg_candidate_stage_change",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Exactly two invented candidates with IDs matching the approved recruiter A/B slot UUIDs and assigned_recruiter matching the corresponding approved GoTrue users; no joined/offered stages"
+    },
+    {
+      "table": "candidate_activities",
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "candidate_id",
+        "action_type"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Invented candidate_id from one of the two approved synthetic recruiter candidates; no external candidate actions",
+      "sequence": 5
+    },
+    {
+      "table": "audit_logs",
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "action"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Inert invented action description and synthetic UUID only; never forge or mutate production audit events",
+      "sequence": 6
+    },
+    {
+      "table": "google_integrations",
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "user_id"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "set_google_integrations_updated_at",
+        "sync_google_integration_mapping_trigger"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Synthetic GoTrue user_id, no real Google account/spreadsheet IDs; explicitly auto_sync_enabled=false and connection_status=not_configured",
+      "sequence": 7
+    },
+    {
+      "table": "integrations",
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "module"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "integrations_updated_at"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Invented module only and explicitly auto_sync=false; no spreadsheet connection or automated synchronization",
+      "sequence": 8
+    },
+    {
+      "table": "job_openings",
+      "sequence": 9,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "job_title"
+      ],
+      "direct_references": [
+        "clients"
+      ],
+      "app_trigger_names": [
+        "job_openings_updated_at_trigger",
+        "normalize_job_openings_relationships_trigger"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Invented job associated with invented client; no external publishing"
+    },
+    {
+      "table": "candidate_stage_history",
+      "sequence": 10,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "new_stage"
+      ],
+      "direct_references": [
+        "candidates",
+        "profiles"
+      ],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Invented candidate ID, synthetic changed_by profile and explicit new_stage; ADMIN policy required and independently verified"
+    },
+    {
+      "table": "submissions",
+      "sequence": 11,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "candidate_id"
+      ],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "job_openings"
+      ],
+      "app_trigger_names": [
+        "normalize_submissions_relationships_trigger",
+        "submissions_stage_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "submissions_stage_trigger",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Invented candidate/client/job references; source insertion may update candidate stage via trigger; isolate all side effects"
+    },
+    {
+      "table": "interviews",
+      "sequence": 12,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "candidate_id"
+      ],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "submissions"
+      ],
+      "app_trigger_names": [
+        "interviews_stage_trigger",
+        "normalize_interviews_relationships_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "interviews_stage_trigger",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Invented candidate/client/submission references; stage-change trigger must be isolated"
+    },
+    {
+      "table": "offers",
+      "sequence": 13,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "candidate_id"
+      ],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "interviews",
+        "submissions"
+      ],
+      "app_trigger_names": [
+        "normalize_offers_relationships_trigger",
+        "offers_stage_billing_trigger",
+        "offers_updated_at_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "offers_stage_billing_trigger",
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Invented candidate/client/interview/submission reference; never 'joined' or finance-effective status; offer-stage billing trigger must be isolated"
+    },
+    {
+      "table": "billing",
+      "sequence": 14,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [],
+      "direct_references": [
+        "candidates",
+        "clients",
+        "offers"
+      ],
+      "app_trigger_names": [
+        "billing_invoice_number_trigger",
+        "billing_updated_at_trigger",
+        "normalize_billing_relationships_trigger",
+        "workflow_rules_trigger"
+      ],
+      "high_risk_triggers": [
+        "workflow_rules_trigger"
+      ],
+      "requirements": "Synthetic draft-like record only after independently approved finance trigger isolation; cannot issue invoice or generate real invoice number"
+    },
+    {
+      "table": "notifications",
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "title"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Invented title for synthetic user only; notification delivery, realtime and external messaging disabled",
+      "sequence": 15
+    },
+    {
+      "table": "sync_logs",
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "module"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Invented module and explicit never-run status, overriding production default success; no sync actually executed",
+      "sequence": 16
+    },
+    {
+      "table": "app_settings",
+      "sequence": 17,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [],
+      "direct_references": [],
+      "app_trigger_names": [
+        "t_app_settings_u"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Synthetic branding only; explicitly NULL sensitive folder URL/updated_by; no live Google Drive links"
+    },
+    {
+      "table": "email_log",
+      "sequence": 18,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "related_table",
+        "related_id",
+        "to_email",
+        "subject",
+        "body"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [],
+      "high_risk_triggers": [],
+      "requirements": "Invented address at example.invalid only; explicitly set neutral non-sent status, never use default 'sent'; do not enqueue or send"
+    },
+    {
+      "table": "workflow_rules",
+      "sequence": 19,
+      "minimum_illustrative_rows": 1,
+      "required_no_default_columns": [
+        "name",
+        "table_name",
+        "field_name",
+        "field_value",
+        "action_type"
+      ],
+      "direct_references": [],
+      "app_trigger_names": [
+        "workflow_rules_set_updated_at"
+      ],
+      "high_risk_triggers": [],
+      "requirements": "Explicit is_active=false (production default is true); action fields reviewed for inert data; do not allow rule invocation"
+    }
+  ],
+  "source_table_count": 19,
+  "production_app_trigger_count": 32,
+  "production_source_foreign_key_count": 26,
+  "illustrative_minimum_total_table_rows": 34,
+  "invented_go_true_auth_users": 9,
+  "synthetic_profile_rows": 8,
+  "synthetic_user_role_rows": 8,
+  "intentionally_unprofiled_and_unroled_auth_slot": 9,
+  "candidate_recruiter_owner_rows": 2,
+  "synthetic_only": true,
+  "approved_for_execution": false,
+  "source_rows_copied": 0,
+  "planned_all_suppressed_controls": [
+    "workflow_rules.is_active=false explicitly",
+    "email_log.status must be explicit non-sent synthetic state",
+    "google_integrations.auto_sync_enabled=false explicitly and no live Google credentials",
+    "integrations.auto_sync=false explicitly",
+    "sync_logs.status must be explicit synthetic never-run state rather than default success",
+    "all 32 application triggers reviewed and isolated with independent approval before any fixture mutation",
+    "no billing, offer lifecycle, candidate stage, email, integration sync, webhook, realtime notification or external finance activation",
+    "no real candidate, recruiter, customer, client, contact, salary, invoice or billing record copied"
+  ],
+  "gating_note": "A non-executable design only. Real fixture row counts for 135-case historical matrix and views must be independently reconciled against source predicates and release-candidate policies. Do not execute SQL or provision accounts based on this document.",
+  "formal_hosted_cases_accepted": 0,
+  "user_approved_source_access_only": true
+}

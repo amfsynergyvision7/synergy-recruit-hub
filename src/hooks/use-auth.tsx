@@ -1,8 +1,17 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createPrivateCacheFence, clearPrivateCacheForIdentity, needsRoleTransitionPurge } from "@/lib/private-query-cache-fence";
+import {
+  authorizedRoleForProfile,
+  createAuthIdentityEpoch,
+  type AuthIdentityEpoch,
+  type AuthIdentityTicket,
+  type VerifiedAppRole,
+} from "@/lib/auth-identity-epoch";
 
-export type AppRole = "admin" | "recruiter" | "operations" | "finance" | "viewer";
+export type AppRole = VerifiedAppRole;
 export type UserStatus = "pending" | "approved" | "rejected" | "suspended";
 
 export interface Profile {
@@ -32,51 +41,134 @@ const Ctx = createContext<AuthCtx>({
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+  const privateCacheOwner = useRef(createPrivateCacheFence());
+  const lastApprovedRole = useRef<AppRole | null>(null);
+  const purgePrivateQueries = (userId: string | null, force = false) =>
+    clearPrivateCacheForIdentity(privateCacheOwner.current, queryClient, userId, force);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const identity = useRef<AuthIdentityEpoch>(createAuthIdentityEpoch());
 
-  const loadProfile = async (userId: string) => {
-    const [{ data: prof }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", userId),
-    ]);
-    setProfile(prof as Profile | null);
-    if (roles && roles.length) {
-      const order: AppRole[] = ["admin", "recruiter", "operations", "finance", "viewer"];
-      const found = order.find((r) => roles.some((x: any) => x.role === r));
-      setRole((found ?? "viewer") as AppRole);
-    } else setRole(null);
-  };
-
-  const refresh = async () => {
-    if (session?.user) await loadProfile(session.user.id);
-  };
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      if (s?.user) {
-        setTimeout(() => loadProfile(s.user.id), 0);
-      } else {
+  // Never commit a role/profile from an outdated sign-in, account switch,
+  // refresh, or an effect that has already been disposed.
+  const loadProfile = async (gate: AuthIdentityEpoch, ticket: AuthIdentityTicket) => {
+    // A scheduled lookup for an earlier account must not even issue a
+    // database read after sign-out, switching users, or a later refresh.
+    if (!ticket.userId || !gate.accepts(ticket)) return;
+    try {
+      const [{ data: prof, error: profileError }, { data: roles, error: rolesError }] =
+        await Promise.all([
+          supabase.from("profiles").select("*").eq("id", ticket.userId).maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", ticket.userId),
+        ]);
+      if (!gate.accepts(ticket)) return;
+      const matchedProfile: Profile | null =
+        !profileError && prof?.id === ticket.userId ? (prof as Profile) : null;
+      const nextRole = !rolesError
+        ? authorizedRoleForProfile(ticket.userId, matchedProfile, roles)
+        : null;
+      // Account unchanged, but privileges may have been suspended,
+      // revoked or downgraded since the previous signed-in event.
+      if (needsRoleTransitionPurge(lastApprovedRole.current, nextRole))
+        purgePrivateQueries(ticket.userId, true);
+      lastApprovedRole.current = nextRole;
+      setProfile(matchedProfile);
+      setRole(nextRole);
+    } catch {
+      if (gate.accepts(ticket)) {
+        if (needsRoleTransitionPurge(lastApprovedRole.current, null))
+          purgePrivateQueries(ticket.userId, true);
+        lastApprovedRole.current = null;
         setProfile(null);
         setRole(null);
       }
+    } finally {
+      if (gate.accepts(ticket)) setLoading(false);
+    }
+  };
+
+  const refresh = async () => {
+    const gate = identity.current;
+    const userId = gate.currentUser();
+    if (!userId) return;
+    const ticket = gate.issue(userId);
+    if (!ticket) return;
+    // A permission refresh may revoke access to cached private records.
+    purgePrivateQueries(userId, true);
+    // Role and profile are invalid until the NEW request completes.
+    setProfile(null);
+    setRole(null);
+    setLoading(true);
+    await loadProfile(gate, ticket);
+  };
+
+  useEffect(() => {
+    const gate = createAuthIdentityEpoch();
+    identity.current = gate;
+    let receivedAuthEvent = false;
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    const publish = (next: Session | null) => {
+      const ticket = gate.issue(next?.user?.id ?? null);
+      if (!ticket) return;
+      // Clear query AND mutation caches before rendering a new Auth subject.
+      const priorId = privateCacheOwner.current.current();
+      purgePrivateQueries(ticket.userId);
+      if (priorId !== ticket.userId) lastApprovedRole.current = null;
+      // Clear old privileges synchronously with the session identity change.
+      setSession(next);
+      setProfile(null);
+      setRole(null);
+      if (!ticket.userId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      // Supabase auth callbacks must remain synchronous and fast; querying
+      // profiles inside the callback can re-enter Auth and stall the event.
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        void loadProfile(gate, ticket);
+      }, 0);
+      timers.add(timer);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, next) => {
+      receivedAuthEvent = true;
+      publish(next);
     });
-    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
-      setSession(s);
-      if (s?.user) await loadProfile(s.user.id);
-      setLoading(false);
+    // A late initial getSession result must never resurrect an account after
+    // SIGNED_OUT, signOut(), or a newer auth event / explicit refresh.
+    const initialRevision = gate.revision();
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!receivedAuthEvent && gate.revision() === initialRevision)
+        publish(error ? null : data.session);
+    }).catch(() => {
+      if (!receivedAuthEvent && gate.revision() === initialRevision)
+        publish(null);
     });
-    return () => subscription.unsubscribe();
-  }, []);
+
+    return () => {
+      gate.dispose();
+      for (const timer of timers) clearTimeout(timer);
+      subscription.unsubscribe();
+    };
+  }, [queryClient]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Invalidate pending role fetches before awaiting a remote sign-out.
+    identity.current.issue(null);
+    // Purge prior-user queries before awaiting a remote Auth request.
+    purgePrivateQueries(null, true);
+    lastApprovedRole.current = null;
     setSession(null);
     setProfile(null);
     setRole(null);
+    setLoading(false);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   return (

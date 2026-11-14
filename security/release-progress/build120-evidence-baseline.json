@@ -1,0 +1,300 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_build": 120,
+  "as_of": "2026-11-14",
+  "scorecard_version": "v1",
+  "prior_comparable_baseline_points": 22,
+  "expected_earned_points": 22,
+  "observations": {
+    "git": {
+      "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
+      "main_protected": false,
+      "ruleset_count": 0,
+      "pr12_head": "4029521d33e9bb6778e435b3e819af8980421a49",
+      "pr12_draft": true,
+      "pr12_merged": false,
+      "pr12_independent_reviews": 0,
+      "pr15_head": "9db170d4e131a513d5216e571d3f7a7af85d65f3",
+      "pr15_merged": false,
+      "pr15_independent_reviews": 0
+    },
+    "lab": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "public_tables": 19,
+      "rls_tables": 19,
+      "invoker_views": 13,
+      "views": 13,
+      "disabled_app_triggers": 32,
+      "app_triggers": 32,
+      "auth_users": 0,
+      "fixture_rows": 0,
+      "public_policies": 0
+    },
+    "formal_acceptance": {
+      "hosted_signed_uat": {
+        "accepted": 0,
+        "required": 140
+      },
+      "production_security_remediations": {
+        "accepted": 0,
+        "required": 48
+      },
+      "release_signoffs": {
+        "signed": 0,
+        "required": 9
+      },
+      "closed_workstreams": {
+        "accepted": 0,
+        "required": 6
+      },
+      "source": "Last recorded formal release register, not a new signed acceptance audit."
+    }
+  },
+  "statuses": [
+    {
+      "id": "KB01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/15qZiquZb4c9AEcoI-MftLHiDfZNoW-ibrt78XWf5EKc/edit"
+      ]
+    },
+    {
+      "id": "KB02",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/15qZiquZb4c9AEcoI-MftLHiDfZNoW-ibrt78XWf5EKc/edit"
+      ]
+    },
+    {
+      "id": "KB03",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "KB04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "KB05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "KB06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "LD02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "MK02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "SO02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM01",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43555301488",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12"
+      ]
+    },
+    {
+      "id": "CRM02",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43555301454",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12"
+      ]
+    },
+    {
+      "id": "CRM03",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43502912428",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/15"
+      ]
+    },
+    {
+      "id": "CRM04",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/13",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/15"
+      ]
+    },
+    {
+      "id": "CRM05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM07",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM08",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM09",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM10",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI01",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL01",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL07",
+      "complete": false,
+      "evidence": []
+    }
+  ],
+  "notes": "Build120 publishes the fixed rubric and status schema, but closes no additional business/release milestone; delta relative to retro-applied Build119 v1 baseline=0. Future snapshots must supply new evidence before marking a gate complete.",
+  "previous_file": "build119-retrospective-baseline.json",
+  "previous_earned_points": 22,
+  "delta_points": 0,
+  "newly_closed_ids": [],
+  "regressed_ids": []
+}

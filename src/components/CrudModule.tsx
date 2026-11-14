@@ -1,5 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON, LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED, FINANCIAL_JOINED_HOLD_REASON, LEGACY_BILLING_MUTATIONS_PAUSED, BILLING_MUTATION_HOLD_REASON } from "@/lib/release-safety";
+import { saveCandidateRecord } from "@/lib/candidate-write";
+import { runConfirmedBulkMutation } from "@/lib/confirmed-bulk-mutation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +13,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail } from "lucide-react";
+import { canMountApprovedCrm } from "@/lib/crm-shell-access";
+import { CRM_MAX_ROWS, CRM_PAGE_SIZE, checkedCrmPageIds, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
+import { crmRowProjection, crmRelationProjection } from "@/lib/crm-read-projection";
+import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail, RefreshCw } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -83,6 +89,9 @@ interface Props {
    * candidates, not recruiters), so without this a recruiter has no way to
    * find their own public page short of knowing the URL. */
   headerActions?: ReactNode;
+  /** Some modules depend on additional verified, role-scoped selector data.
+   * Never enable editing/export while that prerequisite is incomplete. */
+  requiredReferenceReady?: boolean;
 }
 
 const ALL_FILTER = "__all__";
@@ -134,13 +143,37 @@ function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
   return distinctCount > 0 && distinctCount <= DISCRETE_FILTER_MAX;
 }
 
-export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
+// Keep all sensitive local state within an exact authenticated subject/role.
+export function CrudModule(props: Props) {
+  const { user, profile, role, loading } = useAuth();
+  if (loading || !canMountApprovedCrm(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Approved CRM access is required before loading records.</p>;
+  return <VerifiedCrudWorkspace key={user!.id + ":" + role + ":" + props.table} {...props} />;
+}
+
+function VerifiedCrudWorkspace({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions, requiredReferenceReady = true }: Props) {
   const { role } = useAuth();
-  const editable = canEdit(role, module);
-  const deletable = canDelete(role);
+  const candidateMutationPaused = module === "candidates" && LEGACY_CANDIDATE_WRITES_PAUSED;
+  const billingMutationPaused = module === "billing" && LEGACY_BILLING_MUTATIONS_PAUSED;
   const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [rowsVerified, setRowsVerified] = useState(false);
+  const [relationsFailed, setRelationsFailed] = useState(false);
+  const [relationsLoaded, setRelationsLoaded] = useState(false);
+  // Mutations are unavailable until both the entire row snapshot and every
+  // referenced selector have been confirmed. Do not edit partial data.
+  const verifiedForMutation = rowsVerified && relationsLoaded && !loading &&
+    !loadFailed && !relationsFailed && requiredReferenceReady;
+  const editable = canEdit(role, module) &&
+    !candidateMutationPaused && !billingMutationPaused && verifiedForMutation;
+  const deletable = canDelete(role) && !candidateMutationPaused && !billingMutationPaused &&
+    verifiedForMutation;
+  const rowsEpoch = useRef(0);
+  const rowsController = useRef<AbortController | null>(null);
+  const relationEpoch = useRef(0);
+  const relationController = useRef<AbortController | null>(null);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -155,9 +188,19 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [bulkEditField, setBulkEditField] = useState("");
   const [bulkEditValue, setBulkEditValue] = useState<any>("");
   const [bulkEditSaving, setBulkEditSaving] = useState(false);
+  // Synchronous guard: React state updates alone do not prevent a second click
+  // from dispatching another batch before the first request resolves.
+  const bulkMutationPending = useRef(false);
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields]);
-  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm), [fields]);
+  // Exact, reviewed module column projection. Never fetch all DB columns.
+  // All row reads still depend on backend RLS and column-level grants.
+  const recordProjection = useMemo(() => crmRowProjection({
+    module, table,
+    fieldNames: fields.map(field => field.name),
+    searchFields, emailField, orderBy: orderBy?.column,
+  }), [module, table, fields, searchFields, emailField, orderBy?.column]);
+  const formFields = useMemo(() => fields.filter((f) => !f.hideInForm && !(module === "candidates" && role !== "admin" && f.name === "assigned_recruiter")), [fields, module, role]);
   // What "select some rows, then change one field on all of them at once"
   // (e.g. filter Candidates down to one recruiter's list, select the batch,
   // reassign every one to a different recruiter in a single action) is
@@ -196,33 +239,106 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   // anyway; Search covers the common "find this one candidate" case.
 
   const load = async () => {
+    const epoch = ++rowsEpoch.current;
+    rowsController.current?.abort();
+    const controller = new AbortController();
+    rowsController.current = controller;
+    setRows([]);
+    setSelected(new Set());
+    setMailingRow(null);
+    setViewing(null);
+    setEditing(null);
+    setOpen(false);
+    setForm({});
     setLoading(true);
-    const q = supabase.from(table as any).select("*");
-    const { data, error } = await (orderBy
-      ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
-      : q.order("created_at", { ascending: false }));
-    setLoading(false);
-    if (error) toast.error(error.message);
-    else setRows(data || []);
+    setRowsVerified(false);
+    setLoadFailed(false);
+    try {
+      // Full role-visible snapshot, up to 2,500 rows, read in checked ID
+      // pages. Browser completeness is not server RLS: the independent
+      // server-side role and row authorization contract is authoritative.
+      // Refuse truncation, count drift, duplicated IDs and over-cap lists
+      // before showing records, enabling edits or exporting CSV.
+      const data = await readCompleteCrmRows(async (from, to, signal) => {
+        const result = await supabase.from(table as any)
+          .select(recordProjection, { count: "exact" })
+          .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+        // Narrow dynamic PostgREST table unions only after runtime inspection.
+        // The common paging adapter subsequently verifies ID order and count.
+        return { data: checkedCrmPageIds(result.data),
+          count: result.count, error: result.error };
+      }, controller.signal);
+      if (controller.signal.aborted || epoch !== rowsEpoch.current) return;
+      setRows(sortCompleteCrmRows(data, orderBy?.column ?? "created_at", orderBy?.ascending ?? false));
+      setRowsVerified(true);
+    } catch {
+      if (!controller.signal.aborted && epoch === rowsEpoch.current) {
+        setRows([]);
+        setRowsVerified(false);
+        setLoadFailed(true);
+      }
+    } finally {
+      if (!controller.signal.aborted && epoch === rowsEpoch.current) setLoading(false);
+    }
   };
 
   const loadRelations = async () => {
-    const relationFields = fields.filter((f) => f.relation);
-    const entries = await Promise.all(relationFields.map(async (f) => {
-      const { data } = await supabase.from(f.relation!.table as any).select(f.relation!.select ?? "*").limit(500);
-      return [f.name, data ?? []] as const;
-    }));
-    setRelationOptions(Object.fromEntries(entries));
+    const epoch = ++relationEpoch.current;
+    relationController.current?.abort();
+    const controller = new AbortController();
+    relationController.current = controller;
+    setRelationOptions({});
+    setRelationsLoaded(false);
+    setRelationsFailed(false);
+    const relationFields = fields.filter((field) => field.relation);
+    if (!relationFields.length) {
+      setRelationsLoaded(true);
+      return;
+    }
+    try {
+      const entries = await Promise.all(relationFields.map(async field => {
+        // Relation labels and choices must represent a complete authorized
+        // snapshot too. A short linked table would otherwise prevent editing
+        // a valid record or silently display a blank/incorrect relationship.
+        const data = await readCompleteCrmRows(async (from, to, signal) => {
+          const result = await supabase.from(field.relation!.table as any)
+            .select(crmRelationProjection(field.relation!.select), { count: "exact" })
+            .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+          return { data: checkedCrmPageIds(result.data),
+            count: result.count, error: result.error };
+        }, controller.signal);
+        return [field.name, data] as const;
+      }));
+      if (!controller.signal.aborted && epoch === relationEpoch.current) {
+        setRelationOptions(Object.fromEntries(entries));
+        setRelationsLoaded(true);
+      }
+    } catch {
+      if (!controller.signal.aborted && epoch === relationEpoch.current) {
+        setRelationOptions({});
+        setRelationsLoaded(false);
+        setRelationsFailed(true);
+      }
+    }
   };
 
   useEffect(() => {
     setSelected(new Set());
     setColumnFilters({});
-    load();
-    loadRelations();
-    const ch = supabase.channel(`rt-${table}`)
-      .on("postgres_changes", { event: "*", schema: "public", table }, load).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    setRows([]);
+    setRowsVerified(false);
+    setRelationOptions({});
+    setRelationsLoaded(false);
+    void load();
+    void loadRelations();
+    // Never subscribe to cross-record realtime events without an approved
+    // server-side role and row authorization contract.
+    return () => {
+      rowsEpoch.current++;
+      relationEpoch.current++;
+      rowsController.current?.abort();
+      relationController.current?.abort();
+    };
   }, [table]);
 
   const handleFieldChange = async (name: string, value: any) => {
@@ -257,6 +373,18 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const openView = (row: any) => setViewing(row);
 
   const save = async () => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!editable) { toast.error("Record updates require a verified account and complete CRM data."); return; }
+    // Joined offers currently trigger BOTH legacy billing handlers. This
+    // checks the submitted form and stored record, not just changed fields:
+    // the old offer trigger runs on any status-column UPDATE, including an
+    // update that writes the same value again.
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        (form.joining_status === "joined" || editing?.joining_status === "joined")) {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
     // Catch an empty required field here, with a message naming the actual
     // field, instead of letting it reach Supabase and come back as a raw
     // Postgres "null value in column ... violates not-null constraint" —
@@ -271,6 +399,15 @@ export function CrudModule({ title, description, table, module, fields, searchFi
       return;
     }
 
+    // PR11 salvage: do not convert malformed numeric fields into NaN writes.
+    const invalidNumber = formFields.find((f) => f.type === "number" &&
+      form[f.name] !== "" && form[f.name] !== undefined && form[f.name] !== null &&
+      !Number.isFinite(Number(form[f.name])));
+    if (invalidNumber) {
+      toast.error(`${invalidNumber.label} must be a valid number.`);
+      return;
+    }
+
     const payload: any = {};
     formFields.forEach((f) => {
       let v = form[f.name];
@@ -281,25 +418,91 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     if (form.candidate_uuid) payload.candidate_id = form.candidate_uuid;
     if (form.client_uuid !== undefined) payload.client_id = form.client_uuid || null;
     if (form.job_uuid !== undefined) payload.job_id = form.job_uuid || null;
-    if (editing) {
-      const { error } = await supabase.from(table as any).update(payload).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-      toast.success("Updated");
-    } else {
-      const { data: u } = await supabase.auth.getUser();
-      if (u.user) payload.created_by = u.user.id;
-      const { error } = await supabase.from(table as any).insert(payload);
-      if (error) return toast.error(error.message);
-      toast.success("Created");
+    if (module === "candidates") {
+      if (editing ? form.stage !== editing.stage : form.stage !== "lead_received") {
+        toast.error("Candidate stage changes require the separately approved stage workflow.");
+        return;
+      }
+      // Submit only changed, editable candidate fields, never stage or generated
+      // status/code/creator metadata. SQL repeats all authorization checks.
+      delete payload.stage;
+      if (editing) {
+        for (const key of Object.keys(payload)) {
+          if (String(payload[key] ?? "") === String(editing[key] ?? "")) {
+            delete payload[key];
+          }
+        }
+        if (Object.keys(payload).length === 0) {
+          toast.info("No changes to save");
+          return;
+        }
+      }
+      const { error } = await saveCandidateRecord({
+        candidateId: editing?.id ?? null,
+        expectedUpdatedAt: editing?.updated_at ?? null,
+        fields: payload,
+      });
+      if (error) return toast.error("Candidate write could not be verified.");
+      toast.success(editing ? "Updated" : "Created");
+      setOpen(false);
+      load();
+      return;
     }
-    setOpen(false); load();
+    // Safe PR11 behavior-only reconciliation for NON-CANDIDATE modules:
+    // RLS can affect zero rows without a PostgREST error. Do not claim a
+    // mutation succeeded until the server returns the affected record ID.
+    // Candidates still use the independently held/audited RPC path above.
+    try {
+      if (editing) {
+        if (!Object.keys(payload).length) { setOpen(false); return; }
+        const { data, error } = await supabase.from(table as any)
+          .update(payload).eq("id", editing.id).select("id").maybeSingle();
+        if (error || (data as unknown as { id?: string } | null)?.id !== editing.id) {
+          if (!error) await load();
+          return toast.error("Update not confirmed; check permissions and refresh before retrying.");
+        }
+        toast.success("Updated");
+      } else {
+        const { data: u } = await supabase.auth.getUser();
+        if (u.user) payload.created_by = u.user.id;
+        const { data, error } = await supabase.from(table as any)
+          .insert(payload).select("id").maybeSingle();
+        if (error || !(data as unknown as { id?: string } | null)?.id) {
+          if (!error) await load();
+          return toast.error("Creation not confirmed; inspect records before retrying.");
+        }
+        toast.success("Created");
+      }
+      setOpen(false); load();
+    } catch {
+      // A network exception is NOT proof the server rolled back.
+      toast.error("Write outcome unknown; inspect refreshed records before retrying.");
+      await load();
+    }
   };
 
   const remove = async (row: any) => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (bulkMutationPending.current) { toast.error("Another mutation is pending confirmation."); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!deletable) { toast.error("Record deletion requires a verified administrator and complete CRM data."); return; }
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        row.joining_status === "joined") {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
     if (!confirm("Delete this record?")) return;
-    const { error } = await supabase.from(table as any).delete().eq("id", row.id);
-    if (error) return toast.error(error.message);
-    toast.success("Deleted"); load();
+    try {
+      const { data, error } = await supabase.from(table as any)
+        .delete().eq("id", row.id).select("id").maybeSingle();
+      if (error || (data as unknown as { id?: string } | null)?.id !== row.id) {
+        if (!error) await load();
+        return toast.error("Deletion not confirmed; check permissions before retrying.");
+      }
+      toast.success("Deleted"); load();
+    } catch {
+      toast.error("Deletion outcome unknown; inspect refreshed records before retrying.");
+      await load();
+    }
   };
 
   // Filtering used to be scoped to `tableFields` — whatever columns the
@@ -356,6 +559,10 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   // construction — filter Candidates down to one recruiter's "joined" stage
   // before exporting, and only those rows come out — with zero extra UI.
   const exportCsv = () => {
+    if (!verifiedForMutation) {
+      toast.error("Record export unavailable until complete source and relation reads are verified.");
+      return;
+    }
     const headers = tableFields.map((f) => f.label);
     const dataRows = filtered.map((r) => tableFields.map((f) => cellDisplayValue(r, f, relationOptions)));
     const csv = rowsToCsv(headers, dataRows);
@@ -377,6 +584,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const someSelected = !allSelected && filteredIds.some((id) => selected.has(id));
 
   const toggleAll = (checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       filteredIds.forEach((id) => (checked ? next.add(id) : next.delete(id)));
@@ -385,6 +593,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const toggleRow = (id: string, checked: boolean) => {
+    if (bulkMutationPending.current) return;
     setSelected((prev) => {
       const next = new Set(prev);
       checked ? next.add(id) : next.delete(id);
@@ -392,21 +601,63 @@ export function CrudModule({ title, description, table, module, fields, searchFi
     });
   };
 
+  // Salvaged from PR #11 after security review: only return success when the
+  // exact IDs were confirmed by PostgREST; NEVER automatically replay a batch
+  // after a network timeout, because the server may already have committed it.
+  // Candidate and billing mutations still remain unconditionally held above.
+  const confirmBulk = async (
+    ids: string[],
+    action: "delete" | "update",
+    patch?: Record<string, unknown>,
+  ) => runConfirmedBulkMutation(ids, async (batch) => {
+    const query = action === "delete"
+      ? supabase.from(table as any).delete().in("id", batch)
+      : supabase.from(table as any).update(patch ?? {}).in("id", batch);
+    const reply = await query.select("id");
+    return {
+      data: reply.data as { id: string }[] | null,
+      error: reply.error,
+    };
+  });
+
   const bulkDelete = async () => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!deletable) { toast.error("Bulk delete requires verified permissions and complete CRM data."); return; }
+    if (bulkMutationPending.current) return;
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        rows.some((row) => selected.has(row.id) && row.joining_status === "joined")) {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
     const ids = Array.from(selected);
     if (!ids.length) return;
-    const warning =
-      module === "candidates"
-        ? `Delete ${ids.length} candidate(s)? This will also permanently delete their linked submissions, interviews, offers, and stage history.`
-        : `Delete ${ids.length} selected record(s)? This cannot be undone.`;
+    const warning = `Delete ${ids.length} selected record(s)? This cannot be undone.`;
     if (!confirm(warning)) return;
+    bulkMutationPending.current = true;
     setBulkDeleting(true);
-    const { error } = await supabase.from(table as any).delete().in("id", ids);
-    setBulkDeleting(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Deleted ${ids.length} record(s)`);
+    let outcome: Awaited<ReturnType<typeof confirmBulk>> = {
+      complete: false, confirmedCount: 0, requestedCount: ids.length,
+      message: "Operation outcome unknown; verify server records.",
+    };
+    try {
+      outcome = await confirmBulk(ids, "delete");
+    } catch {
+      // Treat unexpected client exceptions as an unknown commit, never replay.
+      outcome = { complete: false, confirmedCount: 0, requestedCount: ids.length,
+        message: "Unexpected client failure; write outcome unknown." };
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkDeleting(false);
+    }
+    // Even after an unconfirmed response, selection MUST be cleared to avoid
+    // an accidental one-click replay against an already committed batch.
     setSelected(new Set());
-    load();
+    await load();
+    if (!outcome.complete) {
+      toast.error(`Only ${outcome.confirmedCount} of ${ids.length} deletions explicitly confirmed. ${outcome.message} Inspect refreshed records and reselect manually; no automatic retry.`);
+      return;
+    }
+    toast.success(`Deleted ${outcome.confirmedCount} record(s)`);
   };
 
   const closeBulkEdit = () => {
@@ -416,24 +667,59 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   };
 
   const applyBulkEdit = async () => {
+    if (candidateMutationPaused) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
+    if (billingMutationPaused) { toast.error(BILLING_MUTATION_HOLD_REASON); return; }
+    if (!editable) { toast.error("Bulk edit requires verified permissions and complete CRM data."); return; }
+    if (bulkMutationPending.current) return;
     const field = activeBulkEditField;
     const ids = Array.from(selected);
     if (!field || !ids.length) return;
-    let v = bulkEditValue;
-    if (v === "" || v === undefined) v = null;
-    if (field.type === "number" && v !== null) v = Number(v);
+    if (module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        ((field.name === "joining_status" && bulkEditValue === "joined") ||
+          (["joining_status","offer_status"].includes(field.name) &&
+           rows.some((row) => selected.has(row.id) && row.joining_status === "joined")))) {
+      toast.error(FINANCIAL_JOINED_HOLD_REASON); return;
+    }
+    let value = bulkEditValue;
+    if (value === "" || value === undefined) value = null;
+    if (field.type === "number" && value !== null) {
+      value = Number(value);
+      if (!Number.isFinite(value)) {
+        toast.error(`${field.label} must be a valid number.`);
+        return;
+      }
+    }
+    bulkMutationPending.current = true;
     setBulkEditSaving(true);
-    const { error } = await supabase.from(table as any).update({ [field.name]: v }).in("id", ids);
-    setBulkEditSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(`Updated ${field.label} for ${ids.length} record(s)`);
+    let outcome: Awaited<ReturnType<typeof confirmBulk>> = {
+      complete: false, confirmedCount: 0, requestedCount: ids.length,
+      message: "Operation outcome unknown; verify server records.",
+    };
+    try {
+      outcome = await confirmBulk(ids, "update", { [field.name]: value });
+    } catch {
+      // Treat unexpected client exceptions as an unknown commit, never replay.
+      outcome = { complete: false, confirmedCount: 0, requestedCount: ids.length,
+        message: "Unexpected client failure; write outcome unknown." };
+    } finally {
+      bulkMutationPending.current = false;
+      setBulkEditSaving(false);
+    }
     setSelected(new Set());
+    await load();
+    if (!outcome.complete) {
+      toast.error(`Only ${outcome.confirmedCount} of ${ids.length} updates explicitly confirmed. ${outcome.message} Inspect refreshed records and reselect manually; no automatic retry.`);
+      return;
+    }
+    toast.success(`Updated ${field.label} for ${outcome.confirmedCount} record(s)`);
     closeBulkEdit();
-    load();
   };
 
   return (
     <div className="space-y-4">
+      {loadFailed && <p className="text-sm text-destructive">Record list is incomplete or unavailable. No partial results or exports are shown.</p>}
+      {relationsFailed && <p className="text-sm text-destructive">Related record choices are incomplete or unavailable. Editing and exports are withheld.</p>}
+      {rowsVerified && !loadFailed && !loading && <p className="text-xs text-muted-foreground">Verified {rows.length} role-visible records in {CRM_PAGE_SIZE}-row ID pages (maximum {CRM_MAX_ROWS}). Manual refresh; no unrestricted realtime.</p>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{title}</h1>
@@ -441,6 +727,10 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {headerActions}
+          <Button variant="outline" onClick={() => { void load(); void loadRelations(); }}
+            disabled={loading}>
+            <RefreshCw className="h-4 w-4 mr-2"/>Refresh records
+          </Button>
           {/* w-full below sm: this row now wraps (flex-wrap above) instead of
               being forced onto one line and clipped at the screen edge, and a
               fixed w-64 search box would still overflow a ~360px phone width
@@ -487,7 +777,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
           <Button
             variant="outline"
             onClick={exportCsv}
-            disabled={filtered.length === 0}
+            disabled={filtered.length === 0 || !verifiedForMutation}
           >
             <Download className="h-4 w-4 mr-2"/>
             Export CSV
@@ -673,7 +963,11 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         </div>
       </div>
 
-      {!editable && (
+      {candidateMutationPaused && <Badge variant="secondary">{CANDIDATE_MUTATION_HOLD_REASON}</Badge>}
+      {billingMutationPaused && <Badge variant="secondary">{BILLING_MUTATION_HOLD_REASON}</Badge>}
+      {module === "offers" && LEGACY_JOINED_FINANCIAL_TRANSITIONS_PAUSED &&
+        <Badge variant="secondary">{FINANCIAL_JOINED_HOLD_REASON}</Badge>}
+      {!editable && !candidateMutationPaused && (
         <Badge variant="secondary">Read-only access</Badge>
       )}
 
@@ -744,7 +1038,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   ))}
                   <TableCell className={`${actionsColWidth} px-1 py-1.5 text-right whitespace-nowrap space-x-0`}>
                     {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
-                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
+                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7"
+                      aria-label="Draft email (sending paused)" title="Draft email (sending paused)"
+                      onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </TableCell>
@@ -820,7 +1116,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5">
                     {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
-                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
+                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7"
+                      aria-label="Draft email (sending paused)" title="Draft email (sending paused)"
+                      onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </div>
@@ -920,7 +1218,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   <SheetFooter className="mt-6">
                     {emailField && viewing[emailField] && editable && (
                       <Button variant="outline" onClick={() => { const row = viewing; setViewing(null); setMailingRow(row); }}>
-                        <Mail className="h-3.5 w-3.5 mr-2" />Email
+                        <Mail className="h-3.5 w-3.5 mr-2" />Draft email
                       </Button>
                     )}
                     {editable && (

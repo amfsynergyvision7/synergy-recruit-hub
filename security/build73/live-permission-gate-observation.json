@@ -1,0 +1,51 @@
+{
+  "evidence_type": "ACTUAL_READ_ONLY_48_OBJECT_PERMISSION_GATE_TWO_PROJECTS",
+  "observed_date": "2026-11-12",
+  "source_sql": "security/build73/48-object-release-preflight.readonly.sql",
+  "source_blob_sha": "397a608717afe03f90fb284a983f345e215baae3",
+  "projects": [
+    {
+      "scope": "production",
+      "project_ref": "wusntntcqgtpgokggdzv",
+      "matched_tables": 19,
+      "actual_public_tables": 19,
+      "tables_rls_enabled": 19,
+      "anon_truncate_tables": 19,
+      "authenticated_truncate_tables": 19,
+      "matched_views": 13,
+      "actual_public_views": 13,
+      "invoker_views": 0,
+      "anonymous_readable_views": 13,
+      "matched_privileged_functions": 16,
+      "actual_privileged_functions": 16,
+      "anonymous_executable_functions": 16,
+      "public_executable_functions": 9,
+      "authenticated_executable_functions": 16,
+      "permissions_gate": "HOLD_48_OBJECT_PERMISSIONS_NOT_SAFE_OR_SCOPE_DRIFT"
+    },
+    {
+      "scope": "synthetic_nonproduction",
+      "project_ref": "dhlhlasnaapzckjyvffn",
+      "matched_tables": 0,
+      "actual_public_tables": 0,
+      "tables_rls_enabled": 0,
+      "anon_truncate_tables": 0,
+      "authenticated_truncate_tables": 0,
+      "matched_views": 0,
+      "actual_public_views": 0,
+      "invoker_views": 0,
+      "anonymous_readable_views": 0,
+      "matched_privileged_functions": 0,
+      "actual_privileged_functions": 0,
+      "anonymous_executable_functions": 0,
+      "public_executable_functions": 0,
+      "authenticated_executable_functions": 0,
+      "permissions_gate": "HOLD_48_OBJECT_PERMISSIONS_NOT_SAFE_OR_SCOPE_DRIFT"
+    }
+  ],
+  "write_operations_performed": 0,
+  "accepted_production_remediations": 0,
+  "accepted_real_hosted_authorization_cases": 0,
+  "formal_release_signatures": 0,
+  "notice": "Even a permission preflight PASS is not an approval to merge, deploy, transfer data, enable finances or bypass legal/finance/retention/recovery and genuine hosted UAT controls. Observations are transient and must be rerun before future decisions."
+}

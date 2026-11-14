@@ -5,6 +5,8 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { buildSafeGlobalSearchOr, safeGlobalSearchTerm } from "@/lib/safe-global-search";
+import { decodeSearchBuckets, MAX_SEARCH_PREVIEW_ROWS } from "@/lib/global-search-results";
 import { Search, Users, Building2, Briefcase } from "lucide-react";
 
 interface ResultRow {
@@ -33,7 +35,8 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<Record<ResultBucket, ResultRow[]>>(EMPTY_RESULTS);
+  const [failed, setFailed] = useState(false);
+  const [snapshot, setSnapshot] = useState<{term: string; results: Record<ResultBucket, ResultRow[]>} | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,52 +54,76 @@ export function GlobalSearch() {
     if (!open) setQuery("");
   }, [open]);
 
+  // Query-scoped snapshots avoid flashing the previous candidate's data.
+  // Every pending network call is cancelled on close or input change.
   useEffect(() => {
-    const q = query.trim();
-    if (q.length < 2) { setResults(EMPTY_RESULTS); setLoading(false); return; }
-    let cancelled = false;
-    setLoading(true);
-    const t = setTimeout(async () => {
-      const like = `%${q}%`;
-      const [candidatesRes, clientsRes, jobsRes] = await Promise.all([
-        supabase.from("candidates")
-          .select("id, full_name, candidate_code, position_applied")
-          .or(`full_name.ilike.${like},candidate_code.ilike.${like},email.ilike.${like},mobile.ilike.${like}`)
-          .limit(6),
-        supabase.from("clients")
-          .select("id, company_name, contact_person")
-          .or(`company_name.ilike.${like},contact_person.ilike.${like}`)
-          .limit(6),
-        supabase.from("job_openings")
-          .select("id, job_title, location")
-          .or(`job_title.ilike.${like},location.ilike.${like}`)
-          .limit(6),
-      ]);
-      if (cancelled) return;
+    const term = safeGlobalSearchTerm(query);
+    if (!open || !term) {
+      setSnapshot(null);
+      setFailed(false);
       setLoading(false);
-      setResults({
-        candidates: (candidatesRes.data ?? []).map((c: any) => ({
-          id: c.id, label: c.full_name, sublabel: [c.candidate_code, c.position_applied].filter(Boolean).join(" · "),
-        })),
-        clients: (clientsRes.data ?? []).map((c: any) => ({
-          id: c.id, label: c.company_name, sublabel: c.contact_person ?? "",
-        })),
-        jobs: (jobsRes.data ?? []).map((j: any) => ({
-          id: j.id, label: j.job_title, sublabel: j.location ?? "",
-        })),
-      });
+      return;
+    }
+    let active = true;
+    const controller = new AbortController();
+    setSnapshot(null);
+    setFailed(false);
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const [candidatesRes, clientsRes, jobsRes] = await Promise.all([
+          supabase.from("candidates")
+            .select("id, full_name, candidate_code, position_applied")
+            .or(buildSafeGlobalSearchOr(term, "candidates"))
+            .order("id", { ascending: true }).limit(MAX_SEARCH_PREVIEW_ROWS).abortSignal(controller.signal),
+          supabase.from("clients")
+            .select("id, company_name, contact_person")
+            .or(buildSafeGlobalSearchOr(term, "clients"))
+            .order("id", { ascending: true }).limit(MAX_SEARCH_PREVIEW_ROWS).abortSignal(controller.signal),
+          supabase.from("job_openings")
+            .select("id, job_title, location")
+            .or(buildSafeGlobalSearchOr(term, "jobs"))
+            .order("id", { ascending: true }).limit(MAX_SEARCH_PREVIEW_ROWS).abortSignal(controller.signal),
+        ]);
+        if (!active) return;
+        if (candidatesRes.error || clientsRes.error || jobsRes.error) {
+          setFailed(true);
+          return;
+        }
+        // Decode all three RLS-visible buckets in one atomic boundary.
+        // A malformed row in any module invalidates the whole preview.
+        const results = decodeSearchBuckets({
+          candidates: candidatesRes.data,
+          clients: clientsRes.data,
+          jobs: jobsRes.data,
+        });
+        if (!active || controller.signal.aborted) return;
+        setSnapshot({ term, results });
+      } catch {
+        if (active) setFailed(true);
+      } finally {
+        if (active) setLoading(false);
+      }
     }, 250);
-    return () => { cancelled = true; clearTimeout(t); };
-  }, [query]);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, open]);
 
   const goTo = (path: string) => {
     setOpen(false);
     navigate({ to: path });
   };
 
-  const buckets = Object.entries(results) as [ResultBucket, ResultRow[]][];
+  const term = safeGlobalSearchTerm(query);
+  const visibleResults = open && term && snapshot?.term === term
+    ? snapshot.results : EMPTY_RESULTS;
+  const buckets = Object.entries(visibleResults) as [ResultBucket, ResultRow[]][];
   const hasAny = buckets.some(([, rows]) => rows.length > 0);
-  const showingResults = query.trim().length >= 2;
+  const invalidQuery = query.trim().length >= 2 && !term;
+  const showingResults = !!term && open;
 
   return (
     <>
@@ -106,14 +133,22 @@ export function GlobalSearch() {
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Search candidates, clients, jobs…" value={query} onValueChange={setQuery} />
         <CommandList>
-          {!showingResults ? (
+          {invalidQuery ? (
+            <CommandEmpty>Search accepts 2–80 letters, numbers, spaces, apostrophes and . @ + - only.</CommandEmpty>
+          ) : !showingResults ? (
             <CommandEmpty>Type at least 2 characters…</CommandEmpty>
           ) : loading ? (
             <CommandEmpty>Searching…</CommandEmpty>
+          ) : failed ? (
+            <CommandEmpty>Search is temporarily unavailable.</CommandEmpty>
           ) : !hasAny ? (
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>No matches in the first six RLS-visible suggestions per category. Open a CRM module for a complete list.</CommandEmpty>
           ) : (
-            buckets.map(([bucket, rows]) => {
+            <>
+            <div className="px-2 py-1 text-xs text-muted-foreground">
+              Showing up to {MAX_SEARCH_PREVIEW_ROWS} matches per category; open a module for complete results.
+            </div>
+            {buckets.map(([bucket, rows]) => {
               if (rows.length === 0) return null;
               const meta = BUCKET_META[bucket];
               return (
@@ -129,7 +164,8 @@ export function GlobalSearch() {
                   ))}
                 </CommandGroup>
               );
-            })
+            })}
+            </>
           )}
         </CommandList>
       </CommandDialog>
