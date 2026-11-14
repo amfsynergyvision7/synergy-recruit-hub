@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
+import { CRM_CANDIDATE_SYNC_MUTATIONS_PAUSED, CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED, CRM_INTEGRATION_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +69,11 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
   }, [integration]);
 
   const saveMut = useMutation({
-    mutationFn: () => save({ data: { ...form, column_mapping: mapping } }),
+    mutationFn: () => {
+      if (CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED)
+        throw new Error(CRM_INTEGRATION_MUTATION_HOLD_REASON);
+      return save({ data: { ...form, column_mapping: mapping } });
+    },
     onSuccess: (row: any) => {
       if (!row?.integration?.id) {
         toast.error("Save failed: no integration settings were returned by the server");
@@ -93,13 +98,24 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
   };
 
   const detectMut = useMutation({
-    mutationFn: async () => { await ensureSaved(); return detect({ data: {} }); },
+    mutationFn: async () => {
+      if (CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED)
+        throw new Error(CRM_INTEGRATION_MUTATION_HOLD_REASON);
+      await ensureSaved();
+      return detect({ data: {} });
+    },
     onSuccess: (r: any) => { const hs = Array.isArray(r?.headers) ? r.headers : []; setHeaders(hs); setMapping((m) => ({ ...(r?.suggested ?? {}), ...m })); setRuntimeDiagnostics(r?.diagnostics ?? null); toast.success(`Detected ${hs.length} columns`); },
     onError: () => toast.error("Header detection unavailable"),
   });
 
   const syncMut = useMutation({
-    mutationFn: async (full: boolean) => { await ensureSaved(); return sync({ data: { fullHistory: full } }); },
+    mutationFn: async (full: boolean) => {
+      if (CRM_CANDIDATE_SYNC_MUTATIONS_PAUSED ||
+          CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED)
+        throw new Error(CRM_INTEGRATION_MUTATION_HOLD_REASON);
+      await ensureSaved();
+      return sync({ data: { fullHistory: full } });
+    },
     onSuccess: (r) => {
       const created = Number(r?.created ?? r?.rows_created ?? 0);
       const updated = Number(r?.updated ?? r?.rows_updated ?? 0);
@@ -124,7 +140,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
     ["Logged user id", diagnostics.loggedUserId ?? "—"],
     ["Settings row found", diagnostics.settingsRowFound ? "YES" : "NO"],
     ["Settings row id", diagnostics.settingsRowId ? String(diagnostics.settingsRowId).slice(0, 8) : "—"],
-    ["Fetched sheet URL", diagnostics.fetchedSheetUrl || "—"],
+    ["Sheet URL", diagnostics.fetchedSheetUrl ? "Configured (link withheld)" : "Unavailable"],
     ["Save success", diagnostics.saveSuccess === undefined ? "—" : diagnostics.saveSuccess ? "YES" : "NO"],
     ["Settings loaded", diagnostics.settingsLoaded ? "YES" : "NO"],
     ["Spreadsheet found", diagnostics.spreadsheetFound ? "YES" : "NO"],
@@ -145,7 +161,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
-        <p className="text-sm text-muted-foreground">External synchronization is paused pending release approval. Configuration and history are admin-only.</p>
+        <p className="text-sm text-muted-foreground">Google Sheets settings, header detection and candidate synchronization are read-only pending independent approval. Historical diagnostics are redacted.</p>
       </div>
 
       <Card>
@@ -157,16 +173,16 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
           <div className="grid md:grid-cols-3 gap-4">
             <div className="md:col-span-3 space-y-2">
               <Label>Google Sheet URL</Label>
-              <Input value={form.sheet_url} onChange={(e) => setForm({ ...form, sheet_url: e.target.value })}
+              <Input disabled={CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED} value={form.sheet_url} onChange={(e) => setForm({ ...form, sheet_url: e.target.value })}
                 placeholder="https://docs.google.com/spreadsheets/d/.../edit"/>
             </div>
             <div className="space-y-2">
               <Label>Sheet (tab) name</Label>
-              <Input value={form.sheet_name} onChange={(e) => setForm({ ...form, sheet_name: e.target.value })}/>
+              <Input disabled={CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED} value={form.sheet_name} onChange={(e) => setForm({ ...form, sheet_name: e.target.value })}/>
             </div>
             <div className="space-y-2">
               <Label>Header row</Label>
-              <Input type="number" min={1} value={form.header_row}
+              <Input disabled={CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED} type="number" min={1} value={form.header_row}
                 onChange={(e) => setForm({ ...form, header_row: Number(e.target.value) || 1 })}/>
             </div>
             <div className="flex items-end gap-3">
@@ -178,10 +194,10 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={!canSync || detectMut.isPending}>
+            <Button variant="outline" onClick={() => detectMut.mutate()} disabled={CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED || !canSync || detectMut.isPending}>
               {detectMut.isPending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>} Detect columns
             </Button>
-            <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+            <Button onClick={() => saveMut.mutate()} disabled={CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED || saveMut.isPending}>
               {saveMut.isPending && <Loader2 className="h-4 w-4 animate-spin"/>} Save settings
             </Button>
             <Button variant="secondary" disabled title="Manual candidate sync requires release approval and an assigned recruiter">
@@ -208,7 +224,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
                 {mappedHeaders.map((h) => (
                   <div key={h} className="grid grid-cols-2 gap-3 p-3 items-center">
                     <div className="text-sm font-medium truncate">{h}</div>
-                    <Select value={mapping[h] ?? "__none"} onValueChange={(v) => {
+                    <Select disabled={CRM_INTEGRATION_CONFIGURATION_MUTATIONS_PAUSED} value={mapping[h] ?? "__none"} onValueChange={(v) => {
                       const next = { ...mapping }; if (v === "__none") delete next[h]; else next[h] = v; setMapping(next);
                     }}>
                       <SelectTrigger><SelectValue placeholder="Ignore"/></SelectTrigger>
@@ -269,7 +285,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
                   <TableCell>{l.rows_skipped ?? 0}</TableCell>
                   <TableCell>{Array.isArray(l.errors) ? l.errors.length : 0}</TableCell>
                   <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
-                    {Array.isArray(l.errors) && l.errors.length ? l.errors.map((e: any) => `R${e.row ?? "?"}: ${e.message ?? ""}`).join(" | ") : "—"}
+                    {Array.isArray(l.errors) && l.errors.length ? "Failure details withheld pending privacy review" : "—"}
                   </TableCell>
                 </TableRow>
               ))}
