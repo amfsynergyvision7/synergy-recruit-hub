@@ -6,7 +6,7 @@
  */
 import {createClient} from '@supabase/supabase-js';
 import {createHmac} from 'node:crypto';
-import {planFromEnv,adminConnectionFromEnv,provisionNine,PROJECT_ID,PROJECT_URL,ACK,slotEmail} from './provision-nine-auth-users.mjs';
+import {planFromEnv,adminConnectionFromEnv,provisionNine,isExactSyntheticAuthUser,PROJECT_ID,PROJECT_URL,ACK,slotEmail} from './provision-nine-auth-users.mjs';
 import {seedInertBaseFixture,expectedRoles} from './seed-inert-base-fixture.mjs';
 import {seedExtendedFixture,EXPECTED_EXTENDED_COUNTS} from './compose-and-seed-remaining-fixture.mjs';
 import {pathToFileURL} from 'node:url';
@@ -68,11 +68,8 @@ export async function readHostedSnapshot(client){
  // Counts alone cannot prove the expected nine synthetic identities.
  const slotsValid=users.length===0 || (users.length===9 &&
    new Set(users.map(u=>u.id)).size===9 &&
-   users.every(u=>typeof u.id==='string' &&
-     /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(u.id) &&
-     (!u.role||u.role==='authenticated')) &&
-   Array.from({length:9},(_,i)=>slotEmail(i+1))
-     .every(email=>users.filter(u=>u.email===email).length===1));
+   Array.from({length:9},(_,i)=>i+1)
+     .every(slot=>users.filter(u=>isExactSyntheticAuthUser(u,slot)).length===1));
  const counts={};
  for(const table of TABLES)counts[table]=await countRows(client,table);
  // A user replacement during sequential table reads must not be treated
@@ -81,7 +78,9 @@ export async function readHostedSnapshot(client){
  const afterUsers=authAfter?.data?.users;
  if(authAfter?.error||!Array.isArray(afterUsers)||afterUsers.length!==users.length||
     afterUsers.length>=100||
-    users.some(u=>afterUsers.filter(a=>a.id===u.id&&a.email===u.email&&a.role===u.role).length!==1))
+    users.some(u=>afterUsers.filter(a=>a.id===u.id&&a.email===u.email&&a.role===u.role).length!==1) ||
+    (users.length===9 && Array.from({length:9},(_,i)=>i+1)
+      .some(slot=>afterUsers.filter(u=>isExactSyntheticAuthUser(u,slot)).length!==1)))
    throw new Error('Nonproduction Auth identity inventory changed during snapshot');
  return Object.freeze({authUsers:users.length,tableCounts:counts,
    totalRows:Object.values(counts).reduce((a,b)=>a+b,0),
@@ -135,7 +134,9 @@ export async function verifyInertHostedContents(client){
    throw new Error('Hosted inert fixture HOLD: exact synthetic Auth subjects unavailable');
  const getSlot=i=>users.find(u=>u.email===slotEmail(i));
  const ids=Array.from({length:9},(_,i)=>getSlot(i+1)?.id);
- if(ids.some(id=>typeof id!=='string')||new Set(ids).size!==9)
+ if(ids.some(id=>typeof id!=='string')||new Set(ids).size!==9||
+   Array.from({length:9},(_,i)=>i+1)
+     .some(slot=>!isExactSyntheticAuthUser(getSlot(slot),slot)))
    throw new Error('Hosted inert fixture HOLD: malformed synthetic Auth subject mapping');
  const read=async(table,projection,count)=>{
    const result=await client.from(table).select(projection);
