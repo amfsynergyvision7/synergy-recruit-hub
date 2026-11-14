@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {executionPlan,validateSnapshot,validateReadOnlyAudit,verifyInertHostedContents,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
+import {executionPlan,validateSnapshot,validateReadOnlyAudit,readHostedSnapshot,verifyInertHostedContents,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
 import {makeBaseFixture,seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture,seedExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
-import {slotEmail,provisionNine,PROJECT_URL,isExactSyntheticAuthUser} from './provision-nine-auth-users.mjs';
+import {slotEmail,provisionNine,PROJECT_URL,isExactSyntheticAuthUser,syntheticAuthEvidenceFingerprint} from './provision-nine-auth-users.mjs';
 import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
@@ -1217,4 +1217,76 @@ test('Build143 standalone fixture writers refuse privileged or unverified Auth b
    assert.equal(fake.deleteCalls(),0,'No cleanup is needed before any inserts');
   }
  }
+});
+
+ 
+// Build144: protect against providerless otherwise confirmed accounts, while
+// accepting legitimate GoTrue readbacks that omit expanded provider details.
+test('Build144 requires explicit primary email provider or a validated email-only identity',()=>{
+ const noProvider=mockSyntheticAuth(1);
+ delete noProvider.app_metadata.provider;
+ delete noProvider.identities;
+ assert.equal(isExactSyntheticAuthUser(noProvider,1),false);
+ const noIds=mockSyntheticAuth(1);
+ delete noIds.identities;
+ assert.equal(isExactSyntheticAuthUser(noIds,1),true);
+ const providerByIdentity=mockSyntheticAuth(1);
+ delete providerByIdentity.app_metadata.provider;
+ assert.equal(isExactSyntheticAuthUser(providerByIdentity,1),true);
+ const neither=mockSyntheticAuth(1);
+ delete neither.app_metadata.provider;
+ neither.identities=[];
+ assert.equal(isExactSyntheticAuthUser(neither,1),false);
+ const misclaimed=mockSyntheticAuth(1);
+ misclaimed.app_metadata.provider='phone';
+ assert.equal(isExactSyntheticAuthUser(misclaimed,1),false);
+});
+test('Build144 security evidence fingerprint ignores normal login timestamps but tracks identity semantics',()=>{
+ const user=mockSyntheticAuth(1);
+ const before=syntheticAuthEvidenceFingerprint(user);
+ user.last_sign_in_at='2026-11-14T11:00:00Z';
+ user.updated_at='2026-11-14T11:00:00Z';
+ assert.equal(syntheticAuthEvidenceFingerprint(user),before);
+ user.user_metadata.email=slotEmail(1);
+ assert.notEqual(syntheticAuthEvidenceFingerprint(user),before);
+});
+test('Build144 read-only hosted snapshot detects metadata drift despite unchanged IDs and still-valid providers',async()=>{
+ const {client,writes}=fakeFullInertClient();
+ const original=client.auth.admin.listUsers;
+ const variations=[
+  u=>{u.user_metadata={email:u.email};},
+  u=>{u.app_metadata={providers:['email']};},
+  u=>{u.email_confirmed_at='2026-11-14T09:01:00Z';},
+  u=>{u.identities=undefined;},
+  u=>{u.confirmed_at='2026-11-14T10:01:00Z';}
+ ];
+ for(const modify of variations){
+  let reads=0;
+  client.auth.admin.listUsers=async()=>{
+   const a=await original();
+   if(++reads===2)modify(a.data.users[0]);
+   return a;
+  };
+  await assert.rejects(readHostedSnapshot(client),
+   /Auth identity inventory changed/);
+  assert.equal(reads,2);
+ }
+ client.auth.admin.listUsers=original;
+ const valid=await readHostedSnapshot(client);
+ assert.equal(valid.authUsers,9);
+ assert.equal(valid.syntheticAuthSlotsValid,true);
+ assert.equal(writes(),0);
+});
+test('Build144 ordinary last-sign-in change cannot masquerade as a data-integrity failure',async()=>{
+ const {client,writes}=fakeFullInertClient();
+ const original=client.auth.admin.listUsers;
+ let reads=0;
+ client.auth.admin.listUsers=async()=>{
+  const a=await original();
+  if(++reads===2)a.data.users[0].last_sign_in_at='2026-11-14T12:00:00Z';
+  return a;
+ };
+ assert.equal((await readHostedSnapshot(client)).syntheticAuthSlotsValid,true);
+ assert.equal(reads,2);
+ assert.equal(writes(),0);
 });

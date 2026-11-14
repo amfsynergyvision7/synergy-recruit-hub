@@ -40,6 +40,14 @@ export function isExactSyntheticAuthUser(u,slot) {
       (app.providers!=null && (!Array.isArray(app.providers) ||
         app.providers.length!==1 || app.providers[0]!=='email')))
     return false;
+  // A provider list by itself is not proof of a primary email sign-in.
+  // GoTrue may omit the expanded identities array in some readbacks:
+  // accept either an explicit primary email provider or a validated
+  // single email identity. Never accept neither.
+  if (app.provider!=='email' &&
+      !(Array.isArray(u.identities)&&u.identities.length===1&&
+        u.identities[0]?.provider==='email'))
+    return false;
   const meta=u.user_metadata;
   if (meta!=null && (typeof meta!=='object' || Array.isArray(meta) ||
       Object.keys(meta).some(k=>!['sub','email','email_verified','phone_verified'].includes(k)) ||
@@ -63,6 +71,34 @@ export function isExactSyntheticAuthUser(u,slot) {
       return false;
   }
   return true;
+}
+
+/**
+ * Security-relevant GoTrue identity fingerprint for a two-read snapshot.
+ * Intentionally excludes mutable last_sign_in_at/updated_at fields; serializes
+ * only allowlisted values and never logs any account or metadata content.
+ */
+export function syntheticAuthEvidenceFingerprint(u) {
+  if(!u||typeof u!=='object')return null;
+  const app=u.app_metadata??{}, meta=u.user_metadata??{};
+  return JSON.stringify([
+    u.id??null,u.email??null,u.role??null,u.aud??null,
+    u.email_confirmed_at??null,u.confirmed_at??null,
+    u.phone??null,u.phone_confirmed_at??null,
+    u.invited_at??null,u.banned_until??null,u.deleted_at??null,
+    u.new_email??null,u.new_phone??null,
+    u.is_anonymous??null,u.is_sso_user??null,u.factors??null,
+    app.provider??null,app.providers??null,
+    meta.sub??null,meta.email??null,meta.email_verified??null,
+    meta.phone_verified??null,
+    u.identities==null?null:u.identities.map(identity=>[
+      identity?.user_id??null,identity?.provider??null,
+      identity?.identity_data?.email??null,
+      identity?.identity_data?.sub??null,
+      identity?.identity_data?.email_verified??null,
+      identity?.identity_data?.phone_verified??null
+    ])
+  ]);
 }
 
 export function adminConnectionFromEnv(env) {

@@ -6,7 +6,7 @@
  */
 import {createClient} from '@supabase/supabase-js';
 import {createHmac} from 'node:crypto';
-import {planFromEnv,adminConnectionFromEnv,provisionNine,isExactSyntheticAuthUser,PROJECT_ID,PROJECT_URL,ACK,slotEmail} from './provision-nine-auth-users.mjs';
+import {planFromEnv,adminConnectionFromEnv,provisionNine,isExactSyntheticAuthUser,syntheticAuthEvidenceFingerprint,PROJECT_ID,PROJECT_URL,ACK,slotEmail} from './provision-nine-auth-users.mjs';
 import {seedInertBaseFixture,expectedRoles} from './seed-inert-base-fixture.mjs';
 import {seedExtendedFixture,EXPECTED_EXTENDED_COUNTS} from './compose-and-seed-remaining-fixture.mjs';
 import {pathToFileURL} from 'node:url';
@@ -78,7 +78,11 @@ export async function readHostedSnapshot(client){
  const afterUsers=authAfter?.data?.users;
  if(authAfter?.error||!Array.isArray(afterUsers)||afterUsers.length!==users.length||
     afterUsers.length>=100||
-    users.some(u=>afterUsers.filter(a=>a.id===u.id&&a.email===u.email&&a.role===u.role).length!==1) ||
+    users.some(u=>afterUsers.filter(a=>
+      a.id===u.id&&a.email===u.email&&a.role===u.role&&
+      (users.length!==9 ||
+       syntheticAuthEvidenceFingerprint(a)===syntheticAuthEvidenceFingerprint(u))
+    ).length!==1) ||
     (users.length===9 && Array.from({length:9},(_,i)=>i+1)
       .some(slot=>afterUsers.filter(u=>isExactSyntheticAuthUser(u,slot)).length!==1)))
    throw new Error('Nonproduction Auth identity inventory changed during snapshot');
