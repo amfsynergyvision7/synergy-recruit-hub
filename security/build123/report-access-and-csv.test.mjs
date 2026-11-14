@@ -80,3 +80,18 @@ test("Build123 sidebar hides withheld financial and audit destinations",()=>{
    assert(src.includes(predicate));
  assert(src.includes("shownItems.map((item)"));
 });
+
+
+test("Build123 reports are role-gated, identity-bound and avoid finance fetches or exports",()=>{
+ const src=file("src/routes/_app.reports.tsx");
+ assert(src.includes("const allowed = canReadPipelineReports(user?.id, profile, role);"));
+ assert(src.includes('queryKey: ["reports-data", user?.id ?? "signed-out", role ?? "none"]'));
+ assert(src.includes("enabled: allowed"));
+ assert(src.includes('if (!allowed) throw new Error("Reporting requires an approved account and role")'));
+ assert(src.includes("if (isError)"));
+ assert(!src.includes('supabase.from("billing")'));
+ assert(!src.includes("ctc, salary"));
+ assert(!src.includes('filenamePrefix="billing-summary"'));
+ assert(!src.includes('title="Billing Summary by Client"'));
+ assert(src.includes("Unable to retrieve authorized reporting data"));
+});

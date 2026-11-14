@@ -29,6 +29,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Inbox } from "lucide-react";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
+import { useAuth } from "@/hooks/use-auth";
+import { canReadPipelineReports } from "@/lib/crm-report-access";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
@@ -55,10 +57,6 @@ function inRange(iso: string | null | undefined, from: string, to: string): bool
   const fromT = new Date(`${from}T00:00:00`).getTime();
   const toT = new Date(`${to}T23:59:59.999`).getTime();
   return t >= fromT && t <= toT;
-}
-
-function fmtCurrency(n: number): string {
-  return `₹${Math.round(n).toLocaleString("en-IN")}`;
 }
 
 function recruiterLabel(id: string | null, names: Record<string, string>): string {
@@ -126,32 +124,38 @@ function ReportTable({ title, description, headers, rows, filenamePrefix, loadin
 }
 
 function Reports() {
+  const { user, profile, role } = useAuth();
+  const allowed = canReadPipelineReports(user?.id, profile, role);
   const [from, setFrom] = useState(() => isoDateNDaysAgo(30));
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["reports-data"],
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["reports-data", user?.id ?? "signed-out", role ?? "none"],
+    enabled: allowed,
     queryFn: async () => {
+      if (!allowed) throw new Error("Reporting requires an approved account and role");
       const [
-        { data: candidates },
-        { data: submissions },
-        { data: interviews },
-        { data: offers },
-        { data: clients },
-        { data: billing },
-        { data: profiles },
+        { data: candidates, error: candidatesError },
+        { data: submissions, error: submissionsError },
+        { data: interviews, error: interviewsError },
+        { data: offers, error: offersError },
+        { data: clients, error: clientsError },
+        { data: profiles, error: profilesError },
       ] = await Promise.all([
         supabase.from("candidates").select("id, stage, assigned_recruiter, created_at"),
         supabase.from("submissions").select("id, candidate_uuid, candidate_id, client_uuid, client_id, created_at"),
         supabase.from("interviews").select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, created_at"),
-        supabase.from("offers").select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, ctc, salary, created_at"),
-        supabase.from("clients").select("id, company_name, active_positions"),
-        supabase.from("billing").select("id, client_uuid, client_id, invoice_amount, outstanding_amount, payment_status, invoice_date"),
+        // Financial salary, CTC and invoice fields are not part of recruitment analytics.
+        supabase.from("offers").select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, created_at"),
+        supabase.from("clients").select("id, company_name"),
         supabase.from("profiles").select("id, full_name"),
       ]);
+      if ([candidatesError, submissionsError, interviewsError,
+           offersError, clientsError, profilesError].some(Boolean))
+        throw new Error("Unable to retrieve authorized reporting data");
       return {
         candidates: candidates ?? [], submissions: submissions ?? [], interviews: interviews ?? [],
-        offers: offers ?? [], clients: clients ?? [], billing: billing ?? [], profiles: profiles ?? [],
+        offers: offers ?? [], clients: clients ?? [], profiles: profiles ?? [],
       };
     },
     staleTime: 60_000,
@@ -162,7 +166,6 @@ function Reports() {
   const interviews = data?.interviews ?? [];
   const offers = data?.offers ?? [];
   const clients = data?.clients ?? [];
-  const billing = data?.billing ?? [];
 
   const recruiterNames = useMemo(() => {
     const m: Record<string, string> = {};
@@ -190,7 +193,6 @@ function Reports() {
   const submissionsInRange = useMemo(() => submissions.filter((s: any) => inRange(s.created_at, from, to)), [submissions, from, to]);
   const interviewsInRange = useMemo(() => interviews.filter((i: any) => inRange(i.created_at, from, to)), [interviews, from, to]);
   const offersInRange = useMemo(() => offers.filter((o: any) => inRange(o.created_at, from, to)), [offers, from, to]);
-  const billingInRange = useMemo(() => billing.filter((b: any) => inRange(b.invoice_date, from, to)), [billing, from, to]);
 
   // --- Report 1: Candidate pipeline by stage ---
   const pipelineRows = useMemo(() => {
@@ -254,37 +256,20 @@ function Reports() {
       ] as (string | number)[]);
   }, [submissionsInRange, interviewsInRange, offersInRange, clientNames]);
 
-  // --- Report 4: Billing summary by client ---
-  const billingRows = useMemo(() => {
-    const byClient: Record<string, { invoiced: number; collected: number; outstanding: number }> = {};
-    const ensure = (id: string) => (byClient[id] ??= { invoiced: 0, collected: 0, outstanding: 0 });
-
-    billingInRange.forEach((b: any) => {
-      const cid = b.client_uuid ?? b.client_id;
-      if (!cid) return;
-      const row = ensure(cid);
-      row.invoiced += Number(b.invoice_amount ?? 0);
-      if (b.payment_status === "paid") row.collected += Number(b.invoice_amount ?? 0);
-      row.outstanding += Number(b.outstanding_amount ?? 0);
-    });
-
-    return Object.entries(byClient)
-      .sort((a, b) => b[1].invoiced - a[1].invoiced)
-      .map(([id, v]) => [
-        clientNames[id] ?? `${id.slice(0, 6)}…`,
-        fmtCurrency(v.invoiced), fmtCurrency(v.collected), fmtCurrency(v.outstanding),
-      ] as (string | number)[]);
-  }, [billingInRange, clientNames]);
-
   const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(new Date().toISOString().slice(0, 10)); };
   const applyAllTime = () => { setFrom("2000-01-01"); setTo(new Date().toISOString().slice(0, 10)); };
+
+  if (!allowed)
+    return <p className="text-sm text-muted-foreground">Recruitment reporting requires an approved recruiter, operations or administrator role.</p>;
+  if (isError)
+    return <p className="text-sm text-destructive">Unable to load authorized reports. Please retry.</p>;
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold">Reports</h1>
         <p className="text-sm text-muted-foreground">
-          Date-ranged, exportable pipeline and billing reports — pick a window below, every table exports to CSV.
+          Date-ranged recruitment pipeline reports. Financial and billing reporting remains paused.
         </p>
       </div>
 
@@ -337,15 +322,6 @@ function Reports() {
         emptyLabel="No client activity in this window."
       />
 
-      <ReportTable
-        title="Billing Summary by Client"
-        description="Invoiced, collected, and outstanding amounts, by invoice date within the window."
-        headers={["Client", "Invoiced", "Collected", "Outstanding"]}
-        rows={billingRows}
-        filenamePrefix="billing-summary"
-        loading={isLoading}
-        emptyLabel="No invoices in this window."
-      />
     </div>
   );
 }
