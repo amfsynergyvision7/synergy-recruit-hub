@@ -13,7 +13,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
-import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail } from "lucide-react";
+import { canMountApprovedCrm } from "@/lib/crm-shell-access";
+import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail, RefreshCw } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -137,7 +138,17 @@ function isDiscreteFilterField(field: FieldDef, distinctCount: number) {
   return distinctCount > 0 && distinctCount <= DISCRETE_FILTER_MAX;
 }
 
-export function CrudModule({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
+// Keep all sensitive local state within an exact authenticated subject/role.
+export function CrudModule(props: Props) {
+  const { user, profile, role, loading } = useAuth();
+  if (loading || !canMountApprovedCrm(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Approved CRM access is required before loading records.</p>;
+  return <VerifiedCrudWorkspace key={user!.id + ":" + role + ":" + props.table} {...props} />;
+}
+
+const MAX_CRUD_ROWS = 250;
+const MAX_RELATION_ROWS = 250;
+function VerifiedCrudWorkspace({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
   const { role } = useAuth();
   const candidateMutationPaused = module === "candidates" && LEGACY_CANDIDATE_WRITES_PAUSED;
   const billingMutationPaused = module === "billing" && LEGACY_BILLING_MUTATIONS_PAUSED;
@@ -146,6 +157,12 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [relationsFailed, setRelationsFailed] = useState(false);
+  const rowsEpoch = useRef(0);
+  const rowsController = useRef<AbortController | null>(null);
+  const relationEpoch = useRef(0);
+  const relationController = useRef<AbortController | null>(null);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [viewing, setViewing] = useState<any | null>(null);
@@ -204,33 +221,84 @@ export function CrudModule({ title, description, table, module, fields, searchFi
   // anyway; Search covers the common "find this one candidate" case.
 
   const load = async () => {
+    const epoch = ++rowsEpoch.current;
+    rowsController.current?.abort();
+    const controller = new AbortController();
+    rowsController.current = controller;
+    setRows([]);
+    setSelected(new Set());
     setLoading(true);
-    const q = supabase.from(table as any).select("*");
-    const { data, error } = await (orderBy
-      ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
-      : q.order("created_at", { ascending: false }));
-    setLoading(false);
-    if (error) toast.error(error.message);
-    else setRows(data || []);
+    setLoadFailed(false);
+    try {
+      // This is an intentionally bounded *browser* read, not server RLS.
+      // Reject default PostgREST result caps rather than silently exporting
+      // a plausible but incomplete business-wide table.
+      const q = supabase.from(table as any).select("*", { count: "exact" });
+      const { data, error, count } = await (orderBy
+        ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
+        : q.order("created_at", { ascending: false }))
+        .limit(MAX_CRUD_ROWS).abortSignal(controller.signal);
+      if (controller.signal.aborted || epoch !== rowsEpoch.current) return;
+      if (error || !Array.isArray(data) || !Number.isSafeInteger(count) ||
+          count! > MAX_CRUD_ROWS || data.length !== count ||
+          new Set(data.map((row: any) => row.id)).size !== data.length ||
+          data.some((row: any) => typeof row.id !== "string" || !row.id)) {
+        setLoadFailed(true);
+        return;
+      }
+      setRows(data);
+    } catch {
+      if (!controller.signal.aborted && epoch === rowsEpoch.current) setLoadFailed(true);
+    } finally {
+      if (!controller.signal.aborted && epoch === rowsEpoch.current) setLoading(false);
+    }
   };
 
   const loadRelations = async () => {
-    const relationFields = fields.filter((f) => f.relation);
-    const entries = await Promise.all(relationFields.map(async (f) => {
-      const { data } = await supabase.from(f.relation!.table as any).select(f.relation!.select ?? "*").limit(500);
-      return [f.name, data ?? []] as const;
-    }));
-    setRelationOptions(Object.fromEntries(entries));
+    const epoch = ++relationEpoch.current;
+    relationController.current?.abort();
+    const controller = new AbortController();
+    relationController.current = controller;
+    setRelationOptions({});
+    setRelationsFailed(false);
+    const relationFields = fields.filter((field) => field.relation);
+    if (!relationFields.length) return;
+    try {
+      const entries = await Promise.all(relationFields.map(async field => {
+        const { data, error, count } = await supabase.from(field.relation!.table as any)
+          .select(field.relation!.select ?? "*", { count: "exact" })
+          .order("id").limit(MAX_RELATION_ROWS).abortSignal(controller.signal);
+        if (error || !Array.isArray(data) || !Number.isSafeInteger(count) ||
+            count! > MAX_RELATION_ROWS || data.length !== count ||
+            new Set(data.map((row: any) => row.id)).size !== data.length)
+          throw new Error("Incomplete relation metadata");
+        return [field.name, data] as const;
+      }));
+      if (!controller.signal.aborted && epoch === relationEpoch.current)
+        setRelationOptions(Object.fromEntries(entries));
+    } catch {
+      if (!controller.signal.aborted && epoch === relationEpoch.current) {
+        setRelationOptions({});
+        setRelationsFailed(true);
+      }
+    }
   };
 
   useEffect(() => {
     setSelected(new Set());
     setColumnFilters({});
-    load();
-    loadRelations();
-    const ch = supabase.channel(`rt-${table}`)
-      .on("postgres_changes", { event: "*", schema: "public", table }, load).subscribe();
-    return () => { supabase.removeChannel(ch); };
+    setRows([]);
+    setRelationOptions({});
+    void load();
+    void loadRelations();
+    // Never subscribe to cross-record realtime events without an approved
+    // server-side role and row authorization contract.
+    return () => {
+      rowsEpoch.current++;
+      relationEpoch.current++;
+      rowsController.current?.abort();
+      relationController.current?.abort();
+    };
   }, [table]);
 
   const handleFieldChange = async (name: string, value: any) => {
@@ -601,6 +669,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
 
   return (
     <div className="space-y-4">
+      {loadFailed && <p className="text-sm text-destructive">Record list is incomplete or unavailable. No partial results or exports are shown.</p>}
+      {relationsFailed && <p className="text-sm text-destructive">Related record choices are incomplete or unavailable.</p>}
+      {!loadFailed && !loading && <p className="text-xs text-muted-foreground">Verified bounded read: {rows.length} role-visible records (maximum 250). Manual refresh; no unrestricted realtime.</p>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{title}</h1>
@@ -608,6 +679,10 @@ export function CrudModule({ title, description, table, module, fields, searchFi
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {headerActions}
+          <Button variant="outline" onClick={() => { void load(); void loadRelations(); }}
+            disabled={loading}>
+            <RefreshCw className="h-4 w-4 mr-2"/>Refresh records
+          </Button>
           {/* w-full below sm: this row now wraps (flex-wrap above) instead of
               being forced onto one line and clipped at the screen edge, and a
               fixed w-64 search box would still overflow a ~360px phone width
