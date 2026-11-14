@@ -854,7 +854,7 @@ test('Build140 successful deleteUser HTTP response does not mask surviving Auth 
  };
  await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
   /1 cleanup operations unconfirmed/);
- assert.equal(reads,2);
+ assert.equal(reads,3);
  assert.equal(deletes,1);
 });
 test('Build140 Auth rollback reports zero unconfirmed only after independently empty readback',async()=>{
@@ -1192,7 +1192,7 @@ test('Build143 failed postcreation identity check refuses mapping and cleans exa
   /Synthetic provisioning aborted; 0 cleanup operations unconfirmed/);
  assert.equal(saved,false);
  assert.equal(created.length,0);
- assert.equal(listed,3);
+ assert.equal(listed,4);
 });
 
 
@@ -1342,4 +1342,82 @@ test('Build145 standalone base/extended writers reject a primary-only unproven i
     /exact nine nonproduction GoTrue users|exact nine synthetic Auth users/i);
   assert.equal(fake.deleteCalls(),0);
  }
+});
+
+
+// Build146: failed/uncertain GoTrue outcomes must never authorize deletion of
+// another user's account based only on a returned UUID.
+test('Build146 ignores UUID from failed createUser response and preserves unrelated account',async()=>{
+ const stranger={...mockSyntheticAuth(1),email:'actual-business@example.com'};
+ let reads=0,deletes=0;
+ const admin={
+  listUsers:async()=>({data:{users:++reads===1?[]:[stranger]},error:null}),
+  createUser:async()=>({error:{message:'simulated failure'},data:{user:stranger}}),
+  deleteUser:async()=>{deletes++;return {error:null};}
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
+  /1 cleanup operations unconfirmed/);
+ assert.equal(reads,2);assert.equal(deletes,0);
+});
+test('Build146 malformed successful createUser subject is not eligible for deletion',async()=>{
+ const wrong={...mockSyntheticAuth(1),email:'unknown-contact@example.invalid'};
+ let reads=0,deletes=0;
+ const admin={
+  listUsers:async()=>({data:{users:++reads===1?[]:[wrong]},error:null}),
+  createUser:async()=>({error:null,data:{user:wrong}}),
+  deleteUser:async()=>{deletes++;return {error:null};}
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
+  /1 cleanup operations unconfirmed/);
+ assert.equal(reads,2);assert.equal(deletes,0);
+});
+test('Build146 unexpected concurrent account stops every automatic Auth deletion',async()=>{
+ const user=mockSyntheticAuth(1);
+ const outside={...mockSyntheticAuth(2),email:'real-contact@example.com'};
+ let subjects=[],writes=0,reads=0,deletes=0;
+ const admin={
+  listUsers:async()=>{reads++;return {data:{users:subjects.map(u=>({...u}))},error:null};},
+  createUser:async()=>{
+   if(++writes===1){subjects.push(user);return {data:{user},error:null};}
+   subjects.push(outside);throw new Error('simulated concurrent Auth creation');
+  },
+  deleteUser:async()=>{deletes++;return {error:null};}
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
+  /2 cleanup operations unconfirmed/);
+ assert.equal(writes,2);assert.equal(reads,3);assert.equal(deletes,0);
+ assert.equal(subjects.length,2);
+});
+test('Build146 clean partial provisioning compensates only confirmed created identity',async()=>{
+ const user=mockSyntheticAuth(1);
+ let subjects=[],writes=0,reads=0,deletes=0;
+ const admin={
+  listUsers:async()=>{reads++;return {data:{users:subjects.map(u=>({...u}))},error:null};},
+  createUser:async()=>{
+   if(++writes===1){subjects.push(user);return {data:{user},error:null};}
+   throw new Error('simulated refusal with no commit');
+  },
+  deleteUser:async id=>{deletes++;subjects=subjects.filter(u=>u.id!==id);return {error:null};}
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
+  /0 cleanup operations unconfirmed/);
+ assert.equal(reads,3);assert.equal(deletes,1);assert.equal(subjects.length,0);
+});
+test('Build146 unavailable Auth precleanup inventory blocks deletion and reports HOLD',async()=>{
+ const user=mockSyntheticAuth(1);
+ let subjects=[],writes=0,reads=0,deletes=0;
+ const admin={
+  listUsers:async()=>{
+   if(++reads===2)return {data:null,error:{message:'simulated unavailable inventory'}};
+   return {data:{users:subjects.map(u=>({...u}))},error:null};
+  },
+  createUser:async()=>{
+   if(++writes===1){subjects.push(user);return {data:{user},error:null};}
+   throw new Error('simulated timeout');
+  },
+  deleteUser:async()=>{deletes++;return {error:null};}
+ };
+ await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
+  /2 cleanup operations unconfirmed/);
+ assert.equal(reads,3);assert.equal(deletes,0);assert.equal(subjects.length,1);
 });

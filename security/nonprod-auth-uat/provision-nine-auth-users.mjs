@@ -169,13 +169,12 @@ export async function provisionNine(plan, admin, saveMapping) {
         // Explicitly no privileged app_metadata, role or user_metadata.
       });
       const u = response?.data?.user;
-      // Record any valid returned UUID for compensation, even if the provider
-      // unexpectedly changed the email or role. We may only delete IDs created
-      // in this invocation, after confirming the tenant started empty.
-      if (u && uuidRE.test(u.id)) {
+      // Build146: UUID in a FAILED or malformed creation response does not
+      // prove this operation owns that account. Never delete it automatically.
+      const verifiedCreation=!response?.error&&isExactSyntheticAuthUser(u,entry.slot);
+      if (verifiedCreation)
         created.push({slot: entry.slot, id: u.id, email: u.email});
-      }
-      if (response?.error || !isExactSyntheticAuthUser(u,entry.slot))
+      if (!verifiedCreation)
         throw new Error(`Synthetic slot ${entry.slot} did not pass user integrity`);
     }
     if (new Set(created.map(u=>u.id)).size !== 9)
@@ -194,11 +193,34 @@ export async function provisionNine(plan, admin, saveMapping) {
     return Object.freeze({created_count:created.length,auth_tenant_verified:true});
   } catch {
     let cleanupFailures = 0;
-    for (const u of created.reverse()) {
+    // Build146: require a fresh exact synthetic-only Auth inventory BEFORE
+    // any delete. If an unknown or altered account appears, preserve ALL
+    // accounts for an authorized operator rather than risk unrelated deletion.
+    let safeToCompensate=true;
+    if (created.length) {
       try {
-        const response = await admin.deleteUser(u.id,false);
-        if (response?.error) cleanupFailures++;
-      } catch { cleanupFailures++; }
+        const inventory=await admin.listUsers({page:1,perPage:100});
+        const found=inventory?.data?.users;
+        if (inventory?.error || !Array.isArray(found) ||
+            found.length!==created.length ||
+            new Set(found.map(u=>u.id)).size!==found.length ||
+            created.some(entry=>!found.some(u=>
+              u.id===entry.id&&isExactSyntheticAuthUser(u,entry.slot)))) {
+          safeToCompensate=false;
+          cleanupFailures++;
+        }
+      } catch {
+        safeToCompensate=false;
+        cleanupFailures++;
+      }
+    }
+    if (safeToCompensate) {
+      for (const u of [...created].reverse()) {
+        try {
+          const response=await admin.deleteUser(u.id,false);
+          if (response?.error)cleanupFailures++;
+        } catch {cleanupFailures++;}
+      }
     }
     // A createUser request may time out AFTER GoTrue committed the account
     // but BEFORE it returned a UUID. A successful delete response is also

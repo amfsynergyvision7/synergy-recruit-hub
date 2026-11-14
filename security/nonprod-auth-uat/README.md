@@ -162,3 +162,11 @@ An explicit `app_metadata.provider: "email"` is **not sufficient by itself** to 
 5. Only after renewed live read-only SQL preflight and independent review consider the protected manual `CREATE_NINE_AND_SEED_38` operation. Independently review all expected fictional users and rows; source tests are not signed hosted UAT evidence.
 
 The source patch is one atomic commit covering implementation, regression tests and this reviewer handoff; it does not by itself close a weighted v1 release gate or imply production approval.
+
+## Build 146 — verified ownership before Auth compensation
+
+A failed or malformed `createUser` response is not evidence that a returned UUID belongs to this invocation, even if the UUID is syntactically valid. The rollback list now includes **only successful, exact fictional-user creations**. Before any `deleteUser` action following a partial failure, a separate protected Auth readback must show **exactly those known-created identities and no unknown or altered user**. Any unexpected/missing subject or unavailable inventory blocks every automatic deletion and requires qualified operator inspection. A final Auth inventory check remains mandatory; errors are generic and contain no account data.
+
+Five new local-only tests cover a failed create response with an unrelated UUID, malformed success, unexpected concurrent user, safe partial compensation and an unavailable cleanup readback. This avoids pretending automatic compensation is always safe. A race between inventory and deletion cannot be eliminated without stronger provider-side transaction controls; an independent reviewer must assess this residual before enabling any privileged workflow.
+
+No actual Auth creations, deletions, hosted data writes or production changes were performed in Build 146.
