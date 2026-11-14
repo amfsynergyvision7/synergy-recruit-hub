@@ -135,7 +135,8 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
   const statusVariant: any = status === "success" ? "default" : status === "partial" || status === "configured" || status === "headers_detected" ? "secondary" : status === "error" ? "destructive" : "outline";
 
   const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
-  const logs = Array.isArray(logsQ.data) ? logsQ.data : [];
+  const logsVerified = !logsQ.isPending && !logsQ.isError && Array.isArray(logsQ.data);
+  const logs = logsVerified ? logsQ.data : [];
   const diagnosticItems = [
     ["Logged user id", diagnostics.loggedUserId ?? "—"],
     ["Settings row found", diagnostics.settingsRowFound ? "YES" : "NO"],
@@ -162,6 +163,10 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
         <p className="text-sm text-muted-foreground">Google Sheets settings, header detection and candidate synchronization are read-only pending independent approval. Historical diagnostics are redacted.</p>
+        {integQ.isError && <p role="alert" className="text-sm text-destructive">Integration settings could not be verified; no configuration status is claimed.</p>}
+        {!logsVerified && <p role="status" className="text-sm text-muted-foreground">
+          {logsQ.isError ? "Restricted sync history unavailable. No empty-history claim is made." : "Verifying restricted sync history…"}
+        </p>}
       </div>
 
       <Card>
@@ -271,8 +276,8 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
               <TableHead>Created</TableHead><TableHead>Updated</TableHead><TableHead>Skipped</TableHead><TableHead>Errors</TableHead><TableHead>Failure Reason</TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {logs.map((l: any) => (
-                <TableRow key={l.id}>
+              {logsVerified && logs.map((l: any, index: number) => (
+                <TableRow key={l.id ?? `legacy-sanitized-${index}`}>
                   <TableCell className="text-xs">{l.created_at ? new Date(l.created_at).toLocaleString() : "—"}</TableCell>
                   <TableCell className="text-xs">{l.triggered_by}</TableCell>
                   <TableCell>
@@ -289,7 +294,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
                   </TableCell>
                 </TableRow>
               ))}
-              {logs.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No sync runs yet.</TableCell></TableRow>}
+              {logsVerified && logs.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No role-visible sync runs in this verified recent-history preview.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
