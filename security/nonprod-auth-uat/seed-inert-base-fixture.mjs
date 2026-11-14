@@ -8,7 +8,7 @@ import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {PROJECT_ID,PROJECT_URL,slotEmail,planFromEnv} from './provision-nine-auth-users.mjs';
+import {PROJECT_ID,PROJECT_URL,slotEmail,planFromEnv,isExactSyntheticAuthUser} from './provision-nine-auth-users.mjs';
 
 export const SEED_ACK='I_ACCEPT_INERT_HOSTED_PROFILE_ROLE_CANDIDATE_FIXTURE_ONLY';
 export const expectedRoles=[
@@ -73,7 +73,9 @@ export async function seedInertBaseFixture(client,mapping,{now=new Date().toISOS
  const expected=new Map(mapping.users.map(u=>[u.id,u.email]));
  if(userList.error || !Array.isArray(userList.data?.users) ||
     userList.data.users.length!==9 ||
-    userList.data.users.some(u=>!expected.has(u.id)||expected.get(u.id)!==u.email))
+    userList.data.users.some(u=>!expected.has(u.id)||expected.get(u.id)!==u.email) ||
+    mapping.users.some(entry=>!userList.data.users.some(u=>
+      u.id===entry.id&&isExactSyntheticAuthUser(u,entry.slot))))
    throw new Error('Abort: exact nine nonproduction GoTrue users not verified');
  for(const t of ['profiles','user_roles','candidates'])await exactEmpty(client,t);
  // Record intended IDs before each call: a timed-out successful POST is still
