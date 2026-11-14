@@ -112,14 +112,6 @@ function coerce(value: any, field: ImportFieldDef): { value: any; error?: string
   return { value: s };
 }
 
-const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function refMap(rows: any[], keys: string[]) {
-  const map = new Map<string, string>();
-  rows.forEach((row) => keys.forEach((key) => row[key] && map.set(String(row[key]).trim().toLowerCase(), row.id)));
-  return map;
-}
-
 function Page() {
   const { user, profile, role, loading } = useAuth();
   if (loading) return <p className="text-sm text-muted-foreground">Checking import authorization…</p>;
@@ -141,7 +133,6 @@ function AdminImportWorkspace() {
   const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [mappedRows, setMappedRows] = useState<MappedRow[]>([]);
-  const [existingKeys, setExistingKeys] = useState<Set<string>>(new Set());
   const [updateExisting, setUpdateExisting] = useState(true);
   const [skipInvalid, setSkipInvalid] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -156,7 +147,7 @@ function AdminImportWorkspace() {
 
   const reset = () => {
     setStep("upload"); setFile(null); setFileHeaders([]); setRawRows([]);
-    setMapping({}); setMappedRows([]); setExistingKeys(new Set()); setProgress(0); setResult(null);
+    setMapping({}); setMappedRows([]); setProgress(0); setResult(null);
     setAssignedRecruiter(""); importRequestId.current = null;
   };
 
@@ -175,32 +166,12 @@ function AdminImportWorkspace() {
     }
   };
 
-  const buildPreview = async () => {
-    // Validate required mappings
+  const buildPreview = () => {
+    // Release-hold: strictly local validation. Never query existing candidates,
+    // clients, employee directories, jobs or finance for an offline preview.
     const missing = schema.fields.filter((f) => f.required && !mapping[f.name]).map((f) => f.label);
     if (missing.length) { toast.error("Map required fields: " + missing.join(", ")); return; }
-
-    // Fetch existing unique keys for duplicate detection
-    const { data: existing } = await supabase.from(schema.table as any).select(schema.uniqueField);
-    const keys = new Set<string>((existing ?? []).map((r: any) => String(r[schema.uniqueField] ?? "").toLowerCase()).filter(Boolean));
-    setExistingKeys(keys);
-
-    const [{ data: candidateRefs }, { data: clientRefs }, { data: jobRefs }] = await Promise.all([
-      supabase.from("candidates" as any).select("id,candidate_code,email,full_name"),
-      supabase.from("clients" as any).select("id,company_name,email"),
-      supabase.from("job_openings" as any).select("id,job_title"),
-    ]);
-    const candidates = refMap(candidateRefs ?? [], ["id", "candidate_code", "email", "full_name"]);
-    const clients = refMap(clientRefs ?? [], ["id", "company_name", "email"]);
-    const jobs = refMap(jobRefs ?? [], ["id", "job_title"]);
-
-    const resolveRef = (value: any, map: Map<string, string>) => {
-      const raw = String(value ?? "").trim();
-      if (!raw) return null;
-      if (uuidRe.test(raw)) return raw;
-      return map.get(raw.toLowerCase()) ?? null;
-    };
-
+    const keys = new Set<string>();
     const out: MappedRow[] = rawRows.map((raw, i) => {
       const data: Record<string, any> = {};
       const errors: RowError[] = [];
@@ -211,23 +182,10 @@ function AdminImportWorkspace() {
         if (error) errors.push({ row: i + 2, field: f.name, message: `${f.label}: ${error}` });
         if (value !== null && value !== undefined && value !== "") data[f.name] = value;
       });
-      if (moduleKey !== "candidates" && data.candidate_id) {
-        const id = resolveRef(data.candidate_id, candidates);
-        if (id) { data.candidate_uuid = id; data.candidate_id = id; }
-        else errors.push({ row: i + 2, field: "candidate_id", message: `Candidate not found: ${data.candidate_id}` });
-      }
-      if (["jobs", "submissions", "interviews", "offers", "billing"].includes(moduleKey) && data.client_id) {
-        const id = resolveRef(data.client_id, clients);
-        if (id) { data.client_uuid = id; data.client_id = id; }
-        else errors.push({ row: i + 2, field: "client_id", message: `Client not found: ${data.client_id}` });
-      }
-      if (moduleKey === "submissions" && data.job_id) {
-        const id = resolveRef(data.job_id, jobs);
-        if (id) { data.job_uuid = id; data.job_id = id; }
-        else errors.push({ row: i + 2, field: "job_id", message: `Job not found: ${data.job_id}` });
-      }
-      const keyVal = String(data[schema.uniqueField] ?? "").toLowerCase();
+      const keyVal = String(data[schema.uniqueField] ?? "").trim().toLowerCase();
       const isDuplicate = !!keyVal && keys.has(keyVal);
+      if (isDuplicate) errors.push({ row: i + 2, field: schema.uniqueField, message: "Repeated key in uploaded file" });
+      if (keyVal) keys.add(keyVal);
       return { data, errors, isDuplicate, rowIndex: i + 2 };
     });
     setMappedRows(out);
@@ -386,7 +344,7 @@ function AdminImportWorkspace() {
             ))}
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={reset}>Back</Button>
-              <Button onClick={buildPreview}>Preview Import</Button>
+              <Button onClick={buildPreview}>Offline Preview</Button>
             </div>
           </CardContent>
         </Card>
@@ -396,14 +354,14 @@ function AdminImportWorkspace() {
         <Card>
           <CardHeader>
             <CardTitle>4. Preview</CardTitle>
-            <CardDescription>{moduleKey === "candidates" ? "Create-only preview; all 1–50 rows must be valid. No stage changes or existing-record updates." : "Review before importing. Writes remain paused."}</CardDescription>
+            <CardDescription>Offline file checks only; existing CRM records, database references and recruiter status are not verified. Imports remain paused.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">Total: {mappedRows.length}</Badge>
-              <Badge className="bg-emerald-600 hover:bg-emerald-600">Valid: {validCount}</Badge>
+              <Badge className="bg-emerald-600 hover:bg-emerald-600">Locally valid: {validCount}</Badge>
               <Badge variant="destructive">Errors: {errorCount}</Badge>
-              <Badge variant="outline">Duplicates: {duplicateCount}</Badge>
+              <Badge variant="outline">Repeated file keys: {duplicateCount}</Badge>
             </div>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm">
@@ -438,7 +396,7 @@ function AdminImportWorkspace() {
                       <TableCell>
                         {r.errors.length ? <Badge variant="destructive">Invalid</Badge>
                           : r.isDuplicate ? <Badge variant="outline">Duplicate</Badge>
-                          : <Badge className="bg-emerald-600 hover:bg-emerald-600">New</Badge>}
+                          : <Badge className="bg-emerald-600 hover:bg-emerald-600">Locally valid</Badge>}
                       </TableCell>
                       {schema.fields.slice(0, 5).map((f) => (
                         <TableCell key={f.name} className="max-w-[180px] truncate">{String(r.data[f.name] ?? "")}</TableCell>
