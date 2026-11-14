@@ -82,6 +82,8 @@ on:
       - 'security/build117/**'
       - 'security/build118/**'
       - 'security/build119/**'
+      - 'security/build120/**'
+      - 'security/release-progress/**'
       - 'src/lib/private-query-cache-fence.ts'
       - 'src/routes/__root.tsx'
       - 'src/components/EmailComposeDialog.tsx'
