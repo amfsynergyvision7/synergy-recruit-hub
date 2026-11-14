@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 125,
+  "snapshot_build": 126,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -10,7 +10,7 @@
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "ad8b5d2b0e50df692dfe0c3b80a2236a2d88659b",
+      "pr12_head": "d40e12a7d879634c687ede0712d36df54c606060",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -136,6 +136,23 @@
       "independent_role_rls_accepted": false,
       "external_messages_sent": 0,
       "production_writes": 0
+    },
+    "import_board_privacy": {
+      "stage": "DRAFT_LOCAL_PREVIEW_AND_ROLE_SCOPED_BROWSER_ONLY",
+      "reviewed_source_commit": "102118c1609806df8b054c194b3e240c4a3fae60",
+      "first_fast_ci_run": "43568314046",
+      "import_reads_private_crm_tables": false,
+      "importer_requires_verified_admin": true,
+      "imported_file_duplicates_checked_locally": true,
+      "existing_record_conflicts_verified": false,
+      "candidate_board_partial_counts_refused": true,
+      "candidate_board_unfiltered_realtime_enabled": false,
+      "candidate_board_cap": 250,
+      "recruiter_lookup_email_directory_read": false,
+      "hosted_signed_uat_accepted": 0,
+      "independent_rls_review_accepted": false,
+      "staging_or_production_writes": 0,
+      "finance_or_ai_external_effects_enabled": false
     }
   },
   "statuses": [
@@ -387,8 +404,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build125 engineering: approved-admin-only employee directory and candidate activity metadata reads; remove wildcard and notes/user fields; count-gate user role listings and ambiguity, redact errors, remove broad realtime activity feed; permanently pause AI match browser entry while external effects held, and return only a scored deep match from server (not raw resume). 456/456 fast tests passed on first head, guarded compilation to be rechecked at final HEAD. Fixed score remains 26/100: 12/43 gates evidenced, no new independent RLS or hosted acceptance, no workstream fully signed.",
-  "previous_file": "build124-evidence-baseline.json",
+  "notes": "Build126 actual draft app changes: bulk-import preview uses file-local validation only, no private CRM read; admin identity-gated/keyed workspace; recruiter picker uses scoped active-role IDs without email directory; candidate-board read reconciles exact counts, rejects cap/duplicates, cancels stale responses, and removes unfiltered realtime. New tests and CI wiring committed; the first fast test run succeeded on source head. No accepted server/RLS review, protected main, signed hosted UAT or production release. Score remains 26/100: 12/43 evidenced, 31 open, 74 points outstanding. Git SHA is the last verified pre-snapshot repository head.",
+  "previous_file": "build125-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
