@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 130,
+  "snapshot_build": 131,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -10,7 +10,7 @@
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "8080da76cfd7e25c9715e190c2b18b927b5a7af2",
+      "pr12_head": "32f68caac4b2d77a902859e7ea8c4071671cdd6a",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -284,6 +284,51 @@
       "performed_only_readonly_sql": true,
       "accepted_hosted_uat_cases": 0,
       "lab_go_true_and_fixture_provisioning_done": false
+    },
+    "build131_paged_browser_crm": {
+      "stage": "DRAFT_BOUNDED_CLIENT_READS_PENDING_SIGNED_SERVER_RLS",
+      "crm_page_size": 250,
+      "crm_max_rows": 2500,
+      "main_list_count_reconciled": true,
+      "relation_lists_count_reconciled": true,
+      "candidate_board_count_reconciled": true,
+      "count_drift_or_duplicate_ids_fail_closed": true,
+      "stale_requests_abort": true,
+      "invalid_candidate_board_stages_fail_closed": true,
+      "edits_deletions_exports_withheld_until_source_and_relation_verified": true,
+      "candidate_stage_write_hold_retained": true,
+      "finance_mutation_holds_retained": true,
+      "shared_crud_wildcard_projection_remains_unapproved": true,
+      "hosted_role_rls_accepted": false,
+      "production_mutations_or_db_writes_executed": 0,
+      "branch_merged": false
+    },
+    "build131_evidence": {
+      "previous_build130_fast_passed": 610,
+      "previous_build130_guarded_substantive_jobs_success": 36,
+      "previous_build130_guarded_intentional_hold_failure": 1,
+      "current_intermediate_fast_ci_run": "43579124590",
+      "current_intermediate_fast_tests_passed": 647,
+      "current_intermediate_fast_failed": 0,
+      "final_head_fast_ci_verified": false,
+      "final_head_guarded_ci_verified": false,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "protected_main": false,
+      "hosted_signed_uat_accepted": 0,
+      "production_security_remediations_accepted": 0,
+      "release_signoffs": 0
+    },
+    "build131_lab_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "project_status": "ACTIVE_HEALTHY",
+      "public_tables": 19,
+      "public_rls_enabled": 19,
+      "public_rls_policies": 0,
+      "auth_users": 0,
+      "fixture_rows_reported": 0,
+      "public_enabled_application_triggers": 0,
+      "mutations_executed": 0
     }
   },
   "statuses": [
@@ -535,8 +580,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build130 actual draft report and notification integrity work: source stage/foreign-key/legacy alias consistency validated before recruitment KPI computation; unassigned activity retained rather than silently dropped; invalid or reversed dates block data/export, local date presets avoid UTC rollover. Header notification badge explicitly distinguishes unverifiable unread counts from verified zero. Read-only dedicated lab audit: 19/19 public tables RLS enabled, 0 Auth users, exactly 0 rows across all 19 tables, 0 public policies and 0 enabled public application triggers. Main protection absent, PR12/15 unmerged and without independent reviews, production hold on. Fixed 43-gate score 26/100, 12/43 evidenced, 31 open; first exact-head fast/guarded CI must be verified separately. Git SHA is last inspected pre-snapshot source head.",
-  "previous_file": "build129-evidence-baseline.json",
+  "notes": "Build131 draft only: reused count-reconciled 250-page / 2500-max ID-pagination for shared CRM rows, relation selectors and candidate board. Full ID snapshot is sorted locally for former created_at / configured display order, and failed/partial relation metadata blocks editing and CSV. Offline tests: corrected intermediate head 647/647 PASS; exact final-head runs must be rechecked. Build130 verified 610/610 fast, 36 substantive guarded jobs and only intentional production hold failed. Dedicated lab remains 19/19 public RLS enabled, 0 public policies, 0 Auth users/rows/triggers in read-only audit. No hosted write, main merge, deployment, production/finance activation or independent approvals. Fixed 43-gate programme score 26/100, 12 evidenced and 31 open.",
+  "previous_file": "build130-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
