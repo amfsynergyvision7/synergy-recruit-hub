@@ -89,3 +89,10 @@ test("Build132 production-release hold remains in guarded CI",()=>{
  assert(workflow.includes("production-release-hold:"));
  assert(workflow.includes("exit 1"));
 });
+
+test("Build132 fast CI executes both independent historical candidate and finance holds",()=>{
+ const section=fast.slice(fast.indexOf("critical-write-hold-contracts:"),
+   fast.indexOf("hosted-uat-offline-contracts:"));
+ assert(section.includes("node --test security/build50/source-contract.test.mjs security/build56/source-contract.test.mjs"));
+ assert(!section.includes("secrets."));
+});
