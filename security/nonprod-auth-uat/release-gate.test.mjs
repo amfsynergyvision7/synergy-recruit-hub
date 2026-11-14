@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {executionPlan,validateSnapshot,validateReadOnlyAudit,verifyInertHostedContents,runGuardedHostUat,MANUAL_CONFIRMATION,PREFLIGHT_CONFIRMATION,BASE_COUNTS} from './run-once.mjs';
-import {makeBaseFixture} from './seed-inert-base-fixture.mjs';
-import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
+import {makeBaseFixture,seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
+import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture,seedExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
 import {slotEmail} from './provision-nine-auth-users.mjs';
 import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 
@@ -747,4 +747,62 @@ test('Build114 synthetic profile/CRM egress fields cannot hide real contact data
   tables[table][0][field]=old;
  }
  assert.equal(writes(),0,'Audit cannot mutate the database');
+});
+
+ 
+// Build140 regression: the service-role REST endpoint can return HTTP 200 but
+// delete zero rows under an unexpected policy/permission state. That is NOT a
+// verified compensating rollback. All mocks remain local/in-memory.
+const rollbackFake=(mapping,{extended,returned='empty'}={})=>{
+ const users=mapping.users;
+ let deletes=0;
+ return {
+  client:{
+   auth:{admin:{listUsers:async()=>({data:{users},error:null})}},
+   from:table=>({
+    select:async(_projection,opts)=>{
+     if(opts?.head)return {count:extended?(BASE_COUNTS[table]??0):0,error:null};
+     if(table==='candidates')return {data:users.slice(1,3).map(u=>({
+      id:u.id,assigned_recruiter:u.id
+     })),error:null};
+     return {data:[],error:null};
+    },
+    insert:()=>({select:async()=>({error:{message:'in-memory simulated failed insert'},data:null})}),
+    delete:()=>({in:(_column,ids)=>({select:async()=>{
+     deletes++;
+     return {error:null,data:returned==='exact'?
+      ids.map(id=>({id})):returned==='duplicate'?
+      ids.map(()=>({id:ids[0]})):returned==='wrong'?
+      ids.map(()=>({id:'00000000-0000-0000-0000-999999999999'})):[]};
+    }})})
+   })
+  },
+  deleteCalls:()=>deletes
+ };
+};
+test('Build140 base rollback flags 200 OK with zero, duplicate or unrelated deleted IDs',async()=>{
+ const {users}=fakeFullInertClient();
+ const mapping={project_id:project,users};
+ for(const returned of ['empty','duplicate','wrong']){
+  const f=rollbackFake(mapping,{extended:false,returned});
+  await assert.rejects(seedInertBaseFixture(f.client,mapping),
+   /1 cleanup calls unconfirmed/);
+  assert.equal(f.deleteCalls(),1);
+ }
+ const exact=rollbackFake(mapping,{extended:false,returned:'exact'});
+ await assert.rejects(seedInertBaseFixture(exact.client,mapping),
+  /0 cleanup calls unconfirmed/);
+});
+test('Build140 extended rollback flags silent and incorrect deleted IDs',async()=>{
+ const {users}=fakeFullInertClient();
+ const mapping={project_id:project,users};
+ for(const returned of ['empty','wrong']){
+  const f=rollbackFake(mapping,{extended:true,returned});
+  await assert.rejects(seedExtendedFixture(f.client,mapping),
+   /1 table cleanup results unconfirmed/);
+  assert.equal(f.deleteCalls(),1);
+ }
+ const exact=rollbackFake(mapping,{extended:true,returned:'exact'});
+ await assert.rejects(seedExtendedFixture(exact.client,mapping),
+  /0 table cleanup results unconfirmed/);
 });
