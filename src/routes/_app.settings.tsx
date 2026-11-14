@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAdminResumeFolder, updateAdminSetting } from "@/lib/admin-settings";
 import { CRM_PROFILE_MUTATIONS_ENABLED, updateOwnCRMProfile } from "@/lib/profile-settings";
-import { LEGACY_BULK_IMPORT_WRITES_PAUSED } from "@/lib/release-safety";
+import { LEGACY_BULK_IMPORT_WRITES_PAUSED, CRM_ORG_SETTINGS_MUTATIONS_PAUSED } from "@/lib/release-safety";
 import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
@@ -76,6 +76,10 @@ function ApprovedSettingsWorkspace() {
   };
 
   const uploadLogo = async (file: File) => {
+    if (CRM_ORG_SETTINGS_MUTATIONS_PAUSED) {
+      toast.error("Organization branding updates are paused pending release approval.");
+      return;
+    }
     if (uploading) return;
     // Reject executable SVG and MIME-spoofed bytes before any storage write.
     // Server storage policies remain authoritative: this adds browser defense.
@@ -108,6 +112,10 @@ function ApprovedSettingsWorkspace() {
   };
 
   const setOrgDefaultTheme = async (id: ColorThemeId) => {
+    if (CRM_ORG_SETTINGS_MUTATIONS_PAUSED) {
+      toast.error("Organization branding updates are paused pending release approval.");
+      return;
+    }
     const { error } = await updateAdminSetting("default_color_theme", id);
     if (error) return toast.error("Settings update could not be verified.");
     toast.success("Organization default theme updated");
@@ -115,6 +123,10 @@ function ApprovedSettingsWorkspace() {
   };
 
   const removeLogo = async () => {
+    if (CRM_ORG_SETTINGS_MUTATIONS_PAUSED) {
+      toast.error("Organization branding updates are paused pending release approval.");
+      return;
+    }
     setUploading(true);
     await supabase.storage.from("branding").remove([LOGO_STORAGE_PATH]);
     const { error } = await updateAdminSetting("logo_url", null);
@@ -144,14 +156,15 @@ function ApprovedSettingsWorkspace() {
           <CardTitle>Theme</CardTitle>
           <CardDescription>
             Pick a color theme for your own view — it also changes the mandala mark in the sidebar, the top-right watermark, and the sign-in screen.
-            {role === "admin" && " As an admin, you can also set which one new/signed-out visitors see by default."}
+            {role === "admin" && !CRM_ORG_SETTINGS_MUTATIONS_PAUSED
+              && " As an admin, you can also set which one new/signed-out visitors see by default."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ThemePicker
-            isAdmin={role === "admin"}
+            isAdmin={role === "admin" && !CRM_ORG_SETTINGS_MUTATIONS_PAUSED}
             orgDefault={defaultColorTheme}
-            onSetOrgDefault={role === "admin" ? setOrgDefaultTheme : undefined}
+            onSetOrgDefault={role === "admin" && !CRM_ORG_SETTINGS_MUTATIONS_PAUSED ? setOrgDefaultTheme : undefined}
           />
         </CardContent>
       </Card>
@@ -159,7 +172,7 @@ function ApprovedSettingsWorkspace() {
         <Card>
           <CardHeader>
             <CardTitle>Branding</CardTitle>
-            <CardDescription>Upload your company logo. It appears next to the AMF Synergy Vision mark in the sidebar and on the sign-in page.</CardDescription>
+            <CardDescription>Organization branding is read-only until the storage and admin-setting permissions receive independent release approval. Existing logos remain visible.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
@@ -187,11 +200,11 @@ function ApprovedSettingsWorkspace() {
               }}
             />
             <div className="flex gap-2">
-              <Button variant="outline" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+              <Button variant="outline" disabled={uploading || CRM_ORG_SETTINGS_MUTATIONS_PAUSED} onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-2" />{uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}
               </Button>
               {logoUrl && (
-                <Button variant="ghost" disabled={uploading} onClick={removeLogo}>
+                <Button variant="ghost" disabled={uploading || CRM_ORG_SETTINGS_MUTATIONS_PAUSED} onClick={removeLogo}>
                   <Trash2 className="h-4 w-4 mr-2 text-destructive" />Remove
                 </Button>
               )}
