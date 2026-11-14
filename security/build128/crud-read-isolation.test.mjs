@@ -64,11 +64,12 @@ test("Build128 shared CRUD UI is keyed to exact approved subject, role and table
  assert(ui.includes("function VerifiedCrudWorkspace("));
 });
 
-test("Build128 record lists use exact counts and an explicit 250-row bound",()=>{
+test("Build128 record lists retain count verification after Build131 page-based scale-up",()=>{
  assert(ui.includes('select("*", { count: "exact" })'));
- assert(ui.includes(".limit(MAX_CRUD_ROWS).abortSignal(controller.signal)"));
- assert(ui.includes("hasCompleteIdList(data, count, MAX_CRUD_ROWS)"));
- assert(ui.includes("const MAX_CRUD_ROWS = 250"));
+ assert(ui.includes("readCompleteCrmRows((from, to, signal) =>"));
+ assert(ui.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
+ assert(ui.includes("sortCompleteCrmRows(data"));
+ assert(!ui.includes(".limit(MAX_CRUD_ROWS)"));
 });
 
 test("Build128 relation choices have exact counts and reject incomplete reads",()=>{
