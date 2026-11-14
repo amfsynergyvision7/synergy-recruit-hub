@@ -78,12 +78,14 @@ test("Build126 recruiter picker rejects incomplete, duplicate and stale reads", 
   assert(candidatePage.includes("if (!current || controller.signal.aborted) return"));
 });
 
-test("Build126 board rejects potentially capped partial candidate stage data", () => {
+test("Build126 board rejects capped data with Build131 exact ID pagination", () => {
   assert(board.includes('{ count: "exact" }'));
-  assert(board.includes(".order(\"id\", { ascending: true }).limit(250)"));
-  assert(board.includes("count! > 250"));
-  assert(board.includes("data.length !== count"));
-  assert(board.includes("new Set(data.map(row => row.id)).size !== data.length"));
+  assert(board.includes("readCompleteCrmRows((from, to, signal) =>"));
+  assert(board.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
+  const helper=src("src/lib/bounded-report-read.ts");
+  assert(helper.includes("if (result.count! > REPORT_MAX_ROWS)"));
+  assert(helper.includes("if (result.data.length !== needed)"));
+  assert(helper.includes("seen.has(row.id)"));
   assert(board.includes("No partial pipeline is displayed"));
 });
 
@@ -91,7 +93,7 @@ test("Build126 candidate board aborts previous and unmounted requests", () => {
   assert(board.includes("requestController.current?.abort()"));
   assert(board.includes("epoch !== loadEpoch.current"));
   assert(board.includes("return () => { loadEpoch.current++; requestController.current?.abort(); }"));
-  assert(board.includes(".abortSignal(controller.signal)"));
+  assert(board.includes(".abortSignal(signal)"));
 });
 
 test("Build126 board no longer subscribes to all candidate events or leaks backend errors", () => {
