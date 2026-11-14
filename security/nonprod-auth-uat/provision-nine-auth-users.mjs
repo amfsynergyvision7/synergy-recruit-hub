@@ -51,14 +51,15 @@ export function isExactSyntheticAuthUser(u,slot) {
   if (u.identities!=null) {
     if (!Array.isArray(u.identities) || u.identities.length!==1)
       return false;
-    const identity=u.identities[0];
+    const identity=u.identities[0],data=identity?.identity_data;
     if (identity?.provider!=='email' || identity.user_id!==u.id ||
-        (identity.identity_data?.email!=null &&
-          identity.identity_data.email!==u.email) ||
-        (identity.identity_data?.sub!=null &&
-          identity.identity_data.sub!==u.id) ||
-        (identity.identity_data?.email_verified!=null &&
-          identity.identity_data.email_verified!==true))
+        !data || typeof data!=='object' || Array.isArray(data) ||
+        Object.keys(data).some(k=>
+          !['email','sub','email_verified','phone_verified'].includes(k)) ||
+        data.email!==u.email ||
+        (data.sub!=null && data.sub!==u.id) ||
+        (data.email_verified!=null && data.email_verified!==true) ||
+        (data.phone_verified!=null && data.phone_verified!==false))
       return false;
   }
   return true;
