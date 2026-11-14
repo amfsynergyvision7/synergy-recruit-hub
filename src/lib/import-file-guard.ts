@@ -36,7 +36,13 @@ export function validateImportGrid(grid: ImportGrid): string | null {
   // Deny pathological cell payloads before rendering or further processing.
   for (const row of grid.rows) {
     if (!row || typeof row !== "object" || Array.isArray(row)) return "Invalid data row.";
-    if (Object.keys(row).length > MAX_IMPORT_PREVIEW_COLUMNS) return "Too many columns.";
+    const keys = Object.keys(row);
+    if (keys.length > MAX_IMPORT_PREVIEW_COLUMNS) return "Too many columns.";
+    // A parser must not smuggle unrecognized fields into the preview.
+    // In particular, reject PapaParse's __parsed_extra and spreadsheet
+    // auto-renamed headers even if their values are otherwise harmless.
+    if (keys.some(key => !names.has(key.trim().toLocaleLowerCase("en"))))
+      return "Unexpected or ambiguous data column.";
     for (const value of Object.values(row)) {
       if (typeof value === "string" && value.length > MAX_IMPORT_CELL_CHARS)
         return "A cell exceeds the preview length limit.";
