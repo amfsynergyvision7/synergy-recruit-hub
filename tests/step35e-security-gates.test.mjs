@@ -16,8 +16,8 @@ test('SEC-03 server rechecks approved active profile on each request', () => {
   assert.match(middleware, /profileError\s*\|\|\s*!profile\s*\|\|\s*profile\.status\s*!==\s*'approved'\s*\|\|\s*profile\.is_active\s*!==\s*true/);
   assert.match(middleware, /status:\s*403/);
 });
-test('SEC-01 server fails closed on project URL mismatch', () => {
-  assert.match(middleware, /new URL\(SUPABASE_URL\)\.hostname/);
-  assert.match(middleware, /host\s*!==\s*\x60\$\{expectedProject\}\.supabase\.co\x60/);
-  assert.match(middleware, /Supabase project mismatch/);
+test('SEC-01 server uses canonical URL validation before auth', () => {
+  assert.match(middleware, /assertMatchingSupabaseProject\(SUPABASE_URL, expectedProject\)/);
+  assert.ok(middleware.indexOf('assertMatchingSupabaseProject(SUPABASE_URL, expectedProject)') < middleware.indexOf('const request = getRequest()'));
+  assert.match(middleware, /Invalid or mismatched Supabase endpoint/);
 });
