@@ -69,7 +69,10 @@ function OwnedNotifications({ userId }: { userId: string }) {
               .select("id,user_id,title,message,type,is_read,created_at", { count: "exact" })
               .eq("user_id", userId)
               .order("id", { ascending: true }).range(from, to).abortSignal(signal);
-            return { data: result.data, count: result.count, error: result.error };
+            return {
+              data: result.data === null ? null : verifyOwnedNotificationRows(result.data, userId),
+              count: result.count, error: result.error,
+            };
           }, controller.signal);
         if (!active || controller.signal.aborted || ticket !== newestRequest) return;
         // A foreign-owner row is a source integrity failure, not permission
