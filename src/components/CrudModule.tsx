@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { hasCompleteIdList } from "@/lib/crm-list-integrity";
+import { CRM_MAX_ROWS, CRM_PAGE_SIZE, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
 import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail, RefreshCw } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
 import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
@@ -147,19 +148,26 @@ export function CrudModule(props: Props) {
   return <VerifiedCrudWorkspace key={user!.id + ":" + role + ":" + props.table} {...props} />;
 }
 
-const MAX_CRUD_ROWS = 250;
 const MAX_RELATION_ROWS = 250;
 function VerifiedCrudWorkspace({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
   const { role } = useAuth();
   const candidateMutationPaused = module === "candidates" && LEGACY_CANDIDATE_WRITES_PAUSED;
   const billingMutationPaused = module === "billing" && LEGACY_BILLING_MUTATIONS_PAUSED;
-  const editable = canEdit(role, module) && !candidateMutationPaused && !billingMutationPaused;
-  const deletable = canDelete(role) && !candidateMutationPaused && !billingMutationPaused;
   const [mailingRow, setMailingRow] = useState<any | null>(null);
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [rowsVerified, setRowsVerified] = useState(false);
   const [relationsFailed, setRelationsFailed] = useState(false);
+  const [relationsLoaded, setRelationsLoaded] = useState(false);
+  // Mutations are unavailable until both the entire row snapshot and every
+  // referenced selector have been confirmed. Do not edit partial data.
+  const verifiedForMutation = rowsVerified && relationsLoaded && !loading &&
+    !loadFailed && !relationsFailed;
+  const editable = canEdit(role, module) && verifiedForMutation &&
+    !candidateMutationPaused && !billingMutationPaused;
+  const deletable = canDelete(role) && verifiedForMutation &&
+    !candidateMutationPaused && !billingMutationPaused;
   const rowsEpoch = useRef(0);
   const rowsController = useRef<AbortController | null>(null);
   const relationEpoch = useRef(0);
@@ -234,24 +242,26 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     setOpen(false);
     setForm({});
     setLoading(true);
+    setRowsVerified(false);
     setLoadFailed(false);
     try {
-      // This is an intentionally bounded *browser* read, not server RLS.
-      // Reject default PostgREST result caps rather than silently exporting
-      // a plausible but incomplete business-wide table.
-      const q = supabase.from(table as any).select("*", { count: "exact" });
-      const { data, error, count } = await (orderBy
-        ? q.order(orderBy.column, { ascending: orderBy.ascending ?? false })
-        : q.order("created_at", { ascending: false }))
-        .limit(MAX_CRUD_ROWS).abortSignal(controller.signal);
+      // Full role-visible snapshot, up to 2,500 rows, read in checked ID
+      // pages. Refuse truncation, count drift, duplicated IDs and over-cap
+      // lists before showing records, enabling edits or exporting CSV.
+      const data = await readCompleteCrmRows((from, to, signal) =>
+        supabase.from(table as any)
+          .select("*", { count: "exact" })
+          .order("id", { ascending: true }).range(from, to).abortSignal(signal),
+        controller.signal);
       if (controller.signal.aborted || epoch !== rowsEpoch.current) return;
-      if (error || !hasCompleteIdList(data, count, MAX_CRUD_ROWS)) {
-        setLoadFailed(true);
-        return;
-      }
-      setRows(data);
+      setRows(sortCompleteCrmRows(data, orderBy?.column ?? "created_at", orderBy?.ascending ?? false));
+      setRowsVerified(true);
     } catch {
-      if (!controller.signal.aborted && epoch === rowsEpoch.current) setLoadFailed(true);
+      if (!controller.signal.aborted && epoch === rowsEpoch.current) {
+        setRows([]);
+        setRowsVerified(false);
+        setLoadFailed(true);
+      }
     } finally {
       if (!controller.signal.aborted && epoch === rowsEpoch.current) setLoading(false);
     }
@@ -263,9 +273,13 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     const controller = new AbortController();
     relationController.current = controller;
     setRelationOptions({});
+    setRelationsLoaded(false);
     setRelationsFailed(false);
     const relationFields = fields.filter((field) => field.relation);
-    if (!relationFields.length) return;
+    if (!relationFields.length) {
+      setRelationsLoaded(true);
+      return;
+    }
     try {
       const entries = await Promise.all(relationFields.map(async field => {
         const { data, error, count } = await supabase.from(field.relation!.table as any)
@@ -275,11 +289,14 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
           throw new Error("Incomplete relation metadata");
         return [field.name, data] as const;
       }));
-      if (!controller.signal.aborted && epoch === relationEpoch.current)
+      if (!controller.signal.aborted && epoch === relationEpoch.current) {
         setRelationOptions(Object.fromEntries(entries));
+        setRelationsLoaded(true);
+      }
     } catch {
       if (!controller.signal.aborted && epoch === relationEpoch.current) {
         setRelationOptions({});
+        setRelationsLoaded(false);
         setRelationsFailed(true);
       }
     }
@@ -289,7 +306,9 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     setSelected(new Set());
     setColumnFilters({});
     setRows([]);
+    setRowsVerified(false);
     setRelationOptions({});
+    setRelationsLoaded(false);
     void load();
     void loadRelations();
     // Never subscribe to cross-record realtime events without an approved
@@ -518,6 +537,10 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   // construction — filter Candidates down to one recruiter's "joined" stage
   // before exporting, and only those rows come out — with zero extra UI.
   const exportCsv = () => {
+    if (!verifiedForMutation) {
+      toast.error("Record export unavailable until complete source and relation reads are verified.");
+      return;
+    }
     const headers = tableFields.map((f) => f.label);
     const dataRows = filtered.map((r) => tableFields.map((f) => cellDisplayValue(r, f, relationOptions)));
     const csv = rowsToCsv(headers, dataRows);
@@ -671,8 +694,8 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   return (
     <div className="space-y-4">
       {loadFailed && <p className="text-sm text-destructive">Record list is incomplete or unavailable. No partial results or exports are shown.</p>}
-      {relationsFailed && <p className="text-sm text-destructive">Related record choices are incomplete or unavailable.</p>}
-      {!loadFailed && !loading && <p className="text-xs text-muted-foreground">Verified bounded read: {rows.length} role-visible records (maximum 250). Manual refresh; no unrestricted realtime.</p>}
+      {relationsFailed && <p className="text-sm text-destructive">Related record choices are incomplete or unavailable. Editing and exports are withheld.</p>}
+      {rowsVerified && !loadFailed && !loading && <p className="text-xs text-muted-foreground">Verified {rows.length} role-visible records in {CRM_PAGE_SIZE}-row ID pages (maximum {CRM_MAX_ROWS}). Manual refresh; no unrestricted realtime.</p>}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">{title}</h1>
@@ -730,7 +753,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
           <Button
             variant="outline"
             onClick={exportCsv}
-            disabled={filtered.length === 0}
+            disabled={filtered.length === 0 || !verifiedForMutation}
           >
             <Download className="h-4 w-4 mr-2"/>
             Export CSV
