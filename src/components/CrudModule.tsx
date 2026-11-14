@@ -227,6 +227,11 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     rowsController.current = controller;
     setRows([]);
     setSelected(new Set());
+    setMailingRow(null);
+    setViewing(null);
+    setEditing(null);
+    setOpen(false);
+    setForm({});
     setLoading(true);
     setLoadFailed(false);
     try {
@@ -401,7 +406,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
         expectedUpdatedAt: editing?.updated_at ?? null,
         fields: payload,
       });
-      if (error) return toast.error(error.message);
+      if (error) return toast.error("Candidate write could not be verified.");
       toast.success(editing ? "Updated" : "Created");
       setOpen(false);
       load();
@@ -418,7 +423,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
           .update(payload).eq("id", editing.id).select("id").maybeSingle();
         if (error || (data as unknown as { id?: string } | null)?.id !== editing.id) {
           if (!error) await load();
-          return toast.error(error?.message ?? "Update not confirmed; check permissions and refresh before retrying.");
+          return toast.error("Update not confirmed; check permissions and refresh before retrying.");
         }
         toast.success("Updated");
       } else {
@@ -428,7 +433,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
           .insert(payload).select("id").maybeSingle();
         if (error || !(data as unknown as { id?: string } | null)?.id) {
           if (!error) await load();
-          return toast.error(error?.message ?? "Creation not confirmed; inspect records before retrying.");
+          return toast.error("Creation not confirmed; inspect records before retrying.");
         }
         toast.success("Created");
       }
@@ -454,7 +459,7 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
         .delete().eq("id", row.id).select("id").maybeSingle();
       if (error || (data as unknown as { id?: string } | null)?.id !== row.id) {
         if (!error) await load();
-        return toast.error(error?.message ?? "Deletion not confirmed; check permissions before retrying.");
+        return toast.error("Deletion not confirmed; check permissions before retrying.");
       }
       toast.success("Deleted"); load();
     } catch {
