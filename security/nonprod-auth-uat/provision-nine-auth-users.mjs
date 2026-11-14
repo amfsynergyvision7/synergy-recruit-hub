@@ -14,6 +14,56 @@ export const slotEmail = (index) =>
   `amf-uat-${String(index).padStart(2,'0')}@example.invalid`;
 const uuidRE = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const secretRE = /^(?:sb_secret_[A-Za-z0-9_-]{16,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/;
+/**
+ * Build143: all hosted test subjects must remain nine confirmed email-only
+ * fictional identities, without an external contact route, privileged claims,
+ * unexpected IdP linkage, or user-supplied personal metadata.
+ * This checks user details locally; never print the source User object.
+ */
+export function isExactSyntheticAuthUser(u,slot) {
+  if (!u || !Number.isInteger(slot) || slot<1 || slot>9 ||
+      !uuidRE.test(u.id??'') || u.email!==slotEmail(slot) ||
+      u.role!=='authenticated' || u.aud!=='authenticated' ||
+      typeof u.email_confirmed_at!=='string' ||
+      !Number.isFinite(Date.parse(u.email_confirmed_at)) ||
+      (u.confirmed_at!=null && !Number.isFinite(Date.parse(u.confirmed_at))) ||
+      (u.phone!=null && u.phone!=='') || u.phone_confirmed_at!=null ||
+      u.invited_at!=null || u.banned_until!=null || u.deleted_at!=null ||
+      u.new_email!=null || u.new_phone!=null ||
+      u.is_anonymous===true || u.is_sso_user===true ||
+      (u.factors!=null && (!Array.isArray(u.factors)||u.factors.length!==0)))
+    return false;
+  const app=u.app_metadata;
+  if (!app || typeof app!=='object' || Array.isArray(app) ||
+      Object.keys(app).some(k=>!['provider','providers'].includes(k)) ||
+      (app.provider!=null && app.provider!=='email') ||
+      (app.providers!=null && (!Array.isArray(app.providers) ||
+        app.providers.length!==1 || app.providers[0]!=='email')))
+    return false;
+  const meta=u.user_metadata;
+  if (meta!=null && (typeof meta!=='object' || Array.isArray(meta) ||
+      Object.keys(meta).some(k=>!['sub','email','email_verified','phone_verified'].includes(k)) ||
+      (meta.sub!=null && meta.sub!==u.id) ||
+      (meta.email!=null && meta.email!==u.email) ||
+      (meta.email_verified!=null && meta.email_verified!==true) ||
+      (meta.phone_verified!=null && meta.phone_verified!==false)))
+    return false;
+  if (u.identities!=null) {
+    if (!Array.isArray(u.identities) || u.identities.length!==1)
+      return false;
+    const identity=u.identities[0];
+    if (identity?.provider!=='email' || identity.user_id!==u.id ||
+        (identity.identity_data?.email!=null &&
+          identity.identity_data.email!==u.email) ||
+        (identity.identity_data?.sub!=null &&
+          identity.identity_data.sub!==u.id) ||
+        (identity.identity_data?.email_verified!=null &&
+          identity.identity_data.email_verified!==true))
+      return false;
+  }
+  return true;
+}
+
 export function adminConnectionFromEnv(env) {
   if (env.AMF_UAT_MODE !== 'EXECUTE' || env.AMF_UAT_ACK !== ACK)
     throw new Error('Explicit isolated synthetic execution acknowledgement required');
@@ -84,8 +134,7 @@ export async function provisionNine(plan, admin, saveMapping) {
       if (u && uuidRE.test(u.id)) {
         created.push({slot: entry.slot, id: u.id, email: u.email});
       }
-      if (response?.error || !u || !uuidRE.test(u.id) ||
-          u.email !== entry.email || (u.role && u.role !== 'authenticated'))
+      if (response?.error || !isExactSyntheticAuthUser(u,entry.slot))
         throw new Error(`Synthetic slot ${entry.slot} did not pass user integrity`);
     }
     if (new Set(created.map(u=>u.id)).size !== 9)
@@ -94,7 +143,9 @@ export async function provisionNine(plan, admin, saveMapping) {
     const actual = after?.data?.users;
     const expected = new Map(created.map(u => [u.id,u.email]));
     if (after?.error || !Array.isArray(actual) || actual.length !== 9 ||
-        actual.some(u => !expected.has(u.id) || expected.get(u.id) !== u.email))
+        actual.some(u => !expected.has(u.id) || expected.get(u.id) !== u.email) ||
+        created.some(entry => !actual.some(u=>
+          u.id===entry.id && isExactSyntheticAuthUser(u,entry.slot))))
       throw new Error('Postcreation Auth tenant is not the exact nine-user synthetic set');
     // Strictly no passwords, tokens or service key in mapping. A local owner
     // transfers it into the approved secret manager for later signed UAT.
