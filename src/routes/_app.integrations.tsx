@@ -136,7 +136,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
 
   const mappedHeaders = useMemo(() => headers.length ? headers : Object.keys(mapping ?? {}), [headers, mapping]);
   const logsVerified = !logsQ.isPending && !logsQ.isError && Array.isArray(logsQ.data);
-  const logs = logsVerified ? logsQ.data : [];
+  const logs = logsVerified && Array.isArray(logsQ.data) ? logsQ.data : [];
   const diagnosticItems = [
     ["Logged user id", diagnostics.loggedUserId ?? "—"],
     ["Settings row found", diagnostics.settingsRowFound ? "YES" : "NO"],
