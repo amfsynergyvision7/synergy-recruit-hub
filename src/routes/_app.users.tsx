@@ -32,17 +32,27 @@ function Page() {
     if (!allowed) return () => { active = false; controller.abort(); };
     const load = async () => {
       try {
-        const [{ data: profs, error: profError }, { data: roles, error: rolesError }] = await Promise.all([
+        const [{ data: profs, error: profError, count: profileCount }, { data: roles, error: rolesError, count: roleCount }] = await Promise.all([
           supabase.from("profiles")
-            .select("id, full_name, email, department, status, is_active, created_at")
+            .select("id, full_name, email, department, status, is_active, created_at", { count: "exact" })
             .order("created_at", { ascending: false }).limit(200).abortSignal(controller.signal),
           supabase.from("user_roles")
-            .select("user_id, role").limit(200).abortSignal(controller.signal),
+            .select("user_id, role", { count: "exact" }).limit(200).abortSignal(controller.signal),
         ]);
         if (!active || controller.signal.aborted) return;
-        if (profError || rolesError || !profs || !roles) throw new Error("Directory data unavailable");
-        const roleMap = new Map(roles.map((r: any) => [r.user_id, r.role]));
-        setUsers(profs.map((p: any) => ({ ...p, role: roleMap.get(p.id) ?? "unassigned" })));
+        if (profError || rolesError || !profs || !roles ||
+            !Number.isSafeInteger(profileCount) || !Number.isSafeInteger(roleCount) ||
+            profileCount! > 200 || roleCount! > 200 ||
+            profs.length !== profileCount || roles.length !== roleCount)
+          throw new Error("Directory data incomplete or unavailable");
+        const roleMap = new Map<string, string>();
+        for (const item of roles) {
+          if (roleMap.has(item.user_id)) throw new Error("Ambiguous role assignments");
+          roleMap.set(item.user_id, item.role);
+        }
+        setUsers(profs.map((entry: any) => ({
+          ...entry, role: roleMap.get(entry.id) ?? "unassigned"
+        })));
       } catch {
         if (active && !controller.signal.aborted) { setUsers([]); setLoadFailed(true); }
       }
@@ -54,13 +64,13 @@ function Page() {
   const updateStatus = async (id: string, status: "approved"|"pending"|"rejected"|"suspended") => {
     if (!canManageUsers) return toast.error("User administration is paused");
     const { error } = await manageCRMUser({ targetId: id, operation: "set_status", value: status });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Account change unavailable.");
     toast.success("Account status updated"); setReloadKey((n) => n + 1);
   };
   const updateActive = async (id: string, is_active: boolean) => {
     if (!canManageUsers) return toast.error("User administration is paused");
     const { error } = await manageCRMUser({ targetId: id, operation: "set_active", value: String(is_active) as "true"|"false" });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Account change unavailable.");
     toast.success("Account activity updated"); setReloadKey((n) => n + 1);
   };
   const updateRole = async (userId: string, newRole: string) => {
@@ -69,7 +79,7 @@ function Page() {
     const { error } = await manageCRMUser({
       targetId: userId, operation: "set_role", value: newRole as (typeof ROLES)[number],
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Account change unavailable.");
     toast.success("Account role updated"); setReloadKey((n) => n + 1);
   };
 
