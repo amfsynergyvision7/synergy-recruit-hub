@@ -56,7 +56,8 @@ test('administration SQL is executable only by authenticated API callers',()=>{
  assert.match(admin,/GRANT EXECUTE ON FUNCTION public\.crm_admin_manage_user\(uuid,text,text\)\s+TO authenticated/);
 });
 test('admin browser helper fails closed by default',()=>{
- assert.match(userHelper,/VITE_CRM_USER_ADMIN_MUTATIONS_ENABLED === "true"/);
+ assert.match(userHelper,/CRM_USER_ADMIN_MUTATIONS_ENABLED = false as const/);
+ assert.doesNotMatch(userHelper,/import\.meta\.env\.VITE_CRM_USER_ADMIN_MUTATIONS_ENABLED/);
  assert.match(userHelper,/if \(!CRM_USER_ADMIN_MUTATIONS_ENABLED\)/);
  assert.match(userHelper,/User administration is paused pending release approval/);
 });
