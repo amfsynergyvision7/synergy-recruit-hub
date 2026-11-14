@@ -5,7 +5,7 @@ import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const read=name=>JSON.parse(readFileSync(new URL("../release-progress/"+name,import.meta.url),"utf8"));
 const rubric=read("v1-rubric.json");
 const before=read("build132-evidence-baseline.json");
-const current=read("current.json");
+const current=read("build133-evidence-baseline.json");
 
 test("Build133 acceptance preserves exactly 26/100 across frozen 43-gate ledger",()=>{
  assert.equal(before.snapshot_build,132);
