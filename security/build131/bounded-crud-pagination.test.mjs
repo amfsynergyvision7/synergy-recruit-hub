@@ -155,7 +155,7 @@ test("Build131 source uses checked ID paging and account-scoped verified tables"
 
 test("Build131 incomplete selector list blocks editing and CSV rather than showing blank foreign labels",()=>{
  const ui=readFileSync(new URL("../../src/components/CrudModule.tsx",import.meta.url),"utf8");
- assert(ui.includes('select(field.relation!.select ?? "*", { count: "exact" })'));
+ assert(ui.includes('select(crmRelationProjection(field.relation!.select), { count: "exact" })'));
  assert(ui.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  assert(ui.includes("setRelationsLoaded(false)"));
  assert(ui.includes("setRelationsFailed(true)"));
