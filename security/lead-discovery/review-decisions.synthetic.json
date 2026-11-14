@@ -1,0 +1,42 @@
+{
+  "mode": "SYNTHETIC_OFFLINE_REVIEW",
+  "research_owner": "synthetic-researcher",
+  "decisions": [
+    {
+      "business_website": "https://acacia.example.invalid",
+      "reviewer_id": "synthetic-growth",
+      "reviewer_role": "growth_reviewer",
+      "decision": "approve",
+      "reviewed_on": "2026-11-14",
+      "evidence_url": "https://directory.example.invalid/logistics",
+      "reason_code": "business_source_verified"
+    },
+    {
+      "business_website": "https://acacia.example.invalid",
+      "reviewer_id": "synthetic-crm",
+      "reviewer_role": "crm_reviewer",
+      "decision": "approve",
+      "reviewed_on": "2026-11-14",
+      "evidence_url": "https://partners.example.invalid/listings",
+      "reason_code": "business_source_verified"
+    },
+    {
+      "business_website": "https://bluebell.example.invalid",
+      "reviewer_id": "synthetic-growth",
+      "reviewer_role": "growth_reviewer",
+      "decision": "reject",
+      "reviewed_on": "2026-11-14",
+      "evidence_url": "https://directory.example.invalid/logistics",
+      "reason_code": "out_of_scope"
+    },
+    {
+      "business_website": "https://cobalt.example.invalid",
+      "reviewer_id": "synthetic-growth",
+      "reviewer_role": "growth_reviewer",
+      "decision": "approve",
+      "reviewed_on": "2026-11-14",
+      "evidence_url": "https://partners.example.invalid/listings",
+      "reason_code": "business_source_verified"
+    }
+  ]
+}
