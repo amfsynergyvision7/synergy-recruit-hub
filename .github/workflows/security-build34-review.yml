@@ -80,6 +80,8 @@ on:
       - 'security/build115/**'
       - 'security/build116/**'
       - 'security/build117/**'
+      - 'security/build118/**'
+      - 'src/components/EmailComposeDialog.tsx'
       - 'src/lib/safe-global-search.ts'
       - 'src/components/GlobalSearch.tsx'
       - 'src/components/ResumeSummaryButton.tsx'

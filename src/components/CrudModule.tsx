@@ -915,7 +915,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   ))}
                   <TableCell className={`${actionsColWidth} px-1 py-1.5 text-right whitespace-nowrap space-x-0`}>
                     {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
-                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
+                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7"
+                      aria-label="Draft email (sending paused)" title="Draft email (sending paused)"
+                      onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </TableCell>
@@ -991,7 +993,9 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   </div>
                   <div className="flex shrink-0 items-center gap-0.5">
                     {detailView && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openView(row)}><Eye className="h-3.5 w-3.5"/></Button>}
-                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
+                    {emailField && row[emailField] && editable && <Button size="icon" variant="ghost" className="h-7 w-7"
+                      aria-label="Draft email (sending paused)" title="Draft email (sending paused)"
+                      onClick={()=>setMailingRow(row)}><Mail className="h-3.5 w-3.5"/></Button>}
                     {editable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>openEdit(row)}><Pencil className="h-3.5 w-3.5"/></Button>}
                     {deletable && <Button size="icon" variant="ghost" className="h-7 w-7" onClick={()=>remove(row)}><Trash2 className="h-3.5 w-3.5 text-destructive"/></Button>}
                   </div>
@@ -1091,7 +1095,7 @@ export function CrudModule({ title, description, table, module, fields, searchFi
                   <SheetFooter className="mt-6">
                     {emailField && viewing[emailField] && editable && (
                       <Button variant="outline" onClick={() => { const row = viewing; setViewing(null); setMailingRow(row); }}>
-                        <Mail className="h-3.5 w-3.5 mr-2" />Email
+                        <Mail className="h-3.5 w-3.5 mr-2" />Draft email
                       </Button>
                     )}
                     {editable && (

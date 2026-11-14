@@ -56,3 +56,11 @@ test("Build118 no environment bypass or raw provider error disclosure", () => {
   assert(!composer.includes("err?.message ??"));
   assert(!composer.includes("Sends from your CRM's configured address"));
 });
+
+
+test("Build118 CRM row and detail buttons label email as draft-only, never as approved send", () => {
+  const crud = file("src/components/CrudModule.tsx");
+  assert.equal((crud.match(/aria-label="Draft email \(sending paused\)"/g)||[]).length, 2);
+  assert(crud.includes('<Mail className="h-3.5 w-3.5 mr-2" />Draft email'));
+  assert(crud.includes('<EmailComposeDialog'));
+});
