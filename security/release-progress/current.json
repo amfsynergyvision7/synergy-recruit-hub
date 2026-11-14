@@ -354,7 +354,8 @@
       "expected_final_guarded_passes": 36,
       "final_guarded_completed_and_verified": false,
       "independent_review_evidence_obtained": false,
-      "production_release_enabled": false
+      "production_release_enabled": false,
+      "fast_independent_candidate_finance_contracts_added": true
     },
     "build132_lab_readonly": {
       "project_id": "dhlhlasnaapzckjyvffn",
@@ -617,7 +618,7 @@
       "evidence": []
     }
   ],
-  "notes": "Build132 recovery of real prior guarded CI defects: Build131 final fast 654/654 passed but guarded only 33/37 succeeded, with application compile and Build50 safety source assertion unexpectedly failing, downstream substantive summary failed, plus deliberate release hold. Build132 awaits PostgREST responses and validates decoded ID shapes before typed 2500-page adapter; preserves candidate/finance hold expression; direct CRUD save/remove/bulk callbacks also check approved complete-data permissions. Fast workflow now npm builds generated TanStack route types then runs tsc, independently of 670/670 intermediate unit tests. Status is intermediate only; exact final guarded CI must pass. No GitHub branch protection, independent reviews or hosted signed acceptance. Formal 43-gate ledger remains 26/100, 12 evidenced, 31 open, but prior Build131 CRM02 exact-head compilation evidence was defective; restored technical validity requires final-head guarded CI. No hosted DB writes, merge, deploy, financial activation or external communication.",
+  "notes": "Build132 recovery of real prior guarded CI defects: Build131 final fast 654/654 passed but guarded only 33/37 succeeded, with application compile and Build50 safety source assertion unexpectedly failing, downstream substantive summary failed, plus deliberate release hold. Build132 awaits PostgREST responses and validates decoded ID shapes before typed 2500-page adapter; preserves candidate/finance hold expression; direct CRUD save/remove/bulk callbacks also check approved complete-data permissions. Fast workflow now npm builds generated TanStack route types then runs tsc, independently of 670/670 intermediate unit tests. Status is intermediate only; exact final guarded CI must pass. No GitHub branch protection, independent reviews or hosted signed acceptance. Formal 43-gate ledger remains 26/100, 12 evidenced, 31 open, but prior Build131 CRM02 exact-head compilation evidence was defective; restored technical validity requires final-head guarded CI. No hosted DB writes, merge, deploy, financial activation or external communication. Fast CI now additionally executes independent Build50 candidate and Build56 finance source contracts; their passing result requires exact final-head CI.",
   "previous_file": "build131-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
