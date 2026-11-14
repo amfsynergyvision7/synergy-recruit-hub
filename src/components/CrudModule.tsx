@@ -162,10 +162,10 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
   // referenced selector have been confirmed. Do not edit partial data.
   const verifiedForMutation = rowsVerified && relationsLoaded && !loading &&
     !loadFailed && !relationsFailed;
-  const editable = canEdit(role, module) && verifiedForMutation &&
-    !candidateMutationPaused && !billingMutationPaused;
-  const deletable = canDelete(role) && verifiedForMutation &&
-    !candidateMutationPaused && !billingMutationPaused;
+  const editable = canEdit(role, module) && !candidateMutationPaused &&
+    !billingMutationPaused && verifiedForMutation;
+  const deletable = canDelete(role) && !candidateMutationPaused &&
+    !billingMutationPaused && verifiedForMutation;
   const rowsEpoch = useRef(0);
   const rowsController = useRef<AbortController | null>(null);
   const relationEpoch = useRef(0);
@@ -248,11 +248,18 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
       // server-side role and row authorization contract is authoritative.
       // Refuse truncation, count drift, duplicated IDs and over-cap lists
       // before showing records, enabling edits or exporting CSV.
-      const data = await readCompleteCrmRows((from, to, signal) =>
-        supabase.from(table as any)
+      const data = await readCompleteCrmRows(async (from, to, signal) => {
+        const result = await supabase.from(table as any)
           .select("*", { count: "exact" })
-          .order("id", { ascending: true }).range(from, to).abortSignal(signal),
-        controller.signal);
+          .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+        // Supabase's dynamic table union includes a numeric-id settings table.
+        // Do not cast that union as valid CRM IDs until each returned row has
+        // been checked. The paging adapter also enforces nonempty unique IDs.
+        if (result.data?.some(row => typeof row.id !== "string" || !row.id.trim()))
+          throw new Error("Unsupported CRM record identifier");
+        return { data: result.data as unknown as { id: string }[] | null,
+          count: result.count, error: result.error };
+      }, controller.signal);
       if (controller.signal.aborted || epoch !== rowsEpoch.current) return;
       setRows(sortCompleteCrmRows(data, orderBy?.column ?? "created_at", orderBy?.ascending ?? false));
       setRowsVerified(true);
@@ -285,11 +292,15 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
         // Relation labels and choices must represent a complete authorized
         // snapshot too. A short linked table would otherwise prevent editing
         // a valid record or silently display a blank/incorrect relationship.
-        const data = await readCompleteCrmRows((from, to, signal) =>
-          supabase.from(field.relation!.table as any)
+        const data = await readCompleteCrmRows(async (from, to, signal) => {
+          const result = await supabase.from(field.relation!.table as any)
             .select(field.relation!.select ?? "*", { count: "exact" })
-            .order("id", { ascending: true }).range(from, to).abortSignal(signal),
-          controller.signal);
+            .order("id", { ascending: true }).range(from, to).abortSignal(signal);
+          if (result.data?.some(row => typeof row.id !== "string" || !row.id.trim()))
+            throw new Error("Unsupported CRM relationship identifier");
+          return { data: result.data as unknown as { id: string }[] | null,
+            count: result.count, error: result.error };
+        }, controller.signal);
         return [field.name, data] as const;
       }));
       if (!controller.signal.aborted && epoch === relationEpoch.current) {
