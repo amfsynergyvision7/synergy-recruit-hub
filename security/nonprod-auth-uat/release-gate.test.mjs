@@ -858,3 +858,90 @@ test('Build140 Auth rollback reports zero unconfirmed only after independently e
  },async()=>{}),/0 cleanup operations unconfirmed/);
  assert.equal(reads,2);
 });
+
+
+// Build141: all 19 expected tables can have correct cardinalities while
+// a candidate's synthetic submission is linked to the wrong fictional job,
+// interview or invoice. These in-memory tests do not access Supabase.
+test('Build141 accepts exact 2-job 2-submission 2-interview 1-offer 1-bill fixture relationships without writes',async()=>{
+ const {client,writes}=fakeFullInertClient();
+ assert.deepEqual(await verifyInertHostedContents(client),
+  {verifiedNonproductionInertTables:19,contentMutations:0});
+ assert.equal(writes(),0);
+});
+test('Build141 rejects wrong client/job/submission references while status and counts remain correct',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ const wrong='00000000-0000-0000-0000-000000000009';
+ for(const [table,row,field,bad] of [
+  ['job_openings',0,'client_id',wrong],
+  ['job_openings',1,'client_uuid',wrong],
+  ['submissions',0,'candidate_id',wrong],
+  ['submissions',0,'candidate_uuid',wrong],
+  ['submissions',0,'client_id',wrong],
+  ['submissions',1,'client_uuid',wrong],
+  ['submissions',0,'job_id',wrong],
+  ['submissions',1,'job_uuid',wrong],
+  ['submissions',1,'role_title','Unapproved real job'],
+  ['submissions',0,'created_by',wrong]
+ ]){
+  const old=tables[table][row][field];tables[table][row][field]=bad;
+  await assert.rejects(verifyInertHostedContents(client),
+   /Hosted inert fixture HOLD: non-inert or mismatched/,
+   'Must hold mismatched '+table+'.'+field);
+  tables[table][row][field]=old;
+ }
+ assert.equal(writes(),0);
+});
+test('Build141 rejects wrong interview/offer/billing relationships without changing inert flags',async()=>{
+ const {client,tables,writes}=fakeFullInertClient();
+ const wrong='00000000-0000-0000-0000-000000000009';
+ for(const [table,row,field] of [
+  ['interviews',0,'candidate_id'],
+  ['interviews',1,'candidate_uuid'],
+  ['interviews',1,'client_id'],
+  ['interviews',0,'client_uuid'],
+  ['interviews',0,'submission_uuid'],
+  ['interviews',1,'created_by'],
+  ['offers',0,'candidate_id'],
+  ['offers',0,'candidate_uuid'],
+  ['offers',0,'client_id'],
+  ['offers',0,'client_uuid'],
+  ['offers',0,'submission_uuid'],
+  ['offers',0,'interview_uuid'],
+  ['offers',0,'created_by'],
+  ['billing',0,'candidate_id'],
+  ['billing',0,'candidate_uuid'],
+  ['billing',0,'client_id'],
+  ['billing',0,'client_uuid'],
+  ['billing',0,'offer_uuid'],
+  ['billing',0,'created_by']
+ ]){
+  const old=tables[table][row][field];tables[table][row][field]=wrong;
+  await assert.rejects(verifyInertHostedContents(client),
+   /Hosted inert fixture HOLD: non-inert or mismatched/,
+   'Must reject shifted '+table+'.'+field);
+  tables[table][row][field]=old;
+ }
+ assert.equal(writes(),0);
+});
+test('Build141 relational audit uses narrow SELECT projections, never full row or writes',async()=>{
+ const {client,writes}=fakeFullInertClient();
+ const selections=[];
+ const readOnly={
+  auth:client.auth,
+  from:table=>{
+   const original=client.from(table);
+   return {...original,select:(projection,options)=>{
+    selections.push({table,projection});
+    return original.select(projection,options);
+   }};
+  }
+ };
+ await verifyInertHostedContents(readOnly);
+ for(const table of ['clients','job_openings','submissions','interviews','offers','billing']){
+  assert(selections.some(q=>q.table===table && typeof q.projection==='string' &&
+   q.projection.includes('id')),'Missing read-only relational inspection: '+table);
+ }
+ assert(selections.every(q=>q.projection!=='*'));
+ assert.equal(writes(),0);
+});
