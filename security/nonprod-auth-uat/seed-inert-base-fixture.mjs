@@ -118,8 +118,15 @@ export async function seedInertBaseFixture(client,mapping,{now=new Date().toISOS
    let cleanupUnconfirmed=0;
    for(const [table,ids] of attempts.reverse()){
      try{
-       const out=await client.from(table).delete().in('id',ids);
-       if(out.error)cleanupUnconfirmed++;
+       // Verify exact returned deleted IDs: an RLS-silent HTTP success with
+       // zero affected rows cannot be treated as confirmed compensation.
+       const out=await client.from(table).delete().in('id',ids).select('id');
+       const removed=out?.data;
+       if(out?.error || !Array.isArray(removed) ||
+          removed.length!==ids.length ||
+          new Set(removed.map(r=>r.id)).size!==ids.length ||
+          ids.some(id=>!removed.some(r=>r.id===id)))
+         cleanupUnconfirmed++;
      }catch{cleanupUnconfirmed++;}
    }
    throw new Error(`Hosted inert fixture aborted; ${cleanupUnconfirmed} cleanup calls unconfirmed. Verify lab before retrying.`);
