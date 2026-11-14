@@ -93,7 +93,7 @@ test("Build136 SQL is a READ-ONLY reproduction recipe without DDL/DML",()=>{
  const commands=sql.split("\n").filter(l=>!l.trim().startsWith("--")).join("\n");
  assert(/\bWITH relation_inventory AS\b/.test(commands));
  assert(/\bSELECT jsonb_build_object\(/.test(commands));
- assert(/\bFROM auth\.users\b/.test(commands));
+ assert(/\bfrom auth\.users\b/i.test(commands));
  assert(/\bpg_catalog\.pg_proc\b/.test(commands));
  assert(/\bpg_catalog\.pg_class\b/.test(commands));
  assert(/\bhas_table_privilege\b/.test(commands));
