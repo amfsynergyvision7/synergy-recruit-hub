@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 137,
+  "snapshot_build": 138,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -661,6 +661,54 @@
       "signed_release_approvals": 0,
       "production_merge_or_deploy_performed": false,
       "new_accepted_milestones": 0
+    },
+    "build138_integration_release": {
+      "stage": "DRAFT_BROWSER_AND_SERVER_SHEETS_SYNC_READ_ONLY_NOT_HOSTED_UAT",
+      "browser_configuration_mutations_hard_held": true,
+      "browser_candidate_sync_mutations_hard_held": true,
+      "browser_sheet_url_header_and_mapping_inputs_disabled": true,
+      "browser_save_detect_sync_handlers_refuse_before_server_calls": true,
+      "server_external_effect_holds_preserved": true,
+      "admin_identity_exact_subject_gate_preserved": true,
+      "historical_sheet_url_redacted_in_diagnostics": true,
+      "sync_history_raw_provider_row_error_messages_withheld": true,
+      "sync_log_privileged_database_projection_reduced": true,
+      "sync_history_failure_not_presented_as_zero_runs": true,
+      "sync_history_maximum_preview_rows": 50,
+      "signed_hosted_integrations_acceptance": false
+    },
+    "build138_nonprod_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "health": "ACTIVE_HEALTHY",
+      "public_tables": 19,
+      "rls_tables": 19,
+      "public_rls_policies": 0,
+      "hosted_auth_users": 0,
+      "enabled_public_app_triggers": 0,
+      "exact_counted_public_tables": 19,
+      "exact_public_rows": 0,
+      "database_writes": 0
+    },
+    "build138_release_state": {
+      "build137_exact_head_fast_offline_passed": 896,
+      "build137_fast_independent_safety_passed": 11,
+      "build137_exact_head_guarded_substantive_jobs_passed": 36,
+      "build137_intentional_production_hold_failed": 1,
+      "intermediate_build138_fast_offline_passed": 909,
+      "intermediate_build138_independent_safety_passed": 11,
+      "intermediate_build138_app_build_typecheck_passed": true,
+      "final_build138_fast_verified": false,
+      "final_build138_guarded_verified": false,
+      "main_protected": false,
+      "repo_rulesets": 0,
+      "independent_pr12_reviews": 0,
+      "independent_pr15_reviews": 0,
+      "protected_environment_configuration_verified": false,
+      "hosted_signed_uat_accepted": 0,
+      "production_security_remediations_accepted": 0,
+      "release_signoffs_accepted": 0,
+      "external_delivery_or_finance_activated": false,
+      "new_independently_accepted_milestones": 0
     }
   },
   "statuses": [
@@ -912,8 +960,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build137 source hardening: global quick-search buckets are runtime-verified as a single atomic preview with exact 6-result-per-module bounds, explicit label that suggestions are not a complete CRM list, unchanged approved-account shell and request cancellation. Reconfirmed isolated lab READ ONLY: 19 forced-RLS tables, 13 invoker views, 7 secdef functions, zero policies/Auth users/triggers/browser table SELECT grants and exact zero rows in all 19 public tables. Nine historic privileged function signatures not present in this lab are prioritized in independent Auth review handoff, not inferred to be absent from production. PR15 CI at source head successful but no independent review and no protected main; environment settings inaccessible from current connector, status unverified. No SQL writes, no credentials or secrets accessed, no merge/deployment. Fixed weighted score 26/100, 12 of 43 evidenced, 31 open. Final Build137 CI to be verified at exact head; previous Build136 36/37 guarded substantive-pass with deliberate production hold.",
-  "previous_file": "build136-evidence-baseline.json",
+  "notes": "Build138 draft changes: independent GitHub read confirms Build137 final guarded CI completed 36/37 jobs passing, only intentional production-release-hold. Browser integration config detect/save/sync controls now mirror permanent server release holds; Sheets links and raw historical row/provider errors are withheld, and admin-only history is explicitly a maximum 50-run preview with no misleading empty state on errors. Privileged sync_logs query now selects only sanitizable fields instead of select(*). One historical Build129 notice assertion was restored without weakening restrictions. Intermediate Build138 fast 909/909 offline, 11 independent safety cases plus app build/TypeScript passed; exact final commit requires new verification. Isolated nonprod lab read-only: 19/19 public RLS tables, zero policies/Auth users/app triggers, exact zero rows in every table. No SQL writes, protected merge or deploy. Acceptance 26/100, 12/43 evidenced and 31 open. main unprotected, PR12/15 reviews zero, GitHub protected environment unverified; Vercel build-rate-limit remains external.",
+  "previous_file": "build137-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
