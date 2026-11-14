@@ -129,6 +129,21 @@ export async function seedInertBaseFixture(client,mapping,{now=new Date().toISOS
          cleanupUnconfirmed++;
      }catch{cleanupUnconfirmed++;}
    }
+   // Build142: exact returned DELETE IDs alone do not prove the test tables
+   // are empty. A trigger, race or response ambiguity can leave other rows.
+   // Reread ALL three base tables after compensation; any residual or
+   // unreadable count is independently unconfirmed (never auto-retry).
+   for(const table of ['profiles','user_roles','candidates']){
+     try{await exactCount(client,table,0);}
+     catch{cleanupUnconfirmed++;}
+   }
+   try{
+     const current=await client.auth.admin.listUsers({page:1,perPage:100});
+     if(current?.error||!Array.isArray(current?.data?.users)||
+       current.data.users.length!==9||
+       current.data.users.some(u=>expected.get(u.id)!==u.email))
+       cleanupUnconfirmed++;
+   }catch{cleanupUnconfirmed++;}
    throw new Error(`Hosted inert fixture aborted; ${cleanupUnconfirmed} cleanup calls unconfirmed. Verify lab before retrying.`);
  }
 }
