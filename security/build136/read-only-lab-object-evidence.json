@@ -87,7 +87,24 @@
     "access_status": "DENY BY DEFAULT; no signed user authorization is testable yet",
     "direct_pg_catalog_metadata_is_not_role_bearing_http_uat": true,
     "independently_accepted_production_remediation_count": 0,
-    "independently_signed_hosted_test_count": 0
+    "independently_signed_hosted_test_count": 0,
+    "historical_production_reference_file": "security/build47/catalog-inventory.json",
+    "historical_production_reference_date": "2026-11-11",
+    "historical_production_reference_is_not_live_verification": true,
+    "lab_missing_reference_function_names": [
+      "generate_reminders",
+      "get_user_role",
+      "handle_new_user",
+      "has_role",
+      "is_approved",
+      "resolve_candidate_uuid",
+      "resolve_client_uuid",
+      "resolve_job_uuid",
+      "rls_auto_enable"
+    ],
+    "lab_unexpected_function_names": [],
+    "historical_reference_function_count": 16,
+    "no_sql_changes_to_reconcile_difference": true
   },
   "independent_owner_required": [
     "Review exact source/target function inventory, including identity arguments",
