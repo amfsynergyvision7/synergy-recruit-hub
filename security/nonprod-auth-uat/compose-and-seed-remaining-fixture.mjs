@@ -8,7 +8,7 @@ import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {PROJECT_ID,PROJECT_URL,slotEmail,planFromEnv} from './provision-nine-auth-users.mjs';
+import {PROJECT_ID,PROJECT_URL,slotEmail,planFromEnv,isExactSyntheticAuthUser} from './provision-nine-auth-users.mjs';
 
 export const EXECUTE_ACK='I_ACCEPT_SYNTHETIC_16_TABLE_FIXTURE_INERT_NONPROD_ONLY';
 export const PRESEED_ACK='TECHNICAL_PRESEED_PREREQUISITES_PASS_NOT_PERMISSION_TO_PROVISION';
@@ -165,7 +165,9 @@ export async function seedExtendedFixture(client,mapping,opts={}){
  const r=await client.auth.admin.listUsers({page:1,perPage:100});
  const allowed=new Map(users.map(u=>[u.id,u.email]));
  if(r.error||r.data?.users?.length!==9 ||
-    r.data.users.some(u=>allowed.get(u.id)!==u.email))
+    r.data.users.some(u=>allowed.get(u.id)!==u.email) ||
+    users.some(entry=>!r.data.users.some(u=>
+      u.id===entry.id&&isExactSyntheticAuthUser(u,entry.slot))))
     throw new Error('Exact nine synthetic Auth users not verified');
  await exactCount(client,'profiles',8);
  await exactCount(client,'user_roles',8);
