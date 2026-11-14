@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canEdit } from "@/hooks/use-auth";
 import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
@@ -50,24 +50,43 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
     return map;
   }, [recruiters]);
 
+  const [loadFailed, setLoadFailed] = useState(false);
+  const loadEpoch = useRef(0);
+  const requestController = useRef<AbortController | null>(null);
   const load = async () => {
+    const epoch = ++loadEpoch.current;
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
+    setRows([]);
     setLoading(true);
-    const { data, error } = await supabase
-      .from("candidates")
-      .select("id, candidate_code, full_name, position_applied, assigned_recruiter, stage")
-      .order("created_at", { ascending: false });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    setRows((data as CandidateRow[]) ?? []);
+    setLoadFailed(false);
+    try {
+      // Do not show apparently complete stage totals from capped Data API
+      // responses. Refuse a partial board until server aggregates are approved.
+      const { data, error, count } = await supabase.from("candidates")
+        .select("id, candidate_code, full_name, position_applied, assigned_recruiter, stage", { count: "exact" })
+        .order("id", { ascending: true }).limit(250)
+        .abortSignal(controller.signal);
+      if (controller.signal.aborted || epoch !== loadEpoch.current) return;
+      if (error || !data || !Number.isSafeInteger(count) || count! > 250 ||
+          data.length !== count || new Set(data.map(row => row.id)).size !== data.length) {
+        setLoadFailed(true);
+        return;
+      }
+      setRows(data as CandidateRow[]);
+    } catch {
+      if (!controller.signal.aborted && epoch === loadEpoch.current) setLoadFailed(true);
+    } finally {
+      if (!controller.signal.aborted && epoch === loadEpoch.current) setLoading(false);
+    }
   };
 
   useEffect(() => {
-    load();
-    const ch = supabase
-      .channel("rt-candidates-board")
-      .on("postgres_changes", { event: "*", schema: "public", table: "candidates" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    void load();
+    // Never subscribe to unfiltered candidate INSERT/UPDATE/DELETE events.
+    // Account changes unmount the keyed board and abort its pending requests.
+    return () => { loadEpoch.current++; requestController.current?.abort(); };
   }, []);
 
   const filtered = useMemo(() => {
@@ -93,7 +112,7 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
     setRows((prev) => prev.map((r) => (r.id === candidateId ? { ...r, stage: newStage } : r)));
     const { error } = await changeCandidateStage({ candidateId, expectedStage: candidate.stage, newStage });
     if (error) {
-      toast.error(error.message);
+      toast.error("Candidate stage change could not be verified.");
       load(); // roll back the optimistic move
       return;
     }
@@ -103,6 +122,7 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
 
   return (
     <div className="space-y-3">
+      {loadFailed && <p className="text-sm text-destructive">Candidate board data is incomplete or unavailable. No partial pipeline is displayed.</p>}
       <div className="relative w-64">
         <Search
           className="pointer-events-none absolute text-muted-foreground"
