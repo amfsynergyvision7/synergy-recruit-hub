@@ -389,7 +389,7 @@ test('Build90 rejects incomplete, truncated and malformed Git tree inventories',
 });
 test('Build90 Git-tree proof follows independent review and precedes privileged secrets',()=>{
  const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
- assert(gate.includes('verifyIndependentReleaseGate({pr,reviews,main,context})'));
+ assert(gate.includes('verifyIndependentReleaseGate({pr,reviews,main,mainRules,context})'));
  assert(gate.includes("getGitHubJson('/git/commits/'+sha,token)"));
  assert(gate.includes("getGitHubJson('/git/trees/'+commit.tree.sha+'?recursive=1',token)"));
  assert(gate.includes('verifyPinnedReviewedSource(approvedTree,currentTree)'));
@@ -1496,8 +1496,8 @@ test('Build147 unprotected environment and malformed PR both remain HOLD',()=>{
   reviews:[releaseReportApproval(pr.head.sha)],environment:env
  });
  assert.equal(r.status,'HOLD');
- assert.equal(r.rows[1].verdict,'BLOCKED');
- assert.equal(r.rows[3].verdict,'BLOCKED');
+ assert.equal(r.rows[2].verdict,'BLOCKED');
+ assert.equal(r.rows[4].verdict,'BLOCKED');
 });
 
 
@@ -1514,7 +1514,7 @@ test('Build147 closed-but-unmerged or falsely merged PR is not verified source s
    reviews:[releaseReportApproval(pr.head.sha)],
    environment:releaseReportEnvironment()
   });
-  assert.equal(result.rows[1].verdict,'BLOCKED');
+  assert.equal(result.rows[2].verdict,'BLOCKED');
   assert.equal(result.status,'HOLD');
  }
 });
