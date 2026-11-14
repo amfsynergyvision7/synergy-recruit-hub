@@ -91,3 +91,19 @@ test("Build129 profile, import and external effect mutation holds remain",()=>{
  assert(settings.includes("LEGACY_BULK_IMPORT_WRITES_PAUSED"));
  assert(integ.includes('toast.error("Candidate synchronization unavailable; check restricted logs")'));
 });
+
+test("Build129 admin-only integration log refresh has no 10-second background polling",()=>{
+ assert(!integ.includes("refetchInterval: 10000"));
+ assert(integ.includes('queryKey: ["sync-logs", userId]'));
+ assert(integ.includes("Refresh history"));
+ assert(integ.includes("void logsQ.refetch();"));
+ assert(integ.includes("disabled={logsQ.isFetching}"));
+ assert(integ.includes("no background polling"));
+});
+
+test("Build129 integrations accurately disclose inactive external synchronization",()=>{
+ assert(integ.includes("External synchronization is paused pending release approval."));
+ assert(!integ.includes("Auto-sync runs every 2 minutes."));
+ assert(integ.includes("Scheduled sync remains inactive until release approval"));
+ assert(integ.includes("Manual candidate sync requires release approval"));
+});
