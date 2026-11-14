@@ -162,7 +162,7 @@ function AdminIntegrationWorkspace({ userId }: { userId: string }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
-        <p className="text-sm text-muted-foreground">Google Sheets settings, header detection and candidate synchronization are read-only pending independent approval. Historical diagnostics are redacted.</p>
+        <p className="text-sm text-muted-foreground">External synchronization is paused pending release approval. Google Sheets settings and header detection are also read-only until independent security review. Historical diagnostics are redacted.</p>
         {integQ.isError && <p role="alert" className="text-sm text-destructive">Integration settings could not be verified; no configuration status is claimed.</p>}
         {!logsVerified && <p role="status" className="text-sm text-muted-foreground">
           {logsQ.isError ? "Restricted sync history unavailable. No empty-history claim is made." : "Verifying restricted sync history…"}
