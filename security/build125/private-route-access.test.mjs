@@ -58,21 +58,24 @@ test("Build125 private directory performs no query until approved administrator"
 test("Build125 user directory fetch is strictly column limited and not wildcard",()=>{
  const s=src("src/routes/_app.users.tsx");
  assert(s.includes('.select("id, full_name, email, department, status, is_active, created_at", { count: "exact" })'));
- assert(s.includes('.select("user_id, role", { count: "exact" })'));
+ assert(s.includes('.select("id, user_id, role", { count: "exact" })'));
  assert(!s.includes('.select("*")'));
 });
-test("Build125 private directory rejects truncation and missing count metadata",()=>{
+test("Build125 private directory now rejects partial counts using bounded ID pagination",()=>{
  const s=src("src/routes/_app.users.tsx");
- assert(s.includes("!Number.isSafeInteger(profileCount)"));
- assert(s.includes("!Number.isSafeInteger(roleCount)"));
- assert(s.includes("profileCount! > 200"));
- assert(s.includes("roleCount! > 200"));
- assert(s.includes("profs.length !== profileCount"));
- assert(s.includes("roles.length !== roleCount"));
+ assert(s.includes("readCompleteCrmRows(async (from, to, signal) =>"));
+ assert(s.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
+ assert(s.includes("reconcileAdminDirectory(profs, roles)"));
+ const helper=src("src/lib/bounded-report-read.ts");
+ assert(helper.includes("!Number.isSafeInteger(result.count)"));
+ assert(helper.includes("result.count! > REPORT_MAX_ROWS"));
+ assert(helper.includes("result.data.length !== needed"));
+ assert(!s.includes(".limit(200)"));
 });
-test("Build125 ambiguous multiple roles or stale auth fetches cannot silently present data",()=>{
+test("Build125 ambiguous roles or stale Auth fetches cannot silently present data",()=>{
  const s=src("src/routes/_app.users.tsx");
- assert(s.includes("if (roleMap.has(item.user_id))"));
+ const guard=src("src/lib/admin-directory-integrity.ts");
+ assert(guard.includes("roleMap.has(item.user_id)"));
  assert(s.includes("controller.abort()"));
  assert(s.includes("if (!active || controller.signal.aborted) return;"));
  assert(s.includes("setUsers([]);"));
