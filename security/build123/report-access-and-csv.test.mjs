@@ -60,8 +60,10 @@ test("Build123 ordinary spreadsheet CSV values stay RFC4180 quoted and number-sh
 test("Build123 audit direct navigation fails closed before any Supabase data read",()=>{
  const audit=file("src/routes/_app.audit.tsx");
  assert(audit.includes("canReadAuditLogs(user?.id, profile, role)"));
- assert(audit.includes("if (!allowed) return () => { active = false; };"));
- assert(audit.includes('select("id, created_at, user_id, action, table_name, record_id")'));
+ assert(audit.includes("if (!allowed) return () => { active = false; controller.abort(); };"));
+ assert(audit.includes('select("id, created_at, user_id, action, table_name, record_id", { count: "exact" })'));
+ assert(audit.includes("readCompleteCrmRows<AuditMetadata>("));
+ assert(audit.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  assert(!audit.includes('select("*")'));
  assert(!audit.includes("r.user_email"));
  assert(audit.includes("if (!allowed) return <p"));
