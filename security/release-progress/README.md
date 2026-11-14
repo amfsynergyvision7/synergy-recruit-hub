@@ -92,3 +92,7 @@
 33/43 fixed milestones are still unmet, equivalent to 78 fixed points. Because an external administrator/reviewer and acceptance owners have not yet supplied mandatory checks, there is **no defensible finite build count**. A scenario of 12–25 *gate-closing delivery batches* after those prerequisites is an illustrative planning range only; it is not a forecast and must never be rolled forward without a gate-by-gate burn-down.
 
 **Build120 actual milestone movement: 0 points; deliverable: the frozen measurement/control system.**
+
+## Forward-compatible anti-reset checks (Build 120 refinement)
+
+The first draft of the CI test mistakenly required `current.json` to stay at 22 forever. This is now corrected: only the Build119 baseline is locked at 22. Subsequent builds are free to earn or lose points **provided** `current.json` names its actual prior snapshot, declares the previous score and delta, and lists all newly closed or regressed milestone IDs. CI derives the true score and exact ID changes independently. A fabricated protected merge, GoTrue count, hosted acceptance, 48-remediation claim, or nine signed gates fails unless the snapshot counters corroborate it. `current.json` sets `previous_file` and `delta_points`; future builds must preserve the previous checked snapshot under its own filename before replacing current.

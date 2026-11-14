@@ -291,5 +291,10 @@
       "evidence": []
     }
   ],
-  "notes": "Build120 publishes the fixed rubric and status schema, but closes no additional business/release milestone; delta relative to retro-applied Build119 v1 baseline=0. Future snapshots must supply new evidence before marking a gate complete."
+  "notes": "Build120 publishes the fixed rubric and status schema, but closes no additional business/release milestone; delta relative to retro-applied Build119 v1 baseline=0. Future snapshots must supply new evidence before marking a gate complete.",
+  "previous_file": "build119-retrospective-baseline.json",
+  "previous_earned_points": 22,
+  "delta_points": 0,
+  "newly_closed_ids": [],
+  "regressed_ids": []
 }
