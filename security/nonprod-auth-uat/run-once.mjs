@@ -259,6 +259,66 @@ export async function verifyInertHostedContents(client){
    const rows=await read(table,projection,count);
    if(!rows.every(check))reject(table);
  }
+ // Build141: row counts and inert flags cannot establish relational integrity.
+ // Verify source-shaped client -> job -> submission -> interview -> offer ->
+ // billing links, including legacy and UUID columns, using read-only narrow
+ // projections from the dedicated NONPRODUCTION fixture.
+ const [clientRow]=await read('clients','id',1);
+ const relatedJobs=await read('job_openings',
+   'id,job_title,client_id,client_uuid,assigned_recruiter',2);
+ const relatedSubmissions=await read('submissions',
+   'id,candidate_id,candidate_uuid,client_id,client_uuid,job_id,job_uuid,role_title,created_by',2);
+ const relatedInterviews=await read('interviews',
+   'id,candidate_id,candidate_uuid,client_id,client_uuid,submission_uuid,created_by',2);
+ const [relatedOffer]=await read('offers',
+   'id,candidate_id,candidate_uuid,client_id,client_uuid,submission_uuid,interview_uuid,created_by',1);
+ const [relatedBill]=await read('billing',
+   'candidate_id,candidate_uuid,client_id,client_uuid,offer_uuid,created_by',1);
+ const pairs=[];
+ for(let i=1;i<=2;i++){
+   const job=relatedJobs.find(j=>j.job_title==='Fictional UAT Job '+i);
+   if(!job||job.client_id!==clientRow.id||
+     job.client_uuid!==clientRow.id||job.assigned_recruiter!==ids[i])
+     reject('job_openings relationships');
+   const submission=relatedSubmissions.find(s=>s.job_uuid===job.id);
+   if(!submission||submission.candidate_id!==ids[i]||
+     submission.candidate_uuid!==ids[i]||
+     submission.client_id!==clientRow.id||
+     submission.client_uuid!==clientRow.id||
+     submission.job_id!==job.id||
+     submission.role_title!=='Fictional UAT Job '+i||
+     submission.created_by!==ids[0])
+     reject('submissions relationships');
+   const interview=relatedInterviews.find(v=>v.submission_uuid===submission.id);
+   if(!interview||interview.candidate_id!==ids[i]||
+     interview.candidate_uuid!==ids[i]||
+     interview.client_id!==clientRow.id||
+     interview.client_uuid!==clientRow.id||
+     interview.created_by!==ids[0])
+     reject('interviews relationships');
+   pairs.push({submission,interview});
+ }
+ if(new Set(relatedJobs.map(j=>j.id)).size!==2||
+   new Set(relatedSubmissions.map(s=>s.id)).size!==2||
+   new Set(relatedInterviews.map(v=>v.id)).size!==2)
+   reject('duplicate relationship identities');
+ if(!relatedOffer||
+   relatedOffer.candidate_id!==ids[1]||
+   relatedOffer.candidate_uuid!==ids[1]||
+   relatedOffer.client_id!==clientRow.id||
+   relatedOffer.client_uuid!==clientRow.id||
+   relatedOffer.submission_uuid!==pairs[0].submission.id||
+   relatedOffer.interview_uuid!==pairs[0].interview.id||
+   relatedOffer.created_by!==ids[0])
+   reject('offers relationships');
+ if(!relatedBill||
+   relatedBill.candidate_id!==ids[1]||
+   relatedBill.candidate_uuid!==ids[1]||
+   relatedBill.client_id!==clientRow.id||
+   relatedBill.client_uuid!==clientRow.id||
+   relatedBill.offer_uuid!==relatedOffer.id||
+   relatedBill.created_by!==ids[0])
+   reject('billing relationships');
  return Object.freeze({verifiedNonproductionInertTables:19,contentMutations:0});
 }
 
