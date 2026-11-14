@@ -12,14 +12,18 @@ export interface OwnedNotificationItem {
   created_at: string;
 }
 export function verifyOwnedNotificationRows(
-  rows: readonly OwnedNotificationItem[] | null | undefined,
+  rows: unknown,
   userId: string,
 ): OwnedNotificationItem[] {
   if (typeof userId !== "string" || !userId.trim() || !Array.isArray(rows))
     throw new Error("Notification source is not verified");
-  for (const row of rows) {
-    if (!row || typeof row !== "object" ||
-        typeof row.id !== "string" || !row.id.trim() ||
+  // The Supabase schema explicitly permits null owner and read status.
+  // Reject them at the transport boundary before narrowing into UI rows.
+  for (const entry of rows) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry))
+      throw new Error("Notification source has invalid or foreign owner metadata");
+    const row = entry as Record<string, unknown>;
+    if (typeof row.id !== "string" || !row.id.trim() ||
         row.user_id !== userId ||
         typeof row.title !== "string" ||
         (row.message !== null && typeof row.message !== "string") ||
@@ -28,5 +32,5 @@ export function verifyOwnedNotificationRows(
         typeof row.created_at !== "string" || !row.created_at.trim())
       throw new Error("Notification source has invalid or foreign owner metadata");
   }
-  return [...rows];
+  return [...rows] as OwnedNotificationItem[];
 }
