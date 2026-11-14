@@ -6,6 +6,7 @@ import {makeBaseFixture,seedInertBaseFixture} from './seed-inert-base-fixture.mj
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture,seedExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
 import {slotEmail,provisionNine,PROJECT_URL,isExactSyntheticAuthUser,syntheticAuthEvidenceFingerprint} from './provision-nine-auth-users.mjs';
 import { verifyIndependentReleaseGate,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
+import {summarizeReleaseBlockers} from './release-blocker-report.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
 const env=()=>{
@@ -1424,4 +1425,67 @@ test('Build146 unavailable Auth precleanup inventory blocks deletion and reports
  await assert.rejects(provisionNine(syntheticNinePlan(),admin,async()=>{}),
   /2 cleanup operations unconfirmed/);
  assert.equal(reads,3);assert.equal(deletes,0);assert.equal(subjects.length,1);
+});
+
+const releaseReportPR=()=>({number:15,state:'open',user:{login:'amfsynergyvision7'},
+ head:{sha:'a'.repeat(40),ref:'release/nonprod-auth-uat-gate-20261113'},base:{ref:'main'}});
+const releaseReportApproval=sha=>({user:{login:'independent-human'},state:'APPROVED',
+ author_association:'COLLABORATOR',commit_id:sha,submitted_at:'2026-11-14T16:00:00Z'});
+const releaseReportEnvironment=()=>({
+ name:'amf-nonprod-auth-review',
+ protection_rules:[{type:'required_reviewers',prevent_self_review:true,
+  reviewers:[{type:'User',reviewer:{login:'independent-human'}}]}],
+ deployment_branch_policy:{protected_branches:true,custom_branch_policies:false}
+});
+
+// Build147: advisory GitHub report cannot be mistaken for an approval,
+// and it does not require secrets or write to protected production systems.
+test('Build147 live gate summary is HOLD when main is unprotected and PR lacks reviews',()=>{
+ const b=summarizeReleaseBlockers({
+  main:{name:'main',protected:false},
+  pr:releaseReportPR(),
+  reviews:[],
+  environment:null
+ });
+ assert.equal(b.status,'HOLD');
+ assert.deepEqual(b.rows.map(x=>x.verdict),
+  ['BLOCKED','VERIFIED','BLOCKED','UNVERIFIED']);
+});
+test('Build147 inaccessible metadata never becomes a passing release control',()=>{
+ const b=summarizeReleaseBlockers();
+ assert.equal(b.status,'UNVERIFIED');
+ assert.equal(b.checked,0);
+ assert.equal(b.unverified,4);
+});
+test('Build147 source SHA and independent approval cannot be replaced by stale or self review',()=>{
+ const pr=releaseReportPR(),yes=releaseReportApproval(pr.head.sha);
+ const env=releaseReportEnvironment();
+ assert.equal(summarizeReleaseBlockers({main:{name:'main',protected:true},
+  pr,reviews:[yes],environment:env}).status,'OWNER_REVIEW_REQUIRED');
+ for(const stale of [
+  {...yes,commit_id:'b'.repeat(40)},
+  {...yes,user:{login:'amfsynergyvision7'}},
+  {...yes,user:{login:'automated[bot]'}},
+  {...yes,author_association:'NONE'}
+ ])assert.equal(summarizeReleaseBlockers({
+  main:{name:'main',protected:true},pr,reviews:[stale],environment:env
+ }).status,'HOLD');
+ const veto={...yes,user:{login:'other-independent'},state:'CHANGES_REQUESTED',
+  submitted_at:'2026-11-14T17:00:00Z'};
+ assert.equal(summarizeReleaseBlockers({
+  main:{name:'main',protected:true},pr,reviews:[yes,veto],environment:env
+ }).status,'HOLD');
+});
+test('Build147 unprotected environment and malformed PR both remain HOLD',()=>{
+ const pr=releaseReportPR();
+ const env=releaseReportEnvironment();
+ env.protection_rules[0].prevent_self_review=false;
+ const r=summarizeReleaseBlockers({
+  main:{name:'main',protected:true},
+  pr:{...pr,head:{...pr.head,ref:'unreviewed-other-branch'}},
+  reviews:[releaseReportApproval(pr.head.sha)],environment:env
+ });
+ assert.equal(r.status,'HOLD');
+ assert.equal(r.rows[1].verdict,'BLOCKED');
+ assert.equal(r.rows[3].verdict,'BLOCKED');
 });
