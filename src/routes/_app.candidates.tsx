@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
 import { CandidateBoard } from "@/components/CandidateBoard";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
@@ -35,27 +37,50 @@ const STAGE_TONE: Record<string, PillTone> = {
 };
 
 function Page() {
+  const { user, profile, role, loading } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Checking candidate access…</p>;
+  if (!canMountApprovedCrm(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Approved CRM access is required.</p>;
+  return <CandidateWorkspace key={user!.id + ":" + role} />;
+}
+
+function CandidateWorkspace() {
   const [recruiters, setRecruiters] = useState<{ value: string; label: string }[]>([]);
   const [view, setView] = useState<"table" | "board">("table");
 
   useEffect(() => {
+    // Only active, approved recruiters are offered as assignees. No global
+    // employee directory is fetched on an unverified account.
+    const controller = new AbortController();
+    let current = true;
     const fetchRecruiters = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('status', 'approved')
-        .eq('is_active', true)
-        .order('full_name');
-      
-      if (!error && data) {
-        setRecruiters(data.map((recruiter: { id: string; full_name: string; email: string }) => ({
-          value: recruiter.id,
-          label: recruiter.full_name || recruiter.email
-        })));
+      try {
+        const roleResult = await supabase.from("user_roles")
+          .select("user_id, role", { count: "exact" }).eq("role", "recruiter")
+          .order("user_id").limit(150).abortSignal(controller.signal);
+        if (!current || controller.signal.aborted) return;
+        const roles = roleResult.data ?? [];
+        if (roleResult.error || !Number.isSafeInteger(roleResult.count) ||
+            roleResult.count! > 150 || roles.length !== roleResult.count) return;
+        const ids = [...new Set(roles.map(r => r.user_id))];
+        if (ids.length !== roles.length) return;
+        if (!ids.length) { setRecruiters([]); return; }
+        const profileResult = await supabase.from("profiles")
+          .select("id, full_name", { count: "exact" })
+          .in("id", ids).eq("status", "approved").eq("is_active", true)
+          .order("full_name").limit(150).abortSignal(controller.signal);
+        if (!current || controller.signal.aborted) return;
+        const data = profileResult.data ?? [];
+        if (profileResult.error || !Number.isSafeInteger(profileResult.count) ||
+            profileResult.count! > 150 || data.length !== profileResult.count ||
+            data.some(p => !ids.includes(p.id))) return;
+        setRecruiters(data.map(p => ({ value: p.id, label: p.full_name || p.id.slice(0, 8) })));
+      } catch {
+        if (current && !controller.signal.aborted) setRecruiters([]);
       }
     };
-    
-    fetchRecruiters();
+    void fetchRecruiters();
+    return () => { current = false; controller.abort(); };
   }, []);
 
   return (
