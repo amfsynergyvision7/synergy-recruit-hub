@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
+import { validateImportFileMetadata, validateImportGrid } from "@/lib/import-file-guard";
 import { LEGACY_BULK_IMPORT_WRITES_PAUSED, BULK_IMPORT_HOLD_REASON } from "@/lib/release-safety";
 import { commitCandidateImport } from "@/lib/candidate-batch-import";
 import { IMPORT_SCHEMAS, type ImportSchema, type ImportFieldDef } from "@/lib/import-schemas";
@@ -59,7 +60,10 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: Record<
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
         header: true, skipEmptyLines: true,
-        complete: (res) => resolve({ headers: res.meta.fields ?? [], rows: res.data as any[] }),
+        complete: (res) => {
+          if (res.errors.length) reject(new Error("Malformed CSV input"));
+          else resolve({ headers: res.meta.fields ?? [], rows: res.data as any[] });
+        },
         error: reject,
       });
     });
@@ -141,28 +145,38 @@ function AdminImportWorkspace() {
   // An uncertain network result is retried with the SAME request ID and payload.
   // A different file must use a deliberate reset before getting a new ID.
   const importRequestId = useRef<string | null>(null);
+  const previewEpoch = useRef(0);
   const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
 
   const schema = IMPORT_SCHEMAS[moduleKey];
 
   const reset = () => {
+    previewEpoch.current++;
     setStep("upload"); setFile(null); setFileHeaders([]); setRawRows([]);
     setMapping({}); setMappedRows([]); setProgress(0); setResult(null);
     setAssignedRecruiter(""); importRequestId.current = null;
   };
 
   const onFile = async (f: File) => {
-    setFile(f);
+    const epoch = ++previewEpoch.current;
+    const fileError = validateImportFileMetadata(f);
+    if (fileError) { toast.error(fileError); return; }
     importRequestId.current = null;
     try {
       const { headers, rows } = await parseFile(f);
-      if (!rows.length) { toast.error("No rows found in file"); return; }
+      if (epoch !== previewEpoch.current) return;
+      const gridError = validateImportGrid({ headers, rows });
+      if (gridError) { toast.error(gridError); return; }
+      setFile(f);
       setFileHeaders(headers);
       setRawRows(rows);
       setMapping(autoMap(headers, schema));
+      setMappedRows([]);
       setStep("map");
-    } catch (e: any) {
-      toast.error("Parse failed: " + e.message);
+    } catch {
+      // Never display parser exceptions or potentially private file contents.
+      if (epoch === previewEpoch.current)
+        toast.error("Unable to parse this file safely.");
     }
   };
 
