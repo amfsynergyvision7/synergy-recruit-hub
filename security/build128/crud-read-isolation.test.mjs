@@ -72,12 +72,12 @@ test("Build128 record lists retain count verification after Build131 page-based 
  assert(!ui.includes(".limit(MAX_CRUD_ROWS)"));
 });
 
-test("Build128 relation choices have exact counts and reject incomplete reads",()=>{
+test("Build128 relation choices stay exact-count verified after Build131 page-based scale-up",()=>{
  assert(ui.includes('select(field.relation!.select ?? "*", { count: "exact" })'));
- assert(ui.includes(".order(\"id\").limit(MAX_RELATION_ROWS).abortSignal(controller.signal)"));
- assert(ui.includes("hasCompleteIdList(data, count, MAX_RELATION_ROWS)"));
- assert(ui.includes("const MAX_RELATION_ROWS = 250"));
+ assert(ui.includes("readCompleteCrmRows((from, to, signal) =>"));
+ assert(ui.includes('.order("id", { ascending: true }).range(from, to).abortSignal(signal)'));
  assert(ui.includes("setRelationsFailed(true)"));
+ assert(!ui.includes(".limit(MAX_RELATION_ROWS)"));
 });
 
 test("Build128 old unfiltered all-table realtime subscriptions are gone",()=>{
