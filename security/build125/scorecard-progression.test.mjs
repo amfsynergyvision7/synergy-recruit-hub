@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const load=n=>JSON.parse(readFileSync(new URL("../release-progress/"+n,import.meta.url),"utf8"));
-const rubric=load("v1-rubric.json"),prior=load("build124-evidence-baseline.json"),current=load("current.json");
+const rubric=load("v1-rubric.json"),prior=load("build124-evidence-baseline.json"),current=load("build125-evidence-baseline.json");
 test("Build125 immutable full score stays 26/100 with no invented milestone closures",()=>{
  assert.deepEqual(compareSnapshots(rubric,prior,current),{
   previous:26,current:26,delta:0,newGates:[],regressed:[]
