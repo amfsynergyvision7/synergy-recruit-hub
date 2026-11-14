@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 129,
+  "snapshot_build": 130,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
@@ -10,7 +10,7 @@
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "30aa6db8037d5dfef8bb8a702fb55eadc3eac960",
+      "pr12_head": "8080da76cfd7e25c9715e190c2b18b927b5a7af2",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -254,6 +254,36 @@
       "hosted_signed_uat_cases_accepted": 0,
       "production_fixes_accepted": 0,
       "release_signoffs": 0
+    },
+    "build130_reports": {
+      "stage": "DRAFT_BI_SOURCE_CORRECTNESS_NOT_SIGNED_HOSTED_UAT",
+      "all_candidate_stages_verified": true,
+      "related_candidate_client_links_checked": true,
+      "conflicting_legacy_id_aliases_rejected": true,
+      "unassigned_recruiter_counts_included": true,
+      "invalid_date_windows_block_metrics_and_exports": true,
+      "local_calendar_today_used_for_date_presets": true,
+      "source_page_reconciliation_preserved": true,
+      "finance_analytics_still_held": true,
+      "hosted_data_validation_accepted": false,
+      "signed_real_rls_matrix_cases": 0
+    },
+    "build130_notification_badge": {
+      "owner_scoped_exact_unread_count": true,
+      "unknown_failed_count_not_presented_as_zero": true,
+      "no_cross_account_realtime": true
+    },
+    "build130_lab_readonly": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "public_table_rows_exact_counts": 0,
+      "public_tables_exactly_counted": 19,
+      "public_tables_rls_enabled": 19,
+      "auth_users_exact_count": 0,
+      "public_rls_policies_exact_count": 0,
+      "enabled_public_application_triggers": 0,
+      "performed_only_readonly_sql": true,
+      "accepted_hosted_uat_cases": 0,
+      "lab_go_true_and_fixture_provisioning_done": false
     }
   },
   "statuses": [
@@ -505,8 +535,8 @@
       "evidence": []
     }
   ],
-  "notes": "Build129 draft-only browser hardening: integrations use approved admin gate before any query hooks and user-scoped cache keys; settings use approved account gate and account/role keyed component with cancellation of delayed admin settings read; notifications require exact <=100 owner-only count, deny missing/partial/duplicate rows, abort stale requests and show incomplete instead of false empty. Legacy Build117 test aligned to stronger abort contract. First corrected fast run at pre-scorecard head 573/573 success, final-head CI and guarded results to be verified separately. No accepted hosted RLS, protected main, independent reviews, live UAT, production/staging writes, deployment or finance activation. Fixed 43-gate score stays 26/100 (12 evidenced, 31 open).",
-  "previous_file": "build128-evidence-baseline.json",
+  "notes": "Build130 actual draft report and notification integrity work: source stage/foreign-key/legacy alias consistency validated before recruitment KPI computation; unassigned activity retained rather than silently dropped; invalid or reversed dates block data/export, local date presets avoid UTC rollover. Header notification badge explicitly distinguishes unverifiable unread counts from verified zero. Read-only dedicated lab audit: 19/19 public tables RLS enabled, 0 Auth users, exactly 0 rows across all 19 tables, 0 public policies and 0 enabled public application triggers. Main protection absent, PR12/15 unmerged and without independent reviews, production hold on. Fixed 43-gate score 26/100, 12/43 evidenced, 31 open; first exact-head fast/guarded CI must be verified separately. Git SHA is last inspected pre-snapshot source head.",
+  "previous_file": "build129-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
