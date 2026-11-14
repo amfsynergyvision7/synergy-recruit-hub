@@ -10,6 +10,12 @@
  */
 export const LEGACY_CANDIDATE_WRITES_PAUSED = true as const;
 export const LEGACY_BULK_IMPORT_WRITES_PAUSED = true as const;
+// Draft organization-wide settings and branding writes remain inactive until
+// the storage policy and admin-settings RPC are independently accepted.
+// This is an unconditional browser-side hold, not backend authorization.
+export const CRM_ORG_SETTINGS_MUTATIONS_PAUSED = true as const;
+export const CRM_ORG_SETTINGS_HOLD_REASON =
+  "Organization branding and settings changes are paused pending independently reviewed storage and RPC authorization.";
 // Build118: draft creation is permitted, but outbound CRM email requires
 // separate independent approval of browser and server interlocks.
 export const CRM_EMAIL_COMPOSER_MUTATIONS_PAUSED = true as const;
