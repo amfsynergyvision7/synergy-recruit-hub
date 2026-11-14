@@ -64,6 +64,9 @@ test("Build131 read-only lab audit retains empty 19-table state",()=>{
  assert.equal(x.public_rls_policies,0);
  assert.equal(x.auth_users,0);
  assert.equal(x.fixture_rows_reported,0);
+ assert.equal(x.fixture_rows_exact_count,0);
+ assert.equal(x.exact_counted_tables,19);
+ assert.equal(x.row_validation_method,"read_only_select_count_per_each_public_table");
  assert.equal(x.public_enabled_application_triggers,0);
  assert.equal(x.mutations_executed,0);
 });
