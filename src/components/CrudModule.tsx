@@ -14,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useAuth, canEdit, canDelete } from "@/hooks/use-auth";
 import { canMountApprovedCrm } from "@/lib/crm-shell-access";
-import { hasCompleteIdList } from "@/lib/crm-list-integrity";
 import { CRM_MAX_ROWS, CRM_PAGE_SIZE, readCompleteCrmRows, sortCompleteCrmRows } from "@/lib/bounded-crm-read";
 import { Check, ChevronsUpDown, Download, FilterX, ListFilter, Plus, Pencil, Trash2, Search, Inbox, Eye, Mail, RefreshCw } from "lucide-react";
 import { EmailComposeDialog } from "@/components/EmailComposeDialog";
@@ -148,7 +147,6 @@ export function CrudModule(props: Props) {
   return <VerifiedCrudWorkspace key={user!.id + ":" + role + ":" + props.table} {...props} />;
 }
 
-const MAX_RELATION_ROWS = 250;
 function VerifiedCrudWorkspace({ title, description, table, module, fields, searchFields, orderBy, detailView, emailField, headerActions }: Props) {
   const { role } = useAuth();
   const candidateMutationPaused = module === "candidates" && LEGACY_CANDIDATE_WRITES_PAUSED;
@@ -284,11 +282,14 @@ function VerifiedCrudWorkspace({ title, description, table, module, fields, sear
     }
     try {
       const entries = await Promise.all(relationFields.map(async field => {
-        const { data, error, count } = await supabase.from(field.relation!.table as any)
-          .select(field.relation!.select ?? "*", { count: "exact" })
-          .order("id").limit(MAX_RELATION_ROWS).abortSignal(controller.signal);
-        if (error || !hasCompleteIdList(data, count, MAX_RELATION_ROWS))
-          throw new Error("Incomplete relation metadata");
+        // Relation labels and choices must represent a complete authorized
+        // snapshot too. A short linked table would otherwise prevent editing
+        // a valid record or silently display a blank/incorrect relationship.
+        const data = await readCompleteCrmRows((from, to, signal) =>
+          supabase.from(field.relation!.table as any)
+            .select(field.relation!.select ?? "*", { count: "exact" })
+            .order("id", { ascending: true }).range(from, to).abortSignal(signal),
+          controller.signal);
         return [field.name, data] as const;
       }));
       if (!controller.signal.aborted && epoch === relationEpoch.current) {
