@@ -13,7 +13,7 @@ test('SMTP transport enforces approval before sending',()=>{
 test('Browser Supabase client rejects project mismatch',()=>{
  const source=read('src/integrations/supabase/client.ts');
  assert.match(source,/expectedProject/);
- assert.match(source,/actualHost !== \x60\$\{expectedProject\}\.supabase\.co\x60/);
+ assert.match(source,/assertMatchingSupabaseProject\(SUPABASE_URL, expectedProject\)/);
 });
 
 test('Server and browser deny missing expected project identity',()=>{
