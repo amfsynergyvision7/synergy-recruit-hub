@@ -1290,3 +1290,56 @@ test('Build144 ordinary last-sign-in change cannot masquerade as a data-integrit
  assert.equal(reads,2);
  assert.equal(writes(),0);
 });
+
+
+// Build145: do not silently accept a "primary email" claim with no evidence
+// that there is only one linked sign-in provider.
+test('Build145 rejects bare email provider with no complete providers or identities inventory',()=>{
+ const primaryOnly=mockSyntheticAuth(1);
+ delete primaryOnly.app_metadata.providers;
+ delete primaryOnly.identities;
+ assert.equal(isExactSyntheticAuthUser(primaryOnly,1),false);
+ const emptyProviderList=mockSyntheticAuth(1);
+ delete emptyProviderList.identities;
+ emptyProviderList.app_metadata.providers=[];
+ assert.equal(isExactSyntheticAuthUser(emptyProviderList,1),false);
+ const linkedOther=mockSyntheticAuth(1);
+ linkedOther.app_metadata.providers=['email','google'];
+ delete linkedOther.identities;
+ assert.equal(isExactSyntheticAuthUser(linkedOther,1),false);
+ const syntheticNoProviders=mockSyntheticAuth(1);
+ delete syntheticNoProviders.app_metadata.providers;
+ assert.equal(isExactSyntheticAuthUser(syntheticNoProviders,1),true,
+   'A verified single email identity is sufficient even if providers list is omitted');
+ const validEmailOnly=mockSyntheticAuth(1);
+ delete validEmailOnly.identities;
+ assert.equal(isExactSyntheticAuthUser(validEmailOnly,1),true,
+   'Complete single-email providers list can substitute for omitted expanded identities');
+});
+test('Build145 hosted audit fails closed for unproven single email-only account',async()=>{
+ const {client,users,writes}=fakeFullInertClient();
+ for(const mutate of [
+  u=>{delete u.app_metadata.providers;delete u.identities;},
+  u=>{u.app_metadata.providers=['email','github'];delete u.identities;},
+  u=>{u.app_metadata.providers=[];delete u.identities;}
+ ]){
+  const slot=users[0],oldApp=slot.app_metadata,oldIds=slot.identities;
+  slot.app_metadata={...oldApp};slot.identities=oldIds;
+  mutate(slot);
+  await assert.rejects(runGuardedHostUat({operation:'AUDIT_ONLY'},client),
+    /Auth identit|Auth identity inventory changed/);
+  slot.app_metadata=oldApp;slot.identities=oldIds;
+ }
+ assert.equal(writes(),0);
+});
+test('Build145 standalone base/extended writers reject a primary-only unproven identity before writes',async()=>{
+ const {users}=fakeFullInertClient(),mapping={project_id:project,users};
+ delete users[0].app_metadata.providers;delete users[0].identities;
+ for(const extended of [false,true]){
+  const fake=rollbackFake(mapping,{extended,returned:'exact'});
+  await assert.rejects(extended?seedExtendedFixture(fake.client,mapping):
+    seedInertBaseFixture(fake.client,mapping),
+    /exact nine nonproduction GoTrue users|exact nine synthetic Auth users/i);
+  assert.equal(fake.deleteCalls(),0);
+ }
+});

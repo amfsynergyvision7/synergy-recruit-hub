@@ -40,13 +40,17 @@ export function isExactSyntheticAuthUser(u,slot) {
       (app.providers!=null && (!Array.isArray(app.providers) ||
         app.providers.length!==1 || app.providers[0]!=='email')))
     return false;
-  // A provider list by itself is not proof of a primary email sign-in.
-  // GoTrue may omit the expanded identities array in some readbacks:
-  // accept either an explicit primary email provider or a validated
-  // single email identity. Never accept neither.
-  if (app.provider!=='email' &&
-      !(Array.isArray(u.identities)&&u.identities.length===1&&
-        u.identities[0]?.provider==='email'))
+  // Build145: an "email" primary-provider claim ALONE cannot prove that
+  // the account has no second linked IdP. Require independent evidence of
+  // a *single* email-only provider either in the complete providers array
+  // or the complete single linked identity. Missing BOTH fails closed.
+  // This tolerates legitimate GoTrue responses that omit expanded identities.
+  const oneEmailProvider=Array.isArray(app.providers) &&
+    app.providers.length===1 && app.providers[0]==='email';
+  const oneEmailIdentity=Array.isArray(u.identities) &&
+    u.identities.length===1 && u.identities[0]?.provider==='email';
+  if ((app.provider!=='email' && !oneEmailIdentity) ||
+      (!oneEmailProvider && !oneEmailIdentity))
     return false;
   const meta=u.user_metadata;
   if (meta!=null && (typeof meta!=='object' || Array.isArray(meta) ||

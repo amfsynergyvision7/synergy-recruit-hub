@@ -148,3 +148,17 @@ The identity contract now refuses accounts that have neither an explicit `app_me
 The code update is grouped into **one atomic Git commit** to avoid triggering one Vercel preview and GitHub CI run per file. This is engineering hygiene, **not an accepted release gate**. Supabase documents server-side `auth.admin.createUser` with `email_confirm: true`, but documentation does not guarantee every optional expanded User response field on all provider versions. The current implementation tolerates omitted `identities` if the primary email provider is explicitly present. An independent operator must test the exact real GoTrue response in the isolated lab **after** the required GitHub branch and independent-review controls are configured. Do not loosen protections merely to silence failing checks.
 
 This change is draft-only. No new Auth identities, hosted fixture rows, real signed UAT cases, production security remediations, review signoffs or deployments are claimed.
+
+## Build 145 — single-email-provider proof and reviewer-ready admin handoff
+
+An explicit `app_metadata.provider: "email"` is **not sufficient by itself** to show that no other sign-in provider is attached. The reviewer-controlled hosted test gate now requires additional evidence of exactly one email provider, supplied by either a complete `app_metadata.providers: ["email"]` list or one validated email `identities` record. If both lists are absent, the identity is rejected even when its email is `example.invalid` and its primary provider says "email". Expanded identities may be missing if the provider list is present and exact. This is a strict, in-memory fail-closed assertion; **it has not yet been verified against a live populated GoTrue tenant**.
+
+**Required administrator and independent reviewer actions to leave the release HOLD:**
+
+1. In GitHub repository settings, protect the `main` branch, enforce independent PR reviews and passing substantive checks, and prohibit bypass/self-approval. The GitHub connector in this chat does not provide a branch-protection mutation capability; the repository currently has no rulesets.
+2. Establish `amf-nonprod-auth-review` as an independently reviewed GitHub Environment with `prevent_self_review=true`, eligible non-author reviewers and `protected_branches=true` only. Before any credentials are exposed, `independent-release-approval.mjs` independently validates these flags using read-only GitHub API calls.
+3. Store only the isolated lab's credentials in the environment, never CRM production credentials. Scope the operator's creation action to the exact dedicated nonproduction Supabase project. Never copy real candidate records or use real contactable emails.
+4. Obtain an independent PR approval against the **current** PR #15 commit, and let the applicable owner authorize the protected, narrow merge and subsequent manual `AUDIT_ONLY` operation. The reviewer should examine the exact GoTrue user shape and may request a new reviewed change if it differs from the offline contract; do not bypass checks for convenience.
+5. Only after renewed live read-only SQL preflight and independent review consider the protected manual `CREATE_NINE_AND_SEED_38` operation. Independently review all expected fictional users and rows; source tests are not signed hosted UAT evidence.
+
+The source patch is one atomic commit covering implementation, regression tests and this reviewer handoff; it does not by itself close a weighted v1 release gate or imply production approval.
