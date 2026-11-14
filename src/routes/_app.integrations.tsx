@@ -1,8 +1,9 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +20,16 @@ import { CANDIDATE_FIELDS, CANDIDATE_FIELD_LABELS } from "@/lib/candidate-fields
 export const Route = createFileRoute("/_app/integrations")({ component: Page });
 
 function Page() {
-  const { role } = useAuth();
-  if (role && role !== "admin") return <Navigate to="/dashboard" />;
+  const { user, profile, role, loading } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Checking integration access…</p>;
+  if (!canReadPrivateUserDirectory(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Approved administrator access is required.</p>;
+  // The separate workspace is only mounted after a verified admin.
+  // Switching accounts removes private React Query hooks and local state.
+  return <AdminIntegrationWorkspace key={user!.id + ":" + role} userId={user!.id} />;
+}
 
+function AdminIntegrationWorkspace({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const fetchIntegration = useServerFn(getIntegration);
   const save = useServerFn(saveIntegration);
@@ -29,8 +37,8 @@ function Page() {
   const sync = useServerFn(triggerSync);
   const fetchLogs = useServerFn(getSyncLogs);
 
-  const integQ = useQuery({ queryKey: ["integration"], queryFn: () => fetchIntegration() });
-  const logsQ = useQuery({ queryKey: ["sync-logs"], queryFn: () => fetchLogs(), refetchInterval: 10000 });
+  const integQ = useQuery({ queryKey: ["integration", userId], queryFn: () => fetchIntegration() });
+  const logsQ = useQuery({ queryKey: ["sync-logs", userId], queryFn: () => fetchLogs(), refetchInterval: 10000 });
 
   const [form, setForm] = useState({ sheet_url: "", sheet_name: "Form Responses 1", header_row: 1, auto_sync_enabled: false, sync_frequency_minutes: 2 });
   const [headers, setHeaders] = useState<string[]>([]);
@@ -70,8 +78,8 @@ function Page() {
       // Never log private Sheets URLs, row IDs, account data or diagnostics.
       toast.success("Integration settings saved");
       setRuntimeDiagnostics(row?.diagnostics ?? null);
-      qc.setQueryData(["integration"], row);
-      qc.invalidateQueries({ queryKey: ["integration"] });
+      qc.setQueryData(["integration", userId], row);
+      qc.invalidateQueries({ queryKey: ["integration", userId] });
     },
     onError: () => { console.error("Google integration save failed"); toast.error("Integration settings unavailable"); },
   });
@@ -99,7 +107,7 @@ function Page() {
       const errors = Number(r?.errors ?? (Array.isArray(r?.error_details) ? r.error_details.length : 0));
       setRuntimeDiagnostics(r?.diagnostics ?? null);
       toast.success(`Sync Complete\nCreated: ${created}\nUpdated: ${updated}\nSkipped: ${skipped}\nErrors: ${errors}`);
-      qc.invalidateQueries({ queryKey: ["integration"] }); qc.invalidateQueries({ queryKey: ["sync-logs"] });
+      qc.invalidateQueries({ queryKey: ["integration", userId] }); qc.invalidateQueries({ queryKey: ["sync-logs", userId] });
     },
     onError: () => toast.error("Candidate synchronization unavailable; check restricted logs"),
   });
