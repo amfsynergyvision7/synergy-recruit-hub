@@ -103,3 +103,10 @@ The first draft of the CI test mistakenly required `current.json` to stay at 22 
 - Exact accepted gate **LD03 (+2)** only. [Implementation](https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/429d05b070d65c323adb8b6e76656964b83a1227/security/lead-discovery/discover.mjs); [364/364 passing CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43558920955).
 - LD02 real-source/ICP approval, LD04 human review and CRM handoff, LD05 KPIs remain open; full workstreams closed 0/6, release score 0/20.
 - Previous Build120 score snapshot frozen as `build120-evidence-baseline.json`; compare to updated `current.json` with exact new LD03 gate and 2-point delta. Never rewrite v1 weights.
+
+## Build 122 fixed-v1 change (14 November 2026)
+
+- Prior Build121 **24/100**, current Build122 **26/100**, delta **+2 points**. 12/43 fixed milestone gates evidenced, 31 open; 74 points remaining.
+- Sole newly credited gate: **LD04 (+2)**, narrowly meeting its fixed **software acceptance** criterion: manual two-role approval queue, privacy checks, duplicate/conflicting-source handling and hash-chained audited **no-send JSON CRM handoff preview** verified through [387/387 passing fast tests](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43561219866), including 19 new build tests. No live lead, named real human reviewer, real CRM record handoff, contact or outreach is authorized.
+- LD02 real ICP/source-approval, LD05 lead KPIs, SO04 actual sending, CRM10 CRM production workflow signoff and every release approval remain **OPEN**.
+- The exact previous Build121 score snapshot is frozen as `build121-evidence-baseline.json`. The `current.json` snapshot declares previous 24, new 26, LD04 only. Existing Build121 tests now read the frozen previous file, so forward progress does not falsify history.

@@ -1,16 +1,16 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 121,
+  "snapshot_build": 122,
   "as_of": "2026-11-14",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
-  "expected_earned_points": 24,
+  "expected_earned_points": 26,
   "observations": {
     "git": {
       "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
       "main_protected": false,
       "ruleset_count": 0,
-      "pr12_head": "4029521d33e9bb6778e435b3e819af8980421a49",
+      "pr12_head": "f7d6375db0160b153b7e7bca4945ce445f2e56ab",
       "pr12_draft": true,
       "pr12_merged": false,
       "pr12_independent_reviews": 0,
@@ -63,6 +63,29 @@
       "crm_writes": 0,
       "network_requests": 0,
       "real_source_discovery_approved": false
+    },
+    "lead_review": {
+      "mode": "SYNTHETIC_OFFLINE_REVIEW",
+      "ci_run": "43561219866",
+      "fictional_company_records": 3,
+      "approval_queue_tested": true,
+      "source_provenance_verified": true,
+      "duplicate_protection_tested": true,
+      "separate_growth_and_crm_reviewers_required": true,
+      "fictional_growth_approvals": 2,
+      "fictional_crm_approvals": 1,
+      "fictional_rejections": 1,
+      "pending_crm_review": 1,
+      "offline_handoff_count": 1,
+      "audit_verified": true,
+      "audited_events_are_cryptographic_signatures": false,
+      "actual_human_reviews": 0,
+      "actual_crm_handoffs": 0,
+      "crm_writes": 0,
+      "outbound_messages": 0,
+      "network_requests": 0,
+      "real_contacts_authorized": false,
+      "synthetic_only": true
     }
   },
   "statuses": [
@@ -125,8 +148,12 @@
     },
     {
       "id": "LD04",
-      "complete": false,
-      "evidence": []
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/f7d6375db0160b153b7e7bca4945ce445f2e56ab/security/lead-discovery/review.mjs",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43561219866",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/f7d6375db0160b153b7e7bca4945ce445f2e56ab/security/build122/lead-review-and-handoff.test.mjs"
+      ]
     },
     {
       "id": "LD05",
@@ -310,12 +337,12 @@
       "evidence": []
     }
   ],
-  "notes": "Build121 +2 for LD03 only: a runnable offline synthetic business discovery producing exact URL/date provenance and domain deduplication verified in fast CI 43558920955. Not a live lead pipeline; 42 other gate statuses unchanged. Build120 snapshot retained.",
-  "previous_file": "build120-evidence-baseline.json",
-  "previous_earned_points": 22,
+  "notes": "Build122 +2 LD04 strictly for its functional synthetic-only acceptance: tested approval queue, privacy checks, duplicate handling and hash-chained audited no-send CRM handoff preview (fast CI 43561219866 passed 387/387 with 19 new tests). Actual named human approvals remain zero; no real lead, operational CRM handoff, network requests or outreach. The v1 fixed rubric is unchanged; every other gate unchanged. PR15/main/release remain held.",
+  "previous_file": "build121-evidence-baseline.json",
+  "previous_earned_points": 24,
   "delta_points": 2,
   "newly_closed_ids": [
-    "LD03"
+    "LD04"
   ],
   "regressed_ids": [],
   "previous_comparable_baseline_points": 22

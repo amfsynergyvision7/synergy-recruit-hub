@@ -23,3 +23,7 @@ Candidate rubric gate LD04: *Approval queue, privacy checks, duplicate handling 
 
 All outputs go to stdout only. No files are written, no HTTP requests or email are sent, and no CRM action is possible from this script.
 
+
+## Passed synthetic acceptance and point award
+
+[CI run 43561219866](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43561219866) **SUCCESS, 387/387 tests**. All 19 Build122 review/permission/audit tests passed. The fixed milestone LD04 accepts a **tested approval queue and audited no-send handoff**, not operational human approval. Award LD04 **2/2** in the immutable v1 scorecard for this tested synthetic implementation. Actual human reviews=0 and real CRM writes/handoffs=0; these facts remain explicit in snapshot and are not substitutes for LD02/LD05/CRM10 acceptance. This is not a financial/email/production release.

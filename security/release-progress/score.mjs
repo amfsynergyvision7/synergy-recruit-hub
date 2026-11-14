@@ -37,6 +37,19 @@ export function evaluate(rubric, snapshot) {
   const closedWorkstreams=groups.filter(g=>g.id!=="REL"&&g.earned===g.weight).length;
   const gate=(id)=>states.get(id).complete;
   const o=snapshot.observations;
+  if(gate("LD04")){
+    const review=o.lead_review;
+    if(!gate("LD03")||review?.synthetic_only!==true||
+       review.approval_queue_tested!==true||
+       review.source_provenance_verified!==true||
+       review.duplicate_protection_tested!==true||
+       review.separate_growth_and_crm_reviewers_required!==true||
+       review.audit_verified!==true||
+       !Number.isInteger(review.offline_handoff_count)||review.offline_handoff_count<1||
+       review.crm_writes!==0||review.outbound_messages!==0||review.network_requests!==0||
+       review.real_contacts_authorized!==false)
+      throw new Error("LD04 synthetic no-send approval workflow evidence missing");
+  }
   if(gate("CRM06")&&o.lab.auth_users!==9)throw new Error("GoTrue Auth evidence does not match CRM06");
   if(gate("CRM07")&&o.lab.fixture_rows!==38)throw new Error("Hosted fixtures do not match CRM07");
   if(gate("CRM08")&&o.formal_acceptance.hosted_signed_uat.accepted!==140)

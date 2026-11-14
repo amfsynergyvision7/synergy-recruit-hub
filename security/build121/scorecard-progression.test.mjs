@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { evaluate, compareSnapshots } from "../release-progress/score.mjs";
 const file=n=>JSON.parse(readFileSync(new URL("../release-progress/"+n,import.meta.url),"utf8"));
-const rubric=file("v1-rubric.json"),previous=file("build120-evidence-baseline.json"),current=file("current.json");
+const rubric=file("v1-rubric.json"),previous=file("build120-evidence-baseline.json"),current=file("build121-evidence-baseline.json");
 test("Build121 fixed rubric score reconciles 22 to 24 with solely LD03",()=>{
  const diff=compareSnapshots(rubric,previous,current);
  assert.deepEqual(diff,{previous:22,current:24,delta:2,newGates:["LD03"],regressed:[]});
