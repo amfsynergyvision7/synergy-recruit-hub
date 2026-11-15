@@ -29,3 +29,12 @@ The manually curated reference `curated-reference.synthetic.json` contains three
 **Exit rule:** LD02 closes only with accepted specific ICP/source/provenance decisions and signoffs. LD05 closes only with authorized live organization-level evidence plus accepted operational KPI denominators and verified Growth/BI decisions. The independent reviewer must record acceptance in the fixed rubric; until then **Category C remains 6/10, programme 26/100, release HOLD**. No production email, scraping, CRM mutation, finance activation or database write is enabled.
 
 **Forecast caution:** once such evidence exists, there may be **1–2 acceptance batches** remaining for Category C, but repeated engineering builds cannot replace external owner decisions.
+
+## Build168: two structured owner evidence forms
+
+- `ld02-independent-evidence.review.json`: references to an approved policy document, SHA-256 fingerprint binding the exact industry/persona/source decisions, separate Growth and Privacy review records, permitted-source terms evidence and approval date. **Do not type fictitious approver names or URLs**.
+- `ld05-independent-sample.review.json`: authorized sample source reference, separate Growth and BI review documents, manually verified aggregate-only sample counts and independent discrepancy record. No names, emails, contacts, personal profiles or active CRM data.
+
+These are **NOT_SUBMITTED** by default. The local `acceptance-handoff.mjs` produces a consolidated action list and verifies internal integrity; it does not fetch or authenticate submitted URLs, so the qualified reviewer must verify documents externally, resolve permissions and record the actual acceptance separately. Changes to these templates alone never change the frozen 100-point rubric.
+
+**Decision bottleneck:** no approved domain-level ICP/source whitelist and no permitted real-business source sample were found in the connected REVIEW-DRAFT docs checked on 15 November 2026. Until these exist, the category can be engineering-review-ready but **not 10/10**.

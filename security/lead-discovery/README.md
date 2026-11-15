@@ -70,3 +70,11 @@ Category C remains 6/10 officially accepted and the review packet 4/8 owner-gate
 ## Build167 — separately curated synthetic KPI reference and owner closure packet
 
 A separately hand-authored (but not human-signed) `curated-reference.synthetic.json` is cross-reconciled by `reconcile.mjs` with the exact fictional discovery/review ledger. All 30 expected source, business identity, status and metric checks must agree. Failure is explicit and CI-tested. The category status generator now uses the correct frozen rubric field `title` instead of displaying `undefined`; it keeps the 43-gate weighted score unchanged. See [Owner-ready LD02+LD05 closure instructions](./LD02-LD05-OWNER-CLOSURE.md). No real samples or approvals exist.
+
+## Build168 — owner acceptance evidence intake without false signoff
+
+The draft-only, zero-network `acceptance-handoff.mjs` checks the **specific LD02 and LD05 owner submission shapes** and identifies outstanding independent-source and consent requirements. It rejects malformed or secret-bearing links, mismatched scope fingerprints, duplicate signoff refs, contradictory aggregate business sample counts and any contact/CRM effects. This is a **negative/structural preflight**, not a signature authority or production activation.
+
+Run `node security/lead-discovery/acceptance-handoff.mjs`; the default deliberately reports both milestones not independently accepted. Only company-level aggregate sample counts can enter `ld05-independent-sample.review.json`; detailed person data and actual company/contact records are prohibited. `ld02-independent-evidence.review.json` is unsubmitted, with no inferred market policy or signatures.
+
+The LD02 real-source whitelist now accepts only canonical HTTPS **business origins** (domain only), rejects source paths, query tokens and private/reserved hosts. Specific domains, lawful terms, retention, independent Growth/Privacy and Growth/BI decisions are still missing. This is **acceptance handoff readiness, not acceptance**, and the official Category C score remains **6/10**. No further pre-approval code batches are planned without specific reported defects.

@@ -13,9 +13,13 @@ function publicSource(value){
  if(typeof value!=="string"||value.length>400)return false;
  let u;try{u=new URL(value)}catch{return false}
  const h=u.hostname.toLowerCase();
+ // A whitelist contains only exact HTTPS origins, not full URLs, redirects,
+ // query tokens, credentials, private/reserved names or personal links.
  return u.protocol==="https:"&&!u.username&&!u.password&&!u.port&&!u.hash&&!isIP(h)&&
-  h.includes(".")&&!h.includes("..")&&!h.endsWith(".invalid")&&!h.endsWith(".localhost")&&
-  h.split(".").every(x=>/^[a-z0-9-]{1,63}$/i.test(x));
+  (value==="https://"+h||value==="https://"+h+"/")&&
+  h.length<=253&&h.includes(".")&&!h.includes("..")&&
+  ![".invalid",".localhost",".local",".internal",".test",".onion",".example"].some(t=>h.endsWith(t))&&
+  h.split(".").every(x=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(x));
 }
 export function examineCategoryCApprovals(policy,kpi){
  if(policy?.status!=="REVIEW_DRAFT_NOT_APPROVED"||
