@@ -26,7 +26,7 @@ This is the **only active development category** for Build 167; critical product
 | LD02-P3 | Real ICP industries, personas and permitted sources specifically approved | Independent acceptance needed |
 | LD02-P4 | Privacy/legal exclusions, permissible processing and retention signed | Independent acceptance needed |
 | LD05-P1 | Source-linked aggregate metric definitions prepared | Source prepared |
-| LD05-P2 | Same-source synthetic no-send KPI calculations and separately curated fictional reference checks passed offline | Source prepared |
+| LD05-P2 | Synthetic no-send KPIs passed CI; independently curated fictional source and KPI reference checked, not real sample | Source prepared |
 | LD05-P3 | Source quality, freshness and conversion metric thresholds approved | Independent acceptance needed |
 | LD05-P4 | Authorized live business-source pilot, independent reconciled observations and growth/BI signoff | Independent acceptance needed |
 
