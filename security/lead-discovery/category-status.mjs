@@ -63,7 +63,7 @@ Growth and BI owners must agree source quality, freshness, yield and conversion 
 | LD02: approved ICP, domains, lawful business research and retention | [LD02 independent evidence](./ld02-independent-evidence.review.json) | **Not submitted** — Growth + Privacy |
 | LD05: real authorized company-only sample, six KPI targets and independent reconciliation | [LD05 independent sample](./ld05-independent-sample.review.json) | **Not submitted** — Growth + BI |
 
-Run `node security/lead-discovery/acceptance-handoff.mjs` for missing evidence fields; all approval results remain `false` even if draft metadata is filled, until independently verified externally. No production/staging writes, real sourcing, messaging or CRM activation.
+Run \`node security/lead-discovery/acceptance-handoff.mjs\` for missing evidence fields; all approval results remain \`false\` even if draft metadata is filled, until independently verified externally. No production/staging writes, real sourcing, messaging or CRM activation.
 
 ## Build167 completed offline technical controls — separate from required owner approvals
 
