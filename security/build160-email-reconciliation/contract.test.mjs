@@ -63,7 +63,10 @@ test("Build160 audit ACL lockdown proposal is review-only and removes broad poli
  assert.match(s,/REVOKE SELECT,INSERT,UPDATE,DELETE,TRUNCATE/);
  assert.match(s,/REVOKE UPDATE,DELETE,TRUNCATE/);
  assert.match(s,/FROM service_role/);
- assert.match(s,/FROM PUBLIC,anon,authenticated/);
+ assert.match(s,/FROM PUBLIC,anon/);
+ assert.match(s,/FROM authenticated/);
+ assert.match(s,/FROM service_role/);
+ assert.doesNotMatch(s,/DROP POLICY IF EXISTS "read audit"/);
  assert.match(s,/DROP POLICY IF EXISTS "Allow all for authenticated"/);
  assert.match(s,/DROP POLICY IF EXISTS "insert audit"/);
 });
@@ -84,4 +87,14 @@ test("Build160 production audit integrity preflight is read-only and fail closed
  assert.equal((x.replace(/--[^\n]*/g,"").match(/;/g)||[]).length,1);
  assert.doesNotMatch(x.replace(/--[^\n]*/g,""),/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|CREATE|DROP|GRANT|REVOKE|ALTER|TRUNCATE|DO)\b/im);
  assert.doesNotMatch(x,/\bFROM public\.audit_logs\b/i);
+});
+
+
+test("Build161 catalog gate blocks unreviewed extra audit policies even if privileged ACLs are repaired",()=>{
+ const source=read("./audit-integrity.preflight.readonly.sql");
+ assert.match(source,/total_audit_policies=1/);
+ assert.match(source,/admin_select_policies=1/);
+ assert.match(source,/p\.policyname='read audit'/);
+ assert.match(source,/p\.roles::text='\{authenticated\}'/);
+ assert.match(source,/service_insert AND NOT service_update AND NOT service_delete AND NOT service_truncate/);
 });
