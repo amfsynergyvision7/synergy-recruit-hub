@@ -254,3 +254,80 @@ test('Build153 README and impact report explicitly refuse deploy inference',()=>
  assert.match(readme,/not an authorization/i);
  assert.equal(manifest.acceptance.approved_for_execution,false);
 });
+
+
+// Build154: source snapshots make CRM/RLS compatibility evidence reproducible
+// without GitHub API requests, mail providers, database clients or credentials.
+const runtimeEvidence=JSON.parse(load('runtime-code-evidence.json'));
+const runtimeSource=path=>{
+ const source=runtimeEvidence.source_files.find(s=>s.source_path===path);
+ assert(source,'Missing source trace for '+path);
+ return load('runtime-sources/'+source.review_copy.split('/').at(-1));
+};
+test('Build154 ten CRM source snapshots match original PR12 Git blob hashes',()=>{
+ assert.equal(runtimeEvidence.source_pr,12);
+ assert.equal(runtimeEvidence.source_files.length,10);
+ assert.equal(new Set(runtimeEvidence.source_files.map(s=>s.source_path)).size,10);
+ for(const source of runtimeEvidence.source_files){
+  assert.match(source.source_blob_sha,/^[a-f0-9]{40}$/);
+  assert(source.review_copy.endsWith('.source.txt'));
+  assert.equal(blobSha(runtimeSource(source.source_path)),source.source_blob_sha,
+   'CRM source drift: '+source.source_path);
+  assert.equal(source.provenance_sha,runtimeEvidence.source_pr_head);
+ }
+});
+test('Build154 exact line anchors match original immutable CRM code',()=>{
+ assert.equal(runtimeEvidence.traces.length,13);
+ for(const trace of runtimeEvidence.traces){
+  const source=runtimeEvidence.source_files.find(s=>s.source_path===trace.source_path);
+  assert(source);
+  assert.equal(trace.source_blob_sha,source.source_blob_sha);
+  assert(runtimeSource(trace.source_path).split('\n')[trace.line-1].includes(trace.needle),
+   'CRM evidence location drifted: '+trace.id);
+ }
+ assert.equal(new Set(runtimeEvidence.traces.map(t=>t.id)).size,13);
+});
+test('Build154 email send/log ordering is an explicit source-backed release blocker',()=>{
+ const code=runtimeSource('src/lib/email.functions.ts');
+ const send=code.indexOf('const result = await sendEmail({');
+ const write=code.indexOf('context.supabase.from("email_log" as any).insert({');
+ assert(send>=0&&write>send);
+ const onLogError=code.indexOf('if (logError) {',write);
+ const onSendError=code.indexOf('if (!result.success)',onLogError);
+ assert(onSendError>onLogError);
+ assert.doesNotMatch(code.slice(onLogError,onSendError),/\bthrow\b/);
+ const row=JSON.parse(load('policy-impact.json')).tables.find(x=>x.table==='email_log');
+ assert(row.removed_policy_command_declarations.includes('INSERT'));
+ const finding=runtimeEvidence.risk_register.find(x=>x.id==='R154-01');
+ assert.equal(finding.priority,'RELEASE_BLOCKER');
+ assert(finding.source_refs.includes('email-log-user-scoped-write'));
+});
+test('Build154 trusted sync logging is not mistakenly classified as ordinary browser logging',()=>{
+ const sync=runtimeSource('src/lib/sheets-sync.server.ts');
+ const admin=runtimeSource('src/integrations/supabase/client.server.ts');
+ assert.equal(sync.split('await supabaseAdmin.from("sync_logs").insert({').length-1,2);
+ assert(admin.includes('SUPABASE_SERVICE_ROLE_KEY'));
+ assert(admin.includes('createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY'));
+ const row=JSON.parse(load('policy-impact.json')).tables.find(x=>x.table==='sync_logs');
+ assert(row.removed_policy_command_declarations.includes('INSERT'));
+ assert.equal(runtimeEvidence.risk_register.find(x=>x.id==='R154-02').priority,'HIGH');
+});
+test('Build154 notification and role/account RPC paths are explicit independent UAT tests',()=>{
+ assert(runtimeSource('src/routes/_app.notifications.tsx').includes('.update({ is_read: true }).eq("id", id).eq("user_id", userId)'));
+ assert(runtimeSource('src/lib/admin-settings.ts').includes('rpcClient.rpc("crm_admin_update_setting"'));
+ assert(runtimeSource('src/lib/user-administration.ts').includes('rpc.rpc("crm_admin_manage_user"'));
+ assert(runtimeSource('src/lib/profile-settings.ts').includes('rpc.rpc("crm_update_own_profile"'));
+ assert(runtimeSource('src/lib/candidate-stage.ts').includes('rpc.rpc("crm_change_candidate_stage"'));
+ const risks=runtimeEvidence.risk_register;
+ assert.equal(risks.length,7);
+ assert(risks.every(x=>x.uat_requirement&&x.owner_review&&x.source_refs.length));
+ assert(risks.every(x=>x.source_refs.every(id=>runtimeEvidence.traces.some(t=>t.id===id))));
+});
+test('Build154 documentation is review-only and never counts as acceptance',()=>{
+ assert.match(load('CRM_RUNTIME_COMPATIBILITY.md'),/release blocker/i);
+ assert.match(load('CRM_RUNTIME_COMPATIBILITY.md'),/0\/140 signed hosted cases/);
+ assert.match(load('README.md'),/Build 154/);
+ assert.equal(runtimeEvidence.formal_acceptance,'HOLD_0_OF_48_PRODUCTION_FIXES');
+ assert.equal(runtimeEvidence.execution,'NO_NETWORK_NO_DATABASE_NO_SEND_NO_DEPLOY');
+ assert.equal(manifest.acceptance.approved_for_execution,false);
+});

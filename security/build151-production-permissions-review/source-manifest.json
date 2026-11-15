@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "build": 153,
+  "build": 154,
   "purpose": "SOURCE-PINNED REVIEW ONLY, no production or staging writes, no PR merge authorization",
   "source_pr": 12,
   "source_pr_head": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6",
@@ -115,5 +115,15 @@
     "independent_table_approvals": 0,
     "owner_approved": false,
     "NOTE": "Source-level declared policy command matrix, not an effective privilege simulation or production migration approval"
+  },
+  "runtime_review": {
+    "source_pr": 12,
+    "source_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6",
+    "source_snapshots": 10,
+    "evidence_anchors": 13,
+    "risk_items": 7,
+    "critical_email_log_integrity_blocker": "UNRESOLVED",
+    "owner_signoffs": 0,
+    "execution": "NEVER_RUN_FROM_REVIEW_PR"
   }
 }
