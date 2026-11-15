@@ -54,6 +54,10 @@ jobs:
           sed '$s/;[[:space:]]*$//' "$SOURCE" > /tmp/build178-audit-preflight.gset.sql
           printf '\gset audit_\n' >> /tmp/build178-audit-preflight.gset.sql
           command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          SOURCE_V2=security/build177-audit-main/audit-integrity.pg17-corrected.readonly.sql
+          test "$(tail -n 1 "$SOURCE_V2")" = "FROM facts;"
+          sed '$s/;[[:space:]]*$//' "$SOURCE_V2" > /tmp/build179-corrected-preflight.gset.sql
+          printf '\gset audit_\n' >> /tmp/build179-corrected-preflight.gset.sql
           psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-disposable-rollback.sql
           psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-gate-sensitivity.sql
   main-release-hold:

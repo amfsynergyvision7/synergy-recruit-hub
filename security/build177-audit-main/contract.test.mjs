@@ -101,11 +101,11 @@ test("Build179 catalog positive-control uses deliberately inert mock reconciliat
 });
 test("Build179 twelve independent privilege/policy/function regressions are required to HOLD",()=>{
  const sql=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,12);
- assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,12);
- assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,12);
- assert.equal((sql.match(/BUILD179_EXPECTED_HOLD_\d\d/g)||[]).length,12);
- assert.equal((sql.match(/\\i \/tmp\/build178-audit-preflight\.gset\.sql/g)||[]).length,14);
+ assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,14);
+ assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,14);
+ assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,14);
+ assert.equal((sql.match(/BUILD179_EXPECTED_HOLD_\d\d/g)||[]).length,14);
+ assert.equal((sql.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,16);
  assert.match(sql,/GRANT TRUNCATE ON public\.audit_logs TO anon/);
  assert.match(sql,/GRANT UPDATE ON public\.audit_logs TO authenticated/);
  assert.match(sql,/GRANT MAINTAIN ON public\.audit_logs TO authenticated/);
@@ -127,7 +127,22 @@ test("Build179 disposable CI uses only temporary local database service and reta
 
 test("Build179 failure controls have a PostgreSQL nonzero error path, never unsupported psql quit arguments",()=>{
  const script=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,14);
+ assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,17);
  assert(!/\\quit\s+[345]/.test(script));
  assert.match(script,/ON_ERROR_STOP on/);
+});
+
+test("Build179 corrected read-only PG17 preflight uses observed empty search_path encoding and exact RPC argument types",()=>{
+ const original=read("audit-integrity.preflight.readonly.sql");
+ const v2=readFileSync(join(root,"audit-integrity.pg17-corrected.readonly.sql"),"utf8");
+ const fixture=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
+ assert.match(original,/array_position\(proconfig,'search_path='\) IS NOT NULL/);
+ assert.match(v2,/array_position\(proconfig,'search_path=""'\) IS NOT NULL/);
+ assert.match(v2,/proargtypes\[0\]='uuid'::regtype/);
+ assert.match(v2,/proargtypes\[3\]='text'::regtype/);
+ assert.match(fixture,/BUILD179_ORIGINAL_PREFLIGHT_FALSE_HOLD_CONFIRMED/);
+ assert.match(fixture,/BUILD179_EXPECTED_HOLD_13/);
+ assert.match(fixture,/BUILD179_EXPECTED_HOLD_14/);
+ assert.match(fixture,/NOOP_INVALID_SIGNATURE/);
+ assert(!/\b(?:ALTER|DROP|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE|CREATE)\s+(?:TABLE|ROLE|POLICY|FUNCTION)\b/i.test(v2));
 });

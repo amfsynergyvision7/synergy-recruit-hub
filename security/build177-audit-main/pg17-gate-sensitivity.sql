@@ -32,8 +32,20 @@ SELECT p.proname,p.pronargs,p.prosecdef,p.proconfig,
  array_position(p.proconfig,'search_path=') IS NOT NULL AS exact_preflight_path_match
 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
 WHERE n.nspname='public' AND p.proname='crm_email_confirm_sent_trusted';
--- Baseline PRECHECK must reach REVIEW_ONLY, never a real release pass.
+-- The unchanged original Build160 preflight must incorrectly HOLD in this synthetic
+-- positive catalog case: it searches for search_path= instead of search_path="".
 \i /tmp/build178-audit-preflight.gset.sql
+SELECT (:audit_named_rpc_count::integer=1 AND :audit_safe_rpc_count::integer=0 AND
+ :'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build179_original_false_hold \gset
+\if :build179_original_false_hold
+ \echo 'BUILD179_ORIGINAL_PREFLIGHT_FALSE_HOLD_CONFIRMED'
+\else
+ \echo 'Build179 original unmodified preflight mismatch not reproduced'
+ SELECT 1/0;
+\endif
+-- Candidate corrected catalog PRECHECK must reach REVIEW_ONLY; never production release.
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:audit_named_rpc_count::integer=1 AND :audit_safe_rpc_count::integer=1 AND
  :audit_admin_select_policies::integer=1 AND :audit_total_audit_policies::integer=1 AND
  :audit_broadly_permissive_all::integer=0 AND
@@ -49,7 +61,7 @@ SELECT (:audit_named_rpc_count::integer=1 AND :audit_safe_rpc_count::integer=1 A
 -- Mutation 1: anonymous read reintroduced, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 GRANT SELECT ON public.audit_logs TO anon;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -65,7 +77,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 2: anonymous truncate reintroduced, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 GRANT TRUNCATE ON public.audit_logs TO anon;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -81,7 +93,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 3: authenticated row mutation, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 GRANT UPDATE ON public.audit_logs TO authenticated;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -97,7 +109,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 4: authenticated schema-side privilege, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 GRANT MAINTAIN ON public.audit_logs TO authenticated;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -113,7 +125,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 5: trusted writer delete permission, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 GRANT DELETE ON public.audit_logs TO service_role;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -129,7 +141,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 6: trusted writer schema trigger privilege, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 GRANT TRIGGER ON public.audit_logs TO service_role;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -145,7 +157,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 7: universal permissive policy, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 CREATE POLICY "Unrestricted malicious regression" ON public.audit_logs FOR ALL TO PUBLIC USING (true) WITH CHECK (true);
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -161,7 +173,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 8: trusted function public executable, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO PUBLIC;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -177,7 +189,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 9: trusted function no longer service executable, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 REVOKE EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM service_role;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -193,7 +205,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 10: trusted function switches to SECURITY DEFINER, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 ALTER FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) SECURITY DEFINER;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -209,7 +221,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 11: admin-only reader policy removed, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 DROP POLICY "read audit" ON public.audit_logs;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -225,7 +237,7 @@ RELEASE SAVEPOINT build179_mutation;
 -- Mutation 12: trusted writer loses INSERT, reverting with transaction-local SAVEPOINT.
 SAVEPOINT build179_mutation;
 REVOKE INSERT ON public.audit_logs FROM service_role;
-\i /tmp/build178-audit-preflight.gset.sql
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
  AS build179_expected_hold \gset
 \if :build179_expected_hold
@@ -237,8 +249,40 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
 
--- Mutations reverted, original mock positive control must match again.
-\i /tmp/build178-audit-preflight.gset.sql
+-- Mutant 13: a nonempty untrusted function search_path.
+SAVEPOINT build179_mutation;
+ALTER FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) SET search_path TO public;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build179_expected_hold \gset
+\if :build179_expected_hold
+ \echo 'BUILD179_EXPECTED_HOLD_13: unsafe function search path'
+\else
+ \echo 'Build179 failed mutant 13'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+-- Mutant 14: same name/number of parameters, but wrong argument types.
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(text,text,text,text)
+ RETURNS TABLE(id uuid,status text)
+ LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT NULL::uuid,'NOOP_INVALID_SIGNATURE'::text WHERE false $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(text,text,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(text,text,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build179_expected_hold \gset
+\if :build179_expected_hold
+ \echo 'BUILD179_EXPECTED_HOLD_14: incompatible function parameters'
+\else
+ \echo 'Build179 failed mutant 14'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+-- Mutations reverted, candidate corrected mock positive control must match again.
+\i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE')
  AS build179_restored_mock_match \gset
 \if :build179_restored_mock_match
