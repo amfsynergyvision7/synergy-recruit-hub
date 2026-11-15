@@ -65,6 +65,7 @@ Growth and BI owners must agree source quality, freshness, yield and conversion 
 | C-ENG03: Synthetic KPI numerator, denominator and freshness computation | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782) | Verified offline |
 | C-ENG04: Source-derived audit/lead/handoff tamper reconciliation | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075) | Verified offline |
 | C-ENG05: LD02/LD05 draft approval completeness and safety gate preflight | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075) | Verified offline |
+| C-ENG06: Separately hand-curated synthetic source/KPI and review-outcome reconciliation | [Focused PR](https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/20) | Verified offline |
 
 ### Build 165 verified engineering
 - LD02: specific approval and source-whitelist review packet prepared, still unsigned
