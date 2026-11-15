@@ -14,10 +14,10 @@ const report=(rubric,snapshot,pkg)=>{
  if(pkg.latest_build!==167||
     !Array.isArray(pkg.technical_integrity_controls)||
     pkg.technical_integrity_controls.length!==6||
-    new Set(pkg.technical_integrity_controls.map(x=>x.id)).size!==5||
+    new Set(pkg.technical_integrity_controls.map(x=>x.id)).size!==6||
     pkg.technical_integrity_controls.some(x=>x.status!=="verified_offline"||
      !x.evidence?.startsWith("https://github.com/")))
-   throw Error("Build166 verified engineering evidence ledger invalid");
+   throw Error("Build167 verified engineering evidence ledger invalid");
  const prepared=[],blocked=[];
  for(const id of ["LD02","LD05"]){
   const x=pkg.review_package[id];
