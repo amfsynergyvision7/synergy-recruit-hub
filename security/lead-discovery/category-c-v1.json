@@ -95,7 +95,7 @@
     "independent_review_batches": "1–2 if approved facts and measured evidence are supplied",
     "no_finite_calendar_count_without_real_owner_decisions": true
   },
-  "latest_build": 167,
+  "latest_build": 168,
   "technical_integrity_controls": [
     {
       "id": "C-ENG01",
@@ -133,5 +133,24 @@
       "status": "verified_offline",
       "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/20"
     }
-  ]
+  ],
+  "owner_acceptance_handoff": {
+    "status": "READY_FOR_EXTERNAL_OWNER_INPUT_NOT_APPROVED",
+    "LD02": {
+      "evidence_packet": "security/lead-discovery/ld02-independent-evidence.review.json",
+      "submitted": false,
+      "reviewers_verified": false,
+      "accepted": false
+    },
+    "LD05": {
+      "evidence_packet": "security/lead-discovery/ld05-independent-sample.review.json",
+      "submitted": false,
+      "reviewers_verified": false,
+      "accepted": false
+    },
+    "validation": "security/lead-discovery/acceptance-handoff.mjs",
+    "no_live_use": true,
+    "independent_signoff_needed": true,
+    "instruction": "No more technical batch is warranted without actual owner review, approval evidence, authorized business-only samples or an independently reported bug."
+  }
 }

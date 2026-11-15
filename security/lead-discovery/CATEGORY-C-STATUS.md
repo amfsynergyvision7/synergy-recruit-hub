@@ -1,8 +1,8 @@
 # Category C — AI Lead Discovery (current focused workstream)
 
-**Build 167 | 15 November 2026 | Official acceptance: 6/10 (60%) | Release HOLD.**
+**Build 168 | 15 November 2026 | Official acceptance: 6/10 (60%) | Release HOLD.**
 
-This is the **only active development category** for Build 167; critical production audit security remains an independently owned release blocker, not a parallel development sprint.
+This is the **only active development category** for Build 168; critical production audit security remains an independently owned release blocker, not a parallel development sprint.
 
 ## Category completion
 **3/5 official milestones accepted.** The remaining gates are **LD02** and **LD05**, 2 weighted points each. Passing tests and draft policies do not close them.
@@ -35,6 +35,17 @@ Growth and Privacy/Compliance owners must individually approve specific industry
 
 ### LD05 outstanding acceptance
 Growth and BI owners must agree source quality, freshness, yield and conversion formulas, thresholds, human sample validation and real authorized business-only data evidence. The [CEO KPI design](https://docs.google.com/document/d/1FWA-0AtMrE4C6DAMQISnj6_1DBfICG7TIQkKUs6AO_o/edit) is also a REVIEW DRAFT. [Synthetic KPI program](./metrics.mjs) is executable with local fictional snapshots; no real revenue, contacts, replies, meetings, CRM writes or outreach are represented.
+
+## Build168 owner decision handoff — no additional accepted milestone
+
+**Technical preparation:** the exact LD02 and LD05 evidence templates are now machine-checked against the draft policy scope fingerprint and permitted sample counts. The owner handoff is **READY FOR EXTERNAL INPUT**, not submitted, signed or operationally accepted. This does not change the six already-completed offline controls or the **4/8** owner/preparation checklist.
+
+| Remaining gate | Owner submission file | Current acceptance |
+|---|---|---|
+| LD02: approved ICP, domains, lawful business research and retention | [LD02 independent evidence](./ld02-independent-evidence.review.json) | **Not submitted** — Growth + Privacy |
+| LD05: real authorized company-only sample, six KPI targets and independent reconciliation | [LD05 independent sample](./ld05-independent-sample.review.json) | **Not submitted** — Growth + BI |
+
+Run `node security/lead-discovery/acceptance-handoff.mjs` for missing evidence fields; all approval results remain `false` even if draft metadata is filled, until independently verified externally. No production/staging writes, real sourcing, messaging or CRM activation.
 
 ## Build167 completed offline technical controls — separate from required owner approvals
 

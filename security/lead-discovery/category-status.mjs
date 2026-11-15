@@ -11,13 +11,13 @@ const report=(rubric,snapshot,pkg)=>{
  const accepted=ld.filter(x=>states.get(x.id)?.complete).map(x=>x.id);
  if(points!==pkg.formal_earned_points||points!==6 ||JSON.stringify(accepted)!==JSON.stringify(pkg.formally_evidenced_milestones))throw Error("False category acceptance");
  if(pkg.review_package.LD02.accepted||pkg.review_package.LD05.accepted||!pkg.no_additional_acceptance_claimed)throw Error("Independent acceptance not supplied");
- if(pkg.latest_build!==167||
+ if(pkg.latest_build!==168||
     !Array.isArray(pkg.technical_integrity_controls)||
     pkg.technical_integrity_controls.length!==6||
     new Set(pkg.technical_integrity_controls.map(x=>x.id)).size!==6||
     pkg.technical_integrity_controls.some(x=>x.status!=="verified_offline"||
      !x.evidence?.startsWith("https://github.com/")))
-   throw Error("Build167 verified engineering evidence ledger invalid");
+   throw Error("Build168 verified engineering evidence ledger invalid");
  const prepared=[],blocked=[];
  for(const id of ["LD02","LD05"]){
   const x=pkg.review_package[id];
@@ -53,6 +53,17 @@ Growth and Privacy/Compliance owners must individually approve specific industry
 
 ### LD05 outstanding acceptance
 Growth and BI owners must agree source quality, freshness, yield and conversion formulas, thresholds, human sample validation and real authorized business-only data evidence. The [CEO KPI design](https://docs.google.com/document/d/1FWA-0AtMrE4C6DAMQISnj6_1DBfICG7TIQkKUs6AO_o/edit) is also a REVIEW DRAFT. [Synthetic KPI program](./metrics.mjs) is executable with local fictional snapshots; no real revenue, contacts, replies, meetings, CRM writes or outreach are represented.
+
+## Build168 owner decision handoff — no additional accepted milestone
+
+**Technical preparation:** the exact LD02 and LD05 evidence templates are now machine-checked against the draft policy scope fingerprint and permitted sample counts. The owner handoff is **READY FOR EXTERNAL INPUT**, not submitted, signed or operationally accepted. This does not change the six already-completed offline controls or the **4/8** owner/preparation checklist.
+
+| Remaining gate | Owner submission file | Current acceptance |
+|---|---|---|
+| LD02: approved ICP, domains, lawful business research and retention | [LD02 independent evidence](./ld02-independent-evidence.review.json) | **Not submitted** — Growth + Privacy |
+| LD05: real authorized company-only sample, six KPI targets and independent reconciliation | [LD05 independent sample](./ld05-independent-sample.review.json) | **Not submitted** — Growth + BI |
+
+Run `node security/lead-discovery/acceptance-handoff.mjs` for missing evidence fields; all approval results remain `false` even if draft metadata is filled, until independently verified externally. No production/staging writes, real sourcing, messaging or CRM activation.
 
 ## Build167 completed offline technical controls — separate from required owner approvals
 

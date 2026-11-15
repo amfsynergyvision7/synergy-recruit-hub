@@ -164,3 +164,23 @@ test("Build168 CI verifies offline handoff and keeps no-secret workflows without
    assert(!s.includes(word),f+" unsafe call token "+word);
  }
 });
+
+test("Build168 owner-handoff status is backed by two unsubmitted forms and six unchanged offline controls",async()=>{
+ const {report}=await import("../lead-discovery/category-status.mjs");
+ const ledger=read("category-c-v1.json"),policy=read("../release-progress/v1-rubric.json"),
+  accepted=read("../release-progress/current.json");
+ assert.equal(ledger.latest_build,168);
+ assert.equal(ledger.formal_earned_points,6);
+ assert.equal(ledger.technical_integrity_controls.length,6);
+ assert.equal(ledger.owner_acceptance_handoff.status,"READY_FOR_EXTERNAL_OWNER_INPUT_NOT_APPROVED");
+ for(const id of ["LD02","LD05"]){
+  assert.equal(ledger.owner_acceptance_handoff[id].submitted,false);
+  assert.equal(ledger.owner_acceptance_handoff[id].reviewers_verified,false);
+  assert.equal(ledger.owner_acceptance_handoff[id].accepted,false);
+ }
+ const text=report(policy,accepted,ledger);
+ assert.equal(readFileSync(join(dir,"CATEGORY-C-STATUS.md"),"utf8"),text);
+ assert(text.includes("Build168 owner decision handoff"));
+ assert(text.includes("Not submitted"));
+ assert(text.includes("Official acceptance: 6/10"));
+});
