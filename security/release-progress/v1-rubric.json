@@ -1,0 +1,391 @@
+{
+  "schema_version": "1.0.0",
+  "definition": "AMF full six-workstream deployment completion; 100-point evidence-weighted binary gate system",
+  "baseline_date": "2026-11-14",
+  "fixed": true,
+  "change_policy": "Never alter a v1 milestone ID, weight or acceptance criterion. Add a new version and explicit old-to-new restatement with human approval for scope changes.",
+  "scoring": "Every gate is 0 or full fixed points; no fractional completion; unverified or stale evidence=0. 100 points require ALL 43 independent milestones. Does not measure time remaining.",
+  "groups": [
+    {
+      "id": "KB",
+      "label": "Company knowledge base & team assistant",
+      "weight": 12
+    },
+    {
+      "id": "LD",
+      "label": "AI lead discovery & research",
+      "weight": 10
+    },
+    {
+      "id": "MK",
+      "label": "Marketing, branding & creative",
+      "weight": 10
+    },
+    {
+      "id": "SO",
+      "label": "Sales outreach & follow-up",
+      "weight": 10
+    },
+    {
+      "id": "CRM",
+      "label": "CRM, recruitment & AI automation",
+      "weight": 28
+    },
+    {
+      "id": "BI",
+      "label": "Business intelligence & dashboards",
+      "weight": 10
+    },
+    {
+      "id": "REL",
+      "label": "Cross-program release & governance",
+      "weight": 20
+    }
+  ],
+  "milestones": [
+    {
+      "id": "KB01",
+      "group": "KB",
+      "weight": 2,
+      "title": "Six approved minimum knowledge excerpts",
+      "acceptance": "Individually approved K01–K06 excerpts evidenced; not blanket approval of full source documents.",
+      "owner": "CEO / knowledge owner"
+    },
+    {
+      "id": "KB02",
+      "group": "KB",
+      "weight": 2,
+      "title": "Private knowledge assistant packaged",
+      "acceptance": "Private CEO-only plugin demonstrably exists, without CRM or outward action connectors.",
+      "owner": "Knowledge owner"
+    },
+    {
+      "id": "KB03",
+      "group": "KB",
+      "weight": 2,
+      "title": "Knowledge offline + prompt tests",
+      "acceptance": "At least 14/14 offline and 10/10 supervised prompt checks evidenced (not pilot closure).",
+      "owner": "Knowledge QA"
+    },
+    {
+      "id": "KB04",
+      "group": "KB",
+      "weight": 2,
+      "title": "Five-business-day pilot formally closed",
+      "acceptance": "Observation dates, issues, incident register and signed CEO pilot closeout accepted.",
+      "owner": "CEO / pilot owner"
+    },
+    {
+      "id": "KB05",
+      "group": "KB",
+      "weight": 2,
+      "title": "Company facts and SOP version control",
+      "acceptance": "Authoritative company facts and current SOP versions separately signed, cited and expiry-managed.",
+      "owner": "Knowledge / policy owner"
+    },
+    {
+      "id": "KB06",
+      "group": "KB",
+      "weight": 2,
+      "title": "Approved employee team-assistant rollout",
+      "acceptance": "Access model, staff safety acceptance, deployment and accountable owner signoff completed.",
+      "owner": "CEO / access owner"
+    },
+    {
+      "id": "LD01",
+      "group": "LD",
+      "weight": 2,
+      "title": "Lead-research governance draft",
+      "acceptance": "Public-business-data lead research and outreach guardrails exist as an owner-controlled review draft only.",
+      "owner": "Growth owner"
+    },
+    {
+      "id": "LD02",
+      "group": "LD",
+      "weight": 2,
+      "title": "Lead ICP and source whitelist approved",
+      "acceptance": "Industries, target personas, exclusions, permissible sources and proof/retention policy signed.",
+      "owner": "Growth / compliance"
+    },
+    {
+      "id": "LD03",
+      "group": "LD",
+      "weight": 2,
+      "title": "Traceable lead discovery implementation",
+      "acceptance": "Runnable low-cost discovery with source URL/date and deduplication demonstrated on approved synthetic/business-only cases.",
+      "owner": "Lead engineering"
+    },
+    {
+      "id": "LD04",
+      "group": "LD",
+      "weight": 2,
+      "title": "Human lead review and CRM handoff",
+      "acceptance": "Approval queue, privacy checks, duplicate handling and audited no-send CRM handoff pass tests.",
+      "owner": "Growth / CRM owner"
+    },
+    {
+      "id": "LD05",
+      "group": "LD",
+      "weight": 2,
+      "title": "Lead discovery KPIs accepted",
+      "acceptance": "Qualified-source quality, freshness, yield and conversion KPIs verified with owner acceptance.",
+      "owner": "Growth / BI owner"
+    },
+    {
+      "id": "MK01",
+      "group": "MK",
+      "weight": 2,
+      "title": "Marketing asset inventory recorded",
+      "acceptance": "Existing draft assets and review inventory traceably documented; not public claim approval.",
+      "owner": "Marketing owner"
+    },
+    {
+      "id": "MK02",
+      "group": "MK",
+      "weight": 2,
+      "title": "Brand language and claims approved",
+      "acceptance": "Approved brand system and fact-checked evidence-based public claims signed by brand owner.",
+      "owner": "Marketing / CEO"
+    },
+    {
+      "id": "MK03",
+      "group": "MK",
+      "weight": 2,
+      "title": "Creative production workflow tested",
+      "acceptance": "Approved templates, repeatable review/edit pipeline and human approval checkpoints pass tests.",
+      "owner": "Creative lead"
+    },
+    {
+      "id": "MK04",
+      "group": "MK",
+      "weight": 2,
+      "title": "Publishing process accepted",
+      "acceptance": "Channel rights, review, consent, scheduling and rollback tested; no unsupervised publication.",
+      "owner": "Marketing / compliance"
+    },
+    {
+      "id": "MK05",
+      "group": "MK",
+      "weight": 2,
+      "title": "Campaign reporting and signoff",
+      "acceptance": "UTM/source attribution, measurement evidence and owner acceptance signed.",
+      "owner": "Marketing / BI owner"
+    },
+    {
+      "id": "SO01",
+      "group": "SO",
+      "weight": 2,
+      "title": "Sales outreach drafts documented",
+      "acceptance": "Existing B2B communications and human-review draft templates documented only.",
+      "owner": "Sales owner"
+    },
+    {
+      "id": "SO02",
+      "group": "SO",
+      "weight": 2,
+      "title": "Outreach data and permission policy",
+      "acceptance": "Sender identity, lawful business contacts, opt-out/suppression, safe cadence and contact review approved.",
+      "owner": "Sales / legal"
+    },
+    {
+      "id": "SO03",
+      "group": "SO",
+      "weight": 2,
+      "title": "Approved versioned communication templates",
+      "acceptance": "Fact-checked signatures, messaging and legal clauses separately signed; inactive drafts excluded.",
+      "owner": "Sales / legal"
+    },
+    {
+      "id": "SO04",
+      "group": "SO",
+      "weight": 2,
+      "title": "Controlled outbound pilot accepted",
+      "acceptance": "Human-authorized send workflow with correspondence logs, opt-outs and no mass-send leaks tested and signed.",
+      "owner": "Sales / security"
+    },
+    {
+      "id": "SO05",
+      "group": "SO",
+      "weight": 2,
+      "title": "Sales response KPIs and owner acceptance",
+      "acceptance": "Reply, meeting, referral, suppression and conversion reports verified; owner closes workstream.",
+      "owner": "Sales / BI owner"
+    },
+    {
+      "id": "CRM01",
+      "group": "CRM",
+      "weight": 3,
+      "title": "Draft CRM fast security contracts pass",
+      "acceptance": "Exact latest PR #12 head has completed zero-secret fast contract CI with no test failures.",
+      "owner": "CRM engineering"
+    },
+    {
+      "id": "CRM02",
+      "group": "CRM",
+      "weight": 3,
+      "title": "Draft CRM build/typecheck & guarded tests pass",
+      "acceptance": "Exact latest PR #12 head compiles, typechecks, and passes nonrelease guarded jobs; deliberate hold remains red.",
+      "owner": "CRM engineering"
+    },
+    {
+      "id": "CRM03",
+      "group": "CRM",
+      "weight": 2,
+      "title": "Narrow synthetic Auth runner tested",
+      "acceptance": "Exact PR #15 head passes all 40 offline contracts and Vite client/SSR builds; no privileged run.",
+      "owner": "CRM / Auth engineering"
+    },
+    {
+      "id": "CRM04",
+      "group": "CRM",
+      "weight": 2,
+      "title": "Isolated nonprod structural preflight passes",
+      "acceptance": "Read-only lab has 19/19 RLS tables, 13/13 invoker-safe views, 32/32 disabled app triggers, zero real users/data.",
+      "owner": "DB / security"
+    },
+    {
+      "id": "CRM05",
+      "group": "CRM",
+      "weight": 3,
+      "title": "Full CRM PR independently reviewed",
+      "acceptance": "PR #12 approved by eligible independent reviewer, complete code audit and protected merge accepted.",
+      "owner": "Independent CRM reviewer"
+    },
+    {
+      "id": "CRM06",
+      "group": "CRM",
+      "weight": 2,
+      "title": "Nine nonprod Auth identities provisioned",
+      "acceptance": "GoTrue Admin creates exactly 9 synthetic example.invalid accounts in independently protected lab.",
+      "owner": "Nonprod Auth operator"
+    },
+    {
+      "id": "CRM07",
+      "group": "CRM",
+      "weight": 2,
+      "title": "38 inert hosted fixture rows accepted",
+      "acceptance": "Exactly 38 source-shaped synthetic records with 8 profiles/8 roles and ninth unprofiled account verified.",
+      "owner": "Nonprod DB owner"
+    },
+    {
+      "id": "CRM08",
+      "group": "CRM",
+      "weight": 4,
+      "title": "140 signed hosted acceptance cases",
+      "acceptance": "135 signed-read plus 5 controlled signed-write cases executed and independently accepted, not CI mocks.",
+      "owner": "UAT / security signatories"
+    },
+    {
+      "id": "CRM09",
+      "group": "CRM",
+      "weight": 4,
+      "title": "48 production remediations accepted",
+      "acceptance": "19 table privileges, 13 views and 16 privileged functions remediated, regression-tested and independently signed.",
+      "owner": "Production security/DB"
+    },
+    {
+      "id": "CRM10",
+      "group": "CRM",
+      "weight": 3,
+      "title": "CRM workflows formally accepted",
+      "acceptance": "Recruiting records, ownership, audit, PII protections, sync and finance holds end-to-end signed for permitted scope.",
+      "owner": "Recruitment / CRM owner"
+    },
+    {
+      "id": "BI01",
+      "group": "BI",
+      "weight": 2,
+      "title": "Official metric dictionary approved",
+      "acceptance": "CEO/ops approve KPI definitions, sources, access and exclusion policy.",
+      "owner": "BI / CEO"
+    },
+    {
+      "id": "BI02",
+      "group": "BI",
+      "weight": 2,
+      "title": "Role-safe reporting data contract",
+      "acceptance": "No sensitive data leaks; audited RLS-safe aggregate model and column-level scope accepted.",
+      "owner": "BI / security"
+    },
+    {
+      "id": "BI03",
+      "group": "BI",
+      "weight": 2,
+      "title": "Working role-appropriate dashboards",
+      "acceptance": "Management and recruiter dashboards implemented and test against authorized source data.",
+      "owner": "BI engineering"
+    },
+    {
+      "id": "BI04",
+      "group": "BI",
+      "weight": 2,
+      "title": "Reconciliation and freshness monitored",
+      "acceptance": "Quality, completeness and timeliness controls measured with documented threshold alerts.",
+      "owner": "BI / operations"
+    },
+    {
+      "id": "BI05",
+      "group": "BI",
+      "weight": 2,
+      "title": "BI operating acceptance signed",
+      "acceptance": "BI KPI reconciliation and usability signed by business owner.",
+      "owner": "BI / CEO"
+    },
+    {
+      "id": "REL01",
+      "group": "REL",
+      "weight": 3,
+      "title": "Protected main with mandatory controls",
+      "acceptance": "main is protected with required PR approvals/checks, no force pushes and restricted bypass; readback verified.",
+      "owner": "GitHub repository admin"
+    },
+    {
+      "id": "REL02",
+      "group": "REL",
+      "weight": 3,
+      "title": "Independent PR15 approval + protected merge",
+      "acceptance": "Exact frozen PR #15 independently approved by eligible nonauthor reviewer and merged under protection.",
+      "owner": "Independent reviewer / admin"
+    },
+    {
+      "id": "REL03",
+      "group": "REL",
+      "weight": 2,
+      "title": "Protected nonprod environment and lab secrets",
+      "acceptance": "Reviewed amf-nonprod-auth-review environment, distinct approver and lab-only scoped secrets independently attested.",
+      "owner": "Security administrator"
+    },
+    {
+      "id": "REL04",
+      "group": "REL",
+      "weight": 3,
+      "title": "Backup/PITR and restore drill signed",
+      "acceptance": "Production-equivalent encrypted backup, PITR availability, measured RPO/RTO and restore test signed.",
+      "owner": "DB / operations"
+    },
+    {
+      "id": "REL05",
+      "group": "REL",
+      "weight": 3,
+      "title": "Legal, finance, HR and privacy clearance",
+      "acceptance": "Required HR, legal, finance, privacy/security signoffs for approved scope; D-003 remains inactive until reviewed.",
+      "owner": "Legal / finance / HR"
+    },
+    {
+      "id": "REL06",
+      "group": "REL",
+      "weight": 3,
+      "title": "All nine formal release gates signed",
+      "acceptance": "Nine identifiable independent release gate signatories accepted with dated evidence and no AI self-approval.",
+      "owner": "Release board"
+    },
+    {
+      "id": "REL07",
+      "group": "REL",
+      "weight": 3,
+      "title": "Authorized production deployment & smoke test",
+      "acceptance": "Approved production deployment, smoke verification, monitoring and rollback readiness confirmed by owner.",
+      "owner": "Release owner"
+    }
+  ]
+}

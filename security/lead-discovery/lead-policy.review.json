@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "status": "REVIEW_DRAFT_NOT_APPROVED",
+  "live_lead_discovery_enabled": false,
+  "source_document": "https://docs.google.com/document/d/1i5SVldFxYaSi2Ew1i4YJ0pUAxtGTXJ2AyKRGck8w6Gk/edit",
+  "required_decisions": {
+    "target_industries": [],
+    "target_geographies": [],
+    "buyer_personas": [],
+    "permitted_public_business_sources": [],
+    "excluded_sources": [],
+    "lawful_business_research_basis": null,
+    "retention_days": null,
+    "public_source_terms_verified": false,
+    "no_personal_profile_extraction": true,
+    "no_auto_contact": true,
+    "crm_writes_allowed": false
+  },
+  "independent_approval": {
+    "growth_owner": null,
+    "privacy_compliance_owner": null,
+    "approved_on": null
+  },
+  "note": "Blank fields are intentional. None of these settings is approved by blanket project instructions; separate evidence and specific owner decisions are required.",
+  "review_only_icp_hypotheses": {
+    "disclaimer": "NON-APPROVED planning-document candidates; exclude from discovery until Growth+Privacy specifically approves every industry/persona, source domain and lawful use.",
+    "proposed_segments": [
+      {
+        "label": "West Bengal MSMEs (business-only)",
+        "proposed": true
+      },
+      {
+        "label": "Women-led MSMEs in West Bengal (organization-level, not profiling natural persons)",
+        "proposed": true
+      },
+      {
+        "label": "BPO/KPO employers (business-only)",
+        "proposed": true
+      },
+      {
+        "label": "Multimedia and animation enterprises (business-only)",
+        "proposed": true
+      }
+    ],
+    "proposed_business_personas": [
+      "Company founder or managing director (role only)",
+      "HR or hiring manager (role only)"
+    ],
+    "reference_documents": [
+      {
+        "url": "https://docs.google.com/document/d/1IixOwLXOWn1ui1Lhc_O48nvmwMVBPIxo/edit",
+        "name": "Market Research Report - AMF SV.docx",
+        "status": "planning_material_not_operating_policy"
+      },
+      {
+        "url": "https://drive.google.com/file/d/17trHXFI9RQD9efvwKOon_LLmEF9JPPeD/view",
+        "name": "Business Plan_AMF SV.pdf",
+        "status": "planning_material_not_operating_policy"
+      }
+    ],
+    "source_classes_for_specific_owner_review": [
+      "Organization's official public website and careers page",
+      "Public organization-level business directory with permitted terms",
+      "Company-issued public hiring announcement without personal contacts"
+    ],
+    "no_live_source_domains_approved": true
+  }
+}

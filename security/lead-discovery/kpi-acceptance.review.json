@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "status": "REVIEW_DRAFT_NOT_APPROVED",
+  "live_kpi_acceptance_enabled": false,
+  "source_document": "https://docs.google.com/document/d/1FWA-0AtMrE4C6DAMQISnj6_1DBfICG7TIQkKUs6AO_o/edit",
+  "measures": [
+    {
+      "id": "provenance_coverage",
+      "formula": "Businesses with dated cited public evidence / unique discovered businesses",
+      "source": "approved business-only lead register",
+      "approved_target": null
+    },
+    {
+      "id": "source_freshness_30d",
+      "formula": "Evidence entries <=30 calendar days old / all dated evidence entries",
+      "source": "verified source capture ledger",
+      "approved_target": null
+    },
+    {
+      "id": "deduplication_ratio",
+      "formula": "Duplicate company records merged / original discovered company records",
+      "source": "source ingestion audit",
+      "approved_target": null
+    },
+    {
+      "id": "growth_review_completion",
+      "formula": "Business records with valid growth decision / all unique business records",
+      "source": "human review queue",
+      "approved_target": null
+    },
+    {
+      "id": "offline_handoff_preview_yield",
+      "formula": "Independently reviewed approved business records / unique business records",
+      "source": "approved no-send CRM handoff",
+      "approved_target": null
+    },
+    {
+      "id": "actual_meeting_conversion",
+      "formula": "Verified meetings / authorized, human-sent introductions (only after approval)",
+      "source": "authorized CRM source and human communications records",
+      "approved_target": null
+    }
+  ],
+  "cutoff_timezone": "Asia/Kolkata",
+  "denominator_empty": "N/A, never zero",
+  "privacy": "No individual contact fields in KPI reporting; small-group suppression requires approved threshold",
+  "acceptance": {
+    "business_source_access_approved": false,
+    "real_source_observation_count": 0,
+    "human_verified_sample_count": 0,
+    "comparison_with_manually_checked_source": false,
+    "growth_owner": null,
+    "bi_owner": null,
+    "accepted_on": null
+  },
+  "note": "Synthetic fixture results are unit tests only. They are not operational baselines or verified real-world conversion rates."
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "LD02-INDEPENDENT-DECISION-EVIDENCE-V1",
+  "status": "NOT_SUBMITTED",
+  "approved_scope_sha256": null,
+  "approved_policy_document_url": null,
+  "approved_source_terms_document_urls": [],
+  "growth_owner_independent_review_url": null,
+  "privacy_owner_independent_review_url": null,
+  "approved_on": null,
+  "owner_verification_performed": false,
+  "review_only": true,
+  "note": "All fields are intentionally blank until an independently verified owner-approved decision; a completed JSON file does not constitute approval."
+}
