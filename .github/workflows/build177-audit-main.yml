@@ -1,0 +1,57 @@
+name: Build177 audit-log isolation — disposable PG17 only
+on:
+  pull_request:
+    paths:
+      - 'security/build177-audit-main/**'
+      - '.github/workflows/build177-audit-main.yml'
+permissions:
+  contents: read
+jobs:
+  audit-source-contracts:
+    name: Exact-source audit isolation and NO-APPLY contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: node --test security/build177-audit-main/contract.test.mjs
+  disposable-pg17:
+    name: Disposable PostgreSQL17 grant proposal + transaction rollback
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-disposable-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd 'pg_isready -U postgres'
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify disposable-only target and rollback rehearsal
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: synthetic-disposable-only
+        run: |
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          psql -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-disposable-rollback.sql
+  main-release-hold:
+    if: github.base_ref == 'main'
+    name: Audit production merge and deployment — HOLD (intentionally fails)
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo 'CRITICAL AUDIT RELEASE HOLD: live grants unsafe, no approved external writer inventory, restore validation, independent DBA/UAT or protected main.'
+          echo 'Source-only review. No SQL was applied outside the disposable PG17 test container.'
+          exit 1
