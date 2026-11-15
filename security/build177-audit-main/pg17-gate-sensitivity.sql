@@ -281,6 +281,72 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
+
+-- Build180 mutation 15: authenticated API role bypasses all row-level policies
+SAVEPOINT build179_mutation;
+ALTER ROLE authenticated BYPASSRLS;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build180_expected_hold \gset
+\if :build180_expected_hold
+ \echo 'BUILD180_EXPECTED_HOLD_15: authenticated API role bypasses all row-level policies'
+\else
+ \echo 'Build180 failed unsafe mutation 15: authenticated API role bypasses all row-level policies'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+
+-- Build180 mutation 16: anonymous API role gets BYPASSRLS attribute
+SAVEPOINT build179_mutation;
+ALTER ROLE anon BYPASSRLS;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build180_expected_hold \gset
+\if :build180_expected_hold
+ \echo 'BUILD180_EXPECTED_HOLD_16: anonymous API role gets BYPASSRLS attribute'
+\else
+ \echo 'Build180 failed unsafe mutation 16: anonymous API role gets BYPASSRLS attribute'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+
+-- Build180 mutation 17: admin-only reader is RESTRICTIVE instead of PERMISSIVE
+SAVEPOINT build179_mutation;
+DROP POLICY "read audit" ON public.audit_logs;
+CREATE POLICY "read audit" ON public.audit_logs AS RESTRICTIVE FOR SELECT TO authenticated
+ USING (has_role(auth.uid(), 'admin'::app_role));
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build180_expected_hold \gset
+\if :build180_expected_hold
+ \echo 'BUILD180_EXPECTED_HOLD_17: admin-only reader is RESTRICTIVE instead of PERMISSIVE'
+\else
+ \echo 'Build180 failed unsafe mutation 17: admin-only reader is RESTRICTIVE instead of PERMISSIVE'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+
+-- Build180 mutation 18: audit table owned by authenticated application principal
+SAVEPOINT build179_mutation;
+ALTER TABLE public.audit_logs OWNER TO authenticated;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build180_expected_hold \gset
+\if :build180_expected_hold
+ \echo 'BUILD180_EXPECTED_HOLD_18: audit table owned by authenticated application principal'
+\else
+ \echo 'Build180 failed unsafe mutation 18: audit table owned by authenticated application principal'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
 -- Mutations reverted, candidate corrected mock positive control must match again.
 \i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE')

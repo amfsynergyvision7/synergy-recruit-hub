@@ -99,13 +99,13 @@ test("Build179 catalog positive-control uses deliberately inert mock reconciliat
  assert.match(sql,/ROLLBACK;/);
  assert(!sql.includes("SUPABASE_SERVICE_ROLE_KEY"));
 });
-test("Build179 twelve independent privilege/policy/function regressions are required to HOLD",()=>{
+test("Build179–180 eighteen independent privilege/policy/function regressions are required to HOLD",()=>{
  const sql=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,14);
- assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,14);
- assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,14);
+ assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,18);
+ assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,18);
+ assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,18);
  assert.equal((sql.match(/BUILD179_EXPECTED_HOLD_\d\d/g)||[]).length,14);
- assert.equal((sql.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,16);
+ assert.equal((sql.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,20);
  assert.match(sql,/GRANT TRUNCATE ON public\.audit_logs TO anon/);
  assert.match(sql,/GRANT UPDATE ON public\.audit_logs TO authenticated/);
  assert.match(sql,/GRANT MAINTAIN ON public\.audit_logs TO authenticated/);
@@ -127,7 +127,7 @@ test("Build179 disposable CI uses only temporary local database service and reta
 
 test("Build179 failure controls have a PostgreSQL nonzero error path, never unsupported psql quit arguments",()=>{
  const script=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,17);
+ assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,21);
  assert(!/\\quit\s+[345]/.test(script));
  assert.match(script,/ON_ERROR_STOP on/);
 });
@@ -145,4 +145,21 @@ test("Build179 corrected read-only PG17 preflight uses observed empty search_pat
  assert.match(fixture,/BUILD179_EXPECTED_HOLD_14/);
  assert.match(fixture,/NOOP_INVALID_SIGNATURE/);
  assert(!/\b(?:ALTER|DROP|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE|CREATE)\s+(?:TABLE|ROLE|POLICY|FUNCTION)\b/i.test(v2));
+});
+
+test("Build180 RLS bypass, restrictive-only policy and app-role ownership are fail-closed catalog gates",()=>{
+ const sql=readFileSync(join(root,"audit-integrity.pg17-corrected.readonly.sql"),"utf8");
+ const fixture=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
+ assert.match(sql,/p\.permissive='PERMISSIVE'/);
+ assert.match(sql,/rolbypassrls OR rolsuper/);
+ assert.match(sql,/independent_table_owner/);
+ assert.match(sql,/anon_rls_enforced AND auth_rls_enforced/);
+ assert.match(fixture,/ALTER ROLE authenticated BYPASSRLS/);
+ assert.match(fixture,/ALTER ROLE anon BYPASSRLS/);
+ assert.match(fixture,/AS RESTRICTIVE FOR SELECT TO authenticated/);
+ assert.match(fixture,/ALTER TABLE public\.audit_logs OWNER TO authenticated/);
+ for(const n of [15,16,17,18])assert(fixture.includes("BUILD180_EXPECTED_HOLD_"+n),n);
+ assert.equal((fixture.match(/BUILD180_EXPECTED_HOLD_\d\d/g)||[]).length,4);
+ assert.equal((fixture.match(/SELECT 1\/0;/g)||[]).length,21);
+ assert(!/\b(?:CREATE|DROP|ALTER|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE)\s+(?:TABLE|POLICY|ROLE|FUNCTION)\b/iu.test(sql));
 });

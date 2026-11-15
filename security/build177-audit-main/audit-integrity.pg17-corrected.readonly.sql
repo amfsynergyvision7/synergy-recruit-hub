@@ -1,6 +1,8 @@
 -- BUILD179 PROPOSED PG17-CORRECTED READ-ONLY CATALOG REVIEW. NOT RELEASE AUTHORIZATION.
 -- Original BUILD160 SQL preserved byte-for-byte in reviewed/ directory.
 -- A correct catalog-only result is REVIEW_ONLY, never email or production approval.
+-- Build180 adds safeguards against BYPASSRLS drift, app-role table ownership
+-- and restrictive-only admin SELECT policies. It does not prove function semantics.
 WITH funcs AS (
  SELECT p.oid,p.pronargs,p.proargtypes,p.prosecdef,p.proconfig,
   has_function_privilege('anon',p.oid,'EXECUTE') AS anon_exec,
@@ -47,11 +49,22 @@ WITH funcs AS (
  FROM pg_catalog.pg_policies p
  WHERE p.schemaname='public' AND p.tablename='audit_logs'
   AND p.cmd='SELECT' AND p.policyname='read audit'
+  AND p.permissive='PERMISSIVE'
   AND p.roles::text='{authenticated}'
   AND btrim(coalesce(p.qual,''))='has_role(auth.uid(), ''admin''::app_role)'
 ), rls AS (
- SELECT relrowsecurity AS rls_enabled
+ SELECT relrowsecurity AS rls_enabled,
+  -- A data API principal owning this table could bypass RLS unless FORCE
+  -- is enabled. Ownership drift should never count as an acceptable review.
+  pg_get_userbyid(relowner) NOT IN ('anon','authenticated','service_role')
+    AS independent_table_owner
  FROM pg_catalog.pg_class WHERE oid='public.audit_logs'::regclass
+), app_rls_roles AS (
+ SELECT
+  coalesce((SELECT NOT (rolbypassrls OR rolsuper)
+   FROM pg_catalog.pg_roles WHERE rolname='anon'),false) AS anon_rls_enforced,
+  coalesce((SELECT NOT (rolbypassrls OR rolsuper)
+   FROM pg_catalog.pg_roles WHERE rolname='authenticated'),false) AS auth_rls_enforced
 ), facts AS (
  SELECT (SELECT count(*) FROM funcs) AS named_rpc_count,
  (SELECT count(*) FROM funcs WHERE pronargs=4 AND NOT prosecdef
@@ -61,8 +74,10 @@ WITH funcs AS (
   -- PG17 stores explicitly empty search_path as the string search_path="".
   AND array_position(proconfig,'search_path=""') IS NOT NULL) AS safe_rpc_count,
  permissions.*,policies.broadly_permissive_all,policies.total_audit_policies,
- admin_reader.admin_select_policies,rls.rls_enabled
+ admin_reader.admin_select_policies,rls.rls_enabled,rls.independent_table_owner,
+ app_rls_roles.anon_rls_enforced,app_rls_roles.auth_rls_enforced
  FROM permissions CROSS JOIN policies CROSS JOIN admin_reader CROSS JOIN rls
+ CROSS JOIN app_rls_roles
 )
 SELECT named_rpc_count,safe_rpc_count,
  anon_select,anon_insert,anon_update,anon_delete,anon_truncate,
@@ -72,6 +87,7 @@ SELECT named_rpc_count,safe_rpc_count,
  service_insert,service_update,service_delete,service_truncate,
  service_references,service_trigger,service_maintain,
  broadly_permissive_all,total_audit_policies,admin_select_policies,rls_enabled,
+ independent_table_owner,anon_rls_enforced,auth_rls_enforced,
  CASE WHEN named_rpc_count=1 AND safe_rpc_count=1
  AND NOT anon_select AND NOT anon_insert AND NOT anon_update AND NOT anon_delete
  AND NOT anon_truncate AND NOT anon_references
@@ -83,6 +99,7 @@ SELECT named_rpc_count,safe_rpc_count,
  AND NOT service_references AND NOT service_trigger AND NOT service_maintain
  AND broadly_permissive_all=0 AND total_audit_policies=1
  AND admin_select_policies=1 AND rls_enabled
+ AND independent_table_owner AND anon_rls_enforced AND auth_rls_enforced
  THEN 'REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE'
  ELSE 'HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT'
  END AS audit_integrity_gate
