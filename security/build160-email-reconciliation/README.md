@@ -13,3 +13,11 @@ The disposable PostgreSQL 17 test rehearses the exact proposed SQL and proves th
 **Important limitations:** Case references are not cryptographic proof of provider delivery. An independent human must verify real external evidence and confirm separation of duties. There is no approved process for definitively not-delivered attempts, so they remain locked for review; no auto resend or expiration is approved. Production RPCs and Build158 index are not installed. Full RLS/48-object remediation, provider reconciliation policy, actual auth.users relationships, PITR/restore, hosted fictional tests, privacy/communications and release owner approvals all remain outstanding.
 
 Formal acceptance: **0/140 signed hosted UAT; 0/48 accepted production security fixes; 0/9 final release signatures.** Release issue #17 is OPEN.
+
+## Build160 audit-trail integrity blocker and proposed lockdown
+
+Fresh production metadata-only checks identified **anon and authenticated INSERT, UPDATE and DELETE privileges** on audit_logs and a broad PUBLIC ALL policy with unconditional true expressions. This is a separate HOLD: an audit event is not tamper-resistant if untrusted roles can mutate or forge it.
+
+The file audit-log-lockdown.DO-NOT-APPLY.sql.txt proposes removal of these write grants and existing broad policies. The same source is replayed in disposable PG17 with fictional rows and an intentionally recreated unsafe grant/policy posture, proving untrusted writes are revoked while service_role INSERT remains available. **No live changes were made.**
+
+This proposal can break legitimate existing direct audit writers. Qualified security, database and CRM owners must trace all audit-producing routes, replace any user-side inserts with a restricted verified event interface and reconcile the full PR #16 48-object/67-to-35 RLS redesign before any actual migration. The new audit-integrity.preflight.readonly.sql checks only catalog permission and RPC metadata and returns HOLD if exposed, without inspecting business rows. Even a future matched gate cannot authorize SMTP.

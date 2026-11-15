@@ -37,6 +37,39 @@ GRANT SELECT ON public.email_log TO authenticated;
 \ir ../build158-email-outbox/pending-uniqueness.DO-NOT-APPLY.sql.txt
 \ir trusted-journal-rpcs.DO-NOT-APPLY.sql.txt
 \ir ../build160-email-reconciliation/reconcile-confirm-sent.DO-NOT-APPLY.sql.txt
+
+-- Recreate ONLY in disposable PG17 the unsafe audit grant/policy combination
+-- observed in production metadata, then apply source-identical review SQL.
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for authenticated" ON public.audit_logs
+ AS PERMISSIVE FOR ALL TO PUBLIC USING (true) WITH CHECK (true);
+CREATE POLICY "insert audit" ON public.audit_logs
+ FOR INSERT TO authenticated WITH CHECK (true);
+GRANT USAGE ON SCHEMA public TO anon,authenticated;
+GRANT SELECT,INSERT,UPDATE,DELETE,TRUNCATE ON public.audit_logs TO anon,authenticated;
+DO $before$
+BEGIN
+ IF NOT has_table_privilege('anon','public.audit_logs','INSERT')
+ OR NOT has_table_privilege('authenticated','public.audit_logs','DELETE')
+ THEN RAISE EXCEPTION 'BUILD160 FAIL: unsafe audit fixture incomplete'; END IF;
+END
+$before$;
+\ir ../build160-email-reconciliation/audit-log-lockdown.DO-NOT-APPLY.sql.txt
+DO $after$
+BEGIN
+ IF has_table_privilege('anon','public.audit_logs','INSERT')
+ OR has_table_privilege('anon','public.audit_logs','UPDATE')
+ OR has_table_privilege('anon','public.audit_logs','DELETE')
+ OR has_table_privilege('authenticated','public.audit_logs','INSERT')
+ OR has_table_privilege('authenticated','public.audit_logs','UPDATE')
+ OR has_table_privilege('authenticated','public.audit_logs','DELETE')
+ OR NOT has_table_privilege('service_role','public.audit_logs','INSERT')
+ OR EXISTS(SELECT 1 FROM pg_catalog.pg_policies
+   WHERE tablename='audit_logs' AND policyname='Allow all for authenticated')
+ THEN RAISE EXCEPTION 'BUILD160 FAIL: audit lockdown not enforced'; END IF;
+END
+$after$;
+
 INSERT INTO public.profiles VALUES
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved',true),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','approved',true),

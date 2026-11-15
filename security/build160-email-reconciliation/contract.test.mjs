@@ -55,3 +55,31 @@ test("Build160 PG17 fixture tests rollback of journal state when audit write fai
  assert.match(lab,/BUILD160 FAIL: replay added duplicate audit/);
  assert.match(lab,/^ROLLBACK;$/m);
 });
+
+
+test("Build160 audit ACL lockdown proposal is review-only and removes broad policies",()=>{
+ const s=read("./audit-log-lockdown.DO-NOT-APPLY.sql.txt");
+ assert.match(s,/BUILD160 REVIEW ONLY \/ DO NOT APPLY/);
+ assert.match(s,/REVOKE INSERT,UPDATE,DELETE,TRUNCATE/);
+ assert.match(s,/FROM PUBLIC,anon,authenticated/);
+ assert.match(s,/DROP POLICY IF EXISTS "Allow all for authenticated"/);
+ assert.match(s,/DROP POLICY IF EXISTS "insert audit"/);
+});
+test("Build160 disposable database simulates broad audit permission then locks it down",()=>{
+ assert.match(lab,/CREATE POLICY "Allow all for authenticated"/);
+ assert.match(lab,/GRANT SELECT,INSERT,UPDATE,DELETE,TRUNCATE ON public\.audit_logs TO anon,authenticated/);
+ assert.match(lab,/^\\ir ..\/build160-email-reconciliation\/audit-log-lockdown\.DO-NOT-APPLY\.sql\.txt/m);
+ assert.match(lab,/BUILD160 FAIL: audit lockdown not enforced/);
+ assert.match(lab,/BUILD160 FAIL: audit failure did not rollback journal/);
+});
+test("Build160 production audit integrity preflight is read-only and fail closed",()=>{
+ const x=read("./audit-integrity.preflight.readonly.sql");
+ assert.match(x,/^-- BUILD160 READ-ONLY/);
+ assert.match(x,/FROM pg_catalog\.pg_proc/);
+ assert.match(x,/FROM pg_catalog\.pg_policies/);
+ assert.match(x,/has_table_privilege\('anon'/);
+ assert.match(x,/HOLD_AUDIT_LOG_WRITABLE_OR_RECONCILIATION_RPC_ABSENT/);
+ assert.equal((x.match(/;/g)||[]).length,1);
+ assert.doesNotMatch(x.replace(/--[^\n]*/g,""),/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|CREATE|DROP|GRANT|REVOKE|ALTER|TRUNCATE|DO)\b/im);
+ assert.doesNotMatch(x,/\bFROM public\.audit_logs\b/i);
+});

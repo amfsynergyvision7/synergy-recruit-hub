@@ -1,0 +1,6 @@
+-- BUILD160 REVIEW ONLY / DO NOT APPLY / NOT A PRODUCTION MIGRATION.
+-- Owner approval must precede any change to legitimate audit event writers.
+REVOKE INSERT,UPDATE,DELETE,TRUNCATE ON TABLE public.audit_logs
+ FROM PUBLIC,anon,authenticated;
+DROP POLICY IF EXISTS "Allow all for authenticated" ON public.audit_logs;
+DROP POLICY IF EXISTS "insert audit" ON public.audit_logs;
