@@ -137,3 +137,15 @@ test("Build165 category CI checks reproducible dashboard on every PR change",()=
  assert(ci.includes("security/build165-lead-category/contract.test.mjs"));
  assert(!ci.includes("workflow_dispatch:"));
 });
+
+test("Build165 optional planning ICP hypotheses never become an approved targeting policy",()=>{
+ const p=JSON.parse(readFileSync(join(base,"lead-policy.review.json"),"utf8"));
+ assert(p.review_only_icp_hypotheses.proposed_segments.length>=3);
+ assert(p.review_only_icp_hypotheses.proposed_segments.every(x=>x.proposed===true));
+ assert(p.review_only_icp_hypotheses.reference_documents.every(x=>x.status==="planning_material_not_operating_policy"));
+ assert.equal(p.review_only_icp_hypotheses.no_live_source_domains_approved,true);
+ assert.deepEqual(p.required_decisions.target_industries,[]);
+ assert.deepEqual(p.required_decisions.buyer_personas,[]);
+ assert.deepEqual(p.required_decisions.permitted_public_business_sources,[]);
+ assert.equal(p.live_lead_discovery_enabled,false);
+});
