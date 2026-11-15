@@ -25,13 +25,13 @@ const report=(rubric,snapshot,pkg)=>{
   x.source_preparation.forEach(y=>{if(y.state==="source_evidenced")prepared.push(y);else if(y.state==="pending")blocked.push(y);else throw Error("Unrecognized status")});
  }
  if(prepared.length!==4||blocked.length!==4)throw Error("Category work evidence count drift");
- const milestoneRows=ld.map(x=>`| ${x.id} | ${x.name} | ${states.get(x.id).complete?"Accepted":"Open"} | ${states.get(x.id).complete?x.weight:0}/${x.weight} |`).join("\n");
+ const milestoneRows=ld.map(x=>`| ${x.id} | ${x.title} | ${states.get(x.id).complete?"Accepted":"Open"} | ${states.get(x.id).complete?x.weight:0}/${x.weight} |`).join("\n");
  const taskRows=["LD02","LD05"].flatMap(id=>pkg.review_package[id].source_preparation.map(x=>`| ${x.id} | ${x.note} | ${x.state==="source_evidenced"?"Source prepared":"Independent acceptance needed"} |`)).join("\n");
  return `# Category C — AI Lead Discovery (current focused workstream)
 
 **Build ${pkg.latest_build} | 15 November 2026 | Official acceptance: ${points}/10 (${points*10}%) | Release HOLD.**
 
-This is the **only active development category** for Build 165; critical production audit security remains an independently owned release blocker, not a parallel development sprint.
+This is the **only active development category** for Build ${pkg.latest_build}; critical production audit security remains an independently owned release blocker, not a parallel development sprint.
 
 ## Category completion
 **${accepted.length}/5 official milestones accepted.** The remaining gates are **LD02** and **LD05**, 2 weighted points each. Passing tests and draft policies do not close them.

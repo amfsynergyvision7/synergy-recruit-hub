@@ -1,0 +1,85 @@
+{
+  "schema": "synthetic-curated-reconciliation-v1",
+  "mode": "MANUALLY_CURATED_SYNTHETIC_REFERENCE_ONLY",
+  "as_of": "2026-11-15",
+  "reviewer_signoff": false,
+  "provenance": "Separately hand-specified expected values from the two frozen, explicitly fictional HTML snapshots. Not a live operational observation and not a human-verified independent signature.",
+  "totals": {
+    "snapshot_sources": 2,
+    "extracted_entries": 4,
+    "duplicates_merged": 1,
+    "unique_fictional_businesses": 3,
+    "unique_dated_proofs": 4,
+    "pending_growth": 0,
+    "pending_crm": 1,
+    "rejected": 1,
+    "approved_offline_preview": 1
+  },
+  "businesses": [
+    {
+      "website": "https://acacia.example.invalid",
+      "name": "Acacia Logistics (Synthetic)",
+      "city": "Kolkata",
+      "industry": "Logistics",
+      "review_status": "approved_for_offline_handoff",
+      "evidence": [
+        {
+          "source_url": "https://directory.example.invalid/logistics",
+          "captured_on": "2026-11-12"
+        },
+        {
+          "source_url": "https://partners.example.invalid/listings",
+          "captured_on": "2026-11-13"
+        }
+      ]
+    },
+    {
+      "website": "https://bluebell.example.invalid",
+      "name": "Bluebell Engineering (Synthetic)",
+      "city": "Howrah",
+      "industry": "Engineering",
+      "review_status": "rejected",
+      "evidence": [
+        {
+          "source_url": "https://directory.example.invalid/logistics",
+          "captured_on": "2026-11-12"
+        }
+      ]
+    },
+    {
+      "website": "https://cobalt.example.invalid",
+      "name": "Cobalt Manufacturing (Synthetic)",
+      "city": "Durgapur",
+      "industry": "Manufacturing",
+      "review_status": "pending_crm_review",
+      "evidence": [
+        {
+          "source_url": "https://partners.example.invalid/listings",
+          "captured_on": "2026-11-13"
+        }
+      ]
+    }
+  ],
+  "expected_measures": {
+    "provenance_coverage": {
+      "numerator": 3,
+      "denominator": 3
+    },
+    "source_freshness_30d": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "deduplication_ratio": {
+      "numerator": 1,
+      "denominator": 4
+    },
+    "growth_review_completion": {
+      "numerator": 3,
+      "denominator": 3
+    },
+    "offline_handoff_preview_yield": {
+      "numerator": 1,
+      "denominator": 3
+    }
+  }
+}
