@@ -20,4 +20,5 @@ jobs:
         with:
           node-version: '22'
       - run: node --test security/build121/lead-discovery.test.mjs security/build122/lead-review-and-handoff.test.mjs security/build165-lead-category/contract.test.mjs
+      - run: node security/lead-discovery/category-status.mjs --check
       - run: node security/lead-discovery/metrics.mjs security/lead-discovery/manifest.synthetic.json security/lead-discovery/review-decisions.synthetic.json 2026-11-15

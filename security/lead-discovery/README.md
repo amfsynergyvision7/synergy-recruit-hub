@@ -53,3 +53,5 @@ Two owner-review packets have been added: `LD02-ICP-SOURCE-APPROVAL.md` plus `le
 A real runnable, offline-only synthetic metrics program now computes aggregate provenance, evidence freshness, deduplication, review completion and no-send handoff preview yield with safe denominators. No operational conversion metrics are invented. Run `node security/lead-discovery/metrics.mjs security/lead-discovery/manifest.synthetic.json security/lead-discovery/review-decisions.synthetic.json 2026-11-15`.
 
 `category-c-v1.json` tracks official LD01–05 status and two remaining gated subpackages. This is an engineering evidence packet; official score increases to 8/10 or 10/10 **only with individually supported owner acceptance and valid verification**. Critical production audit Issue #19 remains HOLD; unrelated draft security changes are not included here.
+
+**Current category dashboard:** [Category C milestone / substep tracker](./CATEGORY-C-STATUS.md), CI-reconciled against the frozen 100-point scorecard. The two remaining LD acceptance gates are explicitly open.

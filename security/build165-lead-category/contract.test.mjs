@@ -110,3 +110,30 @@ test("Build165 synthetic KPI implementation cannot use network, CRM or provider 
   assert(!s.includes(forbidden),forbidden);
  assert(s.includes("SYNTHETIC_OFFLINE_AGGREGATES_ONLY"));
 });
+
+test("Build165 category C report remains generated from fixed rubric and evidence ledger",async()=>{
+ const {report}=await import("../lead-discovery/category-status.mjs");
+ const r=JSON.parse(readFileSync(join(base,"../release-progress/v1-rubric.json"),"utf8"));
+ const s=JSON.parse(readFileSync(join(base,"../release-progress/current.json"),"utf8"));
+ const p=JSON.parse(readFileSync(join(base,"category-c-v1.json"),"utf8"));
+ const actual=readFileSync(join(base,"CATEGORY-C-STATUS.md"),"utf8");
+ assert.equal(actual,report(r,s,p));
+ assert(actual.includes("6/10 (60%)"));
+ assert(actual.includes("4/8 source/preparation tasks evidenced"));
+ assert(actual.includes("LD02"));
+ assert(actual.includes("LD05"));
+});
+test("Build165 artificially approved owner gates cannot inflate the lead category report",async()=>{
+ const {report}=await import("../lead-discovery/category-status.mjs");
+ const r=JSON.parse(readFileSync(join(base,"../release-progress/v1-rubric.json"),"utf8"));
+ const s=JSON.parse(readFileSync(join(base,"../release-progress/current.json"),"utf8"));
+ const p=JSON.parse(readFileSync(join(base,"category-c-v1.json"),"utf8"));
+ p.review_package.LD02.accepted=true;
+ assert.throws(()=>report(r,s,p),/Independent acceptance/);
+});
+test("Build165 category CI checks reproducible dashboard on every PR change",()=>{
+ const ci=readFileSync(join(base,"../../.github/workflows/build165-category-c.yml"),"utf8");
+ assert(ci.includes("node security/lead-discovery/category-status.mjs --check"));
+ assert(ci.includes("security/build165-lead-category/contract.test.mjs"));
+ assert(!ci.includes("workflow_dispatch:"));
+});
