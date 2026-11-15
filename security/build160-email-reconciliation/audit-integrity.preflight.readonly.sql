@@ -12,10 +12,12 @@ WITH funcs AS (
  has_table_privilege('anon','public.audit_logs','INSERT') AS anon_insert,
  has_table_privilege('anon','public.audit_logs','UPDATE') AS anon_update,
  has_table_privilege('anon','public.audit_logs','DELETE') AS anon_delete,
+ has_table_privilege('anon','public.audit_logs','TRUNCATE') AS anon_truncate,
  has_table_privilege('authenticated','public.audit_logs','SELECT') AS auth_select,
  has_table_privilege('authenticated','public.audit_logs','INSERT') AS auth_insert,
  has_table_privilege('authenticated','public.audit_logs','UPDATE') AS auth_update,
  has_table_privilege('authenticated','public.audit_logs','DELETE') AS auth_delete,
+ has_table_privilege('authenticated','public.audit_logs','TRUNCATE') AS auth_truncate,
  has_table_privilege('service_role','public.audit_logs','INSERT') AS service_insert,
  has_table_privilege('service_role','public.audit_logs','UPDATE') AS service_update,
  has_table_privilege('service_role','public.audit_logs','DELETE') AS service_delete,
@@ -49,13 +51,15 @@ WITH funcs AS (
  FROM permissions CROSS JOIN policies CROSS JOIN admin_reader CROSS JOIN rls
 )
 SELECT named_rpc_count,safe_rpc_count,
- anon_select,anon_insert,anon_update,anon_delete,
- auth_select,auth_insert,auth_update,auth_delete,
+ anon_select,anon_insert,anon_update,anon_delete,anon_truncate,
+ auth_select,auth_insert,auth_update,auth_delete,auth_truncate,
  service_insert,service_update,service_delete,service_truncate,
  broadly_permissive_all,total_audit_policies,admin_select_policies,rls_enabled,
  CASE WHEN named_rpc_count=1 AND safe_rpc_count=1
  AND NOT anon_select AND NOT anon_insert AND NOT anon_update AND NOT anon_delete
+ AND NOT anon_truncate
  AND auth_select AND NOT auth_insert AND NOT auth_update AND NOT auth_delete
+ AND NOT auth_truncate
  AND service_insert AND NOT service_update AND NOT service_delete AND NOT service_truncate
  AND broadly_permissive_all=0 AND total_audit_policies=1
  AND admin_select_policies=1 AND rls_enabled

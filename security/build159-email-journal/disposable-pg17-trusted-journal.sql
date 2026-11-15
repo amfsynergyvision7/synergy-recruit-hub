@@ -401,6 +401,79 @@ BEGIN
 END
 $append_only$;
 RESET ROLE;
+-- Build162 disposable PG17 role verification. Synthetic RLS policy only.
+-- This is not a production migration or proof of real hosted JWT semantics.
+CREATE SCHEMA auth;
+GRANT USAGE ON SCHEMA auth TO authenticated;
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE SET search_path=''
+AS $u$ SELECT nullif(pg_catalog.current_setting('request.jwt.claim.sub',true),'')::uuid $u$;
+GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
+CREATE FUNCTION public.build162_is_admin_audit_reader(p_actor uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $a$
+ SELECT EXISTS(SELECT 1 FROM public.user_roles r JOIN public.profiles p
+ ON r.user_id=p.id WHERE r.user_id=p_actor AND r.role='admin'
+ AND p.status='approved' AND p.is_active IS TRUE)
+$a$;
+REVOKE ALL ON FUNCTION public.build162_is_admin_audit_reader(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.build162_is_admin_audit_reader(uuid) TO authenticated;
+CREATE POLICY "read audit" ON public.audit_logs FOR SELECT TO authenticated
+USING (public.build162_is_admin_audit_reader(auth.uid()));
+SET LOCAL ROLE anon;
+DO $anonymous$
+DECLARE command text; denied boolean;
+BEGIN
+ FOREACH command IN ARRAY ARRAY[
+  'SELECT id FROM public.audit_logs LIMIT 1',
+  'INSERT INTO public.audit_logs(action) VALUES (''forged'')',
+  'UPDATE public.audit_logs SET action=''forged''',
+  'DELETE FROM public.audit_logs',
+  'TRUNCATE public.audit_logs'
+ ] LOOP
+  denied:=false;
+  BEGIN EXECUTE command;
+  EXCEPTION WHEN insufficient_privilege THEN denied:=true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'BUILD162 FAIL: anonymous audit ACL allowed: %',command;END IF;
+ END LOOP;
+END $anonymous$;
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+DO $ordinary$
+DECLARE n integer;
+BEGIN
+ SELECT count(*) INTO n FROM public.audit_logs;
+ IF n<>0 THEN RAISE EXCEPTION 'BUILD162 FAIL: non-admin audit reader sees rows';END IF;
+END $ordinary$;
+SET LOCAL request.jwt.claim.sub='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+DO $admin$
+DECLARE n integer;command text;denied boolean;
+BEGIN
+ SELECT count(*) INTO n FROM public.audit_logs;
+ IF n<>1 THEN RAISE EXCEPTION 'BUILD162 FAIL: approved admin cannot read audit metadata';END IF;
+ FOREACH command IN ARRAY ARRAY[
+  'INSERT INTO public.audit_logs(action) VALUES (''forged'')',
+  'UPDATE public.audit_logs SET action=''forged''',
+  'DELETE FROM public.audit_logs',
+  'TRUNCATE public.audit_logs'
+ ] LOOP
+  denied:=false;
+  BEGIN EXECUTE command;
+  EXCEPTION WHEN insufficient_privilege THEN denied:=true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'BUILD162 FAIL: authenticated audit mutation allowed: %',command;END IF;
+ END LOOP;
+END $admin$;
+RESET ROLE;
+DO $final$
+BEGIN
+ IF (SELECT count(*) FROM public.audit_logs WHERE action='crm_email_confirmed_sent')<>1
+ OR has_table_privilege('anon','public.audit_logs','TRUNCATE')
+ OR has_table_privilege('authenticated','public.audit_logs','TRUNCATE')
+ THEN RAISE EXCEPTION 'BUILD162 FAIL: append-only evidence or ACL unsafe';END IF;
+END $final$;
+
 DO $privileges$
 BEGIN
  IF has_function_privilege('anon',
