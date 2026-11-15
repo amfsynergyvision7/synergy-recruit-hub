@@ -4,7 +4,7 @@
  * outbox, idempotency, reconciliation, access policy and signed hosted UAT.
  */
 export const CRM_EMAIL_AUDIT_INTEGRITY_RELEASE_HOLD = true as const;
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const requestUuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 /** A single stable browser-generated attempt key is required per compose session.
  * The email_log UUID PRIMARY KEY is the existing atomic uniqueness boundary.
