@@ -1,0 +1,20 @@
+# Build151: source provenance and static review only. No Supabase/Postgres credentials.
+name: Build151 Production Permission Review — No Secrets
+on:
+  pull_request:
+    paths:
+      - 'security/build151-production-permissions-review/**'
+      - '.github/workflows/build151-production-permission-review.yml'
+permissions:
+  contents: read
+jobs:
+  reviewed_source_contract:
+    name: Source-pinned 48-object production permission review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288ca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: node --test security/build151-production-permissions-review/review-contract.test.mjs

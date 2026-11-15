@@ -1,0 +1,100 @@
+{
+  "build": 47,
+  "date": "2026-11-11",
+  "scope": "read-only production metadata; draft security review only",
+  "objects": {
+    "tables": [
+      "app_settings",
+      "audit_logs",
+      "billing",
+      "candidate_activities",
+      "candidate_stage_history",
+      "candidates",
+      "clients",
+      "email_log",
+      "google_integrations",
+      "integrations",
+      "interviews",
+      "job_openings",
+      "notifications",
+      "offers",
+      "profiles",
+      "submissions",
+      "sync_logs",
+      "user_roles",
+      "workflow_rules"
+    ],
+    "views": [
+      "available_recruiters",
+      "candidates_for_assignment",
+      "recruiter_performance",
+      "recruiter_performance_with_names",
+      "recruiter_stats",
+      "recruiter_summary",
+      "vw_billing_filters",
+      "vw_candidate_filters",
+      "vw_client_filters",
+      "vw_interview_filters",
+      "vw_job_filters",
+      "vw_offer_filters",
+      "vw_submission_filters"
+    ],
+    "functions": [
+      "generate_reminders",
+      "get_user_role",
+      "handle_new_user",
+      "has_role",
+      "is_approved",
+      "on_candidate_stage_change",
+      "on_interview_change",
+      "on_offer_change",
+      "on_submission_insert",
+      "resolve_candidate_uuid",
+      "resolve_client_uuid",
+      "resolve_job_uuid",
+      "rls_auto_enable",
+      "run_workflow_rules",
+      "set_assigned_recruiter",
+      "track_stage_changes"
+    ],
+    "unrestricted_policies": [
+      "audit_logs",
+      "billing",
+      "candidate_activities",
+      "candidates",
+      "clients",
+      "google_integrations",
+      "integrations",
+      "interviews",
+      "job_openings",
+      "notifications",
+      "offers",
+      "profiles",
+      "submissions",
+      "sync_logs",
+      "user_roles"
+    ]
+  },
+  "counts": {
+    "tables": 19,
+    "views": 13,
+    "functions": 16,
+    "security_objects": 48,
+    "unrestricted_policies": 15,
+    "restrictive_RLS_test": 31
+  },
+  "release": {
+    "production_security_remediated": 0,
+    "production_security_total": 48,
+    "hosted_authorization_accepted": 0,
+    "hosted_authorization_total": 140,
+    "formal_gates_passed": 0,
+    "formal_gates_total": 9,
+    "production_changed": false
+  },
+  "warnings": [
+    "Review-only SQL, not a deployable migration",
+    "No hosted user provisioning or live import",
+    "Production rollback and real business workflows unaccepted"
+  ]
+}

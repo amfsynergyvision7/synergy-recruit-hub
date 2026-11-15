@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "build": 151,
+  "purpose": "SOURCE-PINNED REVIEW ONLY, no production or staging writes, no PR merge authorization",
+  "source_pr": 12,
+  "source_pr_head": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6",
+  "base_main_head_at_extraction": "c735292fbace6605d691a68b602a02b2c6f9e137",
+  "original_sources": [
+    {
+      "source_path": "security/build47/catalog-inventory.json",
+      "review_copy": "security/build151-production-permissions-review/baseline-48.json",
+      "source_blob_sha": "7b76ac7aa5fe47a86b036b12e5560f603f8b5aa5"
+    },
+    {
+      "source_path": "security/build73/48-object-release-preflight.readonly.sql",
+      "review_copy": "security/build151-production-permissions-review/production-preflight.readonly.sql",
+      "source_blob_sha": "397a608717afe03f90fb284a983f345e215baae3"
+    },
+    {
+      "source_path": "security/build47/48-object-lockdown-review-only.sql",
+      "review_copy": "security/build151-production-permissions-review/lockdown.DO-NOT-APPLY.review.sql",
+      "source_blob_sha": "b9e5bee59aa03c42c675245f13fcfe8f18562922"
+    },
+    {
+      "source_path": "security/build73/48-object-permission-before-after.rollback.sql",
+      "review_copy": "security/build151-production-permissions-review/disposable-rehearsal.DO-NOT-RUN.sql.txt",
+      "source_blob_sha": "858542a266e0052124b486610a3eac7266b63ddc"
+    }
+  ],
+  "expected_catalog": {
+    "tables": 19,
+    "views": 13,
+    "privileged_functions": 16,
+    "security_objects": 48
+  },
+  "live_readonly_observation_2026_11_15": {
+    "project_ref": "wusntntcqgtpgokggdzv",
+    "permission_preflight": "HOLD_48_OBJECT_PERMISSIONS_NOT_SAFE_OR_SCOPE_DRIFT",
+    "matched_tables": 19,
+    "anon_truncate_tables": 19,
+    "authenticated_truncate_tables": 19,
+    "matched_views": 13,
+    "security_invoker_views": 0,
+    "anon_readable_views": 13,
+    "privileged_functions": 16,
+    "anon_executable_privileged_functions": 16,
+    "public_executable_privileged_functions": 9,
+    "rows_queried": 0,
+    "writes": 0
+  },
+  "acceptance": {
+    "production_remediations_applied": 0,
+    "independently_accepted": 0,
+    "total": 48,
+    "approved_for_execution": false,
+    "owner_signoffs": 0
+  },
+  "safety": "Do not execute any review-only SQL. Disposable rehearsal is archived as .sql.txt. No merge, promotion, DB writes, real user access, billing or financial activation."
+}
