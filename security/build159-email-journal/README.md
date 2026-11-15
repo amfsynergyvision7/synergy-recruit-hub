@@ -21,3 +21,7 @@ Required before activation: a full restricted transaction/migration under DBA co
 ## Build159 draft handler integration
 
 The dependency draft CRM server handler now calls the source-reviewed **`crm_email_reserve_trusted`** and **`crm_email_settle_trusted`** functions through the existing **server-only `supabaseAdmin` client**, after the two immutable email release holds and independent existing auth/role/recipient authorization. The RPCs must still validate those boundaries themselves and only expose a tightly scoped row result. Neither function exists in live production; both will currently fail closed if someone independently disables the release holds without first approving/installing and verifying the complete DB transaction. That does **not** authorize weakening either hard hold. Code integration is still inactive and not end-to-end hosted UAT.
+
+## Build159 read-only independent catalog verification
+
+`trusted-journal-preflight.readonly.sql` queries **only `pg_catalog.pg_proc` and namespace metadata**, never email/candidate rows. It checks both exact function names, expected argument counts, `SECURITY INVOKER`, empty function search paths, no anonymous/authenticated execution grants and restricted `service_role` execution. If absent, mismatched or anonymously exposed, the result is `HOLD_TRUSTED_JOURNAL_RPCS_ABSENT_OR_UNSAFE`. Even a source-compatible result is **review-only** and never permits real email release. It cannot substitute for complete semantic tests and human security approval.

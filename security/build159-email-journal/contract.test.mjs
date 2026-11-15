@@ -66,3 +66,19 @@ test("Build159 actual email handler delegates reserve and settle to protected RP
  assert(!send.includes('process.env.SUPABASE_SERVICE_ROLE_KEY'));
  assert(!send.includes('onConflict'));
 });
+
+
+test("Build159 read-only catalog gate independently refuses absent/unsafe trusted RPCs",()=>{
+ const sql=get("./trusted-journal-preflight.readonly.sql");
+ assert.match(sql,/^-- Build159 READ-ONLY/);
+ assert.match(sql,/FROM pg_catalog\.pg_proc/);
+ assert.match(sql,/has_function_privilege\('anon'/);
+ assert.match(sql,/has_function_privilege\('authenticated'/);
+ assert.match(sql,/has_function_privilege\('service_role'/);
+ assert.match(sql,/prosecdef/);
+ assert.match(sql,/search_path=/);
+ assert.match(sql,/HOLD_TRUSTED_JOURNAL_RPCS_ABSENT_OR_UNSAFE/);
+ assert.equal((sql.match(/;/g)||[]).length,1);
+ assert.doesNotMatch(sql.replace(/--[^\n]*/g,""),/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|GRANT|REVOKE|TRUNCATE|DO|COPY|CALL|EXECUTE)\b/im);
+ assert.doesNotMatch(sql,/\bFROM public\.email_log\b/i);
+});
