@@ -40,3 +40,7 @@ Original source branch `42b98783517aecec9feb2d33530b717c1d7f1857`, copied blobs:
 - `security/build177-audit-main/reviewed/reconcile-confirm-sent.DO-NOT-APPLY.sql.txt` ← `security/build160-email-reconciliation/reconcile-confirm-sent.DO-NOT-APPLY.sql.txt` (Git blob `a5c9d51cd34d888bc2b4283270e3adaaff99c382`)
 
 **Outcome sought:** smaller audit-security review PR; do not award official CRM09 acceptance, do not change the fixed programme 26/100 / 12-of-43, and retain `main` merge, email/financial/CRM activation and production deployment holds.
+
+## Build177 CI harness correction before validation
+
+The first PR workflow run exposed **two harness failures**: the JS Git blob hash helper used a backslash-zero text sequence instead of a NUL byte; the quoted Docker service `--health-cmd` was passed as unsupported CLI tokens. These were corrected in the *test and GitHub workflow*, not in any of the five source-pinned reviewed SQL blobs. The disposable PostgreSQL proof is valid only after a clean rerun. Nothing has been applied to either hosted database.

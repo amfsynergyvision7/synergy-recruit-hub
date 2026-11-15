@@ -6,7 +6,7 @@ import {fileURLToPath} from "node:url";
 import {createHash} from "node:crypto";
 const root=dirname(fileURLToPath(import.meta.url));
 const reviewed=join(root,"reviewed");
-const sha=b=>createHash("sha1").update(Buffer.concat([Buffer.from("blob "+b.length+"\\0"),b])).digest("hex");
+const sha=b=>createHash("sha1").update(Buffer.concat([Buffer.from("blob "+b.length),Buffer.from([0]),b])).digest("hex");
 const files={
   "lockdown.DO-NOT-APPLY.sql.txt": "568298c8556d21adb26afd6a583ecad8d8d4f0f0",
   "audit-integrity.preflight.readonly.sql": "16a656ca76bbda43d9c9d6015b16e4e5d4c04d59",
