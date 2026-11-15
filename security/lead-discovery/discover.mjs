@@ -30,11 +30,21 @@ export function syntheticHttpsUrl(input) {
   let parsed;
   try { parsed = new URL(input); } catch { return null; }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password ||
-      parsed.port || parsed.hash || isIP(parsed.hostname)) return null;
-  const host = parsed.hostname.toLowerCase();
+      parsed.port || parsed.hash || isIP(parsed.hostname) ||
+      // URL.search can be empty for a trailing '?' even though the URL
+      // contains an untrusted query delimiter; reject both forms.
+      input.includes("?")) return null;
+  const host = parsed.hostname.toLowerCase(),path = parsed.pathname;
   // Reserved .invalid DNS name: no live company or person can be contacted.
-  if (!host.endsWith(".example.invalid") || host.startsWith(".") ||
-      host.includes("..") || host.split(".").some(s => !/^[a-z0-9-]+$/.test(s))) return null;
+  // Keep source provenance free of query tokens, encoded contact fragments,
+  // Unicode/punycode identity tricks and noncanonical DNS labels. These are
+  // intentionally strict synthetic-only URL semantics, not a live web policy.
+  if (!host.endsWith(".example.invalid") || host.length > 253 ||
+      host.startsWith(".") || host.includes("..") ||
+      host.split(".").some(s => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(s) ||
+        s.startsWith("xn--")) ||
+      path.length > 160 || !/^\/[A-Za-z0-9._/-]*$/.test(path) ||
+      path.includes("//")) return null;
   return parsed;
 }
 

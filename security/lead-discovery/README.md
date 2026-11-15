@@ -82,3 +82,9 @@ The LD02 real-source whitelist now accepts only canonical HTTPS **business origi
 ## Build171 — frozen scorecard moved into explicit local test fixtures (isolated main-target PR only)
 
 To prevent a dated Build138 scorecard being mistaken for a fresh `security/release-progress/current.json` on main, the isolated PR now keeps unchanged historical JSON bytes under `fixtures/release-progress/` and asserts their SHA-1 Git blob hashes. Existing Category C tests import these files as **offline evidence snapshots**, never current operational data. This package remains DRAFT / RELEASE HOLD. Its official acceptance is unchanged: Category C 6/10, overall 26/100 recorded as historical scorecard evidence; LD02 and LD05 remain owner-gated.
+
+## Build172 — provenance URL metadata privacy fix
+
+The offline parser now rejects **query strings (including a bare `?`), percent-encoded source path segments, contact-bearing `@` paths and malformed/punycode synthetic host labels**, while preserving the frozen fictional business sites and static directory paths. This is a conservative safeguard against accidentally echoing private tokens or identifiers from a user-supplied *synthetic fixture URL* into an offline review report. The underlying reserved-domain policy, no-network execution, no-send CRM handoff and independent owner acceptance holds are unchanged. This validation is not a claim that all sensitive information could be identified automatically.
+
+Build172 carries an additional regression suite. PR #22 remains **Draft and unsafe to merge while `main` is unprotected**; PR #20 remains for independent code review on the integration base. Do not interpret CI passing or these new tests as LD02/LD05 owner approval.
