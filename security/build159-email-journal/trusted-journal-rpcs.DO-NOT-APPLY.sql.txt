@@ -1,0 +1,125 @@
+-- BUILD159 REVIEW ONLY / DO NOT APPLY / NOT A PRODUCTION MIGRATION.
+-- Required independent DB, CRM, communications, security & privacy approval.
+-- Two SECURITY INVOKER functions restricted to the server-only service_role.
+-- No authenticated/anon browser EXECUTE. No service credentials exposed.
+-- The service caller must still enforce immutable email release holds.
+CREATE FUNCTION public.crm_email_reserve_trusted(
+ p_attempt uuid, p_actor uuid, p_table text, p_record uuid,
+ p_recipient text, p_subject text, p_body text
+) RETURNS TABLE(
+ id uuid, related_table text, related_id uuid, sent_by uuid, status text
+) LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
+AS $reserve$
+DECLARE v_role text; v_count integer;
+ v_profile_status text; v_active boolean;
+ v_expected_email text; v_assigned uuid;
+BEGIN
+ IF current_user <> 'service_role' THEN
+  RAISE EXCEPTION 'CRM email reservation denied';
+ END IF;
+ IF p_attempt IS NULL OR p_attempt::text !~*
+  '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  OR p_actor IS NULL OR p_record IS NULL
+  OR p_table NOT IN ('candidates','clients')
+  OR p_recipient IS NULL OR char_length(p_recipient) NOT BETWEEN 3 AND 254
+  OR p_recipient ~ '[[:cntrl:][:space:]]'
+  OR p_recipient !~ '^[^@]+@[^@]+$'
+  OR p_subject IS NULL OR char_length(p_subject) NOT BETWEEN 1 AND 200
+  OR p_body IS NULL OR char_length(p_body) NOT BETWEEN 1 AND 10000
+ THEN
+  RAISE EXCEPTION 'CRM email reservation denied';
+ END IF;
+ SELECT p.status::text,p.is_active INTO v_profile_status,v_active
+ FROM public.profiles AS p WHERE p.id=p_actor;
+ IF NOT FOUND OR v_profile_status <> 'approved' OR v_active IS NOT TRUE THEN
+  RAISE EXCEPTION 'CRM email reservation denied';
+ END IF;
+ SELECT count(*),min(r.role::text) INTO v_count,v_role
+ FROM public.user_roles AS r WHERE r.user_id=p_actor;
+ IF v_count <> 1 OR v_role NOT IN ('admin','recruiter') THEN
+  RAISE EXCEPTION 'CRM email reservation denied';
+ END IF;
+ IF p_table='candidates' THEN
+  SELECT c.email,c.assigned_recruiter INTO v_expected_email,v_assigned
+  FROM public.candidates AS c WHERE c.id=p_record;
+  IF NOT FOUND OR (v_role='recruiter' AND v_assigned IS DISTINCT FROM p_actor) THEN
+   RAISE EXCEPTION 'CRM email reservation denied';
+  END IF;
+ ELSE
+  IF v_role <> 'admin' THEN
+   RAISE EXCEPTION 'CRM email reservation denied';
+  END IF;
+  SELECT c.email INTO v_expected_email
+  FROM public.clients AS c WHERE c.id=p_record;
+  IF NOT FOUND THEN
+   RAISE EXCEPTION 'CRM email reservation denied';
+  END IF;
+ END IF;
+ IF v_expected_email IS NULL OR lower(btrim(p_recipient))
+   IS DISTINCT FROM lower(btrim(v_expected_email)) THEN
+  RAISE EXCEPTION 'CRM email reservation denied';
+ END IF;
+ -- Existing email_log UUID PK and Build158 reviewed unresolved-recipient
+ -- unique index (if/when independently installed) enforce atomic conflicts.
+ -- Never allow ON CONFLICT DO NOTHING/UPDATE or auto-retry after error.
+ RETURN QUERY
+ INSERT INTO public.email_log AS journal
+ (id,related_table,related_id,to_email,subject,body,
+  status,error,provider_id,sent_by)
+ VALUES (p_attempt,p_table,p_record,p_recipient,p_subject,p_body,
+  'pending',NULL,NULL,p_actor)
+ RETURNING journal.id,journal.related_table,journal.related_id,
+           journal.sent_by,journal.status;
+END
+$reserve$;
+
+CREATE FUNCTION public.crm_email_settle_trusted(
+ p_attempt uuid, p_actor uuid, p_status text, p_provider_id text
+) RETURNS TABLE(id uuid,status text)
+ LANGUAGE plpgsql SECURITY INVOKER SET search_path = ''
+AS $settle$
+BEGIN
+ IF current_user <> 'service_role'
+  OR p_attempt IS NULL OR p_actor IS NULL
+  OR p_status NOT IN ('sent','unknown')
+ THEN
+  RAISE EXCEPTION 'CRM email journal settlement denied';
+ END IF;
+ IF p_status='sent' THEN
+  IF p_provider_id IS NULL OR char_length(p_provider_id) NOT BETWEEN 1 AND 256
+   OR octet_length(p_provider_id)<>char_length(p_provider_id)
+   OR p_provider_id ~ '[[:space:][:cntrl:]]'
+   OR p_provider_id !~ '^[!-~]+$'
+  THEN
+   RAISE EXCEPTION 'CRM email journal settlement denied';
+  END IF;
+ ELSIF p_provider_id IS NOT NULL THEN
+  RAISE EXCEPTION 'CRM email journal settlement denied';
+ END IF;
+ RETURN QUERY
+ UPDATE public.email_log AS journal SET
+ status=p_status,
+ error=CASE WHEN p_status='unknown'
+   THEN 'Delivery outcome unconfirmed; manual reconciliation required'
+   ELSE NULL END,
+ provider_id=CASE WHEN p_status='sent' THEN p_provider_id ELSE NULL END
+ WHERE journal.id=p_attempt
+   AND journal.sent_by=p_actor
+   AND journal.status='pending'
+ RETURNING journal.id,journal.status;
+ IF NOT FOUND THEN
+  RAISE EXCEPTION 'CRM email journal settlement denied';
+ END IF;
+END
+$settle$;
+
+-- These grants are mandatory and must be in the same reviewed transaction
+-- as CREATE FUNCTION to prevent default PUBLIC EXECUTE exposure.
+REVOKE ALL ON FUNCTION public.crm_email_reserve_trusted(
+ uuid,uuid,text,uuid,text,text,text) FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.crm_email_settle_trusted(
+ uuid,uuid,text,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.crm_email_reserve_trusted(
+ uuid,uuid,text,uuid,text,text,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.crm_email_settle_trusted(
+ uuid,uuid,text,text) TO service_role;

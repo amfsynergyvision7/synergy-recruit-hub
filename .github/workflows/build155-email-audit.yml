@@ -6,6 +6,7 @@ on:
       - 'src/lib/crm-email-audit-integrity.server.ts'
       - 'security/build155-email-audit/**'
       - 'security/build158-email-outbox/**'
+      - 'security/build159-email-journal/**'
       - 'src/components/EmailComposeDialog.tsx'
       - '.github/workflows/build155-email-audit.yml'
 permissions:
@@ -20,7 +21,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-      - run: node --test security/build155-email-audit/contract.test.mjs security/build158-email-outbox/contract.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build86/crm-email-record-scope.test.mjs
+      - run: node --test security/build155-email-audit/contract.test.mjs security/build158-email-outbox/contract.test.mjs security/build159-email-journal/contract.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build86/crm-email-record-scope.test.mjs
 
   pg17-partial-unique-rehearsal:
     name: Disposable PostgreSQL 17 unresolved-recipient uniqueness
@@ -51,3 +52,5 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f security/build158-email-outbox/disposable-pg17-rehearsal.sql
       - name: Verify two competing PG17 sessions with the same CRM recipient
         run: bash security/build158-email-outbox/disposable-pg17-concurrent.sh
+      - name: Rehearse trusted journal RPC permissions and transitions in disposable PG17
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build159-email-journal/disposable-pg17-trusted-journal.sql
