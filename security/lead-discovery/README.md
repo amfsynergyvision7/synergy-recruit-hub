@@ -92,3 +92,9 @@ The original fictional fixture had conflicting duplicate Acacia names; the secon
 ## Build174 — deterministic fictional company identity and strict bounded JSON-LD
 
 The offline parser emits canonical non-www company origins irrespective of which fictional source appears first, requires an actual `script` tag with a real `type=application/ld+json` attribute, and caps traversal at 2,500 nodes per synthetic HTML source rather than attempting unbounded array-spread operations. Matching tests on PR #22 validate the www-first end-to-end audit and KPI path, spoofed attributes, excess graph size, and unchanged baseline. No live source discovery, external messaging, CRM writes or approval was added. The engineering review here remains nonproduction and unmerged.
+
+## Build175 — source provenance ambiguity and company-only identity guard
+
+The Category C parser now validates one unambiguous inline JSON-LD `type` attribute with a bounded, quote-aware attribute walk and excludes external-script `src`, event-handler metadata and malformed duplicate `type` declarations from *synthetic* source evidence. An entity containing both `Person` and `Organization` schema types can no longer be cast to a company lead. A new regression suite checks these cases, preserves original fictitious company/KPI evidence and confirms no network, CRM or outbound side effects.
+
+This safety fix is mirrored byte-for-byte in the direct-main Draft PR #22 and does not supply Growth/Privacy-approved real sourcing decisions or Growth/BI-accepted real KPIs. No merge, production, real contacts or financial actions are authorized.
