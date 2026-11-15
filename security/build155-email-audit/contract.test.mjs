@@ -53,20 +53,20 @@ test('Build155 journal reservation must match id actor record and pending status
   row:reserved,error:null,expected:{...expected,actorId:'bad'}
  }),/delivery blocked/);
 });
-test('Build155 route delegates journal reserve, SMTP and settlement to tested protocol',()=>{
+test('Build155 route delegates RPC reserve, SMTP and RPC settlement to tested protocol',()=>{
  const begin=send.indexOf('executeCrmEmailAuditProtocol({');
  const reserve=send.indexOf('reserve: async () => {',begin);
- const insert=send.indexOf('.insert({',reserve);
- const readback=send.indexOf('.select("id,related_table,related_id,sent_by,status").single()',insert);
+ const insert=send.indexOf('"crm_email_reserve_trusted"',reserve);
+ const readback=send.indexOf('Array.isArray(rows) && rows.length === 1 ? rows[0] : null',insert);
  const deliver=send.indexOf('deliver: () => sendEmail({',readback);
  const settle=send.indexOf('settle: async (finalStatus, providerId)',deliver);
- const update=send.indexOf('.update({',settle);
+ const update=send.indexOf('"crm_email_settle_trusted"',settle);
  assert(begin>=0&&reserve>begin&&insert>reserve&&readback>insert&&deliver>readback&&settle>deliver&&update>settle);
- assert(send.includes('status: "pending"'));
- assert(send.includes('sent_by: context.userId'));
+ assert(send.includes('p_attempt: attemptId'));
+ assert(send.includes('p_actor: context.userId'));
  assert(send.includes('const attemptId = data.requestId'));
  assert(send.includes('z.string().uuid().refine(isCrmEmailRequestId'));
- assert(!send.slice(0,deliver).includes('supabaseAdmin'));
+ assert(send.indexOf('assertCrmEmailAuditIntegrityReleased()')<insert);
 });
 test('Build155 provider failure/unknown is never automatically reported delivered',()=>{
  for(const x of [null,undefined,{}, {success:false},{success:'true'}, {success:0}])
@@ -75,8 +75,8 @@ test('Build155 provider failure/unknown is never automatically reported delivere
  assert.equal(crmEmailOutcomeStatus({success:true,providerId:'<confirmed@provider>'}),'sent');
  assert.equal(crmEmailOutcomeStatus({success:true,providerId:'bad\nheader'}),'unknown');
  assert(send.includes('executeCrmEmailAuditProtocol({'));
- assert(send.includes('status: finalStatus'));
- assert(send.includes('error: finalStatus === "unknown"'));
+ assert(send.includes('p_status: finalStatus'));
+ assert(send.includes('p_provider_id: providerId'));
  assert.match(crmEmailDeliveryReconciliationError().message,/do not retry/);
 });
 test('Build155 journal settlement fails closed for mismatched or unreadable rows',()=>{
@@ -92,12 +92,16 @@ test('Build155 journal settlement fails closed for mismatched or unreadable rows
   row:good,error:new Error('private'),expected:{id,status:'sent'}
  }),/manual reconciliation/);
 });
-test('Build155 finalization updates only exact pending actor-bound row and confirms result',()=>{
- const update=send.indexOf('.update({');
- const byId=send.indexOf('.eq("id", attemptId)',update);
- const byActor=send.indexOf('.eq("sent_by", context.userId)',byId);
- const pending=send.indexOf('.eq("status", "pending")',byActor);
- assert(update>=0&&byId>update&&byActor>byId&&pending>byActor);
+test('Build155 server settlement delegates to exact pending actor-bound restricted RPC',()=>{
+ const rpc=send.indexOf('"crm_email_settle_trusted"');
+ const byId=send.indexOf('p_attempt: attemptId',rpc);
+ const byActor=send.indexOf('p_actor: context.userId',byId);
+ const status=send.indexOf('p_status: finalStatus',byActor);
+ assert(rpc>=0&&byId>rpc&&byActor>byId&&status>byActor);
+ const source=read('security/build159-email-journal/trusted-journal-rpcs.DO-NOT-APPLY.sql.txt');
+ assert(source.includes('journal.id=p_attempt'));
+ assert(source.includes('journal.sent_by=p_actor'));
+ assert(source.includes("journal.status='pending'"));
  assert(helper.includes('confirmCrmEmailAuditSettlement({'));
  assert(helper.includes('if(status!=="sent")throw crmEmailDeliveryReconciliationError()'));
  assert(send.includes('console.error("[email_log] insert failed; review restricted server diagnostics")'));
@@ -279,7 +283,8 @@ test('Build157 provider acceptance followed by failed settlement never resends o
 test('Build157 do not use upsert or select-existing-then-retry race to bypass unique key',()=>{
  const send=email.slice(email.indexOf('export const sendCrmEmail'),email.indexOf('export const listEmailHistory'));
  assert.match(send,/const attemptId = data\.requestId;/);
- assert.match(send,/\.insert\(\{\s*id: attemptId,/);
+ assert.match(send,/p_attempt: attemptId,/);
+ assert.match(send,/"crm_email_reserve_trusted"/);
  assert(!send.includes('.upsert('));
  const reserve=send.slice(send.indexOf('reserve: async'),send.indexOf('deliver:'));
  assert(!reserve.includes('ignoreDuplicates'));
@@ -294,4 +299,19 @@ test('Build157 live primary-key metadata preflight refuses weak schema despite s
  assert.match(sql,/matching_primary_key/);
  assert.match(sql,/HOLD_EMAIL_AUDIT_PROTOCOL_NOT_READY/);
  assert.equal((sql.match(/;/g)||[]).length,1);
+});
+
+
+test('Build159 production-bound handler keeps credentials server-only and restricted RPC calls after ownership checks',()=>{
+ const role=send.indexOf('await assertApprovedRole(context.userId, ["admin", "recruiter"])');
+ const owner=send.indexOf('isCrmEmailRecipientBound({');
+ const reserve=send.indexOf('"crm_email_reserve_trusted"');
+ const provider=send.indexOf('deliver: () => sendEmail({');
+ const settled=send.indexOf('"crm_email_settle_trusted"');
+ assert(role>=0&&owner>role&&reserve>owner&&provider>reserve&&settled>provider);
+ assert(send.includes('supabaseAdmin.rpc as any'));
+ assert(email.includes('import { supabaseAdmin } from "@/integrations/supabase/client.server";'));
+ assert(!send.includes('process.env.SUPABASE_SERVICE_ROLE_KEY'));
+ assert(!send.includes('.from("email_log" as any).update('));
+ assert(!send.includes('.from("email_log" as any).insert('));
 });

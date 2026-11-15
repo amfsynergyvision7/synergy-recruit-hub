@@ -1,14 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmail, textToHtml } from "./email.server";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
 import {
   assertCrmEmailAuditIntegrityReleased,
-  confirmCrmEmailAuditReservation,
-  confirmCrmEmailAuditSettlement,
-  crmEmailDeliveryReconciliationError,
   executeCrmEmailAuditProtocol,
   isCrmEmailRequestId,
 } from "./crm-email-audit-integrity.server";
@@ -106,25 +104,26 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
         relatedId: data.relatedId,
       },
       reserve: async () => {
-        const { data: reserved, error: logError } = await context.supabase
-          .from("email_log" as any)
-          .insert({
-            id: attemptId,
-            related_table: data.relatedTable,
-            related_id: data.relatedId,
-            to_email: data.toEmail,
-            subject: data.subject,
-            body: data.body,
-            status: "pending",
-            error: null,
-            provider_id: null,
-            sent_by: context.userId,
-          })
-          .select("id,related_table,related_id,sent_by,status").single();
+        // Server-only service-role RPC; browser tokens cannot execute it.
+        // Both immutable external-effect holds and all user/record/recipient
+        // authorization checks have already succeeded above this call.
+        // The RPC independently revalidates actor/role/record/recipient.
+        const { data: rows, error: logError } = await (supabaseAdmin.rpc as any)(
+          "crm_email_reserve_trusted", {
+            p_attempt: attemptId,
+            p_actor: context.userId,
+            p_table: data.relatedTable,
+            p_record: data.relatedId,
+            p_recipient: data.toEmail,
+            p_subject: data.subject,
+            p_body: data.body,
+          },
+        );
         if (logError) {
           console.error("[email_log] insert failed; review restricted server diagnostics");
         }
-        return {row: reserved,error:logError};
+        const reserved = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+        return { row: reserved, error: logError };
       },
       deliver: () => sendEmail({
         to: data.toEmail,
@@ -132,23 +131,21 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
         html: textToHtml(data.body),
       }),
       settle: async (finalStatus, providerId) => {
-        const { data: finalized, error: settlementError } = await context.supabase
-          .from("email_log" as any)
-          .update({
-            status: finalStatus,
-            error: finalStatus === "unknown"
-              ? "Delivery outcome unconfirmed; manual reconciliation required"
-              : null,
-            provider_id: finalStatus === "sent" ? providerId : null,
-          })
-          .eq("id", attemptId)
-          .eq("sent_by", context.userId)
-          .eq("status", "pending")
-          .select("id,status").maybeSingle();
+        // Only the service-role RPC can transition this exact pending row.
+        // Never retry provider delivery if the journal update is uncertain.
+        const { data: rows, error: settlementError } = await (supabaseAdmin.rpc as any)(
+          "crm_email_settle_trusted", {
+            p_attempt: attemptId,
+            p_actor: context.userId,
+            p_status: finalStatus,
+            p_provider_id: providerId,
+          },
+        );
         if (settlementError) {
           console.error("[email_log] update failed; review restricted server diagnostics");
         }
-        return {row:finalized,error:settlementError};
+        const finalized = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+        return { row: finalized, error: settlementError };
       },
     });
   });

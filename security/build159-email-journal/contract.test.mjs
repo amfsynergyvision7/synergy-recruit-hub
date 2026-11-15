@@ -47,3 +47,22 @@ test("Build159 CI exercises the exact proposed SQL without Supabase secrets",()=
  assert(!wf.includes("SUPABASE_SERVICE_ROLE_KEY"));
  assert(!wf.includes("SUPABASE_DB_PASSWORD"));
 });
+
+test("Build159 actual email handler delegates reserve and settle to protected RPCs",()=>{
+ const source=get("../../src/lib/email.functions.ts");
+ const begin=source.indexOf('export const sendCrmEmail');
+ const end=source.indexOf('export const listEmailHistory',begin);
+ const send=source.slice(begin,end);
+ const hold=send.indexOf('assertCrmEmailAuditIntegrityReleased()');
+ const role=send.indexOf('await assertApprovedRole(context.userId');
+ const bound=send.indexOf('isCrmEmailRecipientBound({');
+ const reserve=send.indexOf('"crm_email_reserve_trusted"');
+ const deliver=send.indexOf('deliver: () => sendEmail({');
+ const settle=send.indexOf('"crm_email_settle_trusted"');
+ assert(hold>=0&&role>hold&&bound>role&&reserve>bound&&deliver>reserve&&settle>deliver);
+ assert(send.includes('p_actor: context.userId'));
+ assert(send.includes('p_attempt: attemptId'));
+ assert(!send.includes('service_role_key'));
+ assert(!send.includes('process.env.SUPABASE_SERVICE_ROLE_KEY'));
+ assert(!send.includes('onConflict'));
+});
