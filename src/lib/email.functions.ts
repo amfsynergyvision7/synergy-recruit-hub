@@ -10,7 +10,7 @@ import {
   confirmCrmEmailAuditReservation,
   confirmCrmEmailAuditSettlement,
   crmEmailDeliveryReconciliationError,
-  crmEmailOutcomeStatus,
+  executeCrmEmailAuditProtocol,
 } from "./crm-email-audit-integrity.server";
 import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
 import { assertCrmEmailRecordReadAccess } from "./crm-email-record-access.server";
@@ -93,72 +93,59 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     // compile-time audit hold must remain until a reviewed RPC/outbox and
     // signed hosted UAT prove both stages and idempotency are safe.
     const attemptId = randomUUID();
-    const { data: reserved, error: logError } = await context.supabase
-      .from("email_log" as any)
-      .insert({
+    return await executeCrmEmailAuditProtocol({
+      attempt: {
         id: attemptId,
-        related_table: data.relatedTable,
-        related_id: data.relatedId,
-        to_email: data.toEmail,
-        subject: data.subject,
-        body: data.body,
-        status: "pending",
-        error: null,
-        provider_id: null,
-        sent_by: context.userId,
-      })
-      .select("id,related_table,related_id,sent_by,status").single();
-    if (logError) {
-      // Neither provider details nor recipient/body values may enter logs.
-      console.error("[email_log] insert failed; review restricted server diagnostics");
-    }
-    confirmCrmEmailAuditReservation({
-      row: reserved, error: logError,
-      expected: {
-        id: attemptId, actorId: context.userId,
-        relatedTable: data.relatedTable, relatedId: data.relatedId,
+        actorId: context.userId,
+        relatedTable: data.relatedTable,
+        relatedId: data.relatedId,
       },
-    });
-
-    // Provider errors and process interruptions have unknown outcomes.
-    // Never automatically retry or claim definite non-delivery.
-    let result: { success: boolean; providerId?: string; error?: string } = {
-      success: false,
-    };
-    try {
-      result = await sendEmail({
+      reserve: async () => {
+        const { data: reserved, error: logError } = await context.supabase
+          .from("email_log" as any)
+          .insert({
+            id: attemptId,
+            related_table: data.relatedTable,
+            related_id: data.relatedId,
+            to_email: data.toEmail,
+            subject: data.subject,
+            body: data.body,
+            status: "pending",
+            error: null,
+            provider_id: null,
+            sent_by: context.userId,
+          })
+          .select("id,related_table,related_id,sent_by,status").single();
+        if (logError) {
+          console.error("[email_log] insert failed; review restricted server diagnostics");
+        }
+        return {row: reserved,error:logError};
+      },
+      deliver: () => sendEmail({
         to: data.toEmail,
         subject: data.subject,
         html: textToHtml(data.body),
-      });
-    } catch {
-      // Keep this attempt in the audit journal for manual reconciliation.
-    }
-    const finalStatus = crmEmailOutcomeStatus(result);
-    const providerId = typeof result.providerId === "string" &&
-      result.providerId.length <= 256 ? result.providerId : null;
-    const { data: finalized, error: settlementError } = await context.supabase
-      .from("email_log" as any)
-      .update({
-        status: finalStatus,
-        error: finalStatus === "unknown"
-          ? "Delivery outcome unconfirmed; manual reconciliation required"
-          : null,
-        provider_id: finalStatus === "sent" ? providerId : null,
-      })
-      .eq("id", attemptId)
-      .eq("sent_by", context.userId)
-      .eq("status", "pending")
-      .select("id,status").maybeSingle();
-    if (settlementError) {
-      console.error("[email_log] update failed; review restricted server diagnostics");
-    }
-    confirmCrmEmailAuditSettlement({
-      row: finalized, error: settlementError,
-      expected: { id: attemptId, status: finalStatus },
+      }),
+      settle: async (finalStatus, providerId) => {
+        const { data: finalized, error: settlementError } = await context.supabase
+          .from("email_log" as any)
+          .update({
+            status: finalStatus,
+            error: finalStatus === "unknown"
+              ? "Delivery outcome unconfirmed; manual reconciliation required"
+              : null,
+            provider_id: finalStatus === "sent" ? providerId : null,
+          })
+          .eq("id", attemptId)
+          .eq("sent_by", context.userId)
+          .eq("status", "pending")
+          .select("id,status").maybeSingle();
+        if (settlementError) {
+          console.error("[email_log] update failed; review restricted server diagnostics");
+        }
+        return {row:finalized,error:settlementError};
+      },
     });
-    if (finalStatus !== "sent") throw crmEmailDeliveryReconciliationError();
-    return { success: true };
   });
 
 export const listEmailHistory = createServerFn({ method: "POST" })

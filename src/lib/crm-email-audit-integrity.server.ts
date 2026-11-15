@@ -31,7 +31,12 @@ export function confirmCrmEmailAuditReservation(args: {
 }
 export function crmEmailOutcomeStatus(outcome: unknown): "sent"|"unknown" {
   if(!outcome||typeof outcome!=="object")return "unknown";
-  return (outcome as {success?:unknown}).success===true?"sent":"unknown";
+  const value=outcome as {success?:unknown; providerId?:unknown};
+  // A provider acknowledgement without a usable correlation ID cannot be
+  // proven or reconciled as a successful correspondence delivery.
+  if(value.success!==true||typeof value.providerId!=="string")return "unknown";
+  const id=value.providerId.trim();
+  return id.length>0&&id.length<=256&&/^[\x21-\x7e]+$/.test(id)?"sent":"unknown";
 }
 export function confirmCrmEmailAuditSettlement(args:{
   row: unknown; error: unknown; expected: {id:string;status:"sent"|"unknown"};
@@ -46,4 +51,77 @@ export function confirmCrmEmailAuditSettlement(args:{
 }
 export function crmEmailDeliveryReconciliationError():Error {
   return new Error(settlementError);
+}
+
+/**
+ * Build156: execute the actual source-level mail protocol with injectable
+ * async boundaries. The route must first enforce BOTH immutable release
+ * holds and role/record authorization. This function is deterministic and
+ * uses no network, database, timers or environmental feature flags itself.
+ *
+ * A provider's result is uncertain if it lacks a valid correlation ID.
+ * The protocol never resends or retries a prior attempt automatically.
+ */
+export type CrmEmailAttempt = {
+  id:string;
+  actorId:string;
+  relatedTable:"candidates"|"clients";
+  relatedId:string;
+};
+export type CrmAuditOperationResult={
+  row:unknown; error:unknown;
+};
+export type CrmProviderOutcome={
+  success:boolean; providerId?:string; error?:string;
+};
+export type CrmEmailAuditEffects={
+  attempt:CrmEmailAttempt;
+  reserve:()=>Promise<CrmAuditOperationResult>;
+  deliver:()=>Promise<CrmProviderOutcome>;
+  settle:(status:"sent"|"unknown",providerId:string|null)=>Promise<CrmAuditOperationResult>;
+};
+
+export async function executeCrmEmailAuditProtocol(effects:CrmEmailAuditEffects):
+  Promise<{success:true}> {
+  const expected={
+    id:effects.attempt.id,
+    actorId:effects.attempt.actorId,
+    relatedTable:effects.attempt.relatedTable,
+    relatedId:effects.attempt.relatedId,
+  };
+  // A thrown DB error is never mapped to success, and SMTP is not invoked.
+  let reservation:CrmAuditOperationResult;
+  try {
+    reservation=await effects.reserve();
+  } catch {
+    throw new Error(reservationError);
+  }
+  confirmCrmEmailAuditReservation({
+    row:reservation?.row,error:reservation?.error,expected,
+  });
+
+  // Once the provider is contacted, errors/timeout may imply acceptance.
+  // Do not classify them as definite failure, and never auto-resend.
+  let outcome:CrmProviderOutcome={success:false};
+  try {
+    outcome=await effects.deliver();
+  } catch {
+    // The pending audit record must be retained for manual reconciliation.
+  }
+  const status=crmEmailOutcomeStatus(outcome);
+  const id=status==="sent"&&typeof outcome?.providerId==="string"
+    ?outcome.providerId.trim():null;
+
+  let settled:CrmAuditOperationResult;
+  try {
+    settled=await effects.settle(status,id);
+  } catch {
+    throw crmEmailDeliveryReconciliationError();
+  }
+  confirmCrmEmailAuditSettlement({
+    row:settled?.row,error:settled?.error,
+    expected:{id:effects.attempt.id,status},
+  });
+  if(status!=="sent")throw crmEmailDeliveryReconciliationError();
+  return {success:true};
 }
