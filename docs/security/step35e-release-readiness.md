@@ -22,6 +22,13 @@ Status: **NOT APPROVED FOR PRODUCTION**. This document is a working evidence reg
 - Added an isolated workflow non-deployment regression assertion on this branch. Its new commit must be independently verified by a subsequent Preview test log before counting it as passed.
 - GitHub Actions execution status remains unverified; the available commit-workflow lookup is PR-run scoped and cannot establish the push workflow conclusion.
 
+
+## Verification checkpoint — 2026-11-15
+- Vercel isolated Preview for commit `f240256c13adba105dacf199e5a27494bcae9402` is **READY**; build logs confirm the mandatory security suite was invoked. The available log response did not expose a complete test summary, so do **not** infer a fresh test count from this Preview.
+- Isolated Supabase catalog read: all eight `security_lab` tables have RLS enabled and FORCE RLS enabled; four intentionally have zero policies.
+- Selectively reviewed `security-isolation-test/tests/fixtures/sec11_outbox_constraints_regression.sql` and **executed it** on isolated project `dhlhlasnaapzckjyvffn` inside BEGIN/ROLLBACK. Duplicate idempotency key, missing consent and external-domain recipient insertions were rejected as expected. The result reported `synthetic_held_count=1`, `max_attempts=0` before rollback. The verified fixture is now copied into `tests/sql/step35e-isolated-outbox-constraints.sql`; no live email was sent.
+- This verifies representative database constraints only; it does **not** prove SMTP delivery, retries, outbox worker authorization, or production-schema behavior. GitHub Actions completion and latest new-commit Preview remain unverified.
+
 ## Outstanding acceptance checks
 1. Obtain a confirmed GitHub Actions test conclusion and logs for the latest commit. The Vercel build independently ran the 19-test suite, but GitHub Actions execution remains unverified.
 2. Run integration tests against a synthetic CRM-compatible schema with `public.profiles`, `user_roles`, `candidates`, `job_openings`, `clients` and appropriate RLS, without copying production records. The current `security_lab` fixture is not a complete CRM replica.
