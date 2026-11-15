@@ -21,7 +21,11 @@ const MAX_MANIFEST_BYTES = 40_000;
 function safeString(input, limit) {
   if (typeof input !== "string") return null;
   const value = input.normalize("NFC").trim().replace(/\s+/g, " ");
-  if (!value || value.length > limit || /[<>\u0000-\u001f\u007f]/u.test(value)) return null;
+  // Company name, city and industry are organization-level metadata only.
+  // Reject embedded contact fields at discovery, not merely at later review:
+  // discovery output is itself a serializable, inspectable report.
+  if (!value || value.length > limit ||
+      /[<>{}\u0000-\u001f\u007f@]|\b(?:mailto|tel):|\+?\d[\d() -]{7,}\d/iu.test(value)) return null;
   return value;
 }
 
@@ -105,6 +109,12 @@ export function discoverFromSnapshots(snapshots) {
       const proof={source_url:src.href, captured_on:date, evidence_type:"JSON-LD Organization"};
       const previous=byDomain.get(canonicalDomain);
       if(previous) {
+        // Domain identity alone does NOT establish that competing organization
+        // claims agree. Refuse the whole snapshot instead of silently taking
+        // the first source's name, location or industry as ground truth.
+        if (previous.company_name!==name || previous.location!==city ||
+            previous.industry!==industry)
+          throw new Error("Conflicting duplicate company metadata requires manual source reconciliation");
         duplicates++;
         if (!previous.evidence.some(x=>x.source_url===proof.source_url && x.captured_on===date))
           previous.evidence.push(proof);

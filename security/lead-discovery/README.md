@@ -88,3 +88,11 @@ To prevent a dated Build138 scorecard being mistaken for a fresh `security/relea
 The offline parser now rejects **query strings (including a bare `?`), percent-encoded source path segments, contact-bearing `@` paths and malformed/punycode synthetic host labels**, while preserving the frozen fictional business sites and static directory paths. This is a conservative safeguard against accidentally echoing private tokens or identifiers from a user-supplied *synthetic fixture URL* into an offline review report. The underlying reserved-domain policy, no-network execution, no-send CRM handoff and independent owner acceptance holds are unchanged. This validation is not a claim that all sensitive information could be identified automatically.
 
 Build172 carries an additional regression suite. PR #22 remains **Draft and unsafe to merge while `main` is unprotected**; PR #20 remains for independent code review on the integration base. Do not interpret CI passing or these new tests as LD02/LD05 owner approval.
+
+## Build173 — privacy and conflicting-source deduplication repair
+
+A concrete bug was found in the offline discovery source: company `name`, `industry` or `city` values that contained emails, contact-like phone numbers, mailto/tel schemes or template-markup could be returned by the **discovery CLI** even though the later review stage rejected personal contacts. These values are now **excluded before they can enter any discovery report**; this does not purport to identify all forms of personal information.
+
+A second source-integrity gap permitted two snapshots with the **same fictional company domain but conflicting name, industry or location** to be silently treated as duplicates with the first snapshot winning. The parser now fails the **entire conflicting discovery input** for independent manual reconciliation, regardless of snapshot order. Exact, consistent duplicates still merge dated proof sources. New Build173 tests cover these cases and verify that the fixed fictitious baseline/KPI outputs remain unchanged.
+
+Both the direct-to-`main` Draft PR #22 and integration PR #20 carry this common source-code fix; its CI passing never constitutes LD02/LD05 owner signatures or deployment authorization.
