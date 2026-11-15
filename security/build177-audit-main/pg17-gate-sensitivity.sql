@@ -34,8 +34,8 @@ SELECT (:audit_named_rpc_count::integer=1 AND :audit_safe_rpc_count::integer=1 A
 \if :synthetic_catalog_match
  \echo 'BUILD179_CATALOG_MATCH_IS_NOT_BEHAVIOR_OR_RELEASE: inert mock function matches metadata only'
 \else
- \echo 'Build179 failed positive mock catalog control'
- \quit 3
+ \echo 'Build179 failed positive mock catalog control' :audit_named_rpc_count :audit_safe_rpc_count :audit_admin_select_policies :audit_total_audit_policies :audit_broadly_permissive_all :audit_audit_integrity_gate
+ SELECT 1/0;
 \endif
 
 -- Mutation 1: anonymous read reintroduced, reverting with transaction-local SAVEPOINT.
@@ -48,7 +48,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_01: anonymous read reintroduced'
 \else
  \echo 'Build179 failed adverse control 1: anonymous read reintroduced'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -64,7 +64,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_02: anonymous truncate reintroduced'
 \else
  \echo 'Build179 failed adverse control 2: anonymous truncate reintroduced'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -80,7 +80,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_03: authenticated row mutation'
 \else
  \echo 'Build179 failed adverse control 3: authenticated row mutation'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -96,7 +96,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_04: authenticated schema-side privilege'
 \else
  \echo 'Build179 failed adverse control 4: authenticated schema-side privilege'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -112,7 +112,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_05: trusted writer delete permission'
 \else
  \echo 'Build179 failed adverse control 5: trusted writer delete permission'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -128,7 +128,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_06: trusted writer schema trigger privilege'
 \else
  \echo 'Build179 failed adverse control 6: trusted writer schema trigger privilege'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -144,7 +144,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_07: universal permissive policy'
 \else
  \echo 'Build179 failed adverse control 7: universal permissive policy'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -160,7 +160,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_08: trusted function public executable'
 \else
  \echo 'Build179 failed adverse control 8: trusted function public executable'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -176,7 +176,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_09: trusted function no longer service executable'
 \else
  \echo 'Build179 failed adverse control 9: trusted function no longer service executable'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -192,7 +192,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_10: trusted function switches to SECURITY DEFINER'
 \else
  \echo 'Build179 failed adverse control 10: trusted function switches to SECURITY DEFINER'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -208,7 +208,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_11: admin-only reader policy removed'
 \else
  \echo 'Build179 failed adverse control 11: admin-only reader policy removed'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -224,7 +224,7 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD179_EXPECTED_HOLD_12: trusted writer loses INSERT'
 \else
  \echo 'Build179 failed adverse control 12: trusted writer loses INSERT'
- \quit 4
+ SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
@@ -237,7 +237,7 @@ SELECT (:'audit_audit_integrity_gate'='REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_
  \echo 'BUILD179_RESTORED_CATALOG_MOCK_MATCH: still not behavior or release approval'
 \else
  \echo 'Build179 failed to restore baseline between adverse probes'
- \quit 5
+ SELECT 1/0;
 \endif
 ROLLBACK;
 DO $check$
