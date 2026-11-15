@@ -15,9 +15,9 @@ CREATE POLICY "insert audit" ON public.audit_logs FOR INSERT TO authenticated WI
 -- but always denies rows. No user/auth data or real administrator is created.
 CREATE SCHEMA auth;
 CREATE TYPE public.app_role AS ENUM ('admin');
-CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $ SELECT NULL::uuid $;
+CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $stub$ SELECT NULL::uuid $stub$;
 CREATE FUNCTION public.has_role(uuid,public.app_role) RETURNS boolean
- LANGUAGE sql STABLE AS $ SELECT false $;
+ LANGUAGE sql STABLE AS $stub$ SELECT false $stub$;
 CREATE POLICY "read audit" ON public.audit_logs FOR SELECT TO authenticated
  USING (has_role(auth.uid(), 'admin'::app_role));
 DO $check$
