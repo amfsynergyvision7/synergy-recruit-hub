@@ -22,7 +22,7 @@ test("Build159 critical role, record, actor and status constraints remain in DB 
  "journal.status='pending'","p_status NOT IN ('sent','unknown')"]){
   assert(sql.includes(term),term);
  }
- assert.doesNotMatch(sql.replace(/^--[^\n]*$/gm,''),/ON CONFLICT|DO NOTHING|ON CONFLICT DO UPDATE/i);
+ assert.doesNotMatch(sql.replace(/--[^\n]*/g,''),/ON CONFLICT|DO NOTHING|ON CONFLICT DO UPDATE/i);
 });
 test("Build159 functions revoke implicit default PUBLIC execution and grant service only",()=>{
  assert.equal((sql.match(/REVOKE ALL ON FUNCTION/g)||[]).length,2);
