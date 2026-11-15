@@ -94,5 +94,38 @@
     "preapproval_technical_batches_remaining": "0–1 after validated CI; change only for specific defects",
     "independent_review_batches": "1–2 if approved facts and measured evidence are supplied",
     "no_finite_calendar_count_without_real_owner_decisions": true
-  }
+  },
+  "latest_build": 166,
+  "technical_integrity_controls": [
+    {
+      "id": "C-ENG01",
+      "label": "Synthetic source discovery with provenance and duplicate control",
+      "status": "verified_offline",
+      "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782"
+    },
+    {
+      "id": "C-ENG02",
+      "label": "Separate synthetic Growth/CRM review and no-send handoff",
+      "status": "verified_offline",
+      "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782"
+    },
+    {
+      "id": "C-ENG03",
+      "label": "Synthetic KPI numerator, denominator and freshness computation",
+      "status": "verified_offline",
+      "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782"
+    },
+    {
+      "id": "C-ENG04",
+      "label": "Source-derived audit/lead/handoff tamper reconciliation",
+      "status": "verified_offline",
+      "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075"
+    },
+    {
+      "id": "C-ENG05",
+      "label": "LD02/LD05 draft approval completeness and safety gate preflight",
+      "status": "verified_offline",
+      "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075"
+    }
+  ]
 }

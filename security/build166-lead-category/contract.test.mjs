@@ -105,3 +105,31 @@ test("Build166 no live APIs and all real owner signoffs remain inactive",()=>{
  assert.equal(k.acceptance.bi_owner,null);
  assert.equal(p.live_lead_discovery_enabled,false);
 });
+
+test("Build166 source scorecard and technical integrity ledger remain independently reconciled",async()=>{
+ const {report}=await import("../lead-discovery/category-status.mjs");
+ const pkg=read("category-c-v1.json");
+ const rubric=read("../release-progress/v1-rubric.json");
+ const snapshot=read("../release-progress/current.json");
+ assert.equal(pkg.latest_build,166);
+ assert.equal(pkg.technical_integrity_controls.length,5);
+ assert(pkg.technical_integrity_controls.every(x=>x.status==="verified_offline"));
+ const markdown=readFileSync(join(dir,"CATEGORY-C-STATUS.md"),"utf8");
+ assert.equal(markdown,report(rubric,snapshot,pkg));
+ assert.match(markdown,/5\/5 synthetic engineering integrity controls verified offline/);
+ assert.match(markdown,/4\/8 source\/preparation tasks evidenced/);
+ assert.match(markdown,/Official acceptance: 6\/10/);
+ assert.equal(pkg.review_package.LD02.accepted,false);
+ assert.equal(pkg.review_package.LD05.accepted,false);
+});
+test("Build166 incomplete or mislabeled synthetic controls never count as verified",async()=>{
+ const {report}=await import("../lead-discovery/category-status.mjs");
+ const pkg=read("category-c-v1.json"),r=read("../release-progress/v1-rubric.json"),s=read("../release-progress/current.json");
+ pkg.technical_integrity_controls[4].status="approved_live";
+ assert.throws(()=>report(r,s,pkg),/engineering evidence ledger invalid/);
+});
+test("Build166 a fake meeting conversion metric cannot replace approved KPI definitions",()=>{
+ const p=read("lead-policy.review.json"),k=read("kpi-acceptance.review.json");
+ k.measures[5].id="unexpected_made_up_claim";
+ assert.throws(()=>examineCategoryCApprovals(p,k),/Invalid or duplicate KPI identifier/);
+});

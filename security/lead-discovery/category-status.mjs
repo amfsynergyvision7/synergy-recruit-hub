@@ -11,6 +11,13 @@ const report=(rubric,snapshot,pkg)=>{
  const accepted=ld.filter(x=>states.get(x.id)?.complete).map(x=>x.id);
  if(points!==pkg.formal_earned_points||points!==6 ||JSON.stringify(accepted)!==JSON.stringify(pkg.formally_evidenced_milestones))throw Error("False category acceptance");
  if(pkg.review_package.LD02.accepted||pkg.review_package.LD05.accepted||!pkg.no_additional_acceptance_claimed)throw Error("Independent acceptance not supplied");
+ if(pkg.latest_build!==166||
+    !Array.isArray(pkg.technical_integrity_controls)||
+    pkg.technical_integrity_controls.length!==5||
+    new Set(pkg.technical_integrity_controls.map(x=>x.id)).size!==5||
+    pkg.technical_integrity_controls.some(x=>x.status!=="verified_offline"||
+     !x.evidence?.startsWith("https://github.com/")))
+   throw Error("Build166 verified engineering evidence ledger invalid");
  const prepared=[],blocked=[];
  for(const id of ["LD02","LD05"]){
   const x=pkg.review_package[id];
@@ -22,7 +29,7 @@ const report=(rubric,snapshot,pkg)=>{
  const taskRows=["LD02","LD05"].flatMap(id=>pkg.review_package[id].source_preparation.map(x=>`| ${x.id} | ${x.note} | ${x.state==="source_evidenced"?"Source prepared":"Independent acceptance needed"} |`)).join("\n");
  return `# Category C — AI Lead Discovery (current focused workstream)
 
-**Build 165 | 15 November 2026 | Official acceptance: ${points}/10 (${points*10}%) | Release HOLD.**
+**Build ${pkg.latest_build} | 15 November 2026 | Official acceptance: ${points}/10 (${points*10}%) | Release HOLD.**
 
 This is the **only active development category** for Build 165; critical production audit security remains an independently owned release blocker, not a parallel development sprint.
 
@@ -47,6 +54,18 @@ Growth and Privacy/Compliance owners must individually approve specific industry
 ### LD05 outstanding acceptance
 Growth and BI owners must agree source quality, freshness, yield and conversion formulas, thresholds, human sample validation and real authorized business-only data evidence. The [CEO KPI design](https://docs.google.com/document/d/1FWA-0AtMrE4C6DAMQISnj6_1DBfICG7TIQkKUs6AO_o/edit) is also a REVIEW DRAFT. [Synthetic KPI program](./metrics.mjs) is executable with local fictional snapshots; no real revenue, contacts, replies, meetings, CRM writes or outreach are represented.
 
+## Build166 technical checks — separate from required owner approvals
+
+**5/5 synthetic engineering integrity controls verified offline.** This includes the original discovery/provenance and dual-review implementations, plus the Build166 audit-to-handoff reconciliation and LD02/LD05 approval-gap checker. These checks do **not** close either of the two remaining official milestones, permit sourcing real businesses, or replace independently verifiable Growth/Privacy/BI acceptance.
+
+| Technical control | Evidence | Status |
+|---|---|---|
+| C-ENG01: Synthetic source discovery with provenance and duplicate control | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782) | Verified offline |
+| C-ENG02: Separate synthetic Growth/CRM review and no-send handoff | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782) | Verified offline |
+| C-ENG03: Synthetic KPI numerator, denominator and freshness computation | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782) | Verified offline |
+| C-ENG04: Source-derived audit/lead/handoff tamper reconciliation | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075) | Verified offline |
+| C-ENG05: LD02/LD05 draft approval completeness and safety gate preflight | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075) | Verified offline |
+
 ### Build 165 verified engineering
 - LD02: specific approval and source-whitelist review packet prepared, still unsigned
 - LD05: aggregate-only synthetic metrics implementation and adversarial tests added
@@ -70,6 +89,6 @@ if(process.argv[1]===fileURLToPath(import.meta.url)){
  if(process.argv.includes("--check")){
   if(readFileSync(join(dir,"CATEGORY-C-STATUS.md"),"utf8")!==rendered)
    throw Error("Category C status is stale or disagrees with official evidence");
-  process.stdout.write("CATEGORY C SCORE VERIFIED: LD 6/10, 3/5 milestones; 4/8 preparation tasks, zero new signoffs\n");
+  process.stdout.write("CATEGORY C SCORE VERIFIED: LD 6/10, 3/5 milestones; 4/8 approval steps; 5/5 offline engineering checks; zero new signoffs\n");
  }else process.stdout.write(rendered);
 }

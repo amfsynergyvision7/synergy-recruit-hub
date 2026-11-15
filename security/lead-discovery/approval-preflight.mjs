@@ -45,9 +45,13 @@ export function examineCategoryCApprovals(policy,kpi){
  if(p.public_source_terms_verified!==true)ld02.push("LD02 source terms review");
  if(!text(g.growth_owner)||!text(g.privacy_compliance_owner)||!date(g.approved_on))
   ld02.push("LD02 independently verified Growth/Privacy signatures");
+ const expectedKpis=new Set([
+  "provenance_coverage","source_freshness_30d","deduplication_ratio",
+  "growth_review_completion","offline_handoff_preview_yield","actual_meeting_conversion"
+ ]);
  const ld05=[],ids=new Set();
  for(const row of kpi.measures){
-  if(!text(row.id)||ids.has(row.id))throw Error("Invalid or duplicate KPI identifier");
+  if(!text(row.id)||!expectedKpis.has(row.id)||ids.has(row.id))throw Error("Invalid or duplicate KPI identifier");
   ids.add(row.id);
   if(row.approved_target==null)ld05.push("LD05 target "+row.id);
   else if(typeof row.approved_target!=="number"||!Number.isFinite(row.approved_target)||
