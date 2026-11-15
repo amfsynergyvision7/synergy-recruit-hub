@@ -1,6 +1,13 @@
 -- BUILD160 REVIEW ONLY / DO NOT APPLY / NOT A PRODUCTION MIGRATION.
 -- Owner approval must precede any change to legitimate audit event writers.
+-- Preserve the independently reviewed administrator SELECT policy. Revoke
+-- anonymous reads entirely and make service_role append-only (INSERT, not
+-- UPDATE/DELETE/TRUNCATE). A database owner/break-glass operator is separate.
+REVOKE SELECT,INSERT,UPDATE,DELETE,TRUNCATE ON TABLE public.audit_logs
+ FROM PUBLIC,anon;
 REVOKE INSERT,UPDATE,DELETE,TRUNCATE ON TABLE public.audit_logs
- FROM PUBLIC,anon,authenticated;
+ FROM authenticated;
+REVOKE UPDATE,DELETE,TRUNCATE ON TABLE public.audit_logs
+ FROM service_role;
 DROP POLICY IF EXISTS "Allow all for authenticated" ON public.audit_logs;
 DROP POLICY IF EXISTS "insert audit" ON public.audit_logs;

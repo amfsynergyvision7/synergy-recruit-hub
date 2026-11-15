@@ -47,6 +47,8 @@ CREATE POLICY "insert audit" ON public.audit_logs
  FOR INSERT TO authenticated WITH CHECK (true);
 GRANT USAGE ON SCHEMA public TO anon,authenticated;
 GRANT SELECT,INSERT,UPDATE,DELETE,TRUNCATE ON public.audit_logs TO anon,authenticated;
+-- Simulate elevated service-role mutations before enforcing append-only.
+GRANT UPDATE,DELETE,TRUNCATE ON public.audit_logs TO service_role;
 DO $before$
 BEGIN
  IF NOT has_table_privilege('anon','public.audit_logs','INSERT')
@@ -57,13 +59,17 @@ $before$;
 \ir ../build160-email-reconciliation/audit-log-lockdown.DO-NOT-APPLY.sql.txt
 DO $after$
 BEGIN
- IF has_table_privilege('anon','public.audit_logs','INSERT')
+ IF has_table_privilege('anon','public.audit_logs','SELECT')
+ OR has_table_privilege('anon','public.audit_logs','INSERT')
  OR has_table_privilege('anon','public.audit_logs','UPDATE')
  OR has_table_privilege('anon','public.audit_logs','DELETE')
  OR has_table_privilege('authenticated','public.audit_logs','INSERT')
  OR has_table_privilege('authenticated','public.audit_logs','UPDATE')
  OR has_table_privilege('authenticated','public.audit_logs','DELETE')
  OR NOT has_table_privilege('service_role','public.audit_logs','INSERT')
+ OR has_table_privilege('service_role','public.audit_logs','UPDATE')
+ OR has_table_privilege('service_role','public.audit_logs','DELETE')
+ OR has_table_privilege('service_role','public.audit_logs','TRUNCATE')
  OR EXISTS(SELECT 1 FROM pg_catalog.pg_policies
    WHERE tablename='audit_logs' AND policyname='Allow all for authenticated')
  THEN RAISE EXCEPTION 'BUILD160 FAIL: audit lockdown not enforced'; END IF;
@@ -369,6 +375,31 @@ BEGIN
  END IF;
 END
 $success$;
+-- Build161: trusted service role is allowed to APPEND evidence but cannot
+-- alter or erase a previously inserted audit record.
+DO $append_only$
+DECLARE denied_update boolean:=false;
+ denied_delete boolean:=false;
+ denied_truncate boolean:=false;
+BEGIN
+ BEGIN
+  UPDATE public.audit_logs SET action='forged' WHERE true;
+ EXCEPTION WHEN insufficient_privilege THEN denied_update:=true;
+ END;
+ BEGIN
+  DELETE FROM public.audit_logs WHERE true;
+ EXCEPTION WHEN insufficient_privilege THEN denied_delete:=true;
+ END;
+ BEGIN
+  TRUNCATE public.audit_logs;
+ EXCEPTION WHEN insufficient_privilege THEN denied_truncate:=true;
+ END;
+ IF NOT denied_update OR NOT denied_delete OR NOT denied_truncate
+ THEN RAISE EXCEPTION 'BUILD161 FAIL: service role can mutate audit history'; END IF;
+ IF (SELECT count(*) FROM public.audit_logs WHERE action='crm_email_confirmed_sent')<>1
+ THEN RAISE EXCEPTION 'BUILD161 FAIL: append-only event was lost'; END IF;
+END
+$append_only$;
 RESET ROLE;
 DO $privileges$
 BEGIN
