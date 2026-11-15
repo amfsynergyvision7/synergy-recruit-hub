@@ -1,0 +1,21 @@
+name: Build155 email audit integrity - no secrets
+on:
+  pull_request:
+    paths:
+      - 'src/lib/email.functions.ts'
+      - 'src/lib/crm-email-audit-integrity.server.ts'
+      - 'security/build155-email-audit/**'
+      - '.github/workflows/build155-email-audit.yml'
+permissions:
+  contents: read
+jobs:
+  audit-protocol:
+    name: Guarded email audit protocol contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: node --test security/build155-email-audit/contract.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build86/crm-email-record-scope.test.mjs
