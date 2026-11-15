@@ -39,7 +39,7 @@ jobs:
       - name: Verify source-pinned audit preflight before and after proposed revokes in disposable PG17
         # Exact original Build160 SELECT is not edited or applied to hosted DBs.
         # Only a transient local psql query buffer gets its final semicolon
-        # replaced with \\gset so the test can assert the original HOLD.
+        # replaced with \gset so the test can assert the original HOLD.
         # The reviewed SQL and production objects remain unchanged.
         env:
           PGHOST: 127.0.0.1
@@ -52,7 +52,7 @@ jobs:
           SOURCE=security/build177-audit-main/reviewed/audit-integrity.preflight.readonly.sql
           test "$(tail -n 1 "$SOURCE")" = "FROM facts;"
           sed '$s/;[[:space:]]*$//' "$SOURCE" > /tmp/build178-audit-preflight.gset.sql
-          printf '\\gset audit_\\n' >> /tmp/build178-audit-preflight.gset.sql
+          printf '\gset audit_\n' >> /tmp/build178-audit-preflight.gset.sql
           command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
           psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-disposable-rollback.sql
   main-release-hold:
