@@ -57,7 +57,7 @@ test("Build161 proposed audit lockdown is append-only even for service_role",()=
 });
 test("Build161 real PostgreSQL rehearsal tests effective service-role append-only access",()=>{
  const fixture=readFileSync(join(root,"security/build159-email-journal/disposable-pg17-trusted-journal.sql"),"utf8");
- assert(fixture.includes("GRANT UPDATE,DELETE,TRUNCATE ON public.audit_logs TO service_role"));
+ assert.match(fixture,/GRANT UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN\\s+ON public\\.audit_logs TO service_role/);
  assert(fixture.includes("BUILD161 FAIL: service role can mutate audit history"));
  assert(fixture.includes("BUILD161 FAIL: append-only event was lost"));
  assert(fixture.includes("BUILD160 FAIL: audit failure did not rollback journal"));
