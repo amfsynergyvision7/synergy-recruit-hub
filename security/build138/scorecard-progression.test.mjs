@@ -5,7 +5,7 @@ import {evaluate,compareSnapshots} from "../release-progress/score.mjs";
 const read=n=>JSON.parse(readFileSync(new URL("../release-progress/"+n,import.meta.url),"utf8"));
 const rubric=read("v1-rubric.json");
 const before=read("build137-evidence-baseline.json");
-const current=read("current.json");
+const current=read("build138-evidence-baseline.json");
 
 test("Build138 score is unchanged at 26/100, 12 accepted, 31 still open",()=>{
  assert.equal(before.snapshot_build,137);
