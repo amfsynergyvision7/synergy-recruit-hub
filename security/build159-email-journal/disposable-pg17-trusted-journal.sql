@@ -236,6 +236,17 @@ INSERT INTO public.profiles VALUES
 INSERT INTO public.user_roles VALUES
  ('98989898-9898-4898-8898-989898989898',
   '12121212-1212-4212-8212-121212121212','admin');
+CREATE FUNCTION public.build160_synthetic_audit_fail() RETURNS trigger
+ LANGUAGE plpgsql AS $auditfailure$
+BEGIN
+ IF NEW.details->>'case_reference'='CASE-FAIL-0001' THEN
+  RAISE EXCEPTION 'BUILD160 synthetic audit unavailable';
+ END IF;
+ RETURN NEW;
+END
+$auditfailure$;
+CREATE TRIGGER build160_synthetic_audit_error BEFORE INSERT ON public.audit_logs
+ FOR EACH ROW EXECUTE FUNCTION public.build160_synthetic_audit_fail();
 SET LOCAL ROLE service_role;
 -- The Build159 flow left attempt 7777 in UNKNOWN by admin actor AAAA.
 DO $bad_access$
@@ -280,17 +291,6 @@ BEGIN
 END
 $bad_access$;
 -- Simulate audit trail outage: function must rollback the journal UPDATE.
-CREATE FUNCTION public.build160_synthetic_audit_fail() RETURNS trigger
- LANGUAGE plpgsql AS $auditfailure$
-BEGIN
- IF NEW.details->>'case_reference'='CASE-FAIL-0001' THEN
-  RAISE EXCEPTION 'BUILD160 synthetic audit unavailable';
- END IF;
- RETURN NEW;
-END
-$auditfailure$;
-CREATE TRIGGER build160_synthetic_audit_error BEFORE INSERT ON public.audit_logs
- FOR EACH ROW EXECUTE FUNCTION public.build160_synthetic_audit_fail();
 DO $atomic$
 DECLARE denied boolean:=false;
 BEGIN
