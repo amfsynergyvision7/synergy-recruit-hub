@@ -1,0 +1,53 @@
+-- BUILD160 REVIEW ONLY / DO NOT APPLY / NO PRODUCTION MIGRATION.
+-- Never resend. Trusted server-only manual provider confirmation.
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(
+ p_attempt uuid,p_admin uuid,p_case_ref text,p_provider_id text
+) RETURNS TABLE(id uuid,status text)
+ LANGUAGE plpgsql SECURITY INVOKER SET search_path=''
+AS $reconcile$
+DECLARE v_role text;v_count integer;v_active boolean;
+ v_state text;v_old_status text;v_sender uuid;
+BEGIN
+ IF current_user <> 'service_role' OR p_attempt IS NULL OR p_admin IS NULL
+  OR p_case_ref IS NULL OR p_case_ref !~ '^[A-Za-z0-9][A-Za-z0-9._:/-]{9,119}$'
+  OR p_provider_id IS NULL OR char_length(p_provider_id) NOT BETWEEN 1 AND 256
+  OR p_provider_id !~ '^[!-~]+$'
+ THEN RAISE EXCEPTION 'CRM email manual reconciliation denied'; END IF;
+ SELECT p.is_active,p.status::text INTO v_active,v_state
+ FROM public.profiles AS p WHERE p.id=p_admin;
+ IF NOT FOUND OR v_active IS NOT TRUE OR v_state<>'approved' THEN
+  RAISE EXCEPTION 'CRM email manual reconciliation denied';
+ END IF;
+ SELECT count(*),min(ur.role::text) INTO v_count,v_role
+ FROM public.user_roles AS ur WHERE ur.user_id=p_admin;
+ IF v_count<>1 OR v_role<>'admin' THEN
+  RAISE EXCEPTION 'CRM email manual reconciliation denied';
+ END IF;
+ -- Lock the unresolved row until both status and audit have committed.
+ SELECT journal.status,journal.sent_by INTO v_old_status,v_sender
+ FROM public.email_log AS journal WHERE journal.id=p_attempt FOR UPDATE;
+ IF NOT FOUND OR v_old_status NOT IN ('pending','unknown')
+    OR v_sender IS NULL OR v_sender=p_admin THEN
+  RAISE EXCEPTION 'CRM email manual reconciliation denied';
+ END IF;
+ RETURN QUERY
+ UPDATE public.email_log AS journal
+ SET status='sent',provider_id=p_provider_id,error=NULL
+ WHERE journal.id=p_attempt AND journal.status=v_old_status
+ AND journal.sent_by=v_sender
+ RETURNING journal.id,journal.status;
+ IF NOT FOUND THEN RAISE EXCEPTION 'CRM email manual reconciliation denied'; END IF;
+ -- This INSERT is atomic with UPDATE inside one PostgREST RPC call.
+ -- On any audit failure the journal UPDATE is rolled back.
+ INSERT INTO public.audit_logs(user_id,user_email,action,table_name,record_id,details)
+ VALUES(p_admin,NULL,'crm_email_confirmed_sent','email_log',p_attempt::text,
+  pg_catalog.jsonb_build_object(
+   'previous_status',v_old_status,'new_status','sent',
+   'case_reference',p_case_ref,'provider_reference',p_provider_id,
+   'original_sender',v_sender::text,'method','manual_verified_provider'));
+END
+$reconcile$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(
+ uuid,uuid,text,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(
+ uuid,uuid,text,text) TO service_role;

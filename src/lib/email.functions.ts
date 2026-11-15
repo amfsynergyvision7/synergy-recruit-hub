@@ -10,6 +10,7 @@ import {
   executeCrmEmailAuditProtocol,
   isCrmEmailRequestId,
 } from "./crm-email-audit-integrity.server";
+import { assertCrmEmailReconciliationReleased } from "./crm-email-reconciliation-hold.server";
 import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
 import { assertCrmEmailRecordReadAccess } from "./crm-email-record-access.server";
 
@@ -264,4 +265,32 @@ export const getEmailMergeContext = createServerFn({ method: "POST" })
       position: null,
       ownerName: await resolveOwnerName(client?.created_by ?? null),
     };
+  });
+/** Build160: independently held administrator-only, provider-verified
+ * confirmation. This endpoint never invokes sendEmail.
+ */
+export const confirmCrmEmailSent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown) =>
+    z.object({
+      attemptId: z.string().uuid().refine(isCrmEmailRequestId),
+      caseReference: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]{9,119}$/),
+      providerId: z.string().min(1).max(256).regex(/^[!-~]+$/),
+    }).strict().parse(input),
+  )
+  .handler(async ({ context,data }) => {
+    assertCrmEmailReconciliationReleased();
+    await assertApprovedRole(context.userId, ["admin"]);
+    const { data: rows,error } = await (supabaseAdmin.rpc as any)(
+      "crm_email_confirm_sent_trusted", {
+        p_attempt: data.attemptId,
+        p_admin: context.userId,
+        p_case_ref: data.caseReference,
+        p_provider_id: data.providerId,
+      },
+    );
+    if (error || !Array.isArray(rows) || rows.length!==1 ||
+        rows[0]?.id!==data.attemptId || rows[0]?.status!=="sent")
+      throw new Error("CRM email reconciliation unavailable; release remains paused");
+    return { confirmed:true } as const;
   });

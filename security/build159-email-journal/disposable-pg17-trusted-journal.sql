@@ -22,14 +22,21 @@ CREATE TABLE public.email_log(
  to_email text NOT NULL,subject text NOT NULL,body text NOT NULL,
  status text NOT NULL,error text,provider_id text,sent_by uuid
 );
+CREATE TABLE public.audit_logs(
+ id uuid PRIMARY KEY DEFAULT pg_catalog.gen_random_uuid(),
+ user_id uuid,user_email text,action text NOT NULL,table_name text,
+ record_id text,details jsonb,created_at timestamptz DEFAULT now()
+);
 ALTER TABLE public.email_log ENABLE ROW LEVEL SECURITY;
 GRANT USAGE ON SCHEMA public TO service_role;
 GRANT SELECT ON public.profiles,public.user_roles,public.candidates,public.clients TO service_role;
 GRANT SELECT,INSERT,UPDATE ON public.email_log TO service_role;
+GRANT SELECT,INSERT ON public.audit_logs TO service_role;
 -- Simulate the new RLS: browser authenticated gets no direct email INSERT/UPDATE.
 GRANT SELECT ON public.email_log TO authenticated;
 \ir ../build158-email-outbox/pending-uniqueness.DO-NOT-APPLY.sql.txt
 \ir trusted-journal-rpcs.DO-NOT-APPLY.sql.txt
+\ir ../build160-email-reconciliation/reconcile-confirm-sent.DO-NOT-APPLY.sql.txt
 INSERT INTO public.profiles VALUES
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','approved',true),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','approved',true),
@@ -223,4 +230,122 @@ BEGIN
 END
 $rights$;
 -- Rehearsal SQL and synthetic data disappear completely.
+-- Build160 isolated-only independent administrator, no real delivery.
+INSERT INTO public.profiles VALUES
+ ('12121212-1212-4212-8212-121212121212','approved',true);
+INSERT INTO public.user_roles VALUES
+ ('98989898-9898-4898-8898-989898989898',
+  '12121212-1212-4212-8212-121212121212','admin');
+SET LOCAL ROLE service_role;
+-- The Build159 flow left attempt 7777 in UNKNOWN by admin actor AAAA.
+DO $bad_access$
+DECLARE denied boolean;
+BEGIN
+ denied:=false;
+ BEGIN
+  PERFORM * FROM public.crm_email_confirm_sent_trusted(
+   '77777777-7777-4777-8777-777777777777',
+   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   'CASE-2026-0001','<provider@invalid.test>');
+ EXCEPTION WHEN others THEN denied:=true;
+ END;
+ IF NOT denied THEN RAISE EXCEPTION 'BUILD160 FAIL: sender reconciled own message'; END IF;
+ denied:=false;
+ BEGIN
+  PERFORM * FROM public.crm_email_confirm_sent_trusted(
+   '77777777-7777-4777-8777-777777777777',
+   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+   'CASE-2026-0001','<provider@invalid.test>');
+ EXCEPTION WHEN others THEN denied:=true;
+ END;
+ IF NOT denied THEN RAISE EXCEPTION 'BUILD160 FAIL: recruiter reconciled'; END IF;
+ denied:=false;
+ BEGIN
+  PERFORM * FROM public.crm_email_confirm_sent_trusted(
+   '77777777-7777-4777-8777-777777777777',
+   'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+   'CASE-2026-0001','<provider@invalid.test>');
+ EXCEPTION WHEN others THEN denied:=true;
+ END;
+ IF NOT denied THEN RAISE EXCEPTION 'BUILD160 FAIL: viewer reconciled'; END IF;
+ denied:=false;
+ BEGIN
+  PERFORM * FROM public.crm_email_confirm_sent_trusted(
+   '77777777-7777-4777-8777-777777777777',
+   '12121212-1212-4212-8212-121212121212',
+   'short','<provider@invalid.test>');
+ EXCEPTION WHEN others THEN denied:=true;
+ END;
+ IF NOT denied THEN RAISE EXCEPTION 'BUILD160 FAIL: invalid case accepted'; END IF;
+END
+$bad_access$;
+-- Simulate audit trail outage: function must rollback the journal UPDATE.
+CREATE FUNCTION public.build160_synthetic_audit_fail() RETURNS trigger
+ LANGUAGE plpgsql AS $auditfailure$
+BEGIN
+ IF NEW.details->>'case_reference'='CASE-FAIL-0001' THEN
+  RAISE EXCEPTION 'BUILD160 synthetic audit unavailable';
+ END IF;
+ RETURN NEW;
+END
+$auditfailure$;
+CREATE TRIGGER build160_synthetic_audit_error BEFORE INSERT ON public.audit_logs
+ FOR EACH ROW EXECUTE FUNCTION public.build160_synthetic_audit_fail();
+DO $atomic$
+DECLARE denied boolean:=false;
+BEGIN
+ BEGIN
+  PERFORM * FROM public.crm_email_confirm_sent_trusted(
+   '77777777-7777-4777-8777-777777777777',
+   '12121212-1212-4212-8212-121212121212',
+   'CASE-FAIL-0001','<provider-confirmed@invalid.test>');
+ EXCEPTION WHEN others THEN denied:=true;
+ END;
+ IF NOT denied THEN RAISE EXCEPTION 'BUILD160 FAIL: audit outage accepted'; END IF;
+ IF (SELECT status FROM public.email_log
+    WHERE id='77777777-7777-4777-8777-777777777777') <> 'unknown'
+    OR (SELECT count(*) FROM public.audit_logs) <> 0 THEN
+  RAISE EXCEPTION 'BUILD160 FAIL: audit failure did not rollback journal';
+ END IF;
+END
+$atomic$;
+SELECT id,status FROM public.crm_email_confirm_sent_trusted(
+ '77777777-7777-4777-8777-777777777777',
+ '12121212-1212-4212-8212-121212121212',
+ 'CASE-2026-0042','<provider-confirmed@invalid.test>');
+DO $success$
+DECLARE denied boolean:=false;
+BEGIN
+ IF (SELECT status FROM public.email_log
+    WHERE id='77777777-7777-4777-8777-777777777777') <> 'sent'
+ OR (SELECT count(*) FROM public.audit_logs
+   WHERE action='crm_email_confirmed_sent'
+    AND record_id='77777777-7777-4777-8777-777777777777')<>1
+ OR (SELECT details->>'case_reference' FROM public.audit_logs
+   WHERE record_id='77777777-7777-4777-8777-777777777777')<>'CASE-2026-0042'
+ THEN RAISE EXCEPTION 'BUILD160 FAIL: atomic audit proof missing'; END IF;
+ BEGIN
+  PERFORM * FROM public.crm_email_confirm_sent_trusted(
+   '77777777-7777-4777-8777-777777777777',
+   '12121212-1212-4212-8212-121212121212',
+   'CASE-2026-0042','<provider-confirmed@invalid.test>');
+ EXCEPTION WHEN others THEN denied:=true;
+ END;
+ IF NOT denied OR (SELECT count(*) FROM public.audit_logs)<>1 THEN
+  RAISE EXCEPTION 'BUILD160 FAIL: replay added duplicate audit';
+ END IF;
+END
+$success$;
+RESET ROLE;
+DO $privileges$
+BEGIN
+ IF has_function_privilege('anon',
+  'public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)','EXECUTE')
+ OR has_function_privilege('authenticated',
+  'public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)','EXECUTE')
+ OR NOT has_function_privilege('service_role',
+  'public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)','EXECUTE')
+ THEN RAISE EXCEPTION 'BUILD160 FAIL: reconciliation privileges unsafe'; END IF;
+END
+$privileges$;
 ROLLBACK;
