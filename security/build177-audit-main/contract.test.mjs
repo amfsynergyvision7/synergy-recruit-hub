@@ -61,3 +61,29 @@ test("Build177 isolated workflow is offline and intentionally refuses main merge
  assert(!workflow.includes("VERCEL_"));
  assert(!workflow.includes("GITHUB_TOKEN:"));
 });
+
+test("Build178 reproduces exact source-pinned audit release HOLD on both sides of disposable revoke",()=>{
+ const script=readFileSync(join(root,"pg17-disposable-rollback.sql"),"utf8");
+ const ci=readFileSync(join(root,"../../.github/workflows/build177-audit-main.yml"),"utf8");
+ assert.match(script,/Build178 pre-revocation source-pinned release gate correctly HOLDS/);
+ assert.match(script,/Build178 post-revocation source-pinned release gate STILL HOLDS/);
+ assert.equal((script.match(/\\i \/tmp\/build178-audit-preflight\.gset\.sql/g)||[]).length,2);
+ assert.match(script,/audit_safe_rpc_count::integer = 0/);
+ assert.match(script,/audit_admin_select_policies::integer = 1/);
+ assert.match(script,/has_role\(auth\.uid\(\), 'admin'::app_role\)/);
+ assert.match(ci,/audit-integrity\.preflight\.readonly\.sql/);
+ assert.match(ci,/FROM facts;/);
+ assert.match(ci,/pg17-disposable-rollback\.sql/);
+ assert(!ci.includes("workflow_dispatch:"));
+});
+test("Build178 read-only role and ACL graph is catalog-only with no data selection",()=>{
+ const source=readFileSync(join(root,"role-inheritance.readonly.sql"),"utf8");
+ assert.match(source,/Build178 READ ONLY/);
+ assert.match(source,/pg_catalog\.pg_auth_members/);
+ assert.match(source,/pg_catalog\.aclexplode/);
+ assert.match(source,/has_table_privilege/);
+ for(const q of ["SELECT","INSERT","UPDATE","DELETE","TRUNCATE","REFERENCES","TRIGGER","MAINTAIN"])
+  assert(source.includes("('"+q+"')"),q);
+ assert(!/\b(?:FROM|JOIN)\s+public\.audit_logs\b/i.test(source));
+ assert(!/\b(?:DROP|REVOKE|GRANT|ALTER|CREATE)\s+(?:TABLE|POLICY|ROLE|FUNCTION|SCHEMA)\b/i.test(source));
+});
