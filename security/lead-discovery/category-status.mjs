@@ -3,7 +3,7 @@ import {join,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
 const dir=dirname(fileURLToPath(import.meta.url));
 const read=x=>JSON.parse(readFileSync(join(dir,x),"utf8"));
-(rubric,snapshot,pkg)=>{
+const report=(rubric,snapshot,pkg)=>{
  const ld=rubric.milestones.filter(x=>x.group==="LD");
  if(ld.length!==5 || new Set(ld.map(x=>x.id)).size!==5 || ld.reduce((n,x)=>n+x.weight,0)!==10)throw Error("Fixed Category C scoring drift");
  const states=new Map(snapshot.statuses.map(x=>[x.id,x]));
