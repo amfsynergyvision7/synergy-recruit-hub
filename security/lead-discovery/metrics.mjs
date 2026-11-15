@@ -5,7 +5,7 @@
 import {fileURLToPath} from "node:url";
 import {resolve} from "node:path";
 import {runLocalManifest,normalizeCapturedDate,syntheticHttpsUrl} from "./discover.mjs";
-import {runLocalReview,verifyAuditChain,REVIEW_MODE} from "./review.mjs";
+import {runLocalReview,buildReviewQueue,verifyAuditChain,REVIEW_MODE} from "./review.mjs";
 
 export const METRIC_DEFINITIONS=Object.freeze({
  provenance_coverage:"synthetic businesses with archived dated HTTPS evidence / unique synthetic businesses",
@@ -64,6 +64,60 @@ export function calculateSyntheticLeadKpis(discovery,review,asOf){
   }
   if(valid)provenance++;
  }
+ // Build166: rederive identities and provenance from the original synthetic
+ // discovery, instead of trusting separately supplied review/KPI counters.
+ const expected=buildReviewQueue(discovery);
+ const identities=new Map(expected.leads.map(x=>[x.lead_id,x]));
+ const entries=new Map();
+ const events=review.audit_events,allowedActions=new Set([
+  "REVIEW_QUEUE_INITIALIZED","QUEUED","GROWTH_APPROVED","CRM_APPROVED",
+  "REJECTED","NO_SEND_HANDOFF_PREPARED"
+ ]);
+ if(events.filter(x=>x.action==="REVIEW_QUEUE_INITIALIZED").length!==1||
+    events.filter(x=>x.action==="QUEUED").length!==expected.leads.length||
+    events.some(x=>!allowedActions.has(x.action)))
+   fail("review audit has unaccounted events");
+ for(const row of review.review_queue){
+  const source=identities.get(row.lead_id);
+  if(!source||entries.has(row.lead_id)||
+    ["company_name","business_website","location","industry"].some(k=>row[k]!==source[k])||
+    JSON.stringify(row.evidence)!==JSON.stringify(source.evidence))
+   fail("review identities differ from source-reconciled businesses");
+  entries.set(row.lead_id,row);
+  if(!Array.isArray(row.review_records)||row.review_records.length>2)
+   fail("review record count invalid");
+  const decisions=events.filter(e=>e.lead_id===row.lead_id&&
+   ["GROWTH_APPROVED","CRM_APPROVED","REJECTED"].includes(e.action));
+  if(decisions.length!==row.review_records.length)fail("review decision audit mismatch");
+  for(let i=0;i<row.review_records.length;i++){
+   const x=row.review_records[i],ev=decisions[i],growth=x.reviewer_role==="growth_reviewer";
+   const reason=x.decision==="approve"?x.reason_code==="business_source_verified":
+    growth&&["out_of_scope","source_disputed","privacy_concern"].includes(x.reason_code);
+   const action=x.decision==="reject"?"REJECTED":growth?"GROWTH_APPROVED":"CRM_APPROVED";
+   if(!reason||(i===0&&!growth)||(i===1&&(growth||x.decision!=="approve"||
+       row.review_records[0].reviewer_id===x.reviewer_id))||
+      !normalizeCapturedDate(x.reviewed_on)||x.reviewed_on>asOf||
+      !source.evidence.some(p=>p.source_url===x.evidence_url&&p.captured_on<=x.reviewed_on)||
+      ev.action!==action||ev.reviewer!==x.reviewer_id||
+      ev.reviewed_on!==x.reviewed_on||ev.evidence_url!==x.evidence_url)
+    fail("review decision disagrees with source or audit");
+  }
+  const history=row.review_records;
+  const status=history.length===0?"pending_growth_review":
+   history[0].decision==="reject"?"rejected":
+   history.length===1?"pending_crm_review":"approved_for_offline_handoff";
+  if(row.review_status!==status)fail("review status lacks decisions");
+  if(events.filter(e=>e.action==="NO_SEND_HANDOFF_PREPARED"&&e.lead_id===row.lead_id).length!==
+    (status==="approved_for_offline_handoff"?1:0))
+   fail("handoff preparation audit mismatch");
+ }
+ if(entries.size!==expected.leads.length||
+    events.filter(e=>e.action==="QUEUED").some(e=>!identities.has(e.lead_id))||
+    new Set(events.filter(e=>e.action==="QUEUED").map(e=>e.lead_id)).size!==expected.leads.length||
+    events.length!==1+expected.leads.length+
+      review.review_queue.reduce((n,x)=>n+x.review_records.length,0)+
+      review.review_queue.filter(x=>x.review_status==="approved_for_offline_handoff").length)
+   fail("review audit count has unaccounted events");
  const counts={pending_growth:0,pending_crm:0,rejected:0,approved_offline:0};
  for(const row of review.review_queue){
   if(!sites.has(row.business_website)||queueSites.has(row.business_website)||
@@ -81,11 +135,21 @@ export function calculateSyntheticLeadKpis(discovery,review,asOf){
  }
  if(JSON.stringify(counts)!==JSON.stringify(review.counts))fail("review totals disagree with signed-offline audit preview");
  if(counts.approved_offline!==review.handoff.records.length)fail("offline handoff cannot be trusted");
+ const handoffKeys=new Set();
  for(const row of review.handoff.records){
-  if(!sites.has(row.business_website)||row.crm_write_authorized!==false||
-     row.outreach_authorized!==false||row.requires_separate_live_crm_approval!==true)
-   fail("unsafe or foreign handoff record");
+  const source=entries.get(row.lead_id);
+  if(!source||source.review_status!=="approved_for_offline_handoff"||
+    handoffKeys.has(row.lead_id)||!sites.has(row.business_website)||
+    ["company_name","business_website","location","industry"].some(k=>row[k]!==source[k])||
+    JSON.stringify(row.evidence)!==JSON.stringify(source.evidence)||
+    JSON.stringify(row.reviewer_ids)!==JSON.stringify(source.review_records.map(x=>x.reviewer_id))||
+    row.crm_write_authorized!==false||row.outreach_authorized!==false||
+    row.requires_separate_live_crm_approval!==true||
+    row.format!=="SYNTHETIC_NO_SEND_CRM_HANDOFF_V1")
+   fail("handoff row differs from audited source approval");
+  handoffKeys.add(row.lead_id);
  }
+ if(handoffKeys.size!==counts.approved_offline)fail("handoff count differs from audited identities");
  return {
   mode:"SYNTHETIC_OFFLINE_AGGREGATES_ONLY",reporting_cutoff:asOf,
   report_category:"C_LEAD_DISCOVERY_NOT_OPERATIONAL",actual_prospects:0,
