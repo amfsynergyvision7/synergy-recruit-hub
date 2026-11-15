@@ -107,3 +107,11 @@ The source-only synthetic discovery parser now **emits the same canonical (non-w
 JSON-LD parsing now requires an **actual script tag and a real type=application/ld+json attribute**, not lookalike data-type/prototype/x:type or a script-data element. Traversal is limited to 2,500 visited nodes per synthetic HTML source and avoids unbounded \`Array.push(...items)\` expansion. Valid preexisting test fixtures, business deduplication, six offline engineering controls and no-send behavior remain unchanged.
 
 These are reliability and provenance-hardening changes only. LD02 and LD05 still need independently approved business-source policy and real authorized KPI evidence. Both review PRs remain unmerged and production release HOLD is untouched.
+
+## Build175 — exact inline JSON-LD provenance and person-identity exclusion
+
+Build175 corrected an evidence-verification ambiguity in the offline research parser: a script with **duplicate or contradictory `type` attributes**, a `src` attribute, or a quoted lookalike `type=` fragment could otherwise be misclassified as a valid inline organization source. The parser now requires one unambiguous exact JSON-LD type parsed from a bounded attribute list and rejects external script sources, event-handler attributes and malformed attribute markup. This is a fail-closed quality check on synthetic HTML; the parser does **not** execute HTML or fetch sources.
+
+Company data bearing both an Organization subtype and `Person` schema type are now excluded rather than being silently treated as an organization. Separate unambiguously typed organization nodes remain eligible for the local synthetic review queue. Original fictional fixture/KPI counts are unchanged; no owner signatures, real prospects or production permissions are created.
+
+Engineering review can proceed on both isolated and integration PRs, but `main` protection, independent review, LD02/LD05 source decisions, audit permissions, UAT and all deployment gates remain unresolved. PR #22 must remain Draft and the deliberate release-hold job must not be disabled.

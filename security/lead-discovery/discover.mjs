@@ -58,6 +58,27 @@ export function normalizeCapturedDate(input) {
   return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10) === input ? input : null;
 }
 
+function trustedInlineJsonLdAttributes(attributes) {
+  // Treat the HTML script start tag as a bounded, unambiguous attribute list.
+  // Loose substring matching can mistake type= embedded in another quoted
+  // attribute for actual JSON-LD evidence.
+  let remaining=attributes.trimStart(),type=null,count=0;
+  while (remaining) {
+    const match=/^([a-z][a-z0-9:_-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>]+))(?=\s|$)/iu.exec(remaining);
+    if(!match||++count>16)return false;
+    const key=match[1].toLowerCase(),value=match[2]??match[3]??match[4];
+    if(key==="type") {
+      if(type!==null)return false; // duplicate type: ambiguous source semantics
+      type=value.toLowerCase();
+    }
+    // External scripts, handler attributes or malformed metadata must not
+    // be treated as immutable inline business provenance.
+    if(key==="src"||key.startsWith("on"))return false;
+    remaining=remaining.slice(match[0].length).trimStart();
+  }
+  return type==="application/ld+json";
+}
+
 function readBusinessEntities(html) {
   const entities=[];
   // An actual <script> tag with a real type= attribute is required.
@@ -66,7 +87,7 @@ function readBusinessEntities(html) {
   let n=0,visited=0;
   for (const match of scripts) {
     const attributes=match[1];
-    if (!/(?:^|\s)type\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json'|application\/ld\+json)(?=\s|$)/iu.test(attributes)) continue;
+    if (!trustedInlineJsonLdAttributes(attributes)) continue;
     if (++n > LIMITS.scriptsPerSource) throw new Error("Too many structured-data scripts");
     let value;
     try { value=JSON.parse(match[2]); } catch { throw new Error("Invalid snapshot JSON-LD"); }
@@ -85,8 +106,11 @@ function readBusinessEntities(html) {
       }
       if (!entry || typeof entry!=="object") continue;
       const type=entry["@type"],types=Array.isArray(type)?type:[type];
-      if (types.includes("Organization") || types.includes("LocalBusiness") ||
-          types.includes("Corporation")) entities.push(entry);
+      // A mixed Person/Organization type cannot safely establish a company-
+      // only entity: reject the ambiguous individual record entirely.
+      if(!types.includes("Person") &&
+         (types.includes("Organization") || types.includes("LocalBusiness") ||
+          types.includes("Corporation"))) entities.push(entry);
       if (entry["@graph"]) stack.push(entry["@graph"]);
       if (entities.length > LIMITS.entitiesPerSource) throw new Error("Too many structured-data entities");
     }
