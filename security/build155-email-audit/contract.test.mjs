@@ -71,7 +71,7 @@ test('Build155 provider failure/unknown is never automatically reported delivere
   assert.equal(crmEmailOutcomeStatus(x),'unknown');
  assert.equal(crmEmailOutcomeStatus({success:true}),'unknown');
  assert.equal(crmEmailOutcomeStatus({success:true,providerId:'<confirmed@provider>'}),'sent');
- assert.equal(crmEmailOutcomeStatus({success:true,providerId:'bad\\nheader'}),'unknown');
+ assert.equal(crmEmailOutcomeStatus({success:true,providerId:'bad\nheader'}),'unknown');
  assert(send.includes('executeCrmEmailAuditProtocol({'));
  assert(send.includes('status: finalStatus'));
  assert(send.includes('error: finalStatus === "unknown"'));
@@ -196,7 +196,8 @@ test('Build156 provider correlation ID rejects blank, overlong and control-chara
  for(const id0 of ['', '   ', 'x'.repeat(257), 'line\nother', 'line\rother', '\tbad']){
   assert.equal(crmEmailOutcomeStatus({success:true,providerId:id0}),'unknown');
  }
- assert.equal(crmEmailOutcomeStatus({success:true,providerId:' <ok@example.invalid> '}),'sent');
+ assert.equal(crmEmailOutcomeStatus({success:true,providerId:' <ok@example.invalid> '}),'unknown');
+ assert.equal(crmEmailOutcomeStatus({success:true,providerId:'<ok@example.invalid>'}),'sent');
  assert.equal(crmEmailOutcomeStatus({success:true,providerId:123}),'unknown');
 });
 test('Build156 real handler wires the same function verified by fake provider tests',()=>{

@@ -35,7 +35,9 @@ export function crmEmailOutcomeStatus(outcome: unknown): "sent"|"unknown" {
   // A provider acknowledgement without a usable correlation ID cannot be
   // proven or reconciled as a successful correspondence delivery.
   if(value.success!==true||typeof value.providerId!=="string")return "unknown";
-  const id=value.providerId.trim();
+  const id=value.providerId;
+  // Reject all surrounding whitespace, embedded control bytes and newlines.
+  // This value is later persisted as a cross-system provider reference.
   return id.length>0&&id.length<=256&&/^[\x21-\x7e]+$/.test(id)?"sent":"unknown";
 }
 export function confirmCrmEmailAuditSettlement(args:{
