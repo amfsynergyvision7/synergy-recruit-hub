@@ -35,9 +35,8 @@ test("Build167 CLI prints only synthetic counts and does not contact anyone",()=
 test("Build167 silently incorrect source capture day is flagged by independent reference",async()=>{
  const x=await fixture(),bad=clone(x.discovery);
  bad.leads[0].evidence[0].captured_on="2026-11-11";
- const r=reconcileCuratedSyntheticReference(bad,x.review,x.oracle);
- assert.equal(r.verdict,"FAIL_SYNTHETIC_MISMATCH");
- assert(r.mismatches.some(x=>x.code.endsWith("_proof")));
+ assert.throws(()=>reconcileCuratedSyntheticReference(bad,x.review,x.oracle),
+ /review identities differ from source-reconciled businesses/);
 });
 test("Build167 industry or business name changed without explanation is independently reported",async()=>{
  const x=await fixture(),truth=clone(x.oracle);

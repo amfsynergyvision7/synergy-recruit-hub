@@ -11,9 +11,9 @@ const report=(rubric,snapshot,pkg)=>{
  const accepted=ld.filter(x=>states.get(x.id)?.complete).map(x=>x.id);
  if(points!==pkg.formal_earned_points||points!==6 ||JSON.stringify(accepted)!==JSON.stringify(pkg.formally_evidenced_milestones))throw Error("False category acceptance");
  if(pkg.review_package.LD02.accepted||pkg.review_package.LD05.accepted||!pkg.no_additional_acceptance_claimed)throw Error("Independent acceptance not supplied");
- if(pkg.latest_build!==166||
+ if(pkg.latest_build!==167||
     !Array.isArray(pkg.technical_integrity_controls)||
-    pkg.technical_integrity_controls.length!==5||
+    pkg.technical_integrity_controls.length!==6||
     new Set(pkg.technical_integrity_controls.map(x=>x.id)).size!==5||
     pkg.technical_integrity_controls.some(x=>x.status!=="verified_offline"||
      !x.evidence?.startsWith("https://github.com/")))
@@ -54,9 +54,9 @@ Growth and Privacy/Compliance owners must individually approve specific industry
 ### LD05 outstanding acceptance
 Growth and BI owners must agree source quality, freshness, yield and conversion formulas, thresholds, human sample validation and real authorized business-only data evidence. The [CEO KPI design](https://docs.google.com/document/d/1FWA-0AtMrE4C6DAMQISnj6_1DBfICG7TIQkKUs6AO_o/edit) is also a REVIEW DRAFT. [Synthetic KPI program](./metrics.mjs) is executable with local fictional snapshots; no real revenue, contacts, replies, meetings, CRM writes or outreach are represented.
 
-## Build166 technical checks — separate from required owner approvals
+## Build167 completed offline technical controls — separate from required owner approvals
 
-**5/5 synthetic engineering integrity controls verified offline.** This includes the original discovery/provenance and dual-review implementations, plus the Build166 audit-to-handoff reconciliation and LD02/LD05 approval-gap checker. These checks do **not** close either of the two remaining official milestones, permit sourcing real businesses, or replace independently verifiable Growth/Privacy/BI acceptance.
+**6/6 synthetic engineering integrity controls verified offline.** This includes source provenance, two-stage review, KPI calculation, audit-to-handoff integrity, owner decision-gap checks and a separately curated fictional source/KPI reference rehearsal. It does not verify live business observations. These checks do **not** close either of the two remaining official milestones, permit sourcing real businesses, or replace independently verifiable Growth/Privacy/BI acceptance.
 
 | Technical control | Evidence | Status |
 |---|---|---|
@@ -89,6 +89,6 @@ if(process.argv[1]===fileURLToPath(import.meta.url)){
  if(process.argv.includes("--check")){
   if(readFileSync(join(dir,"CATEGORY-C-STATUS.md"),"utf8")!==rendered)
    throw Error("Category C status is stale or disagrees with official evidence");
-  process.stdout.write("CATEGORY C SCORE VERIFIED: LD 6/10, 3/5 milestones; 4/8 approval steps; 5/5 offline engineering checks; zero new signoffs\n");
+  process.stdout.write("CATEGORY C SCORE VERIFIED: LD 6/10, 3/5 milestones; 4/8 approval steps; 6/6 offline engineering checks; zero new signoffs\n");
  }else process.stdout.write(rendered);
 }

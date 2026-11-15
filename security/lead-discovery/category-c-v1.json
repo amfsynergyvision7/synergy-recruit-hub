@@ -57,7 +57,7 @@
         {
           "id": "LD05-P2",
           "state": "source_evidenced",
-          "note": "Synthetic no-send KPI calculation built and CI-tested, pending exact-head check"
+          "note": "Synthetic no-send KPIs passed CI; independently curated fictional source and KPI reference checked, not real sample"
         },
         {
           "id": "LD05-P3",
@@ -91,11 +91,11 @@
     "security_issue19_untouched": true
   },
   "planning": {
-    "preapproval_technical_batches_remaining": "0–1 after validated CI; change only for specific defects",
+    "preapproval_technical_batches_remaining": "0 unless independent reviewer finds a concrete defect; remaining steps need actual human decisions",
     "independent_review_batches": "1–2 if approved facts and measured evidence are supplied",
     "no_finite_calendar_count_without_real_owner_decisions": true
   },
-  "latest_build": 166,
+  "latest_build": 167,
   "technical_integrity_controls": [
     {
       "id": "C-ENG01",
@@ -126,6 +126,12 @@
       "label": "LD02/LD05 draft approval completeness and safety gate preflight",
       "status": "verified_offline",
       "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075"
+    },
+    {
+      "id": "C-ENG06",
+      "label": "Separately hand-curated synthetic source/KPI and review-outcome reconciliation",
+      "status": "verified_offline",
+      "evidence": "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/20"
     }
   ]
 }

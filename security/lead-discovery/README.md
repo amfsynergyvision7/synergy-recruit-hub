@@ -66,3 +66,7 @@ node --test security/build166-lead-category/contract.test.mjs
 ```
 
 Category C remains 6/10 officially accepted and the review packet 4/8 owner-gated steps source-evidenced; no real lead lookup, contact or CRM access is activated.
+
+## Build167 — separately curated synthetic KPI reference and owner closure packet
+
+A separately hand-authored (but not human-signed) `curated-reference.synthetic.json` is cross-reconciled by `reconcile.mjs` with the exact fictional discovery/review ledger. All 30 expected source, business identity, status and metric checks must agree. Failure is explicit and CI-tested. The category status generator now uses the correct frozen rubric field `title` instead of displaying `undefined`; it keeps the 43-gate weighted score unchanged. See [Owner-ready LD02+LD05 closure instructions](./LD02-LD05-OWNER-CLOSURE.md). No real samples or approvals exist.
