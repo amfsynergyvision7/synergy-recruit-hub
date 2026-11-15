@@ -13,15 +13,24 @@ WITH funcs AS (
  has_table_privilege('anon','public.audit_logs','UPDATE') AS anon_update,
  has_table_privilege('anon','public.audit_logs','DELETE') AS anon_delete,
  has_table_privilege('anon','public.audit_logs','TRUNCATE') AS anon_truncate,
+ has_table_privilege('anon','public.audit_logs','REFERENCES') AS anon_references,
+ has_table_privilege('anon','public.audit_logs','TRIGGER') AS anon_trigger,
+ has_table_privilege('anon','public.audit_logs','MAINTAIN') AS anon_maintain,
  has_table_privilege('authenticated','public.audit_logs','SELECT') AS auth_select,
  has_table_privilege('authenticated','public.audit_logs','INSERT') AS auth_insert,
  has_table_privilege('authenticated','public.audit_logs','UPDATE') AS auth_update,
  has_table_privilege('authenticated','public.audit_logs','DELETE') AS auth_delete,
  has_table_privilege('authenticated','public.audit_logs','TRUNCATE') AS auth_truncate,
+ has_table_privilege('authenticated','public.audit_logs','REFERENCES') AS auth_references,
+ has_table_privilege('authenticated','public.audit_logs','TRIGGER') AS auth_trigger,
+ has_table_privilege('authenticated','public.audit_logs','MAINTAIN') AS auth_maintain,
  has_table_privilege('service_role','public.audit_logs','INSERT') AS service_insert,
  has_table_privilege('service_role','public.audit_logs','UPDATE') AS service_update,
  has_table_privilege('service_role','public.audit_logs','DELETE') AS service_delete,
- has_table_privilege('service_role','public.audit_logs','TRUNCATE') AS service_truncate
+ has_table_privilege('service_role','public.audit_logs','TRUNCATE') AS service_truncate,
+ has_table_privilege('service_role','public.audit_logs','REFERENCES') AS service_references,
+ has_table_privilege('service_role','public.audit_logs','TRIGGER') AS service_trigger,
+ has_table_privilege('service_role','public.audit_logs','MAINTAIN') AS service_maintain
 ), policies AS (
  SELECT count(*) AS total_audit_policies,
  count(*) FILTER (
@@ -37,7 +46,7 @@ WITH funcs AS (
  WHERE p.schemaname='public' AND p.tablename='audit_logs'
   AND p.cmd='SELECT' AND p.policyname='read audit'
   AND p.roles::text='{authenticated}'
-  AND p.qual LIKE '%has_role%' AND p.qual LIKE '%admin%'
+  AND btrim(coalesce(p.qual,''))='has_role(auth.uid(), ''admin''::app_role)'
 ), rls AS (
  SELECT relrowsecurity AS rls_enabled
  FROM pg_catalog.pg_class WHERE oid='public.audit_logs'::regclass
@@ -52,15 +61,21 @@ WITH funcs AS (
 )
 SELECT named_rpc_count,safe_rpc_count,
  anon_select,anon_insert,anon_update,anon_delete,anon_truncate,
+ anon_references,anon_trigger,anon_maintain,
  auth_select,auth_insert,auth_update,auth_delete,auth_truncate,
+ auth_references,auth_trigger,auth_maintain,
  service_insert,service_update,service_delete,service_truncate,
+ service_references,service_trigger,service_maintain,
  broadly_permissive_all,total_audit_policies,admin_select_policies,rls_enabled,
  CASE WHEN named_rpc_count=1 AND safe_rpc_count=1
  AND NOT anon_select AND NOT anon_insert AND NOT anon_update AND NOT anon_delete
- AND NOT anon_truncate
+ AND NOT anon_truncate AND NOT anon_references
+ AND NOT anon_trigger AND NOT anon_maintain
  AND auth_select AND NOT auth_insert AND NOT auth_update AND NOT auth_delete
- AND NOT auth_truncate
+ AND NOT auth_truncate AND NOT auth_references
+ AND NOT auth_trigger AND NOT auth_maintain
  AND service_insert AND NOT service_update AND NOT service_delete AND NOT service_truncate
+ AND NOT service_references AND NOT service_trigger AND NOT service_maintain
  AND broadly_permissive_all=0 AND total_audit_policies=1
  AND admin_select_policies=1 AND rls_enabled
  THEN 'REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE'

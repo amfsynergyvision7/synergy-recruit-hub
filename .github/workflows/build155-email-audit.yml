@@ -10,6 +10,7 @@ on:
       - 'security/build160-email-reconciliation/**'
       - 'security/build161-audit-writers/**'
       - 'security/build162-audit-access/**'
+      - 'security/build163-audit-grants/**'
       - 'src/lib/crm-email-reconciliation-hold.server.ts'
       - 'src/components/EmailComposeDialog.tsx'
       - '.github/workflows/build155-email-audit.yml'
@@ -25,7 +26,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-      - run: node --test security/build155-email-audit/contract.test.mjs security/build158-email-outbox/contract.test.mjs security/build159-email-journal/contract.test.mjs security/build160-email-reconciliation/contract.test.mjs security/build161-audit-writers/contract.test.mjs security/build162-audit-access/contract.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build86/crm-email-record-scope.test.mjs
+      - run: node --test security/build155-email-audit/contract.test.mjs security/build158-email-outbox/contract.test.mjs security/build159-email-journal/contract.test.mjs security/build160-email-reconciliation/contract.test.mjs security/build161-audit-writers/contract.test.mjs security/build162-audit-access/contract.test.mjs security/build163-audit-grants/contract.test.mjs security/build82/external-effects-release-interlocks.test.mjs security/build82/provider-redaction-and-smtp-rotation.test.mjs security/build82/record-bound-email-recipient.test.mjs security/build86/crm-email-record-scope.test.mjs
 
   pg17-partial-unique-rehearsal:
     name: Disposable PostgreSQL 17 unresolved-recipient uniqueness

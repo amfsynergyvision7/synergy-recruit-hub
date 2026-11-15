@@ -47,8 +47,12 @@ CREATE POLICY "insert audit" ON public.audit_logs
  FOR INSERT TO authenticated WITH CHECK (true);
 GRANT USAGE ON SCHEMA public TO anon,authenticated;
 GRANT SELECT,INSERT,UPDATE,DELETE,TRUNCATE ON public.audit_logs TO anon,authenticated;
--- Simulate elevated service-role mutations before enforcing append-only.
-GRANT UPDATE,DELETE,TRUNCATE ON public.audit_logs TO service_role;
+-- Simulate ALL documented production privileges that are out of scope
+-- for the Build161 ordinary DML-only lock; Build163 must remove all.
+GRANT UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN
+ ON public.audit_logs TO service_role;
+GRANT REFERENCES,TRIGGER,MAINTAIN
+ ON public.audit_logs TO anon,authenticated;
 DO $before$
 BEGIN
  IF NOT has_table_privilege('anon','public.audit_logs','INSERT')
@@ -70,6 +74,15 @@ BEGIN
  OR has_table_privilege('service_role','public.audit_logs','UPDATE')
  OR has_table_privilege('service_role','public.audit_logs','DELETE')
  OR has_table_privilege('service_role','public.audit_logs','TRUNCATE')
+ OR has_table_privilege('anon','public.audit_logs','REFERENCES')
+ OR has_table_privilege('anon','public.audit_logs','TRIGGER')
+ OR has_table_privilege('anon','public.audit_logs','MAINTAIN')
+ OR has_table_privilege('authenticated','public.audit_logs','REFERENCES')
+ OR has_table_privilege('authenticated','public.audit_logs','TRIGGER')
+ OR has_table_privilege('authenticated','public.audit_logs','MAINTAIN')
+ OR has_table_privilege('service_role','public.audit_logs','REFERENCES')
+ OR has_table_privilege('service_role','public.audit_logs','TRIGGER')
+ OR has_table_privilege('service_role','public.audit_logs','MAINTAIN')
  OR EXISTS(SELECT 1 FROM pg_catalog.pg_policies
    WHERE tablename='audit_logs' AND policyname='Allow all for authenticated')
  THEN RAISE EXCEPTION 'BUILD160 FAIL: audit lockdown not enforced'; END IF;
