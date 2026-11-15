@@ -1,9 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { sendEmail, textToHtml } from "./email.server";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
+import {
+  assertCrmEmailAuditIntegrityReleased,
+  confirmCrmEmailAuditReservation,
+  confirmCrmEmailAuditSettlement,
+  crmEmailDeliveryReconciliationError,
+  crmEmailOutcomeStatus,
+} from "./crm-email-audit-integrity.server";
 import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
 import { assertCrmEmailRecordReadAccess } from "./crm-email-record-access.server";
 
@@ -36,6 +44,9 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     // A compile-time server release interlock precedes all SMTP, database
     // logging and recipient processing. No environment toggle bypasses it.
     assertExternalEffectReleased("crm_email");
+    // Separate, immutable audit integrity hold: independent approval is
+    // required even if the general SMTP release interlock is changed.
+    assertCrmEmailAuditIntegrityReleased();
     // When reviewed for release, use the exact-one-role, approved+active
     // service-side gate rather than the old any-matching-role query.
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
@@ -76,36 +87,77 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       approvedRole: role,
     })) throw new Error("Email recipient authorization denied");
 
-    const result = await sendEmail({
-      to: data.toEmail,
-      subject: data.subject,
-      html: textToHtml(data.body),
-    });
-
-    // Log the attempt either way — a failed send (e.g. domain not verified
-    // yet) is exactly as useful to see in the record's correspondence history
-    // as a successful one, so nobody re-sends the same email twice thinking
-    // the first one silently vanished.
-    const { error: logError } = await context.supabase.from("email_log" as any).insert({
-      related_table: data.relatedTable,
-      related_id: data.relatedId,
-      to_email: data.toEmail,
-      subject: data.subject,
-      body: data.body,
-      status: result.success ? "sent" : "failed",
-      error: result.error ?? null,
-      provider_id: result.providerId ?? null,
-      sent_by: context.userId,
-    });
+    // Require a committed, actor-bound journal reservation/readback BEFORE
+    // the external SMTP side effect. The current database lacks a user
+    // UPDATE policy, and the proposed RLS removes even INSERT: the separate
+    // compile-time audit hold must remain until a reviewed RPC/outbox and
+    // signed hosted UAT prove both stages and idempotency are safe.
+    const attemptId = randomUUID();
+    const { data: reserved, error: logError } = await context.supabase
+      .from("email_log" as any)
+      .insert({
+        id: attemptId,
+        related_table: data.relatedTable,
+        related_id: data.relatedId,
+        to_email: data.toEmail,
+        subject: data.subject,
+        body: data.body,
+        status: "pending",
+        error: null,
+        provider_id: null,
+        sent_by: context.userId,
+      })
+      .select("id,related_table,related_id,sent_by,status").single();
     if (logError) {
-      // Don't mask a real send failure behind a logging failure, but do
-      // surface both if the send itself also failed.
+      // Neither provider details nor recipient/body values may enter logs.
       console.error("[email_log] insert failed; review restricted server diagnostics");
     }
+    confirmCrmEmailAuditReservation({
+      row: reserved, error: logError,
+      expected: {
+        id: attemptId, actorId: context.userId,
+        relatedTable: data.relatedTable, relatedId: data.relatedId,
+      },
+    });
 
-    if (!result.success) {
-      throw new Error(result.error ?? "Email failed to send for an unknown reason.");
+    // Provider errors and process interruptions have unknown outcomes.
+    // Never automatically retry or claim definite non-delivery.
+    let result: { success: boolean; providerId?: string; error?: string } = {
+      success: false,
+    };
+    try {
+      result = await sendEmail({
+        to: data.toEmail,
+        subject: data.subject,
+        html: textToHtml(data.body),
+      });
+    } catch {
+      // Keep this attempt in the audit journal for manual reconciliation.
     }
+    const finalStatus = crmEmailOutcomeStatus(result);
+    const providerId = typeof result.providerId === "string" &&
+      result.providerId.length <= 256 ? result.providerId : null;
+    const { data: finalized, error: settlementError } = await context.supabase
+      .from("email_log" as any)
+      .update({
+        status: finalStatus,
+        error: finalStatus === "unknown"
+          ? "Delivery outcome unconfirmed; manual reconciliation required"
+          : null,
+        provider_id: finalStatus === "sent" ? providerId : null,
+      })
+      .eq("id", attemptId)
+      .eq("sent_by", context.userId)
+      .eq("status", "pending")
+      .select("id,status").maybeSingle();
+    if (settlementError) {
+      console.error("[email_log] update failed; review restricted server diagnostics");
+    }
+    confirmCrmEmailAuditSettlement({
+      row: finalized, error: settlementError,
+      expected: { id: attemptId, status: finalStatus },
+    });
+    if (finalStatus !== "sent") throw crmEmailDeliveryReconciliationError();
     return { success: true };
   });
 
