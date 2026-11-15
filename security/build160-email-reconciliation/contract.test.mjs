@@ -79,7 +79,7 @@ test("Build160 production audit integrity preflight is read-only and fail closed
  assert.match(x,/FROM pg_catalog\.pg_policies/);
  assert.match(x,/has_table_privilege\('anon'/);
  assert.match(x,/HOLD_AUDIT_LOG_WRITABLE_OR_RECONCILIATION_RPC_ABSENT/);
- assert.equal((x.match(/;/g)||[]).length,1);
+ assert.equal((x.replace(/--[^\n]*/g,"").match(/;/g)||[]).length,1);
  assert.doesNotMatch(x.replace(/--[^\n]*/g,""),/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|CREATE|DROP|GRANT|REVOKE|ALTER|TRUNCATE|DO)\b/im);
  assert.doesNotMatch(x,/\bFROM public\.audit_logs\b/i);
 });
