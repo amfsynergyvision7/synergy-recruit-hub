@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "category_id": "LD",
+  "display_category": "C — AI Lead Discovery",
+  "current_focus": true,
+  "formal_rubric": "security/release-progress/v1-rubric.json",
+  "source_snapshot_build": 138,
+  "formal_earned_points": 6,
+  "formal_max_points": 10,
+  "formally_evidenced_milestones": [
+    "LD01",
+    "LD03",
+    "LD04"
+  ],
+  "no_additional_acceptance_claimed": true,
+  "review_package": {
+    "LD02": {
+      "title": "ICP, lawful source whitelist and retention signed",
+      "status": "owner_approval_missing",
+      "source_preparation": [
+        {
+          "id": "LD02-P1",
+          "state": "source_evidenced",
+          "note": "Owner-controlled lead outreach guardrails REVIEW DRAFT exists"
+        },
+        {
+          "id": "LD02-P2",
+          "state": "source_evidenced",
+          "note": "Required signed decisions and exclusions packet specified"
+        },
+        {
+          "id": "LD02-P3",
+          "state": "pending",
+          "note": "Real ICP industries, personas and permitted sources specifically approved"
+        },
+        {
+          "id": "LD02-P4",
+          "state": "pending",
+          "note": "Privacy/legal exclusions, permissible processing and retention signed"
+        }
+      ],
+      "signatories": [
+        "Growth owner",
+        "Privacy/compliance owner"
+      ],
+      "accepted": false
+    },
+    "LD05": {
+      "title": "Lead discovery measurement, source quality and owner acceptance",
+      "status": "operational_evidence_missing",
+      "source_preparation": [
+        {
+          "id": "LD05-P1",
+          "state": "source_evidenced",
+          "note": "Source-linked aggregate metric definitions prepared"
+        },
+        {
+          "id": "LD05-P2",
+          "state": "source_evidenced",
+          "note": "Synthetic no-send KPI calculation built and CI-tested, pending exact-head check"
+        },
+        {
+          "id": "LD05-P3",
+          "state": "pending",
+          "note": "Source quality, freshness and conversion metric thresholds approved"
+        },
+        {
+          "id": "LD05-P4",
+          "state": "pending",
+          "note": "Authorized live business-source pilot, independent reconciled observations and growth/BI signoff"
+        }
+      ],
+      "signatories": [
+        "Growth owner",
+        "BI owner"
+      ],
+      "accepted": false
+    }
+  },
+  "acceptance_conditions": {
+    "LD02": "Approved industries, personas, public source list, excluded sources, verified lawful use/retention and dated signoffs",
+    "LD05": "Owner-accepted public-source quality, freshness, lead-yield and conversion KPIs with actual authorized denominator and quality evidence"
+  },
+  "reality_checks": {
+    "no_real_prospects_collected": true,
+    "no_web_scraping": true,
+    "no_crm_writes": true,
+    "no_external_email": true,
+    "false_real_approval_prevented": true,
+    "release_hold": true,
+    "security_issue19_untouched": true
+  },
+  "planning": {
+    "preapproval_technical_batches_remaining": "0–1 after validated CI; change only for specific defects",
+    "independent_review_batches": "1–2 if approved facts and measured evidence are supplied",
+    "no_finite_calendar_count_without_real_owner_decisions": true
+  }
+}

@@ -1,0 +1,23 @@
+name: Build165 Category C Lead Discovery — synthetic only
+on:
+  pull_request:
+    paths:
+      - 'security/lead-discovery/**'
+      - 'security/build165-lead-category/**'
+      - 'security/build121/**'
+      - 'security/build122/**'
+      - '.github/workflows/build165-category-c.yml'
+permissions:
+  contents: read
+jobs:
+  category-c-offline:
+    name: Lead research evidence + KPI no-send contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288ca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: node --test security/build121/lead-discovery.test.mjs security/build122/lead-review-and-handoff.test.mjs security/build165-lead-category/contract.test.mjs
+      - run: node security/lead-discovery/metrics.mjs security/lead-discovery/manifest.synthetic.json security/lead-discovery/review-decisions.synthetic.json 2026-11-15

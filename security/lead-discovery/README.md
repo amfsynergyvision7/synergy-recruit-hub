@@ -43,3 +43,13 @@ node --test security/build122/lead-review-and-handoff.test.mjs
 - Review decisions, rejections and preview creation are traced with deterministic SHA-256 hash-chained audit events. The chain is tamper-evident in the printed preview; its chain is **not an externally signed or persisted compliance ledger**.
 - No live business sourcing/ICP whitelist approval (LD02), operational sales contact, CRM write, public database insert, email or outreach occurs. An actual growth/CRM owner must separately authorize live integration.
 
+
+## Build165 — Category C consolidation: LD02 + LD05 (NO LIVE SOURCING)
+
+**New current focus: Category C, AI Lead Discovery (6/10 accepted, 3/5 official milestones).** All cross-category engineering is paused except independent critical security monitoring. This package does not request network access, scrape real sources, extract personal contacts, send messages or write CRM.
+
+Two owner-review packets have been added: `LD02-ICP-SOURCE-APPROVAL.md` plus `lead-policy.review.json` (still no approved ICP/whitelist/retention), and `LD05-KPI-ACCEPTANCE.md` plus `kpi-acceptance.review.json` (still no approved KPI thresholds or real source sample). Source constraints are grounded in the connected CEO-only pilot draft documents, **not treated as approved operating policy**.
+
+A real runnable, offline-only synthetic metrics program now computes aggregate provenance, evidence freshness, deduplication, review completion and no-send handoff preview yield with safe denominators. No operational conversion metrics are invented. Run `node security/lead-discovery/metrics.mjs security/lead-discovery/manifest.synthetic.json security/lead-discovery/review-decisions.synthetic.json 2026-11-15`.
+
+`category-c-v1.json` tracks official LD01–05 status and two remaining gated subpackages. This is an engineering evidence packet; official score increases to 8/10 or 10/10 **only with individually supported owner acceptance and valid verification**. Critical production audit Issue #19 remains HOLD; unrelated draft security changes are not included here.
