@@ -29,7 +29,7 @@ test('Build152 all ten source artifacts match original PR12 Git blob hashes',()=
  assert.equal(manifest.source_pr,12);
  assert.match(manifest.source_pr_head,/^[0-9a-f]{40}$/);
  assert.equal(manifest.original_sources.length,10);
- assert.equal(new Set(manifest.original_sources.map(x=>x.review_copy)).size,4);
+ assert.equal(new Set(manifest.original_sources.map(x=>x.review_copy)).size,10);
  for(const source of manifest.original_sources){
   const local=source.review_copy.split('/').at(-1);
   assert.equal(source.review_copy,'security/build151-production-permissions-review/'+local);
@@ -137,8 +137,12 @@ test('Build152 exact existing 67-policy catalog covers 18 tables and has 15 perm
  assert.doesNotMatch(policyReplay,/^BEGIN;|^COMMIT;/m);
 });
 test('Build152 independent JavaScript digest reproduces live PostgreSQL pg_policies fingerprint',()=>{
+ // pg_policies source view uses PostgreSQL's catalog/C name collation;
+ // localeCompare('en') would reorder uppercase "Allow all" after lowercase
+ // policy names for five tables and falsely signal a policy source drift.
+ const binaryCompare=(x,y)=>x===y?0:(x<y?-1:1);
  const sorted=[...policyCatalog.policies].sort((a,b)=>
-  a.tablename.localeCompare(b.tablename,'en')||a.policyname.localeCompare(b.policyname,'en'));
+  binaryCompare(a.tablename,b.tablename)||binaryCompare(a.policyname,b.policyname));
  const value=sorted.map(p=>
   [p.tablename,p.policyname,p.permissive,p.roles,p.cmd,
    p.qual??'<NULL>',p.with_check??'<NULL>'].join('\x1f')).join('\n');

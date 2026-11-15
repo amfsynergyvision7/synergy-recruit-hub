@@ -1,5 +1,5 @@
 -- Build152 READ ONLY: source fingerprint of the 67 public RLS policies.
--- SELECT pg_catalog policy metadata only. No business rows; never release approval.
+-- SELECT pg_catalog policy metadata only. No business rows, never release approval.
 WITH policies AS (
  SELECT tablename,policyname,permissive,roles::text AS role_text,
         cmd,qual,with_check
