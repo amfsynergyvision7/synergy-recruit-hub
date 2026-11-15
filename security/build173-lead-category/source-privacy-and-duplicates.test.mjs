@@ -91,3 +91,14 @@ test("Build173 adversarial inputs never authorize live CRM or outreach",()=>{
  assert.equal(result.leads[0].outreach_authorized,false);
  assert.equal(result.leads[0].crm_write_authorized,false);
 });
+
+test("Build173 official corrected second fictional snapshot uses consistent company identity",async()=>{
+ const report=await runLocalManifest(manifest);
+ const acacia=report.leads.find(x=>x.business_website==="https://acacia.example.invalid");
+ assert(acacia,"Expected fictional Acacia record");
+ assert.equal(acacia.company_name,"Acacia Logistics (Synthetic)");
+ assert.equal(acacia.evidence.length,2);
+ assert.equal(report.extracted_businesses,4);
+ assert.equal(report.duplicates_merged,1);
+ assert.equal(report.network_requests+report.crm_writes+report.outbound_messages,0);
+});
