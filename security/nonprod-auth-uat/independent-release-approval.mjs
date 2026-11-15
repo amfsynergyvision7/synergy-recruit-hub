@@ -97,6 +97,63 @@ export function verifyIndependentReleaseGate({pr,reviews,main,context,mainRules}
 }
 
 
+
+/**
+ * Build150: signed-off source must have an actual successful no-secret
+ * GitHub Actions check on the exact independently approved PR head.
+ * A green decorative commit status, a skipped/manual job, a stale SHA or an
+ * older success followed by a newer failure is NEVER sufficient evidence.
+ */
+export const SAFETY_WORKFLOW_FILE='.github/workflows/nonprod-synthetic-auth-uat.yml';
+export const SAFETY_WORKFLOW_NAME='Nonprod Synthetic Auth UAT — Manual Only';
+export const SAFETY_CONTRACT_JOB='Nonprod Auth runner contracts — no secrets';
+export const SENSITIVE_MANUAL_JOB='Protected isolated Auth Admin and inert fixture';
+
+export function selectExactReviewedSafetyRun({pr,runs}={}){
+ const sha=pr?.head?.sha;
+ if(!/^[a-f0-9]{40}$/.test(sha??'')||
+    !runs||!Number.isInteger(runs.total_count)||
+    runs.total_count<1||runs.total_count>=100||
+    !Array.isArray(runs.workflow_runs)||
+    runs.workflow_runs.length!==runs.total_count)
+  throw new Error('Complete exact-head safety run inventory unavailable');
+ const matches=runs.workflow_runs.every(run=>
+   Number.isSafeInteger(run?.id)&&run.id>0&&
+   Number.isSafeInteger(run.run_number)&&run.run_number>0&&
+   run.path===SAFETY_WORKFLOW_FILE&&
+   run.name===SAFETY_WORKFLOW_NAME&&
+   run.event==='pull_request'&&run.head_sha===sha&&
+   run.head_branch===EXPECTED_BRANCH&&
+   Array.isArray(run.pull_requests)&&
+   run.pull_requests.some(item=>item?.number===EXPECTED_PR&&
+     item?.head?.sha===sha));
+ if(!matches)throw new Error('Safety workflow provenance does not match exact reviewed PR');
+ const latest=[...runs.workflow_runs].sort((a,b)=>
+   b.run_number-a.run_number||b.id-a.id)[0];
+ if(latest.status!=='completed'||latest.conclusion!=='success'||
+   !Number.isInteger(latest.run_attempt)||latest.run_attempt<1)
+  throw new Error('Latest reviewed safety workflow did not complete successfully');
+ return latest;
+}
+export function verifyExactReviewedSafetyCi({pr,runs,jobs}={}){
+ const latest=selectExactReviewedSafetyRun({pr,runs});
+ if(!jobs||!Number.isInteger(jobs.total_count)||
+   jobs.total_count!==2||!Array.isArray(jobs.jobs)||
+   jobs.jobs.length!==2)
+  throw new Error('Complete reviewed safety workflow jobs unavailable');
+ const contract=jobs.jobs.filter(j=>j?.name===SAFETY_CONTRACT_JOB);
+ const manual=jobs.jobs.filter(j=>j?.name===SENSITIVE_MANUAL_JOB);
+ if(contract.length!==1||manual.length!==1||
+   jobs.jobs.some(j=>j.run_id!==latest.id||
+     j.run_attempt!==latest.run_attempt||
+     j.head_sha!==pr.head.sha||j.status!=='completed')||
+   contract[0].conclusion!=='success'||
+   manual[0].conclusion!=='skipped')
+  throw new Error('Reviewed safety contracts not proven successful with secrets skipped');
+ return Object.freeze({exactHeadSafetyCi:true,reviewedSafetyRunId:latest.id,
+   credentialBearingJobSkipped:true});
+}
+
 /**
  * Build90: prior PR approval cannot authorize later changes to executable
  * bootstrap source, dependency locks, workflow or release evidence.
@@ -208,6 +265,16 @@ export async function assertGitHubReleaseGate(env=process.env){
  ]);
  const approved=verifyIndependentReleaseGate({pr,reviews,main,mainRules,context});
  const protectedEnvironment=verifyProtectedEnvironment(environment);
+ // This is a SECOND, independent GitHub Actions proof. A branch status rule
+ // alone cannot show that the expected contract job actually ran at PR HEAD.
+ const safeSha=pr.head.sha;
+ const runs=await getGitHubJson(
+   '/actions/workflows/nonprod-synthetic-auth-uat.yml/runs?'+
+   'event=pull_request&head_sha='+safeSha+'&per_page=100',token);
+ const latest=selectExactReviewedSafetyRun({pr,runs});
+ const jobs=await getGitHubJson(
+   '/actions/runs/'+latest.id+'/jobs?filter=latest&per_page=100',token);
+ const ci=verifyExactReviewedSafetyCi({pr,runs,jobs});
  // GitHub's immutable commit API returns the tree SHA for each exact commit.
  const getSourceTree=async sha=>{
    const commit=await getGitHubJson('/git/commits/'+sha,token);
@@ -218,7 +285,7 @@ export async function assertGitHubReleaseGate(env=process.env){
  const [approvedTree,currentTree]=await Promise.all([
    getSourceTree(pr.head.sha),getSourceTree(context.sha)
  ]);
- return {...approved,...protectedEnvironment,...verifyPinnedReviewedSource(approvedTree,currentTree)};
+ return {...approved,...protectedEnvironment,...ci,...verifyPinnedReviewedSource(approvedTree,currentTree)};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  assertGitHubReleaseGate().then(()=>{

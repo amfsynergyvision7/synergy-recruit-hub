@@ -5,7 +5,7 @@ import {executionPlan,validateSnapshot,validateReadOnlyAudit,readHostedSnapshot,
 import {makeBaseFixture,seedInertBaseFixture} from './seed-inert-base-fixture.mjs';
 import {EXPECTED_EXTENDED_COUNTS,composeExtendedFixture,seedExtendedFixture} from './compose-and-seed-remaining-fixture.mjs';
 import {slotEmail,provisionNine,PROJECT_URL,isExactSyntheticAuthUser,syntheticAuthEvidenceFingerprint} from './provision-nine-auth-users.mjs';
-import { verifyIndependentReleaseGate,verifyMinimumEnforcedMainRules,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
+import { verifyIndependentReleaseGate,verifyMinimumEnforcedMainRules,selectExactReviewedSafetyRun,verifyExactReviewedSafetyCi,verifyPinnedReviewedSource,PINNED_RELEASE_PATHS,verifyProtectedEnvironment,EXPECTED_ENVIRONMENT } from './independent-release-approval.mjs';
 import {summarizeReleaseBlockers} from './release-blocker-report.mjs';
 
 const project='dhlhlasnaapzckjyvffn';
@@ -1612,4 +1612,103 @@ test('Build149 advisory report explicitly records manual ruleset-bypass limitati
  assert(src.includes('the repository administrator must inspect and separately attest'));
  assert(gate.includes('REQUIRED_NONPROD_CONTRACT_CHECKS'));
  assert(gate.includes('"security/nonprod-auth-uat/release-blocker-report.mjs"'));
+});
+
+
+// Build150: live-shaped GitHub API results in memory, not credentials or network.
+const exactSafetyProof=()=>{
+ const sha='b'.repeat(40),runId=43629984174;
+ const pr={number:15,head:{sha,ref:'release/nonprod-auth-uat-gate-20261113'}};
+ const run={
+  id:runId,run_number:78,run_attempt:1,
+  name:'Nonprod Synthetic Auth UAT — Manual Only',
+  path:'.github/workflows/nonprod-synthetic-auth-uat.yml',
+  event:'pull_request',head_sha:sha,
+  head_branch:'release/nonprod-auth-uat-gate-20261113',
+  status:'completed',conclusion:'success',
+  pull_requests:[{number:15,head:{sha}}]
+ };
+ const runs={total_count:1,workflow_runs:[run]};
+ const jobs={total_count:2,jobs:[
+  {name:'Nonprod Auth runner contracts — no secrets',
+   run_id:runId,run_attempt:1,head_sha:sha,
+   status:'completed',conclusion:'success'},
+  {name:'Protected isolated Auth Admin and inert fixture',
+   run_id:runId,run_attempt:1,head_sha:sha,
+   status:'completed',conclusion:'skipped'}
+ ]};
+ return {pr,runs,jobs};
+};
+test('Build150 exact reviewed PR head requires a real completed workflow and real successful no-secret contract job',()=>{
+ const x=exactSafetyProof();
+ assert.deepEqual(verifyExactReviewedSafetyCi(x),{
+  exactHeadSafetyCi:true,
+  reviewedSafetyRunId:43629984174,
+  credentialBearingJobSkipped:true
+ });
+});
+test('Build150 no stale, foreign, manual or incomplete safety run may authorize secret access',()=>{
+ const x=exactSafetyProof();
+ const modifications=[
+  a=>{a.runs.total_count=100;},
+  a=>{a.runs.total_count=2;},
+  a=>{a.runs.workflow_runs[0].head_sha='c'.repeat(40);},
+  a=>{a.runs.workflow_runs[0].path='.github/workflows/untrusted.yml';},
+  a=>{a.runs.workflow_runs[0].event='workflow_dispatch';},
+  a=>{a.runs.workflow_runs[0].head_branch='unreviewed-branch';},
+  a=>{a.runs.workflow_runs[0].pull_requests=[];},
+  a=>{a.runs.workflow_runs[0].status='in_progress';},
+  a=>{a.runs.workflow_runs[0].conclusion='failure';},
+  a=>{a.runs.workflow_runs[0].run_attempt=0;},
+  a=>{a.runs.workflow_runs[0].name='Green Status';},
+  a=>{a.runs.workflow_runs[0].run_number=-1;}
+ ];
+ for(const mutate of modifications){
+  const a=structuredClone(x);mutate(a);
+  assert.throws(()=>verifyExactReviewedSafetyCi(a),
+   /run inventory|provenance|workflow did not complete/);
+ }
+});
+test('Build150 most recent safety run failure overrides an older exact-head success',()=>{
+ const x=exactSafetyProof();
+ const bad={...x.runs.workflow_runs[0],id:43629985000,
+  run_number:79,conclusion:'failure'};
+ x.runs.workflow_runs.unshift(bad);x.runs.total_count=2;
+ assert.throws(()=>selectExactReviewedSafetyRun(x),
+  /Latest reviewed safety workflow did not complete successfully/);
+ bad.conclusion='success';bad.status='completed';
+ assert.equal(selectExactReviewedSafetyRun(x).id,bad.id);
+ assert.throws(()=>verifyExactReviewedSafetyCi(x),
+  /Reviewed safety contracts not proven successful/,
+  'Jobs belonging to older run must not count for later one');
+});
+test('Build150 no skipped, failed, detached or ambiguous no-secret CI job can count as success',()=>{
+ const x=exactSafetyProof();
+ const modifications=[
+  a=>{a.jobs.jobs[0].conclusion='skipped';},
+  a=>{a.jobs.jobs[0].conclusion='failure';},
+  a=>{a.jobs.jobs[1].conclusion='success';},
+  a=>{a.jobs.jobs[0].head_sha='c'.repeat(40);},
+  a=>{a.jobs.jobs[0].run_id=0;},
+  a=>{a.jobs.jobs[0].run_attempt=2;},
+  a=>{a.jobs.jobs[0].name='Decorative green check';},
+  a=>{a.jobs.total_count=3;},
+  a=>{a.jobs.jobs.pop();},
+  a=>{a.jobs.jobs[0].status='in_progress';}
+ ];
+ for(const mutate of modifications){
+  const a=structuredClone(x);mutate(a);
+  assert.throws(()=>verifyExactReviewedSafetyCi(a),
+   /jobs unavailable|not proven successful/);
+ }
+});
+test('Build150 protected manual runner uses read-only exact-head Actions checks before credential access',()=>{
+ const gate=readFileSync(new URL('./independent-release-approval.mjs',import.meta.url),'utf8');
+ const workflow=readFileSync(new URL('../../.github/workflows/nonprod-synthetic-auth-uat.yml',import.meta.url),'utf8');
+ assert(gate.includes("'event=pull_request&head_sha='+safeSha+'&per_page=100'"));
+ assert(gate.includes("'/actions/runs/'+latest.id+'/jobs?filter=latest&per_page=100'"));
+ assert(gate.includes('verifyExactReviewedSafetyCi({pr,runs,jobs})'));
+ assert(workflow.includes('actions: read'));
+ assert(workflow.indexOf('run: node security/nonprod-auth-uat/independent-release-approval.mjs')<
+  workflow.indexOf('AMF_UAT_SERVICE_ROLE_KEY:'));
 });
