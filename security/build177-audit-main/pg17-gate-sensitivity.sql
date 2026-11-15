@@ -24,6 +24,14 @@ CREATE FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)
  AS $stub$ SELECT NULL::uuid, 'NOOP_NOT_A_REAL_RECONCILIATION'::text WHERE false $stub$;
 REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+-- Read back only disposable function catalog fields (NOT SQL data rows).
+SELECT p.proname,p.pronargs,p.prosecdef,p.proconfig,
+ has_function_privilege('anon',p.oid,'EXECUTE') AS anon_exec,
+ has_function_privilege('authenticated',p.oid,'EXECUTE') AS auth_exec,
+ has_function_privilege('service_role',p.oid,'EXECUTE') AS service_exec,
+ array_position(p.proconfig,'search_path=') IS NOT NULL AS exact_preflight_path_match
+FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+WHERE n.nspname='public' AND p.proname='crm_email_confirm_sent_trusted';
 -- Baseline PRECHECK must reach REVIEW_ONLY, never a real release pass.
 \i /tmp/build178-audit-preflight.gset.sql
 SELECT (:audit_named_rpc_count::integer=1 AND :audit_safe_rpc_count::integer=1 AND

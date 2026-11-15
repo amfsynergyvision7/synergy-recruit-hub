@@ -127,7 +127,7 @@ test("Build179 disposable CI uses only temporary local database service and reta
 
 test("Build179 failure controls have a PostgreSQL nonzero error path, never unsupported psql quit arguments",()=>{
  const script=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,3);
+ assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,14);
  assert(!/\\quit\s+[345]/.test(script));
  assert.match(script,/ON_ERROR_STOP on/);
 });
