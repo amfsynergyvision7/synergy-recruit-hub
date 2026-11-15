@@ -4,7 +4,7 @@
 // component rather than inlined in CrudModule.tsx for the same reason
 // ResumeSummaryButton is separate: CrudModule is shared by 8 modules, and
 // this dialog's async send/template state is specific to the one feature.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { sendCrmEmail, listEmailHistory, getEmailMergeContext, type EmailMergeContext } from "@/lib/email.functions";
@@ -58,12 +58,18 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
   const [templateKey, setTemplateKey] = useState("custom");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  // One request key per compose session. Repeated clicks/retries keep the
+  // same UUID, so the email_log UUID primary key blocks repeat SMTP attempts.
+  const requestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (open) {
+      requestIdRef.current = crypto.randomUUID();
       setTemplateKey("custom");
       setSubject("");
       setBody("");
+    } else {
+      requestIdRef.current = null;
     }
   }, [open, relatedTable, relatedId, toEmail]);
 
@@ -100,7 +106,11 @@ export function EmailComposeDialog({ open, onOpenChange, relatedTable, relatedId
     mutationFn: () => {
       // Server-side crm_email release hold separately rejects direct RPCs.
       assertCrmEmailSendAllowed();
-      return runSend({ data: { relatedTable, relatedId, toEmail, subject, body } });
+      const requestId = requestIdRef.current;
+      if (!requestId) throw new Error(CRM_EMAIL_COMPOSER_HOLD_REASON);
+      // Never generate a new ID in mutationFn, including after an unknown
+      // outcome or failed call. No automatic retry with a different key.
+      return runSend({ data: { relatedTable, relatedId, toEmail, subject, body, requestId } });
     },
     onSuccess: () => {
       toast.success(`Email sent to ${toEmail}`);

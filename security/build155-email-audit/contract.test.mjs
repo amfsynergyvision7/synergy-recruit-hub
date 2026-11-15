@@ -8,6 +8,7 @@ import {
  confirmCrmEmailAuditSettlement,
  crmEmailOutcomeStatus,
  crmEmailDeliveryReconciliationError,
+ isCrmEmailRequestId,
  executeCrmEmailAuditProtocol
 } from '../../src/lib/crm-email-audit-integrity.server.ts';
 
@@ -63,7 +64,8 @@ test('Build155 route delegates journal reserve, SMTP and settlement to tested pr
  assert(begin>=0&&reserve>begin&&insert>reserve&&readback>insert&&deliver>readback&&settle>deliver&&update>settle);
  assert(send.includes('status: "pending"'));
  assert(send.includes('sent_by: context.userId'));
- assert(send.includes('const attemptId = randomUUID()'));
+ assert(send.includes('const attemptId = data.requestId'));
+ assert(send.includes('z.string().uuid().refine(isCrmEmailRequestId'));
  assert(!send.slice(0,deliver).includes('supabaseAdmin'));
 });
 test('Build155 provider failure/unknown is never automatically reported delivered',()=>{
@@ -209,4 +211,87 @@ test('Build156 real handler wires the same function verified by fake provider te
  const runner=send.indexOf('return await executeCrmEmailAuditProtocol({');
  assert(hold>0&&runner>hold);
  assert(!send.slice(hold,runner).includes('process.env.SMTP_PASSWORD'));
+});
+
+
+test('Build157 only canonical UUIDv4 request IDs may allocate correspondence attempts',()=>{
+ for(const v of [null,undefined,0,'','not-a-uuid',id,actor,
+ '33333333-3333-1333-8333-333333333333',
+ '33333333-3333-4333-7333-333333333333',
+ '33333333-3333-4333-8333-333333333333\n']){
+  if(v===id||v===actor)assert.equal(isCrmEmailRequestId(v),true);
+  else assert.equal(isCrmEmailRequestId(v),false,String(v));
+ }
+ assert.equal(isCrmEmailRequestId('33333333-3333-4333-8333-333333333333'),true);
+});
+test('Build157 browser reuses one stable request key on repeated mutation attempts',()=>{
+ const ui=read('src/components/EmailComposeDialog.tsx');
+ assert(ui.includes('const requestIdRef = useRef<string | null>(null)'));
+ assert(ui.includes('requestIdRef.current = crypto.randomUUID()'));
+ assert(ui.includes('requestIdRef.current = null'));
+ const mutation=ui.slice(ui.indexOf('const sendMut = useMutation'),ui.indexOf('const runHistory'));
+ assert(mutation.includes('const requestId = requestIdRef.current'));
+ assert(mutation.includes('relatedTable, relatedId, toEmail, subject, body, requestId'));
+ assert(!mutation.includes('crypto.randomUUID()'));
+ assert(mutation.includes('assertCrmEmailSendAllowed();'));
+});
+test('Build157 duplicate journal primary-key reservation prevents repeated fake SMTP delivery',async()=>{
+ const journal=new Map();let providerCalls=0;
+ const create=()=>({
+  attempt:expected,
+  reserve:async()=>{
+    if(journal.has(id))return {row:null,error:{code:'23505'}};
+    journal.set(id,{...reserved});
+    return {row:journal.get(id),error:null};
+  },
+  deliver:async()=>{providerCalls++;return {success:true,providerId:'<first@example.invalid>'};},
+  settle:async(status)=>{
+    const previous=journal.get(id);
+    if(!previous||previous.status!=='pending')return {row:null,error:{code:'NO_ROW'}};
+    const value={...previous,status};journal.set(id,value);
+    return {row:value,error:null};
+  }
+ });
+ const results=await Promise.allSettled([
+  executeCrmEmailAuditProtocol(create()),executeCrmEmailAuditProtocol(create())
+ ]);
+ assert.equal(results.filter(x=>x.status==='fulfilled').length,1);
+ assert.equal(results.filter(x=>x.status==='rejected').length,1);
+ assert.equal(providerCalls,1);
+ assert.equal(journal.size,1);
+});
+test('Build157 provider acceptance followed by failed settlement never resends on same key',async()=>{
+ const journal=new Map();let sent=0;
+ const run=()=>executeCrmEmailAuditProtocol({
+  attempt:expected,
+  reserve:async()=>{
+   if(journal.has(id))return {row:null,error:{code:'23505'}};
+   journal.set(id,{...reserved});return {row:journal.get(id),error:null};
+  },
+  deliver:async()=>{sent++;return {success:true,providerId:'<possibly-accepted@example.invalid>'};},
+  settle:async()=>{throw Error('DB update failed after SMTP acceptance');}
+ });
+ await assert.rejects(run(),/manual reconciliation/);
+ await assert.rejects(run(),/delivery blocked/);
+ assert.equal(sent,1);
+ assert.equal(journal.get(id).status,'pending');
+});
+test('Build157 do not use upsert or select-existing-then-retry race to bypass unique key',()=>{
+ const send=email.slice(email.indexOf('export const sendCrmEmail'),email.indexOf('export const listEmailHistory'));
+ assert.match(send,/const attemptId = data\.requestId;/);
+ assert.match(send,/\.insert\(\{\s*id: attemptId,/);
+ assert(!send.includes('.upsert('));
+ const reserve=send.slice(send.indexOf('reserve: async'),send.indexOf('deliver:'));
+ assert(!reserve.includes('ignoreDuplicates'));
+ assert(!reserve.includes('onConflict'));
+ assert(!reserve.includes('.select("*")'));
+ assert(!reserve.includes('randomUUID()'));
+});
+test('Build157 live primary-key metadata preflight refuses weak schema despite source holds',()=>{
+ const sql=read('security/build155-email-audit/email-log-preflight.readonly.sql');
+ assert.match(sql,/pg_catalog\.pg_constraint/);
+ assert.match(sql,/PRIMARY KEY \(id\)/);
+ assert.match(sql,/matching_primary_key/);
+ assert.match(sql,/HOLD_EMAIL_AUDIT_PROTOCOL_NOT_READY/);
+ assert.equal((sql.match(/;/g)||[]).length,1);
 });

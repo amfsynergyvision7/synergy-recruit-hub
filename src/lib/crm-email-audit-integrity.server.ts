@@ -4,7 +4,15 @@
  * outbox, idempotency, reconciliation, access policy and signed hosted UAT.
  */
 export const CRM_EMAIL_AUDIT_INTEGRITY_RELEASE_HOLD = true as const;
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const requestUuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** A single stable browser-generated attempt key is required per compose session.
+ * The email_log UUID PRIMARY KEY is the existing atomic uniqueness boundary.
+ * Distinct keys for identical content are NOT deduplicated.
+ */
+export function isCrmEmailRequestId(id:unknown):id is string {
+ return typeof id==="string"&&requestUuidV4.test(id);
+}
 const reservationError = "CRM email audit reservation unavailable; delivery blocked";
 const settlementError = "CRM email delivery outcome requires manual reconciliation; do not retry";
 
@@ -19,7 +27,7 @@ export function confirmCrmEmailAuditReservation(args: {
 }): void {
   const {row,error,expected}=args;
   if(error||!row||typeof row!=="object"||
-     !uuid.test(expected.id)||!uuid.test(expected.actorId)||
+     !isCrmEmailRequestId(expected.id)||!uuid.test(expected.actorId)||
      !uuid.test(expected.relatedId)||
      !["candidates","clients"].includes(expected.relatedTable))
     throw new Error(reservationError);
@@ -44,7 +52,7 @@ export function confirmCrmEmailAuditSettlement(args:{
   row: unknown; error: unknown; expected: {id:string;status:"sent"|"unknown"};
 }): void {
   const {row,error,expected}=args;
-  if(error||!row||typeof row!=="object"||!uuid.test(expected.id)||
+  if(error||!row||typeof row!=="object"||!isCrmEmailRequestId(expected.id)||
      !["sent","unknown"].includes(expected.status))
     throw new Error(settlementError);
   const r=row as Record<string,unknown>;

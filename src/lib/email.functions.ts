@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { sendEmail, textToHtml } from "./email.server";
@@ -11,6 +10,7 @@ import {
   confirmCrmEmailAuditSettlement,
   crmEmailDeliveryReconciliationError,
   executeCrmEmailAuditProtocol,
+  isCrmEmailRequestId,
 } from "./crm-email-audit-integrity.server";
 import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
 import { assertCrmEmailRecordReadAccess } from "./crm-email-record-access.server";
@@ -31,6 +31,7 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       toEmail: z.string().email(),
       subject: z.string().min(1).max(200),
       body: z.string().min(1).max(10000),
+      requestId: z.string().uuid().refine(isCrmEmailRequestId, "Invalid email attempt key"),
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
@@ -92,7 +93,11 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     // UPDATE policy, and the proposed RLS removes even INSERT: the separate
     // compile-time audit hold must remain until a reviewed RPC/outbox and
     // signed hosted UAT prove both stages and idempotency are safe.
-    const attemptId = randomUUID();
+    // Reuse the caller's stable request UUID as email_log's existing PRIMARY
+    // KEY. Concurrent/replayed requests with the same ID cannot reserve
+    // another audit row or invoke SMTP after a database duplicate-key error.
+    // No conflict-upsert or SELECT-existing-then-send race is allowed.
+    const attemptId = data.requestId;
     return await executeCrmEmailAuditProtocol({
       attempt: {
         id: attemptId,
