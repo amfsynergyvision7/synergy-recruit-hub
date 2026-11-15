@@ -1,0 +1,18 @@
+{
+  "build": 92,
+  "observed_on": "2026-11-13",
+  "project_id": "dhlhlasnaapzckjyvffn",
+  "scope": "LIVE_NONPRODUCTION_READ_ONLY",
+  "source": "security/nonprod-auth-uat/build92-hosted-schema-contract.readonly.sql",
+  "tables_seen": 19,
+  "columns_seen": 239,
+  "required_no_default_columns": 101,
+  "schema_fingerprint": "e51f1648c517e88831a3c07740476bf3",
+  "positive_result": "TECHNICAL_FIXTURE_SCHEMA_BASELINE_PASS_NOT_PROVISIONING_PERMISSION",
+  "negative_test": "One expected fingerprint replaced in transient SQL; returned HOLD_FIXTURE_SCHEMA_DRIFT",
+  "mutations": 0,
+  "hosted_auth_users_created": 0,
+  "hosted_fixture_rows_inserted": 0,
+  "signed_uat_accepted": 0,
+  "disclaimer": "Schema-fingerprint match is technical drift evidence only, not proof all insert-time constraints/permissions pass, authorization to seed, or a hosted UAT acceptance."
+}

@@ -1,0 +1,71 @@
+{
+  "build": 89,
+  "date_utc": "2026-11-13",
+  "project_id": "dhlhlasnaapzckjyvffn",
+  "scope": "ACTUAL_LIVE_NONPROD_SELECT_ONLY",
+  "historical_strict_check": {
+    "source": "security/build75/isolated-hosted-preseed.readonly.sql",
+    "source_blob_sha": "0e559d0265e39ff0e099ca1bbe0f784d7c685f7d",
+    "result": "HOLD_NONPROD_PRESEED_SCHEMA_TRIGGER_AUTH_OR_GRANTS",
+    "app_triggers_present": 32,
+    "unmodified_source_matches": 30,
+    "trigger_function_hardened_differences": 2
+  },
+  "documented_hardenings": [
+    {
+      "table": "candidates",
+      "trigger": "set_assigned_recruiter_trigger",
+      "trigger_def_matches_production": true,
+      "lab_function_md5": "0b3f5aefd663dae047d866fddc805c96",
+      "source_function_md5": "e400aad0d20359265b58d9718d4f48a4",
+      "controls": [
+        "search_path_empty",
+        "security_definer",
+        "trigger_disabled",
+        "no_anon_execute",
+        "no_authenticated_execute"
+      ]
+    },
+    {
+      "table": "candidates",
+      "trigger": "track_stage_changes_trigger",
+      "trigger_def_matches_production": true,
+      "lab_function_md5": "1966ef60466b78a94bd0f700a8ae9468",
+      "source_function_md5": "86c1f9eb50c225a673ae61e82d4e7397",
+      "controls": [
+        "search_path_empty",
+        "explicit_public_qualified_insert",
+        "security_definer",
+        "trigger_disabled",
+        "no_anon_execute",
+        "no_authenticated_execute"
+      ]
+    }
+  ],
+  "reviewed_variant_check": {
+    "source": "security/nonprod-auth-uat/build89-hosted-preseed-two-hardenings.readonly.sql",
+    "source_blob_sha": "108eeff4e95cd8e4f67cec5dea0ba39e214c8b1a",
+    "matched_tables": 19,
+    "views_present": 13,
+    "views_security_invoker": 13,
+    "app_triggers_present": 32,
+    "approved_source_or_hardened_app_triggers": 32,
+    "safe_hardened_function_variants": 2,
+    "enabled_app_triggers": 0,
+    "auth_users": 0,
+    "auth_user_triggers": 0,
+    "result": "TECHNICAL_PRESEED_30_EXACT_PLUS_2_HARDENED_PASS_NOT_PROVISIONING_PERMISSION"
+  },
+  "negative_readonly_test": {
+    "tamper": "changed one expected hardened function hash only in transient SELECT source",
+    "approved_hash_matches": 31,
+    "result": "HOLD_NONPROD_PRESEED_SCHEMA_TRIGGER_AUTH_OR_GRANTS",
+    "database_mutated": false
+  },
+  "hosted_auth_accounts_created": 0,
+  "hosted_fixture_rows_inserted": 0,
+  "signed_hosted_uat_accepted": 0,
+  "independent_source_review_accepted": false,
+  "production_remediations_accepted": 0,
+  "caution": "New verifier exact source and lab controls passed; this is technical readiness evidence, not independent signoff, permission to create users, release approval, or a production migration."
+}
