@@ -26,3 +26,7 @@ These are pending/unknown duplication controls, **not exactly-once SMTP**, not p
 - Formal counters remain **0/140** signed hosted UAT, **0/48** accepted production security fixes and 0/9 release signatures. Keep issue #17 open; both immutable outbound email holds remain true.
 
 **Owner decision:** DB/security, CRM/operations and communications/privacy reviewers must independently decide whether the conservative unresolved-contact lock meets company requirements, then approve the full migration and manual reconciliation. Business/legal communications policies are not inferred here.
+
+## Build158 concurrent connection verification
+
+A second disposable test now runs **two distinct PostgreSQL sessions**: the first holds an unresolved insert uncommitted for two seconds; a competing actor with a different request UUID tries to reserve the same CRM record and normalized recipient. The second transaction must fail with the intended partial-unique-index violation; exactly one pending row must remain. This experiment is guarded by the exact database name plus `BUILD158_CI_DISPOSABLE=true`, uses no Supabase/SMTP credentials, and drops all synthetic rows on exit. It proves PG17 enforcement under a competing session, not deployed prod behavior or approved business rules.

@@ -44,7 +44,10 @@ jobs:
       PGUSER: ci_email_lab
       PGPASSWORD: ci_fixture_only
       PGDATABASE: amf_build158_email_lab
+      BUILD158_CI_DISPOSABLE: "true"
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Rehearse source-identical partial unique index in disposable lab
         run: psql -X -v ON_ERROR_STOP=1 -f security/build158-email-outbox/disposable-pg17-rehearsal.sql
+      - name: Verify two competing PG17 sessions with the same CRM recipient
+        run: bash security/build158-email-outbox/disposable-pg17-concurrent.sh

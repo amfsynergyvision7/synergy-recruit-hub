@@ -61,3 +61,25 @@ test("Build158 explicit release caveats disallow claims of universal dedupe",()=
   assert(doc.includes(term),term);
  }
 });
+
+
+test("Build158 two independent session rehearsal guards its disposable database identity",()=>{
+ const setup=file("./disposable-pg17-concurrent-setup.sql");
+ const race=file("./disposable-pg17-concurrent.sh");
+ assert.match(setup,/current_database\(\) <> 'amf_build158_email_lab'/);
+ assert.match(setup,/^\\ir pending-uniqueness\.DO-NOT-APPLY\.sql\.txt/m);
+ assert.match(race,/PGDATABASE:-/);
+ assert.match(race,/BUILD158_CI_DISPOSABLE:-/);
+ assert.match(race,/pg_sleep\(2\)/);
+ assert.match(race,/first_pid/);
+ assert.match(race,/second_pid/);
+ assert.match(race,/email_log_one_unresolved_per_recipient_idx/);
+ assert.match(race,/DROP TABLE IF EXISTS public\.email_log/);
+});
+test("Build158 concurrent sessions execute only in the local PG17 CI service",()=>{
+ const wf=file("../../.github/workflows/build155-email-audit.yml");
+ assert.match(wf,/image: postgres:17/);
+ assert.match(wf,/BUILD158_CI_DISPOSABLE: "true"/);
+ assert.match(wf,/bash security\/build158-email-outbox\/disposable-pg17-concurrent\.sh/);
+ assert.doesNotMatch(wf,/SUPABASE_SERVICE_ROLE_KEY/);
+});
