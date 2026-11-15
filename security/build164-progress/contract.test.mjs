@@ -53,3 +53,12 @@ test("Build164 CI enforces report synchronization and historic scorecard checks"
  assert(ci.includes("security/build120/release-progress-contract.test.mjs"));
  assert(!ci.includes("workflow_dispatch:"));
 });
+
+test("Build164 historical baseline README cannot be mistaken for current official progress",()=>{
+ const readme=readFileSync(new URL("../release-progress/README.md",import.meta.url),"utf8");
+ assert(readme.startsWith("# Latest project progress — Build 164"));
+ assert(readme.includes("./CURRENT-STATUS.md"));
+ assert(readme.includes("./STATUS-PROTOCOL.md"));
+ assert(readme.includes("26/100 accepted points"));
+ assert(readme.includes("Historical rubric design and Build120 baseline (not current status)"));
+});

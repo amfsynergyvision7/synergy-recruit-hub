@@ -1,3 +1,10 @@
+# Latest project progress — Build 164
+
+**Current canonical status:** [A–H category and audit subcategory dashboard](./CURRENT-STATUS.md) — **26/100 accepted points** (12/43 milestones; 31 open), and active audit work **4/9 source-preparation steps evidenced** (5 independent/hosted/live steps open). See [the reporting protocol](./STATUS-PROTOCOL.md) and [source-ledger](./active-work-v1.json). The active security remediation remains **0/48 accepted in production** and release **HOLD**. This link, not the historical Build120 baseline below, is the current reference.
+
+---
+## Historical rubric design and Build120 baseline (not current status)
+
 # AMF Synergy Vision — immutable deployment-completion rubric v1
 
 **Baseline: Build 120, 14 November 2026.** This is the fixed full-program scorecard requested by the owner. It covers the six official workstreams plus mandatory shared release controls. It is *not* a retrospective redefinition of the old 25% provisional management estimate.
