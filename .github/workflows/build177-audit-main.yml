@@ -1,4 +1,4 @@
-name: Build177–178 audit-log isolation — disposable PG17 only
+name: Build177–179 audit-log isolation — disposable PG17 only
 on:
   pull_request:
     paths:
@@ -55,6 +55,7 @@ jobs:
           printf '\gset audit_\n' >> /tmp/build178-audit-preflight.gset.sql
           command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
           psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-disposable-rollback.sql
+          psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-gate-sensitivity.sql
   main-release-hold:
     if: github.base_ref == 'main'
     name: Audit production merge and deployment — HOLD (intentionally fails)

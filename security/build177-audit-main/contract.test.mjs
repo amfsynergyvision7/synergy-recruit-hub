@@ -87,3 +87,40 @@ test("Build178 read-only role and ACL graph is catalog-only with no data selecti
  assert(!/\b(?:FROM|JOIN)\s+public\.audit_logs\b/i.test(source));
  assert(!/\b(?:DROP|REVOKE|GRANT|ALTER|CREATE)\s+(?:TABLE|POLICY|ROLE|FUNCTION|SCHEMA)\b/i.test(source));
 });
+
+test("Build179 catalog positive-control uses deliberately inert mock reconciliation, not operational approval",()=>{
+ const sql=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
+ assert.match(sql,/NOOP_NOT_A_REAL_RECONCILIATION/);
+ assert.match(sql,/REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE/);
+ assert.match(sql,/BUILD179_CATALOG_MATCH_IS_NOT_BEHAVIOR_OR_RELEASE/);
+ assert.match(sql,/CREATE FUNCTION public\.crm_email_confirm_sent_trusted\(uuid,uuid,text,text\)/);
+ assert.match(sql,/SECURITY INVOKER SET search_path=''/);
+ assert.match(sql,/REVOKE ALL ON FUNCTION .* FROM PUBLIC/);
+ assert.match(sql,/ROLLBACK;/);
+ assert(!sql.includes("SUPABASE_SERVICE_ROLE_KEY"));
+});
+test("Build179 twelve independent privilege/policy/function regressions are required to HOLD",()=>{
+ const sql=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
+ assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,12);
+ assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,12);
+ assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,12);
+ assert.equal((sql.match(/BUILD179_EXPECTED_HOLD_\d\d/g)||[]).length,12);
+ assert.equal((sql.match(/\\i \/tmp\/build178-audit-preflight\.gset\.sql/g)||[]).length,14);
+ assert.match(sql,/GRANT TRUNCATE ON public\.audit_logs TO anon/);
+ assert.match(sql,/GRANT UPDATE ON public\.audit_logs TO authenticated/);
+ assert.match(sql,/GRANT MAINTAIN ON public\.audit_logs TO authenticated/);
+ assert.match(sql,/GRANT TRIGGER ON public\.audit_logs TO service_role/);
+ assert.match(sql,/CREATE POLICY "Unrestricted malicious regression"/);
+ assert.match(sql,/SECURITY DEFINER/);
+ assert.match(sql,/DROP POLICY "read audit" ON public\.audit_logs/);
+ assert.match(sql,/BUILD179_RESTORED_CATALOG_MOCK_MATCH/);
+ assert.match(sql,/BUILD179_FULL_ROLLBACK_VERIFIED/);
+});
+test("Build179 disposable CI uses only temporary local database service and retains release HOLD",()=>{
+ const ci=readFileSync(join(root,"../../.github/workflows/build177-audit-main.yml"),"utf8");
+ assert.match(ci,/pg17-gate-sensitivity\.sql/);
+ assert.match(ci,/postgres:17/);
+ assert.match(ci,/main-release-hold:/);
+ assert.match(ci,/exit 1/);
+ assert(!/workflow_dispatch:|SUPABASE_|VERCEL_|DATABASE_URL|service_role_key/i.test(ci));
+});
