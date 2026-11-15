@@ -25,15 +25,15 @@ const between=(s,start,end)=>{
 };
 const sqlValueNames=part=>[...part.matchAll(/\('([^']+)'\)/g)].map(m=>m[1]);
 
-test('Build151 four reviewed files match exact Git blob SHAs from PR12, no substitutions',()=>{
+test('Build152 all ten source artifacts match original PR12 Git blob hashes',()=>{
  assert.equal(manifest.source_pr,12);
  assert.match(manifest.source_pr_head,/^[0-9a-f]{40}$/);
- assert.equal(manifest.original_sources.length,4);
+ assert.equal(manifest.original_sources.length,10);
  assert.equal(new Set(manifest.original_sources.map(x=>x.review_copy)).size,4);
  for(const source of manifest.original_sources){
   const local=source.review_copy.split('/').at(-1);
   assert.equal(source.review_copy,'security/build151-production-permissions-review/'+local);
-  assert.match(source.source_path,/^security\/build(?:47|73)\//);
+  assert.match(source.source_path,/^security\/build(?:47|48|49|73|74)\//);
   assert.equal(blobSha(load(local)),source.source_blob_sha,'Source drift: '+local);
  }
 });
@@ -109,4 +109,87 @@ test('Build151 independently reviewable package cannot be misconstrued as releas
  assert.match(readme,/PITR|restore/i);
  assert.match(readme,/not.*production deploy/i);
  assert(!manifest.original_sources.some(x=>x.review_copy.startsWith('supabase/migrations/')));
+});
+
+
+// Build152: full RLS/catalog and account RPC review sources are copied from
+// PR12 as inert .sql.txt files. Never invoke a SQL execution engine in CI.
+const policyCatalog=JSON.parse(load('baseline-67-policies.json'));
+const policyReplay=load('legacy-67-policies.DO-NOT-RUN.sql.txt');
+const fullPolicyProposal=load('complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt');
+const adminProposal=load('admin-account-rpc.DO-NOT-APPLY.sql.txt');
+const selfProposal=load('self-profile-rpc.DO-NOT-APPLY.sql.txt');
+const priorFingerprints=JSON.parse(load('prior-source-fingerprints.json'));
+const policyPreflight=load('policy-fingerprint.readonly.sql');
+
+test('Build152 exact existing 67-policy catalog covers 18 tables and has 15 permissive ALL bypasses',()=>{
+ assert.equal(policyCatalog.count,67);
+ assert.equal(policyCatalog.tables,18);
+ assert.equal(policyCatalog.policies.length,67);
+ assert.equal(new Set(policyCatalog.policies.map(p=>p.tablename)).size,18);
+ const names=policyCatalog.policies.map(p=>p.tablename+'/'+p.policyname);
+ assert.equal(new Set(names).size,67);
+ const broad=policyCatalog.policies.filter(p=>
+  p.policyname==='Allow all for authenticated'&&p.permissive==='PERMISSIVE'&&
+  p.roles==='{public}'&&p.cmd==='ALL'&&p.qual==='true'&&p.with_check==='true');
+ assert.equal(broad.length,15);
+ assert.equal((policyReplay.match(/^CREATE POLICY /gm)||[]).length,67);
+ assert.doesNotMatch(policyReplay,/^BEGIN;|^COMMIT;/m);
+});
+test('Build152 independent JavaScript digest reproduces live PostgreSQL pg_policies fingerprint',()=>{
+ const sorted=[...policyCatalog.policies].sort((a,b)=>
+  a.tablename.localeCompare(b.tablename,'en')||a.policyname.localeCompare(b.policyname,'en'));
+ const value=sorted.map(p=>
+  [p.tablename,p.policyname,p.permissive,p.roles,p.cmd,
+   p.qual??'<NULL>',p.with_check??'<NULL>'].join('\x1f')).join('\n');
+ const digest=createHash('md5').update(value,'utf8').digest('hex');
+ assert.equal(digest,'a70190f31ed8436b2989082898a02b51');
+ assert.equal(digest,manifest.live_readonly_policy_observation_2026_11_15.observed_policy_md5);
+ assert.equal(priorFingerprints.checks.find(x=>x.scope==='existing_public_rls_policies').observed_md5,digest);
+});
+test('Build152 full proposed 67-to-35 policy replacement and account RPCs are present, inactive',()=>{
+ assert.match(fullPolicyProposal,/exact 67-policy replacement/);
+ assert.equal((fullPolicyProposal.match(/^CREATE POLICY /gm)||[]).length,35);
+ assert.match(fullPolicyProposal,/digest<>'a70190f31ed8436b2989082898a02b51'/);
+ assert.match(fullPolicyProposal,/CREATE OR REPLACE FUNCTION public\.crm_admin_manage_user/);
+ assert.match(fullPolicyProposal,/CREATE OR REPLACE FUNCTION public\.crm_update_own_profile/);
+ assert.match(adminProposal,/v_actor uuid := auth\.uid\(\)/);
+ assert.match(adminProposal,/SECURITY DEFINER SET search_path=pg_catalog,public/);
+ assert.match(selfProposal,/SECURITY DEFINER SET search_path=pg_catalog,public/);
+ assert.equal(manifest.acceptance.full_rls_policy_replacement_applied,false);
+ assert.equal(manifest.acceptance.full_rls_policy_replacement_accepted,false);
+ assert.equal(manifest.acceptance.production_remediations_applied,0);
+ assert.equal(manifest.acceptance.independently_accepted,0);
+});
+test('Build152 all executable-looking production policy proposals are archived as text not migrations',()=>{
+ const sqlSources=manifest.original_sources.filter(x=>
+  /67-policy-replay|67-policy-plus-account-rpcs|user-admin-rpc|self-profile-rpc/.test(x.source_path));
+ assert.equal(sqlSources.length,4);
+ assert(sqlSources.every(x=>x.review_copy.endsWith('.sql.txt')));
+ assert(manifest.original_sources.every(x=>!x.review_copy.startsWith('supabase/migrations/')));
+ const readme=load('README.md');
+ assert.match(readme,/DO NOT APPLY/i);
+ assert.match(readme,/67-policy/);
+ assert.match(readme,/35 proposed/i);
+ assert.match(readme,/not a deployable migration/i);
+});
+test('Build152 policy fingerprint preflight is catalog-only and contains no writes',()=>{
+ assert.match(policyPreflight,/^-- Build152 READ ONLY/);
+ assert.match(policyPreflight,/\bFROM pg_catalog\.pg_policies\b/);
+ assert.match(policyPreflight,/SOURCE_MATCH_REVIEW_ONLY_RELEASE_HOLD/);
+ assert.match(policyPreflight,/SOURCE_DRIFT_RELEASE_HOLD/);
+ assert.equal((policyPreflight.match(/;/g)||[]).length,1);
+ assert.doesNotMatch(policyPreflight,/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|DROP|CREATE|TRUNCATE|REVOKE|GRANT|ALTER|CALL|DO|COPY|EXECUTE|COMMIT|BEGIN)\b/im);
+ assert.doesNotMatch(policyPreflight,/\bSELECT\s+\*\s+FROM\s+(?:public|auth)\./i);
+ assert.equal(manifest.live_readonly_policy_observation_2026_11_15.release_decision,
+  'SOURCE_MATCH_REVIEW_ONLY_RELEASE_HOLD');
+});
+test('Build152 policy review is separate from 48-object permission changes and business acceptance',()=>{
+ assert.equal(manifest.expected_catalog.security_objects,48);
+ assert.equal(manifest.acceptance.total,48);
+ assert.equal(manifest.acceptance.approved_for_execution,false);
+ assert.equal(manifest.live_readonly_policy_observation_2026_11_15.actual_business_rows_queried,0);
+ assert.equal(manifest.live_readonly_policy_observation_2026_11_15.production_writes,0);
+ assert.equal(manifest.live_readonly_observation_2026_11_15.permission_preflight,
+  'HOLD_48_OBJECT_PERMISSIONS_NOT_SAFE_OR_SCOPE_DRIFT');
 });

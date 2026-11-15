@@ -2,7 +2,7 @@
 
 **DRAFT ONLY / DO NOT APPLY / DO NOT EXECUTE / DO NOT MERGE FOR DEPLOYMENT.**
 
-This extracts four **byte-for-byte Git blob pinned** artifacts from existing draft PR #12 (`b2734b14c0e19d2ce2b8daa87655ca18c2d932d6`) into a focused branch based on current `main` (`c735292fbace6605d691a68b602a02b2c6f9e137`). It makes the 19-table / 13-view / 16-privileged-function security work independently reviewable rather than asking an approver to navigate PR #12's 504-file diff.
+This packages ten **byte-for-byte Git blob pinned** artifacts from existing draft PR #12 (`b2734b14c0e19d2ce2b8daa87655ca18c2d932d6`) into a focused branch based on current `main` (`c735292fbace6605d691a68b602a02b2c6f9e137`). It makes the 19-table / 13-view / 16-privileged-function security work independently reviewable rather than asking an approver to navigate PR #12's 504-file diff.
 
 No production or staging database writes were executed and no business/customer rows were accessed. This draft does **not** count as a remediated object or an approved migration.
 
@@ -33,3 +33,13 @@ PostgreSQL TRUNCATE is not controlled by row-level security and requires its own
 **Result for Build 151:** Packaging, evidence preservation and offline review CI only. **0/48 live production objects remediated; 0/48 independently accepted.** The separately blocked nonproduction Auth/UAT rollout, hosted UAT and D-003 financial/legal holds are unchanged. This PR must remain a **draft** until all prerequisites and reviewer feedback are satisfied. It is **not a production deploy request**.
 
 Official technical references: https://supabase.com/docs/guides/database/postgres/row-level-security ; https://www.postgresql.org/docs/current/sql-revoke.html ; https://www.postgresql.org/docs/current/sql-truncate.html
+
+## Build 152 — full 67-policy and account-RPC review dependencies
+
+This extends the narrow draft review PR #16 with **six additional byte-for-byte Git-pinned artifacts** from the existing 504-file PR #12; the four original sources remain unchanged. The new files are `baseline-67-policies.json` (live catalog snapshot), `legacy-67-policies.DO-NOT-RUN.sql.txt` (inert source replay for disposable use only), `complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt` (proposed 35-policy replacement plus two account administration compatibility RPCs), `admin-account-rpc.DO-NOT-APPLY.sql.txt`, `self-profile-rpc.DO-NOT-APPLY.sql.txt` and `prior-source-fingerprints.json` (earlier database source observations). These are **not a deployable migration**: no new SQL is placed under `supabase/migrations/`; every executable-looking addition is archived as `.sql.txt` and must not be executed.
+
+**Fresh production READ-ONLY policy observation (15 November 2026):** the public `pg_policies` catalog contains **67** existing policies across **18** tables, including **15** broadly permissive `ALL` policies. The live exact digest `a70190f31ed8436b2989082898a02b51` matches the Build49 proposal's expected original catalog digest. This proves **source compatibility at observation time only**, not the correctness of the proposed 35 replacement policies and not approved business authorizations.
+
+Added `policy-fingerprint.readonly.sql` as a separate single-SELECT, catalog-only policy source gate. It can report `SOURCE_MATCH_REVIEW_ONLY_RELEASE_HOLD` or `SOURCE_DRIFT_RELEASE_HOLD`, **never** an acceptance or deployment PASS. The new offline tests independently recompute the 67-policy digest, check the exact policy count and 15 broad grants, compare source fingerprints and verify both account-management RPCs are present and the replacement declares **35 proposed policies**.
+
+**Unresolved independent reviewers' decisions:** proposed admin role/profile changes and self-profile RPC semantics, recruiter/finance/browser operations, 67-to-35 policy impact, integration with all 48 object grants, 140 signed hosted UAT cases, 48 accepted production remediations, PITR/restore rehearsal, legal and finance acceptance, and nine release signoffs. DO NOT APPLY or merge the review-only SQL by itself. The PR remains DRAFT with zero independently approved production fixes.
