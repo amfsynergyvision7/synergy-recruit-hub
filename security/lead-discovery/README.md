@@ -82,3 +82,9 @@ The LD02 real-source whitelist now accepts only canonical HTTPS **business origi
 ## Build172 — original Category C integration PR privacy patch also applied
 
 The source-only `syntheticHttpsUrl` parser on PR #20 is now the **same bytes** as PR #22: it rejects query delimiters/parameters, percent-encoded or contact-bearing synthetic paths and malformed or punycode synthetic host labels, preventing accidental echoing of tokens in offline source-evidence metadata. The seven additional tests preserve the original safe fictional sites and fail closed on contaminated provenance, without live access. PR #20 is engineering-review-ready but has no independent review or operating source approvals; it is not a production rollout or authorization. Main remains unprotected and PR #22 remains Draft.
+
+## Build173 — synchronized privacy and conflicting duplicate integrity fix
+
+The discovery parser now excludes names, cities and industry strings containing email, telephone patterns, `mailto:`/`tel:` contact schemes or template markup **before** output serialization. It also rejects any conflicting name, industry or location for two sources claiming the same reserved-domain company rather than silently trusting the first. Review-stage checks preserve the same privacy restriction.
+
+The original fictional fixture had conflicting duplicate Acacia names; the second name was corrected to the already accepted fictional company name without changing source URLs, dates, identity, population, KPI baseline or curated expected outcomes. No real business identities or human signatures were introduced. The 16 additional tests (15 original regressions plus one corrected-fixture check) run in the integration PR CI. This remains source-only, unmerged and unapproved for live use; LD02/LD05 require independent Growth/Privacy/BI evidence.
