@@ -3,7 +3,7 @@
   "category_id": "LD",
   "display_category": "C — AI Lead Discovery",
   "current_focus": true,
-  "formal_rubric": "security/release-progress/v1-rubric.json",
+  "formal_rubric": "security/lead-discovery/fixtures/release-progress/v1-rubric.snapshot.json",
   "source_snapshot_build": 138,
   "formal_earned_points": 6,
   "formal_max_points": 10,
@@ -152,5 +152,14 @@
     "no_live_use": true,
     "independent_signoff_needed": true,
     "instruction": "No more technical batch is warranted without actual owner review, approval evidence, authorized business-only samples or an independently reported bug."
+  },
+  "frozen_evidence_fixture": {
+    "scope": "ISOLATED_CATEGORY_C_TEST_REFERENCE_NOT_LIVE_RELEASE_STATUS",
+    "snapshot_build": 138,
+    "observation_date": "2026-11-14",
+    "verified_against_source_pr20": true,
+    "current_snapshot": "security/lead-discovery/fixtures/release-progress/build138-current.snapshot.json",
+    "rubric_snapshot": "security/lead-discovery/fixtures/release-progress/v1-rubric.snapshot.json",
+    "official_points_not_recalculated": true
   }
 }

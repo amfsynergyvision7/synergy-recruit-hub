@@ -75,8 +75,8 @@ test("Build167 fabricated extra fictional business is refused, never counted as 
  assert(r.mismatches.some(x=>x.code==="BUSINESS_POPULATION"));
 });
 test("Build167 immutable frozen scorecard titles render accurately instead of undefined",()=>{
- const rubric=read("../release-progress/v1-rubric.json");
- const snapshot=read("../release-progress/current.json"),pkg=read("category-c-v1.json");
+ const rubric=read("fixtures/release-progress/v1-rubric.snapshot.json");
+ const snapshot=read("fixtures/release-progress/build138-current.snapshot.json"),pkg=read("category-c-v1.json");
  const md=report(rubric,snapshot,pkg);
  for(const m of rubric.milestones.filter(m=>m.group==="LD"))assert(md.includes(m.title),m.id);
  assert(!md.includes("| undefined |"));

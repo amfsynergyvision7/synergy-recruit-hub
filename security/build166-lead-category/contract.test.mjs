@@ -109,8 +109,8 @@ test("Build166 no live APIs and all real owner signoffs remain inactive",()=>{
 test("Build166 source scorecard and technical integrity ledger remain independently reconciled",async()=>{
  const {report}=await import("../lead-discovery/category-status.mjs");
  const pkg=read("category-c-v1.json");
- const rubric=read("../release-progress/v1-rubric.json");
- const snapshot=read("../release-progress/current.json");
+ const rubric=read("fixtures/release-progress/v1-rubric.snapshot.json");
+ const snapshot=read("fixtures/release-progress/build138-current.snapshot.json");
  assert(pkg.latest_build>=166);
  assert(pkg.technical_integrity_controls.length>=5);
  assert(pkg.technical_integrity_controls.every(x=>x.status==="verified_offline"));
@@ -124,7 +124,7 @@ test("Build166 source scorecard and technical integrity ledger remain independen
 });
 test("Build166 incomplete or mislabeled synthetic controls never count as verified",async()=>{
  const {report}=await import("../lead-discovery/category-status.mjs");
- const pkg=read("category-c-v1.json"),r=read("../release-progress/v1-rubric.json"),s=read("../release-progress/current.json");
+ const pkg=read("category-c-v1.json"),r=read("fixtures/release-progress/v1-rubric.snapshot.json"),s=read("fixtures/release-progress/build138-current.snapshot.json");
  pkg.technical_integrity_controls[4].status="approved_live";
  assert.throws(()=>report(r,s,pkg),/engineering evidence ledger invalid/);
 });

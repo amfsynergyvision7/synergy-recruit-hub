@@ -69,8 +69,8 @@ test("Build165 invalid dates, URLs and unsupported real-world source claims fail
  assert.throws(()=>calculateSyntheticLeadKpis(forged.discovery,forged.review,"2026-11-15"),/proof/);
 });
 test("Build165 lead category 6/10 remains evidence-limited to LD01, LD03, LD04",()=>{
- const rubric=JSON.parse(readFileSync(join(base,"../release-progress/v1-rubric.json"),"utf8"));
- const snapshot=JSON.parse(readFileSync(join(base,"../release-progress/current.json"),"utf8"));
+ const rubric=JSON.parse(readFileSync(join(base,"fixtures/release-progress/v1-rubric.snapshot.json"),"utf8"));
+ const snapshot=JSON.parse(readFileSync(join(base,"fixtures/release-progress/build138-current.snapshot.json"),"utf8"));
  const state=new Map(snapshot.statuses.map(s=>[s.id,s.complete]));
  const ld=rubric.milestones.filter(m=>m.group==="LD");
  assert.equal(ld.length,5);
@@ -113,8 +113,8 @@ test("Build165 synthetic KPI implementation cannot use network, CRM or provider 
 
 test("Build165 category C report remains generated from fixed rubric and evidence ledger",async()=>{
  const {report}=await import("../lead-discovery/category-status.mjs");
- const r=JSON.parse(readFileSync(join(base,"../release-progress/v1-rubric.json"),"utf8"));
- const s=JSON.parse(readFileSync(join(base,"../release-progress/current.json"),"utf8"));
+ const r=JSON.parse(readFileSync(join(base,"fixtures/release-progress/v1-rubric.snapshot.json"),"utf8"));
+ const s=JSON.parse(readFileSync(join(base,"fixtures/release-progress/build138-current.snapshot.json"),"utf8"));
  const p=JSON.parse(readFileSync(join(base,"category-c-v1.json"),"utf8"));
  const actual=readFileSync(join(base,"CATEGORY-C-STATUS.md"),"utf8");
  assert.equal(actual,report(r,s,p));
@@ -125,8 +125,8 @@ test("Build165 category C report remains generated from fixed rubric and evidenc
 });
 test("Build165 artificially approved owner gates cannot inflate the lead category report",async()=>{
  const {report}=await import("../lead-discovery/category-status.mjs");
- const r=JSON.parse(readFileSync(join(base,"../release-progress/v1-rubric.json"),"utf8"));
- const s=JSON.parse(readFileSync(join(base,"../release-progress/current.json"),"utf8"));
+ const r=JSON.parse(readFileSync(join(base,"fixtures/release-progress/v1-rubric.snapshot.json"),"utf8"));
+ const s=JSON.parse(readFileSync(join(base,"fixtures/release-progress/build138-current.snapshot.json"),"utf8"));
  const p=JSON.parse(readFileSync(join(base,"category-c-v1.json"),"utf8"));
  p.review_package.LD02.accepted=true;
  assert.throws(()=>report(r,s,p),/Independent acceptance/);

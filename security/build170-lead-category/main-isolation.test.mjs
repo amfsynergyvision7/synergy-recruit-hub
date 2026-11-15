@@ -36,8 +36,8 @@ test("Build170 only fictional business domains in default source research",()=>{
  assert.equal(policy.required_decisions.crm_writes_allowed,false);
 });
 test("Build170 historic scorecard unchanged, 6/10 category remains nonoperational",()=>{
- const baseline=read("security/release-progress/current.json"),
-  rubric=read("security/release-progress/v1-rubric.json"),
+ const baseline=read("security/lead-discovery/fixtures/release-progress/build138-current.snapshot.json"),
+  rubric=read("security/lead-discovery/fixtures/release-progress/v1-rubric.snapshot.json"),
   ledger=read("security/lead-discovery/category-c-v1.json");
  assert.equal(baseline.snapshot_build,138);
  assert.equal(baseline.expected_earned_points,26);

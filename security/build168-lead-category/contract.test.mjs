@@ -145,7 +145,7 @@ test("Build168 invalid dates cannot claim reviewed sample readiness",()=>{
  assert.throws(()=>inspect(a),/invalid LD02 decision date/);
 });
 test("Build168 category remains frozen: LD02 and LD05 unaccepted, no new points",()=>{
- const rubric=read("../release-progress/v1-rubric.json"),status=read("../release-progress/current.json");
+ const rubric=read("fixtures/release-progress/v1-rubric.snapshot.json"),status=read("fixtures/release-progress/build138-current.snapshot.json");
  const completed=new Map(status.statuses.map(s=>[s.id,s.complete]));
  const lead=rubric.milestones.filter(m=>m.group==="LD");
  assert.equal(lead.filter(m=>completed.get(m.id)).reduce((s,m)=>s+m.weight,0),6);
@@ -167,8 +167,8 @@ test("Build168 CI verifies offline handoff and keeps no-secret workflows without
 
 test("Build168 owner-handoff status is backed by two unsubmitted forms and six unchanged offline controls",async()=>{
  const {report}=await import("../lead-discovery/category-status.mjs");
- const ledger=read("category-c-v1.json"),policy=read("../release-progress/v1-rubric.json"),
-  accepted=read("../release-progress/current.json");
+ const ledger=read("category-c-v1.json"),policy=read("fixtures/release-progress/v1-rubric.snapshot.json"),
+  accepted=read("fixtures/release-progress/build138-current.snapshot.json");
  assert.equal(ledger.latest_build,168);
  assert.equal(ledger.formal_earned_points,6);
  assert.equal(ledger.technical_integrity_controls.length,6);

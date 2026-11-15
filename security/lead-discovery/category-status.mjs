@@ -94,8 +94,8 @@ Future build reports will keep Category C active until LD02 and LD05 receive the
 }
 export {report};
 if(process.argv[1]===fileURLToPath(import.meta.url)){
- const rubric=read("../release-progress/v1-rubric.json");
- const snapshot=read("../release-progress/current.json");
+ const rubric=read("fixtures/release-progress/v1-rubric.snapshot.json");
+ const snapshot=read("fixtures/release-progress/build138-current.snapshot.json");
  const pkg=read("category-c-v1.json");
  const rendered=report(rubric,snapshot,pkg);
  if(process.argv.includes("--check")){
