@@ -11,6 +11,7 @@ on:
       - 'security/build171-lead-category/**'
       - 'security/build172-lead-category/**'
       - 'security/build173-lead-category/**'
+      - 'security/build174-lead-category/**'
       - 'security/build121/**'
       - 'security/build122/**'
       - '.github/workflows/build165-category-c.yml'
@@ -26,7 +27,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-      - run: node --test security/build121/lead-discovery.test.mjs security/build122/lead-review-and-handoff.test.mjs security/build165-lead-category/contract.test.mjs security/build166-lead-category/contract.test.mjs security/build167-lead-category/contract.test.mjs security/build168-lead-category/contract.test.mjs security/build170-lead-category/main-isolation.test.mjs security/build171-lead-category/frozen-scorecard.test.mjs security/build172-lead-category/url-metadata-privacy.test.mjs security/build173-lead-category/source-privacy-and-duplicates.test.mjs
+      - run: node --test security/build121/lead-discovery.test.mjs security/build122/lead-review-and-handoff.test.mjs security/build165-lead-category/contract.test.mjs security/build166-lead-category/contract.test.mjs security/build167-lead-category/contract.test.mjs security/build168-lead-category/contract.test.mjs security/build170-lead-category/main-isolation.test.mjs security/build171-lead-category/frozen-scorecard.test.mjs security/build172-lead-category/url-metadata-privacy.test.mjs security/build173-lead-category/source-privacy-and-duplicates.test.mjs security/build174-lead-category/identity-and-graph-limits.test.mjs
       - run: node security/lead-discovery/approval-preflight.mjs
       - run: node security/lead-discovery/acceptance-handoff.mjs
       - run: node security/lead-discovery/reconcile.mjs security/lead-discovery/manifest.synthetic.json security/lead-discovery/review-decisions.synthetic.json

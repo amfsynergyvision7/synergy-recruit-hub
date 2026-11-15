@@ -98,3 +98,12 @@ A second source-integrity gap permitted two snapshots with the **same fictional 
 Both the direct-to-`main` Draft PR #22 and integration PR #20 carry this common source-code fix; its CI passing never constitutes LD02/LD05 owner signatures or deployment authorization.
 
 **Build173 canonical fictional fixture correction:** CI showed `directory-b.html` used “Acacia Logistics Test Duplicate” for the same fictional `acacia.example.invalid` domain whose other snapshot said “Acacia Logistics (Synthetic)”. Because strict conflicting-source validation correctly rejected that inconsistency, the *fictional second-source name* was normalized to the original, already-accepted fictitious company name. Source URL, dates, business count, deduplicated population, audit decisions and hand-curated KPI reference remain unchanged. This is a **fixture correction, not evidence of a real company or a human signoff**; retain the strict conflict rejection for actual inconsistent inputs.
+
+
+## Build174 — deterministic website identity and bounded structured-data evidence
+
+The source-only synthetic discovery parser now **emits the same canonical (non-www) company origin it uses for duplicate identity**, whether the first fictional source had a \`www.\` prefix or not. Previously a \`www.\`-first source could produce a review/KPI mismatch despite otherwise identical business evidence. New tests verify source-order invariance and a complete offline audit/KPI flow.
+
+JSON-LD parsing now requires an **actual script tag and a real type=application/ld+json attribute**, not lookalike data-type/prototype/x:type or a script-data element. Traversal is limited to 2,500 visited nodes per synthetic HTML source and avoids unbounded \`Array.push(...items)\` expansion. Valid preexisting test fixtures, business deduplication, six offline engineering controls and no-send behavior remain unchanged.
+
+These are reliability and provenance-hardening changes only. LD02 and LD05 still need independently approved business-source policy and real authorized KPI evidence. Both review PRs remain unmerged and production release HOLD is untouched.

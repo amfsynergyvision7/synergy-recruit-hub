@@ -14,7 +14,7 @@ import { isIP } from "node:net";
 
 export const LIMITS = Object.freeze({
   sources: 12, htmlBytes: 250_000, scriptsPerSource: 25,
-  entitiesPerSource: 200, leadName: 120, location: 90,
+  entitiesPerSource: 200, jsonLdNodesPerSource: 2500, leadName: 120, location: 90,
 });
 const MAX_MANIFEST_BYTES = 40_000;
 
@@ -60,18 +60,29 @@ export function normalizeCapturedDate(input) {
 
 function readBusinessEntities(html) {
   const entities=[];
-  const scripts=html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/giu);
-  let n=0;
+  // An actual <script> tag with a real type= attribute is required.
+  // Script lookalikes or data-type/prototype attributes cannot count as proof.
+  const scripts=html.matchAll(/<script(?=[\s>])([^>]*)>([\s\S]*?)<\/script\s*>/giu);
+  let n=0,visited=0;
   for (const match of scripts) {
     const attributes=match[1];
-    if (!/\btype\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json'|application\/ld\+json)(?:\s|$)/iu.test(attributes)) continue;
+    if (!/(?:^|\s)type\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json'|application\/ld\+json)(?=\s|$)/iu.test(attributes)) continue;
     if (++n > LIMITS.scriptsPerSource) throw new Error("Too many structured-data scripts");
     let value;
     try { value=JSON.parse(match[2]); } catch { throw new Error("Invalid snapshot JSON-LD"); }
     const stack=[value];
     while (stack.length) {
+      if (++visited>LIMITS.jsonLdNodesPerSource)
+        throw new Error("Too many structured-data nodes");
       const entry=stack.pop();
-      if (Array.isArray(entry)) { stack.push(...entry); continue; }
+      if (Array.isArray(entry)) {
+        // Avoid unbounded spread arguments and unreviewable nested graph work.
+        if (entry.length>LIMITS.jsonLdNodesPerSource ||
+            stack.length+entry.length>LIMITS.jsonLdNodesPerSource)
+          throw new Error("Too many structured-data nodes");
+        for (const node of entry) stack.push(node);
+        continue;
+      }
       if (!entry || typeof entry!=="object") continue;
       const type=entry["@type"],types=Array.isArray(type)?type:[type];
       if (types.includes("Organization") || types.includes("LocalBusiness") ||
@@ -121,7 +132,9 @@ export function discoverFromSnapshots(snapshots) {
         continue;
       }
       byDomain.set(canonicalDomain,{
-        company_name:name, business_website:site.origin,
+        // Deduplicate and *emit* the same canonical identity, whether the
+        // first fictional snapshot used www. or a bare business hostname.
+        company_name:name, business_website:"https://"+canonicalDomain,
         location:city, industry, verified_hiring_signal:false,
         research_status:"synthetic_only_needs_human_review",
         outreach_authorized:false, crm_write_authorized:false,
