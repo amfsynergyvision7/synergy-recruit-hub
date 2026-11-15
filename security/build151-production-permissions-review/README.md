@@ -47,3 +47,11 @@ Added `policy-fingerprint.readonly.sql` as a separate single-SELECT, catalog-onl
 ### Build152 exact catalog checksum validation
 
 The earlier review CI caught a sorting mismatch: JavaScript `localeCompare('en')` and PostgreSQL catalog name ordering handle mixed-case policy names differently. An independent read-only comparison showed **zero row-level differences** across all 67 policies, and the rows at positions 25–29, 51–53 and others were ordered differently due to collation alone. The offline test now uses binary/C-style ordering, matching PostgreSQL's existing live digest `a70190f31ed8436b2989082898a02b51`. No baseline, policy expression, privilege or business row was altered.
+
+## Build 153 — Table-by-table RLS and privilege impact review
+
+Added a deterministic, no-network source comparison that makes the 67-existing to 35-proposed RLS change independently reviewable at **all 19 public tables**. The machine-readable `policy-impact.json` and human-readable `POLICY_IMPACT_MATRIX.md` are generated exclusively from the two exact Git-pinned PR #12 sources already included here. `policy-impact.mjs` is a parser/reporting module only; **it does not connect to Supabase or execute SQL**. CI re-generates the outputs and fails if either drifts from source.
+
+The matrix explicitly tracks **15 proposed removals of universal ALL policies**, **7 tables losing at least one declared operation**, and **1 table gaining an explicitly declared SELECT operation** (`candidate_stage_history`). Audit/activity/email/sync logging paths, settings, notifications, role and profile RPCs are flagged for domain-owner testing. Reviewer assignments and suggested UAT scenarios are recommendations only, not approved policies, completed tests or signoffs.
+
+**Important:** Policy-operation presence is not effective access. PostgreSQL table/column grants, `USING`/`WITH CHECK` predicates, 13 views, 16 privileged functions, triggers and security-definer RPCs must be evaluated together. The current proposed changes can disrupt existing workflow behavior; the extracted SQL is **not a deployable production migration**. This package remains draft-only, production ACL and policy preflights remain HOLD, real signed UAT is 0/140, production security remediations are 0/48, and `main` protection and independent review remain absent.

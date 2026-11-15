@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {buildPolicyImpact,renderPolicyImpact} from './policy-impact.mjs';
+
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -196,4 +198,59 @@ test('Build152 policy review is separate from 48-object permission changes and b
  assert.equal(manifest.live_readonly_policy_observation_2026_11_15.production_writes,0);
  assert.equal(manifest.live_readonly_observation_2026_11_15.permission_preflight,
   'HOLD_48_OBJECT_PERMISSIONS_NOT_SAFE_OR_SCOPE_DRIFT');
+});
+
+
+// Build153: table-by-table source impact accounting for review, not SQL access.
+test('Build153 committed impact report and JSON are deterministically generated from pinned inputs',()=>{
+ const built=buildPolicyImpact(policyCatalog,fullPolicyProposal);
+ assert.deepEqual(JSON.parse(load('policy-impact.json')),built);
+ assert.equal(load('POLICY_IMPACT_MATRIX.md'),renderPolicyImpact(built));
+});
+test('Build153 compares all 19 tables, 67 legacy and 35 proposed declarations exactly',()=>{
+ const impact=buildPolicyImpact(policyCatalog,fullPolicyProposal);
+ assert.deepEqual(impact.summary,{
+  legacy_policies:67,proposed_policies:35,legacy_tables:18,
+  proposed_tables:19,reviewed_tables:19,removed_universal_all_policies:15,
+  tables_with_removed_declared_operations:7,
+  tables_with_added_declared_operations:1,
+  production_fixes_applied:0,owner_signed_tables:0
+ });
+ assert.equal(new Set(impact.tables.map(x=>x.table)).size,19);
+ assert(impact.tables.every(x=>x.owner_acceptance==='NOT_RECEIVED'));
+ assert(impact.tables.every(x=>x.suggested_reviewer&&x.suggested_uat));
+});
+test('Build153 audit and workflow logging write-risk cases are explicit in matrix',()=>{
+ const impact=buildPolicyImpact(policyCatalog,fullPolicyProposal);
+ for(const table of ['audit_logs','candidate_activities','email_log','sync_logs']){
+  const row=impact.tables.find(x=>x.table===table);
+  assert(row.removed_policy_command_declarations.includes('INSERT'),table+' must flag INSERT change');
+  assert.equal(row.priority,'HIGH');
+ }
+ const settings=impact.tables.find(x=>x.table==='app_settings');
+ assert(settings.removed_policy_command_declarations.includes('UPDATE'));
+ const notifications=impact.tables.find(x=>x.table==='notifications');
+ assert(notifications.removed_policy_command_declarations.includes('DELETE'));
+ const history=impact.tables.find(x=>x.table==='candidate_stage_history');
+ assert.equal(history.legacy_policy_count,0);
+ assert.deepEqual(history.new_policy_command_declarations,['SELECT']);
+});
+test('Build153 impact parser rejects missing or duplicated SQL policy statements',()=>{
+ assert.throws(()=>buildPolicyImpact(policyCatalog,fullPolicyProposal.replace(
+  /^CREATE POLICY profile_read .*$/m,'-- intentionally removed for negative test')),
+  /Proposed policy count/);
+ assert.throws(()=>buildPolicyImpact(policyCatalog,fullPolicyProposal.replace(
+  /^CREATE POLICY profile_read .*$/m,'CREATE POLICY profile_admin_update ON public.profiles FOR SELECT TO authenticated')),
+  /not unique/);
+ assert.throws(()=>buildPolicyImpact({...policyCatalog,count:66},fullPolicyProposal),
+  /Legacy 67-policy catalog/);
+});
+test('Build153 README and impact report explicitly refuse deploy inference',()=>{
+ const report=load('POLICY_IMPACT_MATRIX.md'),readme=load('README.md');
+ assert.match(report,/HOLD/);
+ assert.match(report,/not actual SQL privileges/i);
+ assert.match(report,/140 cases/);
+ assert.match(readme,/Build 153/);
+ assert.match(readme,/not an authorization/i);
+ assert.equal(manifest.acceptance.approved_for_execution,false);
 });

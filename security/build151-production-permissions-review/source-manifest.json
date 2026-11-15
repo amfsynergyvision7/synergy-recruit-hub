@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "build": 152,
+  "build": 153,
   "purpose": "SOURCE-PINNED REVIEW ONLY, no production or staging writes, no PR merge authorization",
   "source_pr": 12,
   "source_pr_head": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6",
@@ -99,5 +99,21 @@
     "actual_business_rows_queried": 0,
     "production_writes": 0,
     "release_decision": "SOURCE_MATCH_REVIEW_ONLY_RELEASE_HOLD"
+  },
+  "impact_review": {
+    "schema_version": 1,
+    "source_files": [
+      "security/build151-production-permissions-review/baseline-67-policies.json",
+      "security/build151-production-permissions-review/complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt"
+    ],
+    "total_tables_in_scope": 19,
+    "old_policies": 67,
+    "proposed_policies": 35,
+    "removed_universal_all_policy_declarations": 15,
+    "tables_losing_declared_policy_operations": 7,
+    "tables_gaining_declared_policy_operations": 1,
+    "independent_table_approvals": 0,
+    "owner_approved": false,
+    "NOTE": "Source-level declared policy command matrix, not an effective privilege simulation or production migration approval"
   }
 }

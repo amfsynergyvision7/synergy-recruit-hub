@@ -1,0 +1,648 @@
+{
+  "schema_version": 1,
+  "project": "AMF Synergy Vision",
+  "build": 153,
+  "artifact": "STATIC SOURCE POLICY-COVERAGE COMPARISON — NOT AN ACCESS GRANT OR AUTHORIZATION TEST",
+  "release_decision": "HOLD_REVIEW_ONLY",
+  "explanation": "The operation sets describe declared RLS policy commands only. PostgreSQL table/column privileges, RLS predicates, triggers, SECURITY DEFINER RPCs and business workflow permissions must be independently tested. The removal of a policy command does NOT prove writes fail or imply a complete security fix.",
+  "summary": {
+    "legacy_policies": 67,
+    "proposed_policies": 35,
+    "legacy_tables": 18,
+    "proposed_tables": 19,
+    "reviewed_tables": 19,
+    "removed_universal_all_policies": 15,
+    "tables_with_removed_declared_operations": 7,
+    "tables_with_added_declared_operations": 1,
+    "production_fixes_applied": 0,
+    "owner_signed_tables": 0
+  },
+  "tables": [
+    {
+      "table": "app_settings",
+      "legacy_policy_count": 2,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "admin update app settings",
+        "public read app settings"
+      ],
+      "proposed_policy_names": [
+        "public_branding_allowlisted"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "UPDATE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT"
+      ],
+      "removed_policy_command_declarations": [
+        "UPDATE"
+      ],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 0,
+      "priority": "HIGH",
+      "suggested_reviewer": "CRM administrator and security reviewer",
+      "suggested_uat": "Check public branding read, admin settings update, and private Drive folder isolation",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "audit_logs",
+      "legacy_policy_count": 3,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "insert audit",
+        "read audit"
+      ],
+      "proposed_policy_names": [
+        "audit_read"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT"
+      ],
+      "removed_policy_command_declarations": [
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Security and audit owner",
+      "suggested_uat": "Verify audit events are created by trusted paths and admin audit reading remains authorized",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "billing",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 2,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "delete bill",
+        "insert bill",
+        "read bill",
+        "update bill"
+      ],
+      "proposed_policy_names": [
+        "billing_admin_read",
+        "billing_admin_write"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Finance and legal reviewer",
+      "suggested_uat": "Verify invoice read/write authorization, payment states, and no automated financial activation",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "candidate_activities",
+      "legacy_policy_count": 2,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "read activities"
+      ],
+      "proposed_policy_names": [
+        "activities_read"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT"
+      ],
+      "removed_policy_command_declarations": [
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Recruitment operations owner",
+      "suggested_uat": "Verify recruiter activity events are recorded through an approved trusted write path",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "candidate_stage_history",
+      "legacy_policy_count": 0,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [],
+      "proposed_policy_names": [
+        "candidate_stage_history_scoped_read"
+      ],
+      "legacy_declared_commands": [],
+      "proposed_declared_commands": [
+        "SELECT"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [
+        "SELECT"
+      ],
+      "removed_universal_all": 0,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Recruitment operations owner",
+      "suggested_uat": "Verify only authorized candidate-stage history can be read",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "candidates",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 4,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "delete candidates",
+        "insert candidates",
+        "read candidates",
+        "update candidates"
+      ],
+      "proposed_policy_names": [
+        "candidates_delete",
+        "candidates_insert",
+        "candidates_read",
+        "candidates_update"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Recruitment lead and privacy owner",
+      "suggested_uat": "Verify assignment isolation, candidate create/update, stage changes, and sensitive fields",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "clients",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 2,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "delete clients",
+        "insert clients",
+        "read clients",
+        "update clients"
+      ],
+      "proposed_policy_names": [
+        "clients_admin_read",
+        "clients_admin_write"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Sales and CRM owner",
+      "suggested_uat": "Verify client record create/update/read/delete and authorization boundaries",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "email_log",
+      "legacy_policy_count": 2,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "insert email_log",
+        "read email_log"
+      ],
+      "proposed_policy_names": [
+        "email_log_admin_read"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT"
+      ],
+      "proposed_declared_commands": [
+        "SELECT"
+      ],
+      "removed_policy_command_declarations": [
+        "INSERT"
+      ],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 0,
+      "priority": "HIGH",
+      "suggested_reviewer": "Communications and security owner",
+      "suggested_uat": "Verify email audit entries are created by a trusted path without enabling external outreach",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "google_integrations",
+      "legacy_policy_count": 4,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "admin insert own google integration",
+        "admin select own google integration",
+        "admin update own google integration"
+      ],
+      "proposed_policy_names": [
+        "google_integrations_admin"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Integration and security owner",
+      "suggested_uat": "Verify Google integration ownership, safe configuration and disconnected account boundaries",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "integrations",
+      "legacy_policy_count": 3,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "admin read integrations",
+        "admin write integrations"
+      ],
+      "proposed_policy_names": [
+        "integrations_admin"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Integration and security owner",
+      "suggested_uat": "Verify admin-only integration settings and no accidental public access",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "interviews",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 2,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "delete int",
+        "insert int",
+        "read int",
+        "update int"
+      ],
+      "proposed_policy_names": [
+        "interviews_read",
+        "interviews_write"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Recruitment operations owner",
+      "suggested_uat": "Verify interview scheduling, updates and assigned recruiter visibility",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "job_openings",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 4,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "delete jobs",
+        "insert jobs",
+        "read jobs",
+        "update jobs"
+      ],
+      "proposed_policy_names": [
+        "jobs_delete",
+        "jobs_insert",
+        "jobs_read",
+        "jobs_update"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Recruitment and sales owner",
+      "suggested_uat": "Verify job creation, status/priority updates and unauthorized modification denial",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "notifications",
+      "legacy_policy_count": 4,
+      "proposed_policy_count": 3,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "insert notif",
+        "read notif",
+        "update notif"
+      ],
+      "proposed_policy_names": [
+        "notifications_admin_insert",
+        "notifications_read",
+        "notifications_update"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE"
+      ],
+      "removed_policy_command_declarations": [
+        "DELETE"
+      ],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Operations and security owner",
+      "suggested_uat": "Verify notification reads, is_read updates and deletion behavior",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "offers",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 2,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "delete off",
+        "insert off",
+        "read off",
+        "update off"
+      ],
+      "proposed_policy_names": [
+        "offers_read",
+        "offers_write"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Recruitment, finance and legal reviewer",
+      "suggested_uat": "Verify offer lifecycle authorization while financial issuance remains inactive",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "profiles",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 3,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "admin delete profiles",
+        "admin update profiles",
+        "approved read profiles",
+        "self update profile"
+      ],
+      "proposed_policy_names": [
+        "profile_admin_delete",
+        "profile_admin_update",
+        "profile_read"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [
+        "INSERT"
+      ],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Identity and HR owner",
+      "suggested_uat": "Verify self-profile RPC and administrator RPC; prohibit direct unauthorized profile writes",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "submissions",
+      "legacy_policy_count": 5,
+      "proposed_policy_count": 2,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "delete subs",
+        "insert subs",
+        "read subs",
+        "update subs"
+      ],
+      "proposed_policy_names": [
+        "submissions_read",
+        "submissions_write"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "STANDARD",
+      "suggested_reviewer": "Recruitment and client account owner",
+      "suggested_uat": "Verify submission creation, reading and authorized status transitions",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "sync_logs",
+      "legacy_policy_count": 3,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "admin insert sync logs",
+        "admin read sync logs"
+      ],
+      "proposed_policy_names": [
+        "sync_read"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT"
+      ],
+      "removed_policy_command_declarations": [
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Integration and operations owner",
+      "suggested_uat": "Verify trusted sync-log writes, monitoring reads and job failure recording",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "user_roles",
+      "legacy_policy_count": 3,
+      "proposed_policy_count": 2,
+      "legacy_policy_names": [
+        "Allow all for authenticated",
+        "admin manage roles",
+        "self read role"
+      ],
+      "proposed_policy_names": [
+        "roles_admin_write",
+        "roles_read"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 1,
+      "priority": "HIGH",
+      "suggested_reviewer": "Identity and security owner",
+      "suggested_uat": "Verify role administration RPC, last-admin safeguards and no direct browser role edits",
+      "owner_acceptance": "NOT_RECEIVED"
+    },
+    {
+      "table": "workflow_rules",
+      "legacy_policy_count": 1,
+      "proposed_policy_count": 1,
+      "legacy_policy_names": [
+        "admin manage workflow rules"
+      ],
+      "proposed_policy_names": [
+        "workflow_rules_admin_manage"
+      ],
+      "legacy_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "proposed_declared_commands": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "removed_policy_command_declarations": [],
+      "new_policy_command_declarations": [],
+      "removed_universal_all": 0,
+      "priority": "HIGH",
+      "suggested_reviewer": "Operations and finance/security reviewer",
+      "suggested_uat": "Verify admin rule maintenance, deny unauthorized edits and keep finance activation off",
+      "owner_acceptance": "NOT_RECEIVED"
+    }
+  ]
+}
