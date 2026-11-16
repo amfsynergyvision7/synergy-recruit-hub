@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {runBuild196} from './build196-role-revocation.disposable.mjs';
 import {runBuild198} from './build198-real-role-rpc.disposable.mjs';
+import {runBuild199} from './build199-combined-candidates.disposable.mjs';
 const env=process.env;
 assert(env.B195_DISPOSABLE_ONLY==='true'&&env.PGHOST==='127.0.0.1'&&
  env.PGDATABASE==='amf_build195_gotrue_35_policy_lab'&&env.PGUSER==='postgres'&&
@@ -214,3 +215,8 @@ const b198Total=outcomes.filter(x=>x.ok).length;
 assert.equal(outcomes.length,112,'Build198 expects 85 baseline, 14 role and 13 approval cases');
 assert.equal(b198Total,112);
 console.log('BUILD198_GOTRUE_FULL_35_POLICY_HTTP_112_OF_112_PASS_DISPOSABLE_ONLY');
+await runBuild199({uids,tokens,query,rpc,mutation,yes});
+const b199Total=outcomes.filter(x=>x.ok).length;
+assert.equal(outcomes.length,145,'Build199 expects 112 earlier plus 33 combined overlay/service cases');
+assert.equal(b199Total,145);
+console.log('BUILD199_GOTRUE_FULL_35_POLICY_HTTP_145_OF_145_PASS_DISPOSABLE_ONLY');
