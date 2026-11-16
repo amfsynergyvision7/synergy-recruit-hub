@@ -271,3 +271,6 @@ jobs:
         run: |
           test -f security/build65/production-hosted-coverage.json
           ! grep -E 'AMF_UAT_CASE_[0-9]+_(EMAIL|PASSWORD):' .github/workflows/security-build65-fast.yml
+
+      - name: Show official milestone-closure board (read-only, never self-approve)
+        run: node security/release-progress/closure-board.mjs
