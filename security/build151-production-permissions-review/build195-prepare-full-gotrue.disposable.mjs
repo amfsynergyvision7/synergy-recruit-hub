@@ -29,7 +29,9 @@ assert(body.startsWith(from)&&body.includes('CREATE TABLE public.candidates')&&
 assert(!/^\s*(?:BEGIN|COMMIT|ROLLBACK);/m.test(body));
 const old=read('old'),draft=read('proposal');
 assert.equal((old.match(/^CREATE POLICY /gm)||[]).length,67);
-assert(draft.trimEnd().endsWith('COMMIT;'));
+const committedAt=draft.lastIndexOf('\nCOMMIT;');
+assert(committedAt>0&&draft.indexOf('\nCOMMIT;')===committedAt,'One original proposal COMMIT is required');
+assert(!/^\\s*(?:GRANT|REVOKE|DROP|ALTER|CREATE|DO|COMMIT)\\b/m.test(draft.slice(committedAt+'\nCOMMIT;'.length)),'Executable SQL after original COMMIT is forbidden');
 assert(read('helper').includes('_user_id IS NOT NULL'));
 const dir=join(process.env.RUNNER_TEMP||'/tmp','build195-ephemeral');
 mkdirSync(dir,{recursive:true});
