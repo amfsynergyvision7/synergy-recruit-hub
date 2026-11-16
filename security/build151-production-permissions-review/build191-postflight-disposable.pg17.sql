@@ -336,11 +336,67 @@ SELECT (:'reviewer_gate'='HOLD_48_OBJECT_AND_35_POLICY_POSTFLIGHT_INCOMPLETE') A
 ROLLBACK TO SAVEPOINT build191_adverse;
 RELEASE SAVEPOINT build191_adverse;
 
+-- Build191 negative 22: authenticated BYPASSRLS despite correct policies
+SAVEPOINT build191_adverse;
+ALTER ROLE authenticated BYPASSRLS;
+\i /tmp/build191-postflight.gset.sql
+SELECT (:'reviewer_gate'='HOLD_48_OBJECT_AND_35_POLICY_POSTFLIGHT_INCOMPLETE') AS build191_expected_hold \gset
+\if :build191_expected_hold
+ \echo 'BUILD191_EXPECTED_HOLD_22'
+\else
+ \echo 'BUILD191_FAIL: incorrect REVIEW_ONLY result for adverse case 22'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build191_adverse;
+RELEASE SAVEPOINT build191_adverse;
+
+-- Build191 negative 23: anonymous BYPASSRLS despite correct policies
+SAVEPOINT build191_adverse;
+ALTER ROLE anon BYPASSRLS;
+\i /tmp/build191-postflight.gset.sql
+SELECT (:'reviewer_gate'='HOLD_48_OBJECT_AND_35_POLICY_POSTFLIGHT_INCOMPLETE') AS build191_expected_hold \gset
+\if :build191_expected_hold
+ \echo 'BUILD191_EXPECTED_HOLD_23'
+\else
+ \echo 'BUILD191_FAIL: incorrect REVIEW_ONLY result for adverse case 23'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build191_adverse;
+RELEASE SAVEPOINT build191_adverse;
+
+-- Build191 negative 24: anonymous schema CREATE exposes privileged code
+SAVEPOINT build191_adverse;
+GRANT CREATE ON SCHEMA public TO anon;
+\i /tmp/build191-postflight.gset.sql
+SELECT (:'reviewer_gate'='HOLD_48_OBJECT_AND_35_POLICY_POSTFLIGHT_INCOMPLETE') AS build191_expected_hold \gset
+\if :build191_expected_hold
+ \echo 'BUILD191_EXPECTED_HOLD_24'
+\else
+ \echo 'BUILD191_FAIL: incorrect REVIEW_ONLY result for adverse case 24'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build191_adverse;
+RELEASE SAVEPOINT build191_adverse;
+
+-- Build191 negative 25: PUBLIC pseudo-role schema CREATE exposure
+SAVEPOINT build191_adverse;
+GRANT CREATE ON SCHEMA public TO PUBLIC;
+\i /tmp/build191-postflight.gset.sql
+SELECT (:'reviewer_gate'='HOLD_48_OBJECT_AND_35_POLICY_POSTFLIGHT_INCOMPLETE') AS build191_expected_hold \gset
+\if :build191_expected_hold
+ \echo 'BUILD191_EXPECTED_HOLD_25'
+\else
+ \echo 'BUILD191_FAIL: incorrect REVIEW_ONLY result for adverse case 25'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build191_adverse;
+RELEASE SAVEPOINT build191_adverse;
+
 -- The last candidate still has the safe but deliberately inert catalogue.
 \i /tmp/build191-postflight.gset.sql
 SELECT (:'reviewer_gate'='REVIEW_ONLY_PROPOSED_POSTFLIGHT_METADATA_MATCH_NO_RELEASE') AS build191_recovered \gset
 \if :build191_recovered
- \echo 'BUILD191_SAFE_FIXTURE_RECOVERED_AFTER_21_ADVERSE_CASES'
+ \echo 'BUILD191_SAFE_FIXTURE_RECOVERED_AFTER_25_ADVERSE_CASES'
 \else
  SELECT 1/0;
 \endif
