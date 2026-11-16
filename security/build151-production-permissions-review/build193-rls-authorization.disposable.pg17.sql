@@ -25,14 +25,20 @@ $fixture_uid$;
 GRANT USAGE ON SCHEMA auth TO authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
 
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path=''
-AS $fixture_role$
- SELECT _user_id IS NOT NULL AND EXISTS (
-  SELECT 1 FROM public.user_roles u WHERE u.user_id=_user_id AND u.role=_role
- );
-$fixture_role$;
+-- Build194 runs PR #23's exact unchanged source snapshot instead of a
+-- fabricated has_role body, with all SQL inside the existing outer ROLLBACK.
+\i security/build151-production-permissions-review/build194-role-helper.PR23-SNAPSHOT.DO-NOT-APPLY.sql.txt
+DO $b194_helper_permissions$
+BEGIN
+ IF pg_catalog.has_function_privilege('anon',
+    'public.has_role(uuid,public.app_role)','EXECUTE')
+ OR NOT pg_catalog.has_function_privilege('authenticated',
+    'public.has_role(uuid,public.app_role)','EXECUTE')
+ OR NOT pg_catalog.has_function_privilege('service_role',
+    'public.has_role(uuid,public.app_role)','EXECUTE')
+ THEN RAISE EXCEPTION 'Build194 helper effective execution rights mismatch'; END IF;
+ RAISE NOTICE 'BUILD194_PR23_CALLER_BOUND_HELPER_APPLIED_DISPOSABLE_ONLY';
+END $b194_helper_permissions$;
 CREATE OR REPLACE FUNCTION public.is_approved(_user_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path=''
@@ -120,6 +126,19 @@ SELECT (
  SELECT 1/0;
 \endif
 
+-- Exact PR23 helper refuses arbitrary-user lookup even for approved admin,
+-- but permits identity-bound own-role lookups used in real 35 RLS policies.
+SELECT (
+ public.has_role('11111111-1111-4111-8111-111111111111','admin'::public.app_role)
+ AND NOT public.has_role('22222222-2222-4222-8222-222222222222','recruiter'::public.app_role)
+ AND NOT public.has_role(NULL::uuid,'admin'::public.app_role)
+) AS b194_admin_helper \\gset
+\if :b194_admin_helper
+ \echo 'BUILD194_ADMIN_SELF_ROLE_TRUE_CROSS_USER_FALSE'
+\else
+ SELECT 1/0;
+\endif
+
 -- Recruiter A: sees own assigned candidate/job and own notification/role,
 -- but not other recruiter, billing or audit.
 SELECT set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',true);
@@ -140,6 +159,16 @@ SELECT (
 ) AS b193_recruiter_a_reads \gset
 \if :b193_recruiter_a_reads
  \echo 'BUILD193_RECRUITER_A_ROW_ISOLATION_PASS'
+\else
+ SELECT 1/0;
+\endif
+
+SELECT (
+ public.has_role('22222222-2222-4222-8222-222222222222','recruiter'::public.app_role)
+ AND NOT public.has_role('11111111-1111-4111-8111-111111111111','admin'::public.app_role)
+) AS b194_recruiter_helper \\gset
+\if :b194_recruiter_helper
+ \echo 'BUILD194_RECRUITER_HELPER_SELF_TRUE_ADMIN_ENUMERATION_FALSE'
 \else
  SELECT 1/0;
 \endif
@@ -273,6 +302,22 @@ SELECT (
  SELECT 1/0;
 \endif
 
+-- The existing explicit service_role grant does not remove identity
+-- binding. A scheduled/background service call without a signed-in
+-- subject changes to FALSE; this needs independent production caller review.
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT NOT public.has_role(
+ '11111111-1111-4111-8111-111111111111','admin'::public.app_role)
+ AS b194_service_no_subject \\gset
+\if :b194_service_no_subject
+ \echo 'BUILD194_SERVICE_ROLE_NO_SUBJECT_RETURNS_FALSE_REVIEW_EXTERNAL_CALLERS'
+\else
+ SELECT 1/0;
+\endif
+RESET ROLE;
+SET LOCAL ROLE authenticated;
+
 -- A formally pending user holding a fake admin role must not get approved
 -- application data even if their self profile/role can be read.
 SELECT set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
@@ -291,6 +336,14 @@ SELECT (
 \endif
 
 SELECT set_config('request.jwt.claim.sub','',true);
+SELECT NOT public.has_role(
+ '11111111-1111-4111-8111-111111111111','admin'::public.app_role)
+ AS b194_no_subject_helper \\gset
+\if :b194_no_subject_helper
+ \echo 'BUILD194_NO_SUBJECT_HELPER_FALSE'
+\else
+ SELECT 1/0;
+\endif
 SELECT (
  (SELECT count(*) FROM public.candidates)=0
  AND (SELECT count(*) FROM public.job_openings)=0
