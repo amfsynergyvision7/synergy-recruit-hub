@@ -8,6 +8,7 @@ import {spawnSync} from 'node:child_process';
 import {runBuild196} from './build196-role-revocation.disposable.mjs';
 import {runBuild198} from './build198-real-role-rpc.disposable.mjs';
 import {runBuild199} from './build199-combined-candidates.disposable.mjs';
+import {runBuild200} from './build200-private-service-alternative.disposable.mjs';
 const env=process.env;
 assert(env.B195_DISPOSABLE_ONLY==='true'&&env.PGHOST==='127.0.0.1'&&
  env.PGDATABASE==='amf_build195_gotrue_35_policy_lab'&&env.PGUSER==='postgres'&&
@@ -220,3 +221,8 @@ const b199Total=outcomes.filter(x=>x.ok).length;
 assert.equal(outcomes.length,145,'Build199 expects 112 earlier plus 33 combined overlay/service cases');
 assert.equal(b199Total,145);
 console.log('BUILD199_GOTRUE_FULL_35_POLICY_HTTP_145_OF_145_PASS_DISPOSABLE_ONLY');
+await runBuild200({uids,tokens,query,yes});
+const b200Pass=outcomes.filter(x=>x.ok).length;
+assert.equal(outcomes.length,175,'Build200 requires 145 previous plus 30 private service checks');
+assert.equal(b200Pass,175);
+console.log('BUILD200_GOTRUE_AND_SERVICE_PRIVATE_HTTP_175_OF_175_PASS_DISPOSABLE_ONLY');
