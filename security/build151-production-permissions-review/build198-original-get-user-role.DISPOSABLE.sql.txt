@@ -1,13 +1,10 @@
--- Build198 live production get_user_role() catalog definition snapshot.
--- SELECT-only source extraction; DO NOT APPLY TO HOSTED PROJECTS.
--- This exact SQL contains existing legacy SECURITY DEFINER search_path=public,
--- NOT a recommended safe design. Execute solely in fictional disposable CI.
-DO $guard$
-BEGIN
+-- Build198 SELECT-only source of live public.get_user_role(uuid).
+-- Production pg_get_functiondef() text MD5: 83d72d3932a91c90ffa33f431063a831
+-- Reproduced for DISPOSABLE CI ONLY; NOT a reviewed safe access design.
+DO $guard$ BEGIN
  IF current_database()<>'amf_build195_gotrue_35_policy_lab'
  OR session_user<>'postgres'
- THEN RAISE EXCEPTION 'Build198 original role-lookup source must run only in disposable DB';
- END IF;
+ THEN RAISE EXCEPTION 'Build198 refuses other databases'; END IF;
 END $guard$;
 CREATE OR REPLACE FUNCTION public.get_user_role(_user_id uuid)
  RETURNS app_role
@@ -21,3 +18,4 @@ AS $function$
     WHEN 'finance' THEN 4 WHEN 'viewer' THEN 5 END
   LIMIT 1
 $function$
+
