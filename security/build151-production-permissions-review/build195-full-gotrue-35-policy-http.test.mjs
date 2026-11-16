@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {runBuild196} from './build196-role-revocation.disposable.mjs';
+import {runBuild198} from './build198-real-role-rpc.disposable.mjs';
 const env=process.env;
 assert(env.B195_DISPOSABLE_ONLY==='true'&&env.PGHOST==='127.0.0.1'&&
  env.PGDATABASE==='amf_build195_gotrue_35_policy_lab'&&env.PGUSER==='postgres'&&
@@ -208,3 +209,8 @@ const b196Good=outcomes.filter(x=>x.ok).length;
 assert.equal(outcomes.length,85,'Build197 runs 58 baseline + 27 role revocation/notification read-write cases');
 assert.equal(b196Good,85);
 console.log('BUILD197_GOTRUE_FULL_35_POLICY_HTTP_85_OF_85_PASS_DISPOSABLE_ONLY');
+await runBuild198({uids,tokens,yes});
+const b198Total=outcomes.filter(x=>x.ok).length;
+assert.equal(outcomes.length,99,'Build198 expects exactly 85 prior plus 14 new role tests');
+assert.equal(b198Total,99);
+console.log('BUILD198_GOTRUE_FULL_35_POLICY_HTTP_99_OF_99_PASS_DISPOSABLE_ONLY');
