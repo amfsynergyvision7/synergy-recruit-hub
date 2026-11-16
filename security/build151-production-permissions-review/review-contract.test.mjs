@@ -747,3 +747,43 @@ test('Build199 SOURCE PINNED simultaneous role/approval/notification overlays, s
  assert.match(workflow,/full-policy-gotrue-jwt-http:/);
  assert(!suite.includes('supabase.co'));
 });
+
+
+test('Build200 private service-only invoker functions deny public/authenticated SQL and PostgREST while preserving trusted service queries',()=>{
+ const proposal=load('build200-internal-service-lookup.REVIEW-ONLY.sql.txt');
+ const checks=load('build200-private-service-alternative.disposable.mjs');
+ const wrapper=load('build195-full-gotrue-35-policy-http.test.mjs');
+ const workflow=readFileSync(resolve(dir,'../../.github/workflows/build151-production-permission-review.yml'),'utf8');
+ assert.equal(blobSha(proposal),'56fd30f7531b1303ef8f2ce26e3ec54471eb0403');
+ assert.match(proposal,/REVIEW-ONLY INTERNAL SERVICE ALTERNATIVE/);
+ assert.match(proposal,/current_database\(\)<>'amf_build195_gotrue_35_policy_lab'/);
+ assert.match(proposal,/CREATE SCHEMA b200_review_internal AUTHORIZATION postgres/);
+ assert.match(proposal,/REVOKE ALL ON SCHEMA b200_review_internal FROM PUBLIC, anon, authenticated/);
+ assert.match(proposal,/CREATE FUNCTION b200_review_internal\.staff_role/);
+ assert.match(proposal,/CREATE FUNCTION b200_review_internal\.staff_approved/);
+ assert.match(proposal,/SECURITY INVOKER SET search_path=''/);
+ assert.match(proposal,/GRANT USAGE ON SCHEMA b200_review_internal TO service_role/);
+ assert.match(proposal,/GRANT EXECUTE ON FUNCTION b200_review_internal\.staff_role\(uuid\) TO service_role/);
+ assert.match(proposal,/GRANT EXECUTE ON FUNCTION b200_review_internal\.staff_approved\(uuid\) TO service_role/);
+ assert.doesNotMatch(proposal,/SECURITY DEFINER/);
+ assert.doesNotMatch(proposal,/^COMMIT;/m);
+ for(const marker of [
+ 'B200_BOTH_PRIVATE_HELPERS_SECURITY_INVOKER',
+ 'B200_ANON_PRIVATE_SCHEMA_DENIED',
+ 'B200_AUTHENTICATED_PRIVATE_SCHEMA_DENIED',
+ 'B200_AUTHENTICATED_SQL_DIRECT_CALL_DENIED',
+ 'B200_ANON_HTTP_PRIVATE_FUNCTION_NOT_EXPOSED',
+ 'B200_SERVICE_PENDING_APPROVAL_READ',
+ 'B200_BROWSER_FINANCE_CANDIDATES_DENIED',
+ 'BUILD200_SERVICE_ALTERNATIVE_UNAPPROVED_NO_AUDITED_SERVER_ROUTE',
+ 'BUILD200_30_OF_30_PRIVATE_SERVICE_DESIGN_CASES_PASS_DISPOSABLE_ONLY'])
+  assert(checks.includes(marker),marker);
+ assert.match(checks,/assert\.equal\(cases,30/);
+ assert.match(checks,/B195_DISPOSABLE_ONLY/);
+ assert.match(checks,/PGDATABASE==='amf_build195_gotrue_35_policy_lab'/);
+ assert.match(checks,/56fd30f7531b1303ef8f2ce26e3ec54471eb0403/);
+ assert.match(wrapper,/await runBuild200\(\{uids,tokens,query,yes\}\)/);
+ assert.match(wrapper,/assert\.equal\(outcomes\.length,175/);
+ assert.match(wrapper,/BUILD200_GOTRUE_AND_SERVICE_PRIVATE_HTTP_175_OF_175_PASS_DISPOSABLE_ONLY/);
+ assert.match(workflow,/full-policy-gotrue-jwt-http:/);
+});
