@@ -87,6 +87,8 @@ check('ADMIN_OWN_ROLE',await rpc('admin','admin','admin'),{status:200,result:tru
 check('ADMIN_CROSS_RECRUITER_FALSE',await rpc('admin','recruiter','recruiter'),{status:200,result:false});
 check('ADMIN_CROSS_FINANCE_FALSE',await rpc('admin','finance','finance'),{status:200,result:false});
 check('ADMIN_INCORRECT_ROLE_FALSE',await rpc('admin','admin','recruiter'),{status:200,result:false});
+const nullTarget=await http('/rpc/has_role',tokens.get('admin'),'POST',{_user_id:null,_role:'admin'});
+check('GOTRUE_NULL_USER_ID_BOOLEAN_FALSE',{status:nullTarget.status,result:nullTarget.body},{status:200,result:false});
 check('ADMIN_AUDIT_RLS',await rows('admin','audit_probe'),{status:200,count:1});
 check('ADMIN_CANDIDATE_RLS',await rows('admin','candidate_probe'),{status:200,count:1});
 check('RECRUITER_OWN_ROLE',await rpc('recruiter','recruiter','recruiter'),{status:200,result:true});
@@ -116,6 +118,6 @@ check('MALFORMED_TOKEN_DENIED',{status:malformed.status,result:malformed.body},d
 const direct=await rows('admin','user_roles','user_id');
 check('DIRECT_USER_ROLES_READ_DENIED',direct,x=>[401,403].includes(x.status));
 check('AUTHENTICATED_SUBJECT_MISMATCH',await rpc('admin','finance','finance'),{status:200,result:false});
-assert.equal(cases.length,26);
-assert.equal(cases.filter(x=>x.pass).length,26);
-console.log('BUILD189_GOTRUE_ISSUED_JWT_HTTP_26_OF_26_PASS_DISPOSABLE_ONLY');
+assert.equal(cases.length,27);
+assert.equal(cases.filter(x=>x.pass).length,27);
+console.log('BUILD194_GOTRUE_ISSUED_JWT_HTTP_27_OF_27_PASS_DISPOSABLE_ONLY');
