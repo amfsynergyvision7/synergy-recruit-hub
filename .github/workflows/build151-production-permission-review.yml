@@ -1,5 +1,5 @@
 # Build151: source provenance and static review only. No Supabase/Postgres credentials.
-name: Build151–191 Production Permission Review — Disposable PG17 Only
+name: Build151–195 Production Permission Review + GoTrue Full RLS (CI only)
 on:
   pull_request:
     paths:
@@ -94,3 +94,37 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -d amf_build192_full_policy_lab -f "$RUNNER_TEMP/build192-disposable/fingerprint.gset.sql"
           psql -X -v ON_ERROR_STOP=1 -d amf_build192_full_policy_lab -f "$RUNNER_TEMP/build192-disposable/real-draft-no-commit.rollback.sql"
           echo 'BUILD192_ACTUAL_REVIEW_PROPOSAL_TESTED_DISPOSABLE_ONLY_NO_PRODUCTION_SQL'
+  full-policy-gotrue-jwt-http:
+    name: Disposable GoTrue-issued JWT through exact 35-policy/PR23 RLS via PostgREST
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-disposable-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Strictly ephemeral committed-source RLS test with issued GoTrue JWT
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: amf_build195_gotrue_35_policy_lab
+          PGPASSWORD: synthetic-disposable-only
+          B195_DISPOSABLE_ONLY: 'true'
+          B195_JWT_SECRET: BUILD195_SYNTHETIC_CI_ONLY_HMAC_GOTRUE_NEVER_DEPLOY_PROD_2026
+        run: |
+          set -euo pipefail
+          bash security/build151-production-permissions-review/build195-run-disposable-gotrue-35-policy.sh
