@@ -1,5 +1,5 @@
 # Build151: source provenance and static review only. No Supabase/Postgres credentials.
-name: Build151–195 Production Permission Review + GoTrue Full RLS (CI only)
+name: Build151–199 Full RLS + Helper Integration and Caller Inventory (CI only)
 on:
   pull_request:
     paths:
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
-      - run: node --test security/build151-production-permissions-review/review-contract.test.mjs
+      - run: node --test security/build151-production-permissions-review/review-contract.test.mjs security/build151-production-permissions-review/build199-repository-caller-inventory.test.mjs
   proposed-postflight-pg17:
     name: Proposed 48-object postflight + 25 PG17 rollback-scoped unsafe mutations
     runs-on: ubuntu-latest
