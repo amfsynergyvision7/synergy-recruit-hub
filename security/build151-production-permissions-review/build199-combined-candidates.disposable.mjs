@@ -145,7 +145,7 @@ export async function runBuild199({uids,tokens,query,rpc,mutation,yes}){
  });
  assert.equal(sr.status,0,'Build199 service-only fixture '+String(sr.stderr).slice(0,220));
  check('B199_SERVICE_ROLE_WITHOUT_AUTH_SUBJECT_ALL_LOOKUPS_FAIL_CLOSED',
-  /(?:^|\n)t(?:\r?\n|$)/.test(sr.stdout),{output:sr.stdout.slice(-110)});
+  /(?:^|\n)(?:t|true)(?:\r?\n|$)/.test(sr.stdout),{output:sr.stdout.slice(-110)});
  console.log('BUILD199_SERVICE_CALLER_COMPATIBILITY_HOLD_NO_SUBJECT');
 
  // Restore member, then validate RLS and both helper calls without new JWT.
