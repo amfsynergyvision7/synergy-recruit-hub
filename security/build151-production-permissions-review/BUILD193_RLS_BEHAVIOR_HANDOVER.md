@@ -46,3 +46,11 @@ A qualified DBA/security and CRM owner must independently review the full 35-pol
 Related existing draft reviews: [PR #16](https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/16) full permissions, [PR #23](https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/23) role helper/audit, [PR #18](https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/18) outbox integrity.
 
 **Official acceptance unchanged:** programme **26/100 (26%)**, **12/43** accepted, **31 open**; Category C **6/10** (LD02/LD05 awaiting independent acceptance), security live remediation **0/48**, hosted signed UAT **0/140**, release signatures **0/9**. **HOLD: no merge, production deployment or hosted data writes.**
+
+## Build193 additional production security-advisor readback (no database changes)
+
+The latest **read-only** Supabase production security-advisor results (16 Nov 2026) separately report **13 security-definer views** (ERROR), **16 anonymous-callable SECURITY DEFINER functions** (WARN), **4 routines with mutable search paths** (WARN), **one RLS table without a policy** (INFO), an extension in the public schema (WARN), and a leaked-password-protection configuration recommendation (WARN). These are advisory findings, not confirmed incidents or proof of external abuse. [View-security guidance](https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view) and [routine-search-path guidance](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable).
+
+A source/production-catalog comparison found the original 48-object review addresses the two privileged trigger routines with mutable search paths, but **two additional SECURITY INVOKER helper routines** also lack fixed search-path settings. They are outside the legacy 16-function baseline and require **separate qualified review**, including impact analysis before any search-path alteration. This finding must not be silently treated as remediated by the unchanged 48-object proposal. No new routine SQL or host privileges were applied.
+
+The advisory findings reinforce the existing urgent security-owner HOLD; this document contains no live credentials, business rows, data-access proof or exploit procedure.
