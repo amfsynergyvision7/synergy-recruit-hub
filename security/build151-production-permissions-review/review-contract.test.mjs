@@ -664,7 +664,27 @@ test('Build198 original production get_user_role is source-pinned, cross-user ga
  assert.match(generator,/prodRoleLookup:\['build198-original-get-user-role\.DISPOSABLE\.sql\.txt'/);
  assert.match(generator,/19ed98d1216c6ef4ef55deabfaef9e21172dc544/);
  assert.match(generator,/specs\.prodRoleLookup\[0\]/);
- assert.match(integrated,/await runBuild198\(\{uids,tokens,yes\}\)/);
- assert.match(integrated,/assert\.equal\(outcomes\.length,99/);
- assert.match(integrated,/BUILD198_GOTRUE_FULL_35_POLICY_HTTP_99_OF_99_PASS_DISPOSABLE_ONLY/);
+ assert.match(integrated,/await runBuild198\(\{uids,tokens,query,yes\}\)/);
+ assert.match(integrated,/assert\.equal\(outcomes\.length,112/);
+ assert.match(integrated,/BUILD198_GOTRUE_FULL_35_POLICY_HTTP_112_OF_112_PASS_DISPOSABLE_ONLY/);
+});
+
+
+test('Build198 approval helper cross-user lookup has distinct unapproved, caller-scoped retrofit tested under real GoTrue JWT',()=>{
+ const original=load('build197-prod-is-approved.snapshot.DISPOSABLE-ONLY.sql.txt');
+ const patch=load('build198-caller-bound-is-approved.REVIEW-ONLY.sql.txt');
+ const cases=load('build198-real-role-rpc.disposable.mjs');
+ assert.equal(blobSha(original),'5e8f3f758b2f551111e883141a728a0b82e38373');
+ assert.match(patch,/current_database\(\)<>'amf_build195_gotrue_35_policy_lab'/);
+ assert.match(patch,/REVIEW-ONLY candidate/i);
+ assert.match(patch,/auth\.uid\(\) IS NOT NULL/);
+ assert.match(patch,/_user_id=auth\.uid\(\)/);
+ assert.match(patch,/SET search_path=''/);
+ assert.match(patch,/FROM PUBLIC,anon,authenticated/);
+ assert.match(cases,/BUILD198_ORIGINAL_DRAFT_FOREIGN_APPROVAL_BOOLEAN_LOOKUP_GAP_REPRODUCED/);
+ assert.match(cases,/B198_CANDIDATE_APPROVAL_CROSS_USER_FALSE/);
+ assert.match(cases,/B198_CANDIDATE_APPROVAL_RECRUITER_RLS_STILL_WORKS/);
+ assert.match(cases,/B198_CANDIDATE_APPROVAL_FINANCE_RLS_STILL_WORKS/);
+ assert.match(cases,/BUILD198_13_OF_13_APPROVAL_LOOKUP_ORIGINAL_AND_CANDIDATE_CASES_PASS_DISPOSABLE_ONLY/);
+ assert.match(cases,/BUILD198_27_OF_27_TOTAL_HELPER_LOOKUP_CASES_PASS_DISPOSABLE_ONLY/);
 });
