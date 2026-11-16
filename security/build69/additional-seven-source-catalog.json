@@ -1,0 +1,97 @@
+{
+  "evidence_type": "LIVE_PRODUCTION_SEVEN_ADDITIONAL_HISTORICAL_HOSTED_MATRIX_SOURCE_TABLES",
+  "observed_date": "2026-11-12",
+  "source": "Read-only information_schema columns, pg_trigger, foreign key and selected defaults; no table business rows",
+  "table_columns": [
+    {
+      "table_name": "audit_logs",
+      "column_count": 8,
+      "required_no_default_columns": [
+        "action"
+      ]
+    },
+    {
+      "table_name": "candidate_activities",
+      "column_count": 10,
+      "required_no_default_columns": [
+        "candidate_id",
+        "action_type"
+      ]
+    },
+    {
+      "table_name": "google_integrations",
+      "column_count": 17,
+      "required_no_default_columns": [
+        "user_id"
+      ]
+    },
+    {
+      "table_name": "integrations",
+      "column_count": 14,
+      "required_no_default_columns": [
+        "module"
+      ]
+    },
+    {
+      "table_name": "notifications",
+      "column_count": 9,
+      "required_no_default_columns": [
+        "title"
+      ]
+    },
+    {
+      "table_name": "sync_logs",
+      "column_count": 11,
+      "required_no_default_columns": [
+        "module"
+      ]
+    },
+    {
+      "table_name": "user_roles",
+      "column_count": 4,
+      "required_no_default_columns": [
+        "user_id",
+        "role"
+      ]
+    }
+  ],
+  "table_count": 7,
+  "noninternal_triggers": [
+    {
+      "table_name": "google_integrations",
+      "trigger_name": "set_google_integrations_updated_at",
+      "function_name": "set_updated_at",
+      "events": "UPDATE"
+    },
+    {
+      "table_name": "google_integrations",
+      "trigger_name": "sync_google_integration_mapping_trigger",
+      "function_name": "sync_google_integration_mapping",
+      "events": "INSERT UPDATE"
+    },
+    {
+      "table_name": "integrations",
+      "trigger_name": "integrations_updated_at",
+      "function_name": "set_updated_at",
+      "events": "UPDATE"
+    }
+  ],
+  "trigger_count": 3,
+  "foreign_keys": [],
+  "foreign_key_count": 0,
+  "observed_defaults": {
+    "google_integrations.auto_sync_enabled": "false",
+    "google_integrations.connection_status": "'not_configured'::text",
+    "integrations.auto_sync": "false",
+    "sync_logs.status": "'success'::text"
+  },
+  "mandatory_fixture_holds": [
+    "All email and external integration accounts must use invalid synthetic domains; never connect a real Google account or spreadsheet",
+    "Explicitly set auto_sync_enabled=false and auto_sync=false in invented integration rows; no scheduler or mapping job activation",
+    "Explicitly mark any synthetic sync log as never-run, not default success; never run a real import/synchronization",
+    "Eight role rows exactly for nine GoTrue identities; ninth must lack a role and profile",
+    "No realtime notifications or email/SMS delivery to actual users; no external communication"
+  ],
+  "provisioning_allowed": false,
+  "existing_nonproduction_data_copied": false
+}

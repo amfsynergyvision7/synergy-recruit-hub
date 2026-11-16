@@ -1,0 +1,414 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_build": 126,
+  "as_of": "2026-11-14",
+  "scorecard_version": "v1",
+  "prior_comparable_baseline_points": 22,
+  "expected_earned_points": 26,
+  "observations": {
+    "git": {
+      "main_sha": "c735292fbace6605d691a68b602a02b2c6f9e137",
+      "main_protected": false,
+      "ruleset_count": 0,
+      "pr12_head": "d40e12a7d879634c687ede0712d36df54c606060",
+      "pr12_draft": true,
+      "pr12_merged": false,
+      "pr12_independent_reviews": 0,
+      "pr15_head": "9db170d4e131a513d5216e571d3f7a7af85d65f3",
+      "pr15_merged": false,
+      "pr15_independent_reviews": 0
+    },
+    "lab": {
+      "project_id": "dhlhlasnaapzckjyvffn",
+      "public_tables": 19,
+      "rls_tables": 19,
+      "invoker_views": 13,
+      "views": 13,
+      "disabled_app_triggers": 32,
+      "app_triggers": 32,
+      "auth_users": 0,
+      "fixture_rows": 0,
+      "public_policies": 0
+    },
+    "formal_acceptance": {
+      "hosted_signed_uat": {
+        "accepted": 0,
+        "required": 140
+      },
+      "production_security_remediations": {
+        "accepted": 0,
+        "required": 48
+      },
+      "release_signoffs": {
+        "signed": 0,
+        "required": 9
+      },
+      "closed_workstreams": {
+        "accepted": 0,
+        "required": 6
+      },
+      "source": "Last recorded formal release register, not a new signed acceptance audit."
+    },
+    "lead_discovery": {
+      "mode": "SYNTHETIC_OFFLINE_ONLY",
+      "observed_ci_run": "43558920955",
+      "recorded_manifest": "security/lead-discovery/manifest.synthetic.json",
+      "synthetic_sources": 2,
+      "structured_business_entries": 4,
+      "duplicates_merged": 1,
+      "canonical_business_leads": 3,
+      "source_dates_verified": true,
+      "no_personal_contacts": true,
+      "outbound_messages": 0,
+      "crm_writes": 0,
+      "network_requests": 0,
+      "real_source_discovery_approved": false
+    },
+    "lead_review": {
+      "mode": "SYNTHETIC_OFFLINE_REVIEW",
+      "ci_run": "43561219866",
+      "fictional_company_records": 3,
+      "approval_queue_tested": true,
+      "source_provenance_verified": true,
+      "duplicate_protection_tested": true,
+      "separate_growth_and_crm_reviewers_required": true,
+      "fictional_growth_approvals": 2,
+      "fictional_crm_approvals": 1,
+      "fictional_rejections": 1,
+      "pending_crm_review": 1,
+      "offline_handoff_count": 1,
+      "audit_verified": true,
+      "audited_events_are_cryptographic_signatures": false,
+      "actual_human_reviews": 0,
+      "actual_crm_handoffs": 0,
+      "crm_writes": 0,
+      "outbound_messages": 0,
+      "network_requests": 0,
+      "real_contacts_authorized": false,
+      "synthetic_only": true
+    },
+    "reporting_security": {
+      "stage": "DRAFT_UI_DEFENSE_IN_DEPTH",
+      "source_commit": "9d764f936037e1a79c250965ffd2bf503b33a469",
+      "fast_ci_run": "43562933034",
+      "candidate_reporting_rbac_tested": true,
+      "account_bound_report_cache": true,
+      "financial_analytics_release_hold": true,
+      "billing_dashboard_fetches": 0,
+      "billing_report_fetches": 0,
+      "audit_admin_only": true,
+      "audit_payload_minimized": true,
+      "csv_formula_neutralization_tested": true,
+      "actual_signed_rls_uat_cases": 0,
+      "independent_bi_approval": false,
+      "production_database_changes": 0,
+      "real_financial_flows_activated": false
+    },
+    "reporting_completeness": {
+      "stage": "DRAFT_NO_ACCEPTED_BI_BACKEND",
+      "source_commit": "f31968a57bc54b0f80cd15409ffbaeec46219a9f",
+      "initial_fast_ci_run": "43564699697",
+      "page_size": 250,
+      "max_rows_per_source": 2500,
+      "truncated_pages_rejected": true,
+      "drifting_count_rejected": true,
+      "duplicate_id_rejected": true,
+      "abort_on_account_or_refresh_switch": true,
+      "real_cross_transaction_snapshot": false,
+      "independent_bi_data_contract_accepted": false,
+      "hosted_signed_bi_uat": 0,
+      "production_database_writes": 0,
+      "financial_reporting_enabled": false
+    },
+    "private_route_security": {
+      "stage": "DRAFT_BROWSER_AND_RESPONSE_PRIVACY_ONLY",
+      "tested_source_commit": "ad8b5d2b0e50df692dfe0c3b80a2236a2d88659b",
+      "first_fast_ci_run": "43566450653",
+      "unrestricted_user_directory_reads": 0,
+      "unrestricted_timeline_subscriptions": 0,
+      "candidate_timeline_personal_fields_selected": false,
+      "user_directory_admin_only": true,
+      "user_directory_count_and_role_ambiguity_rejected": true,
+      "revoked_profile_access_rejected": true,
+      "ai_browser_provider_activation": false,
+      "deep_match_raw_resume_returned_to_browser": false,
+      "actual_signed_hosted_uat": 0,
+      "independent_role_rls_accepted": false,
+      "external_messages_sent": 0,
+      "production_writes": 0
+    },
+    "import_board_privacy": {
+      "stage": "DRAFT_LOCAL_PREVIEW_AND_ROLE_SCOPED_BROWSER_ONLY",
+      "reviewed_source_commit": "102118c1609806df8b054c194b3e240c4a3fae60",
+      "first_fast_ci_run": "43568314046",
+      "import_reads_private_crm_tables": false,
+      "importer_requires_verified_admin": true,
+      "imported_file_duplicates_checked_locally": true,
+      "existing_record_conflicts_verified": false,
+      "candidate_board_partial_counts_refused": true,
+      "candidate_board_unfiltered_realtime_enabled": false,
+      "candidate_board_cap": 250,
+      "recruiter_lookup_email_directory_read": false,
+      "hosted_signed_uat_accepted": 0,
+      "independent_rls_review_accepted": false,
+      "staging_or_production_writes": 0,
+      "finance_or_ai_external_effects_enabled": false
+    }
+  },
+  "statuses": [
+    {
+      "id": "KB01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/15qZiquZb4c9AEcoI-MftLHiDfZNoW-ibrt78XWf5EKc/edit"
+      ]
+    },
+    {
+      "id": "KB02",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/15qZiquZb4c9AEcoI-MftLHiDfZNoW-ibrt78XWf5EKc/edit"
+      ]
+    },
+    {
+      "id": "KB03",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "KB04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "KB05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "KB06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "LD02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "LD03",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/429d05b070d65c323adb8b6e76656964b83a1227/security/lead-discovery/discover.mjs",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43558920955",
+        "https://docs.google.com/document/d/1i5SVldFxYaSi2Ew1i4YJ0pUAxtGTXJ2AyKRGck8w6Gk/edit"
+      ]
+    },
+    {
+      "id": "LD04",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/f7d6375db0160b153b7e7bca4945ce445f2e56ab/security/lead-discovery/review.mjs",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43561219866",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/f7d6375db0160b153b7e7bca4945ce445f2e56ab/security/build122/lead-review-and-handoff.test.mjs"
+      ]
+    },
+    {
+      "id": "LD05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "MK02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "MK05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO01",
+      "complete": true,
+      "evidence": [
+        "https://docs.google.com/document/d/1Q4pck9U4Mr-T8Nv1TS0Yo_ItbbDYM3YwRTDzb8jOkuE/edit"
+      ]
+    },
+    {
+      "id": "SO02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "SO05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM01",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43555301488",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12"
+      ]
+    },
+    {
+      "id": "CRM02",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43555301454",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/12"
+      ]
+    },
+    {
+      "id": "CRM03",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43502912428",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/15"
+      ]
+    },
+    {
+      "id": "CRM04",
+      "complete": true,
+      "evidence": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/13",
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/15"
+      ]
+    },
+    {
+      "id": "CRM05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM07",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM08",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM09",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "CRM10",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI01",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "BI05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL01",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL02",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL03",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL04",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL05",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL06",
+      "complete": false,
+      "evidence": []
+    },
+    {
+      "id": "REL07",
+      "complete": false,
+      "evidence": []
+    }
+  ],
+  "notes": "Build126 actual draft app changes: bulk-import preview uses file-local validation only, no private CRM read; admin identity-gated/keyed workspace; recruiter picker uses scoped active-role IDs without email directory; candidate-board read reconciles exact counts, rejects cap/duplicates, cancels stale responses, and removes unfiltered realtime. New tests and CI wiring committed; the first fast test run succeeded on source head. No accepted server/RLS review, protected main, signed hosted UAT or production release. Score remains 26/100: 12/43 evidenced, 31 open, 74 points outstanding. Git SHA is the last verified pre-snapshot repository head.",
+  "previous_file": "build125-evidence-baseline.json",
+  "previous_earned_points": 26,
+  "delta_points": 0,
+  "newly_closed_ids": [],
+  "regressed_ids": [],
+  "previous_comparable_baseline_points": 22
+}

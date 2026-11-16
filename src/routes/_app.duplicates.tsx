@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
 import { scanForDuplicateCandidates } from "@/lib/duplicates.functions";
+import { buildDuplicateReviewCSV } from "@/lib/duplicate-review-export";
+import { safeResumeHref } from "@/lib/safe-resume-link";
 import type { DuplicateCluster, DuplicateMatchReason } from "@/lib/duplicates.server";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
-  ArrowLeft, TriangleAlert, RefreshCw, Users2, Copy, Trash2, ExternalLink, ShieldAlert,
+  ArrowLeft, TriangleAlert, RefreshCw, Users2, Copy, Trash2, ExternalLink, ShieldAlert, Download,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/duplicates")({ component: Page });
@@ -31,6 +33,21 @@ function formatDate(value: string) {
   } catch {
     return value;
   }
+}
+
+function SafeResumeLink({ url }: { url: unknown }) {
+  const href = safeResumeHref(url);
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-2"
+    >
+      Resume <ExternalLink className="h-3 w-3" />
+    </a>
+  );
 }
 
 function ClusterCard({
@@ -75,7 +92,7 @@ function ClusterCard({
           <Button
             variant="destructive"
             size="sm"
-            disabled={selectedCount === 0 || deleting}
+            disabled={selectedCount === 0 || deleting || LEGACY_CANDIDATE_WRITES_PAUSED}
             onClick={() => onDelete(cluster)}
           >
             <Trash2 className="h-3.5 w-3.5 mr-1.5" />
@@ -105,16 +122,7 @@ function ClusterCard({
                   <span>{m.source || "Manual"}</span>
                   <span>· Added {formatDate(m.created_at)}</span>
                 </div>
-                {m.resume_url && (
-                  <a
-                    href={m.resume_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary underline underline-offset-2"
-                  >
-                    Resume <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
+                {m.resume_url && <SafeResumeLink url={m.resume_url} />}
               </div>
             </div>
           ))}
@@ -125,15 +133,23 @@ function ClusterCard({
 }
 
 function Page() {
-  const { role } = useAuth();
+  const { role, user, profile, loading } = useAuth();
 
-  if (role && role !== "admin") {
+  // Do not mount candidate-contact queries while the auth context is loading
+  // or the profile belongs to a previous signed-in account. A server-side
+  // approved+active unique-admin check still runs before candidate reads.
+  if (loading) {
+    return <div className="text-sm text-muted-foreground">Checking duplicate-review access…</div>;
+  }
+  if (!user || !profile || profile.id !== user.id ||
+      profile.status !== "approved" || profile.is_active !== true ||
+      role !== "admin") {
     return (
       <div className="max-w-2xl">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Admin only</AlertTitle>
-          <AlertDescription>The duplicate-candidate cleanup tool is restricted to administrators.</AlertDescription>
+          <AlertDescription>The duplicate-candidate review is restricted to active, approved administrators.</AlertDescription>
         </Alert>
         <Button asChild variant="outline" className="mt-4">
           <Link to="/settings"><ArrowLeft className="h-4 w-4 mr-2" />Back to Settings</Link>
@@ -142,18 +158,37 @@ function Page() {
     );
   }
 
-  const qc = useQueryClient();
+  // Unmount old account state and selections on identity changes.
+  return <AdminDuplicateReview key={user.id} userId={user.id} />;
+}
+
+function AdminDuplicateReview({ userId }: { userId: string }) {
   const runScan = useServerFn(scanForDuplicateCandidates);
   const query = useQuery({
-    queryKey: ["duplicate-candidates"],
+    queryKey: ["duplicate-candidates", userId],
+    refetchOnMount: "always",
     queryFn: () => runScan(),
     staleTime: 0,
   });
 
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [deletingClusterId, setDeletingClusterId] = useState<string | null>(null);
+  // Bind selections to one completed scan. A successful background refetch
+  // invalidates prior review choices even if the candidate IDs are unchanged.
+  const [selection, setSelection] = useState<{ scanVersion: number; ids: Set<string> }>({
+    scanVersion: 0, ids: new Set<string>(),
+  });
+  const selected = useMemo(
+    () => selection.scanVersion === query.dataUpdatedAt ? selection.ids : new Set<string>(),
+    [selection, query.dataUpdatedAt],
+  );
+  const updateSelected = (apply: (previous: Set<string>) => Set<string>) => {
+    setSelection((previous) => ({
+      scanVersion: query.dataUpdatedAt,
+      ids: apply(previous.scanVersion === query.dataUpdatedAt ? previous.ids : new Set<string>()),
+    }));
+  };
 
-  const summary = query.data;
+  // No stale review is displayed during a new scan, or after a failed scan.
+  const summary = query.isError || query.isFetching ? undefined : query.data;
   const clusters = summary?.clusters ?? [];
   const totalSelected = useMemo(
     () => clusters.reduce((n, c) => n + c.members.filter((m) => selected.has(m.id)).length, 0),
@@ -161,7 +196,7 @@ function Page() {
   );
 
   const toggleMember = (id: string, clusterMemberIds: string[], checked: boolean) => {
-    setSelected((prev) => {
+    updateSelected((prev) => {
       const next = new Set(prev);
       if (checked) {
         // Never allow every record in a cluster to end up selected — at
@@ -181,7 +216,7 @@ function Page() {
   };
 
   const selectAllButOldest = (cluster: DuplicateCluster) => {
-    setSelected((prev) => {
+    updateSelected((prev) => {
       const next = new Set(prev);
       cluster.members.forEach((m, i) => {
         if (i === 0) next.delete(m.id); // oldest — keep
@@ -191,28 +226,27 @@ function Page() {
     });
   };
 
-  const deleteCluster = async (cluster: DuplicateCluster) => {
-    const ids = cluster.members.map((m) => m.id).filter((id) => selected.has(id));
-    if (ids.length === 0) return;
-    if (ids.length === cluster.members.length) {
-      toast.error("At least one record in this group has to stay — unselect one first.");
+  const exportReview = () => {
+    if (!summary || query.isError || query.isFetching) {
+      toast.error("A completed duplicate review scan is required before export.");
       return;
     }
-    const warning = `Delete ${ids.length} candidate record(s)? This will also permanently delete their linked submissions, interviews, offers, and stage history. This can't be undone.`;
-    if (!confirm(warning)) return;
+    const csv = buildDuplicateReviewCSV(clusters, selected);
+    if (!csv) { toast.error("Select candidates for a non-destructive review export."); return; }
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "candidate-duplicate-review-NOT-APPROVED.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Review manifest exported. No candidate was modified or deleted.");
+  };
 
-    setDeletingClusterId(cluster.clusterId);
-    const { error } = await supabase.from("candidates").delete().in("id", ids);
-    setDeletingClusterId(null);
-    if (error) return toast.error(error.message);
-
-    toast.success(`Deleted ${ids.length} duplicate record(s)`);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.delete(id));
-      return next;
-    });
-    qc.invalidateQueries({ queryKey: ["duplicate-candidates"] });
+  const deleteCluster = async (_cluster: DuplicateCluster) => {
+    // Build50: there is no candidate DELETE call in duplicate cleanup.
+    // Review-only scanning continues; merge/delete requires audited RPCs.
+    toast.error(CANDIDATE_MUTATION_HOLD_REASON);
   };
 
   return (
@@ -223,15 +257,27 @@ function Page() {
             <Users2 className="h-5 w-5 text-primary" />Duplicate Candidates
           </h1>
           <p className="text-sm text-muted-foreground">
-            Scans every candidate in the CRM for likely duplicates — the same email, phone, or full name entered more than once, from any source. Nothing is deleted automatically; review each group and choose what to remove.
+            Flags likely duplicate candidates for administrator review. Selections reset after each completed scan. You may export record IDs for a separate retention and merge decision; no candidate is deleted or modified here.
           </p>
         </div>
-        <Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled={!summary || query.isError || query.isFetching || totalSelected === 0} onClick={exportReview}>
+            <Download className="h-3.5 w-3.5 mr-1" />Export review CSV (no deletion)
+          </Button>
+          <Button variant="outline" disabled={query.isFetching} onClick={() => query.refetch()}>
           <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${query.isFetching ? "animate-spin" : ""}`} />
           {query.isFetching ? "Scanning…" : "Re-scan"}
-        </Button>
+          </Button>
+        </div>
       </div>
 
+      {LEGACY_CANDIDATE_WRITES_PAUSED && (
+        <Alert>
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Duplicate deletion paused</AlertTitle>
+          <AlertDescription>{CANDIDATE_MUTATION_HOLD_REASON}</AlertDescription>
+        </Alert>
+      )}
       {query.isPending && (
         <Card>
           <CardContent className="space-y-3 pt-6">
@@ -244,7 +290,7 @@ function Page() {
         <Alert variant="destructive">
           <TriangleAlert className="h-4 w-4" />
           <AlertTitle>Couldn't scan for duplicates</AlertTitle>
-          <AlertDescription>{(query.error as any)?.message ?? "Unknown error."}</AlertDescription>
+          <AlertDescription>Complete duplicate review is unavailable. No candidate records or diagnostic details are displayed.</AlertDescription>
         </Alert>
       )}
 
@@ -256,7 +302,7 @@ function Page() {
               <div><span className="text-2xl font-semibold">{clusters.length}</span><p className="text-muted-foreground">Duplicate group{clusters.length === 1 ? "" : "s"} found</p></div>
               <div><span className="text-2xl font-semibold">{summary.candidatesInvolved}</span><p className="text-muted-foreground">Records involved</p></div>
               {totalSelected > 0 && (
-                <div className="ml-auto"><span className="text-2xl font-semibold text-destructive">{totalSelected}</span><p className="text-muted-foreground">Selected to delete</p></div>
+                <div className="ml-auto"><span className="text-2xl font-semibold text-destructive">{totalSelected}</span><p className="text-muted-foreground">Flagged for review</p></div>
               )}
             </CardContent>
           </Card>
@@ -278,7 +324,7 @@ function Page() {
                   onToggleMember={toggleMember}
                   onSelectAllButOldest={selectAllButOldest}
                   onDelete={deleteCluster}
-                  deleting={deletingClusterId === cluster.clusterId}
+                  deleting={false}
                 />
               ))}
             </div>

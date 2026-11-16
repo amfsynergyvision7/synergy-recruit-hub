@@ -1,24 +1,38 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
+import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { useBranding } from "@/hooks/use-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAdminResumeFolder, updateAdminSetting } from "@/lib/admin-settings";
+import { CRM_PROFILE_MUTATIONS_ENABLED, updateOwnCRMProfile } from "@/lib/profile-settings";
+import { LEGACY_BULK_IMPORT_WRITES_PAUSED } from "@/lib/release-safety";
+import { CRM_ORG_SETTINGS_MUTATIONS_PAUSED } from "@/lib/release-safety";
 import { toast } from "sonner";
 import { Upload, ImageOff, Trash2, FolderSync, Users2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
 import type { ColorThemeId } from "@/lib/color-themes";
+import { ACCEPTED_LOGO_TYPES, verifyLogoSignature } from "@/lib/logo-upload-safety";
 
 export const Route = createFileRoute("/_app/settings")({ component: Page });
 
-const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2MB
-const ACCEPTED_LOGO_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
 const LOGO_STORAGE_PATH = "company-logo";
 
 function Page() {
+  const { user, profile, role, loading } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Checking settings access…</p>;
+  if (!canMountApprovedCrm(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Approved CRM access is required.</p>;
+  // Reset profile inputs, branding controls and pending local state when
+  // the authenticated subject or role changes.
+  return <ApprovedSettingsWorkspace key={user!.id + ":" + role} />;
+}
+
+function ApprovedSettingsWorkspace() {
   const { profile, role, refresh } = useAuth();
   const { logoUrl, defaultColorTheme, refresh: refreshBranding } = useBranding();
   const [form, setForm] = useState({
@@ -34,39 +48,50 @@ function Page() {
 
   useEffect(() => {
     if (role !== "admin") return;
-    supabase
-      .from("app_settings")
-      .select("resume_import_folder_url")
-      .eq("id", 1)
-      .maybeSingle()
-      .then(({ data }) => setDriveFolderUrl(data?.resume_import_folder_url ?? ""));
+    let active = true;
+    void getAdminResumeFolder().then(({ data, error }) => {
+      if (active && !error) setDriveFolderUrl(data ?? "");
+    }).catch(() => {
+      if (active) setDriveFolderUrl("");
+    });
+    return () => { active = false; };
   }, [role]);
 
   const saveDriveFolder = async () => {
+    if (LEGACY_BULK_IMPORT_WRITES_PAUSED) {
+      toast.error("Resume folder configuration is paused until restricted Drive access is approved.");
+      return;
+    }
     setSavingFolder(true);
-    const { error } = await supabase
-      .from("app_settings")
-      .update({ resume_import_folder_url: driveFolderUrl.trim() || null, updated_by: profile?.id })
-      .eq("id", 1);
+    const { error } = await updateAdminSetting("resume_import_folder_url", driveFolderUrl.trim() || null);
     setSavingFolder(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Resume import folder saved");
   };
 
   const save = async () => {
     if (!profile) return;
-    const { error } = await supabase.from("profiles").update(form).eq("id", profile.id);
-    if (error) return toast.error(error.message);
+    const { error } = await updateOwnCRMProfile(form);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Profile updated"); refresh();
   };
 
   const uploadLogo = async (file: File) => {
-    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
-      return toast.error("Please upload a PNG, JPG, WEBP, or SVG image.");
+    if (CRM_ORG_SETTINGS_MUTATIONS_PAUSED) {
+      toast.error("Organization branding updates are paused pending release approval.");
+      return;
     }
-    if (file.size > MAX_LOGO_BYTES) {
-      return toast.error("Logo must be smaller than 2MB.");
+    if (uploading) return;
+    // Reject executable SVG and MIME-spoofed bytes before any storage write.
+    // Server storage policies remain authoritative: this adds browser defense.
+    let signature: Uint8Array;
+    try {
+      signature = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    } catch {
+      return toast.error("Unable to verify image contents before upload.");
     }
+    const rejection = verifyLogoSignature(file.type, file.size, signature);
+    if (rejection) return toast.error(rejection);
     setUploading(true);
     // Same object path every time (upsert) so old versions don't pile up in
     // the bucket; the `?v=` cache-buster on the stored URL is what makes a
@@ -76,39 +101,38 @@ function Page() {
       .upload(LOGO_STORAGE_PATH, file, { upsert: true, contentType: file.type });
     if (uploadError) {
       setUploading(false);
-      return toast.error(uploadError.message);
+      return toast.error("Logo upload could not be verified.");
     }
     const { data } = supabase.storage.from("branding").getPublicUrl(LOGO_STORAGE_PATH);
     const versionedUrl = `${data.publicUrl}?v=${Date.now()}`;
-    const { error: dbError } = await supabase
-      .from("app_settings")
-      .update({ logo_url: versionedUrl, updated_by: profile?.id })
-      .eq("id", 1);
+    const { error: dbError } = await updateAdminSetting("logo_url", versionedUrl);
     setUploading(false);
-    if (dbError) return toast.error(dbError.message);
+    if (dbError) return toast.error("Branding update could not be verified.");
     toast.success("Logo updated");
     refreshBranding();
   };
 
   const setOrgDefaultTheme = async (id: ColorThemeId) => {
-    const { error } = await supabase
-      .from("app_settings")
-      .update({ default_color_theme: id, updated_by: profile?.id })
-      .eq("id", 1);
-    if (error) return toast.error(error.message);
+    if (CRM_ORG_SETTINGS_MUTATIONS_PAUSED) {
+      toast.error("Organization branding updates are paused pending release approval.");
+      return;
+    }
+    const { error } = await updateAdminSetting("default_color_theme", id);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Organization default theme updated");
     refreshBranding();
   };
 
   const removeLogo = async () => {
+    if (CRM_ORG_SETTINGS_MUTATIONS_PAUSED) {
+      toast.error("Organization branding updates are paused pending release approval.");
+      return;
+    }
     setUploading(true);
     await supabase.storage.from("branding").remove([LOGO_STORAGE_PATH]);
-    const { error } = await supabase
-      .from("app_settings")
-      .update({ logo_url: null, updated_by: profile?.id })
-      .eq("id", 1);
+    const { error } = await updateAdminSetting("logo_url", null);
     setUploading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("Settings update could not be verified.");
     toast.success("Logo removed — showing the default mark again");
     refreshBranding();
   };
@@ -120,11 +144,12 @@ function Page() {
         <p className="text-sm text-muted-foreground">Manage your profile.</p>
       </div>
       <Card><CardHeader><CardTitle>Profile</CardTitle></CardHeader>
+        {!CRM_PROFILE_MUTATIONS_ENABLED && <p className="px-6 text-sm text-muted-foreground">Profile edits are temporarily paused pending secure release.</p>}
         <CardContent className="space-y-4">
-          <div className="space-y-2"><Label>Full name</Label><Input value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></div>
-          <div className="space-y-2"><Label>Phone</Label><Input value={form.phone ?? ""} onChange={(e)=>setForm({...form,phone:e.target.value})}/></div>
-          <div className="space-y-2"><Label>Department</Label><Input value={form.department ?? ""} onChange={(e)=>setForm({...form,department:e.target.value})}/></div>
-          <Button onClick={save}>Save</Button>
+          <div className="space-y-2"><Label>Full name</Label><Input disabled={!CRM_PROFILE_MUTATIONS_ENABLED} value={form.full_name} onChange={(e)=>setForm({...form,full_name:e.target.value})}/></div>
+          <div className="space-y-2"><Label>Phone</Label><Input disabled={!CRM_PROFILE_MUTATIONS_ENABLED} value={form.phone ?? ""} onChange={(e)=>setForm({...form,phone:e.target.value})}/></div>
+          <div className="space-y-2"><Label>Department</Label><Input disabled={!CRM_PROFILE_MUTATIONS_ENABLED} value={form.department ?? ""} onChange={(e)=>setForm({...form,department:e.target.value})}/></div>
+          <Button onClick={save} disabled={!CRM_PROFILE_MUTATIONS_ENABLED}>Save</Button>
         </CardContent>
       </Card>
       <Card>
@@ -132,14 +157,15 @@ function Page() {
           <CardTitle>Theme</CardTitle>
           <CardDescription>
             Pick a color theme for your own view — it also changes the mandala mark in the sidebar, the top-right watermark, and the sign-in screen.
-            {role === "admin" && " As an admin, you can also set which one new/signed-out visitors see by default."}
+            {role === "admin" && !CRM_ORG_SETTINGS_MUTATIONS_PAUSED
+              && " As an admin, you can also set which one new/signed-out visitors see by default."}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ThemePicker
-            isAdmin={role === "admin"}
+            isAdmin={role === "admin" && !CRM_ORG_SETTINGS_MUTATIONS_PAUSED}
             orgDefault={defaultColorTheme}
-            onSetOrgDefault={role === "admin" ? setOrgDefaultTheme : undefined}
+            onSetOrgDefault={role === "admin" && !CRM_ORG_SETTINGS_MUTATIONS_PAUSED ? setOrgDefaultTheme : undefined}
           />
         </CardContent>
       </Card>
@@ -147,7 +173,7 @@ function Page() {
         <Card>
           <CardHeader>
             <CardTitle>Branding</CardTitle>
-            <CardDescription>Upload your company logo. It appears next to the AMF Synergy Vision mark in the sidebar and on the sign-in page.</CardDescription>
+            <CardDescription>Organization branding is read-only until the storage and admin-setting permissions receive independent release approval. Existing logos remain visible.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
@@ -160,7 +186,7 @@ function Page() {
               </div>
               <div className="space-y-1">
                 <p className="text-sm">{logoUrl ? "Custom logo active" : "No logo uploaded yet — showing the default mark"}</p>
-                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP, or SVG · up to 2MB</p>
+                <p className="text-xs text-muted-foreground">PNG, JPG or WEBP · up to 2MB (SVG not accepted)</p>
               </div>
             </div>
             <input
@@ -175,11 +201,11 @@ function Page() {
               }}
             />
             <div className="flex gap-2">
-              <Button variant="outline" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
+              <Button variant="outline" disabled={uploading || CRM_ORG_SETTINGS_MUTATIONS_PAUSED} onClick={() => fileInputRef.current?.click()}>
                 <Upload className="h-4 w-4 mr-2" />{uploading ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}
               </Button>
               {logoUrl && (
-                <Button variant="ghost" disabled={uploading} onClick={removeLogo}>
+                <Button variant="ghost" disabled={uploading || CRM_ORG_SETTINGS_MUTATIONS_PAUSED} onClick={removeLogo}>
                   <Trash2 className="h-4 w-4 mr-2 text-destructive" />Remove
                 </Button>
               )}
@@ -192,19 +218,20 @@ function Page() {
           <CardHeader>
             <CardTitle>Resume Import Folder</CardTitle>
             <CardDescription>
-              Paste the link to one shared Google Drive folder — set it to "Anyone with the link — Viewer". Drop new resumes into that same folder, then use "Check Google Drive for new resumes" on the Candidates page to pull them in automatically.
+              Resume folders contain applicants' personal information. Do not make them public or enable "Anyone with the link" access. Folder configuration and bulk import remain paused until independently reviewed, permission-scoped Drive access is available.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label>Drive folder URL</Label>
               <Input
+                disabled={LEGACY_BULK_IMPORT_WRITES_PAUSED}
                 value={driveFolderUrl}
                 onChange={(e) => setDriveFolderUrl(e.target.value)}
                 placeholder="https://drive.google.com/drive/folders/..."
               />
             </div>
-            <Button disabled={savingFolder} onClick={saveDriveFolder}>
+            <Button disabled={LEGACY_BULK_IMPORT_WRITES_PAUSED || savingFolder} onClick={saveDriveFolder}>
               <FolderSync className="h-4 w-4 mr-2" />{savingFolder ? "Saving…" : "Save folder"}
             </Button>
           </CardContent>

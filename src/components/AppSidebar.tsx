@@ -8,6 +8,8 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { canReadPipelineReports, canReadAuditLogs, canReadFinancialAnalytics } from "@/lib/crm-report-access";
+import { canReadPrivateUserDirectory, canReadCandidateActivityMetadata, canUseCandidateAiMatching } from "@/lib/crm-sensitive-route-access";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./ThemeToggle";
 import { BrandLogo, BrandFacetBloom } from "./BrandMark";
@@ -45,7 +47,16 @@ const adminItems = [
 
 export function AppSidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { profile, role, signOut } = useAuth();
+  const { user, profile, role, signOut } = useAuth();
+  const shownItems = items.filter(item =>
+    item.url === "/reports" ? canReadPipelineReports(user?.id, profile, role) :
+    item.url === "/audit" ? canReadAuditLogs(user?.id, profile, role) :
+    item.url === "/billing" ? canReadFinancialAnalytics(user?.id, profile, role) :
+    item.url === "/users" ? canReadPrivateUserDirectory(user?.id, profile, role) :
+    item.url === "/activities" ? canReadCandidateActivityMetadata(user?.id, profile, role) :
+    item.url === "/ai-match" ? canUseCandidateAiMatching(user?.id, profile, role) :
+    true
+  );
   // The glow around the brand logo badge is tuned to each color theme's own
   // mandala hue (see src/lib/color-themes.ts) instead of a fixed cyan, so it
   // never clashes once a theme like Navy & Gold or Warm Coral is active.
@@ -74,7 +85,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {shownItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={path === item.url}>
                     <Link to={item.url}>

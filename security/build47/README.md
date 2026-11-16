@@ -1,0 +1,11 @@
+# Build 47 — Drift-checked 48-object security lockdown and integrated RLS rehearsal
+
+**REVIEW ONLY / PRODUCTION RELEASE HOLD.** Nothing here is an active migration.
+
+The draft verifies the exact live inventory of 19 public tables, 13 public views and 16 SECURITY DEFINER functions, then revokes unsafe anonymous privileges, removes 15 universal permissive RLS policies, hardens 13 views as security invoker, and restricts all 16 privileged functions. Only three authenticated role helpers retain execute access. Public branding retains three allowlisted fields while the private Drive folder setting is not publicly readable.
+
+Two rollback-only PostgreSQL 17 fixtures are provided. The first reproduces 19 source-shaped tables, 13 production-derived view definitions, 16 stub privileged function signatures and the 15 unsafe policies; it deliberately induces catalog drift to confirm preflight rejection, verifies the hardening under actual database roles and rolls back. The second applies the same controls followed by the 31 restrictive RLS policies from separate draft PR #11 and narrow candidate/job/notification update grants, then checks synthetic admin, recruiter A, recruiter B and inactive-user isolation. The test-only b47_auth.uid() shim avoids altering hosted Supabase's Auth schema. Both have passed in the dedicated hosted nonproduction project without persistent writes.
+
+**Known gaps:** the fixtures do not reproduce every existing live policy, real privileged function body, genuine hosted Supabase Auth session, UI CRUD behavior, trigger side effect or a production-scale backup. Narrow grants deliberately make some administrative browser flows incompatible until reviewed RPC replacements are implemented. Existing candidate identity uniqueness, financial automation and import reconciliation remain separate workstreams. Independent security review, protected main, formal 140-case acceptance and nine formal release gates are not complete.
+
+Formal status remains 0/48 actual production security objects remediated, 0/140 hosted authorization cases accepted, 0/9 release gates passed. No production/staging writes, deploy, merge, schedule enablement, financial activation or external communications in Build 47.

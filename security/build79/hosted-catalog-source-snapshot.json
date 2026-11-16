@@ -1,0 +1,1822 @@
+{
+  "evidence_type": "BUILD79_VERIFIED_NONPROD_SOURCE_TABLE_COLUMN_FOREIGN_KEY_AND_CHECK_CATALOG",
+  "project": "dhlhlasnaapzckjyvffn",
+  "captured_date": "2026-11-13",
+  "database_reads_only": true,
+  "business_records_copied": false,
+  "source_table_count": 19,
+  "column_count": 239,
+  "foreign_key_count": 42,
+  "check_constraint_count": 7,
+  "columns": [
+    {
+      "type": "text",
+      "table": "app_settings",
+      "column": "default_color_theme",
+      "not_null": true
+    },
+    {
+      "type": "int4",
+      "table": "app_settings",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "app_settings",
+      "column": "logo_url",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "app_settings",
+      "column": "resume_import_folder_url",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "app_settings",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "app_settings",
+      "column": "updated_by",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "audit_logs",
+      "column": "action",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "audit_logs",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "jsonb",
+      "table": "audit_logs",
+      "column": "details",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "audit_logs",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "audit_logs",
+      "column": "record_id",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "audit_logs",
+      "column": "table_name",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "audit_logs",
+      "column": "user_email",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "audit_logs",
+      "column": "user_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "billing",
+      "column": "candidate_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "billing",
+      "column": "candidate_uuid",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "billing",
+      "column": "client_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "billing",
+      "column": "client_uuid",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "billing",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "billing",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "billing",
+      "column": "gst",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "billing",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "numeric",
+      "table": "billing",
+      "column": "invoice_amount",
+      "not_null": false
+    },
+    {
+      "type": "date",
+      "table": "billing",
+      "column": "invoice_date",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "billing",
+      "column": "invoice_number",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "billing",
+      "column": "offer_uuid",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "billing",
+      "column": "outstanding_amount",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "billing",
+      "column": "payment_status",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "billing",
+      "column": "placement_fee",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "billing",
+      "column": "salary",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "billing",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "candidate_activities",
+      "column": "action_type",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "candidate_activities",
+      "column": "candidate_id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "candidate_activities",
+      "column": "candidate_name",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "candidate_activities",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "candidate_activities",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "candidate_activities",
+      "column": "module_created",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidate_activities",
+      "column": "notes",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "candidate_activities",
+      "column": "recruiter_id",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidate_activities",
+      "column": "recruiter_name",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "candidate_activities",
+      "column": "related_record_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "candidate_stage_history",
+      "column": "candidate_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "candidate_stage_history",
+      "column": "changed_by",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "candidate_stage_history",
+      "column": "created_at",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "candidate_stage_history",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "candidate_stage_history",
+      "column": "new_stage",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "candidate_stage_history",
+      "column": "notes",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidate_stage_history",
+      "column": "previous_stage",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "candidates",
+      "column": "assigned_recruiter",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "candidates",
+      "column": "ats_checked_at",
+      "not_null": false
+    },
+    {
+      "type": "jsonb",
+      "table": "candidates",
+      "column": "ats_issues",
+      "not_null": false
+    },
+    {
+      "type": "int4",
+      "table": "candidates",
+      "column": "ats_score",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "candidate_code",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "candidates",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "candidates",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "created_source",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "current_company",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "candidates",
+      "column": "current_salary",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "email",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "candidates",
+      "column": "expected_salary",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "candidates",
+      "column": "experience_years",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "full_name",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "candidates",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "location",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "mobile",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "notes",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "notice_period",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "position_applied",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "resume_summary",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "resume_url",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "source",
+      "not_null": false
+    },
+    {
+      "type": "candidate_stage",
+      "table": "candidates",
+      "column": "stage",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "candidates",
+      "column": "status",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "candidates",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "int4",
+      "table": "clients",
+      "column": "active_positions",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "clients",
+      "column": "agreement_type",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "clients",
+      "column": "billing_model",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "clients",
+      "column": "company_name",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "clients",
+      "column": "contact_person",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "clients",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "clients",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "clients",
+      "column": "email",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "clients",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "clients",
+      "column": "phone",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "clients",
+      "column": "status",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "clients",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "email_log",
+      "column": "body",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "email_log",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "email_log",
+      "column": "error",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "email_log",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "email_log",
+      "column": "provider_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "email_log",
+      "column": "related_id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "email_log",
+      "column": "related_table",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "email_log",
+      "column": "sent_by",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "email_log",
+      "column": "status",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "email_log",
+      "column": "subject",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "email_log",
+      "column": "to_email",
+      "not_null": true
+    },
+    {
+      "type": "bool",
+      "table": "google_integrations",
+      "column": "auto_sync_enabled",
+      "not_null": true
+    },
+    {
+      "type": "jsonb",
+      "table": "google_integrations",
+      "column": "column_mapping",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "google_integrations",
+      "column": "connection_status",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "google_integrations",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "google_integrations",
+      "column": "google_account_email",
+      "not_null": false
+    },
+    {
+      "type": "int4",
+      "table": "google_integrations",
+      "column": "header_row",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "google_integrations",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "google_integrations",
+      "column": "last_error",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "google_integrations",
+      "column": "last_sync",
+      "not_null": false
+    },
+    {
+      "type": "int4",
+      "table": "google_integrations",
+      "column": "last_synced_row",
+      "not_null": true
+    },
+    {
+      "type": "jsonb",
+      "table": "google_integrations",
+      "column": "mapping",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "google_integrations",
+      "column": "sheet_name",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "google_integrations",
+      "column": "sheet_url",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "google_integrations",
+      "column": "spreadsheet_id",
+      "not_null": false
+    },
+    {
+      "type": "int4",
+      "table": "google_integrations",
+      "column": "sync_frequency_minutes",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "google_integrations",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "google_integrations",
+      "column": "user_id",
+      "not_null": true
+    },
+    {
+      "type": "bool",
+      "table": "integrations",
+      "column": "auto_sync",
+      "not_null": true
+    },
+    {
+      "type": "jsonb",
+      "table": "integrations",
+      "column": "column_mapping",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "integrations",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "int4",
+      "table": "integrations",
+      "column": "header_row",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "integrations",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "integrations",
+      "column": "last_error",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "integrations",
+      "column": "last_status",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "integrations",
+      "column": "last_sync_at",
+      "not_null": false
+    },
+    {
+      "type": "int4",
+      "table": "integrations",
+      "column": "last_synced_row",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "integrations",
+      "column": "module",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "integrations",
+      "column": "sheet_name",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "integrations",
+      "column": "sheet_url",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "integrations",
+      "column": "spreadsheet_id",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "integrations",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "candidate_id",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "candidate_uuid",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "client_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "client_uuid",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "interviews",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "interviews",
+      "column": "feedback",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "date",
+      "table": "interviews",
+      "column": "interview_date",
+      "not_null": false
+    },
+    {
+      "type": "time",
+      "table": "interviews",
+      "column": "interview_time",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "interviews",
+      "column": "mode",
+      "not_null": false
+    },
+    {
+      "type": "jsonb",
+      "table": "interviews",
+      "column": "proposed_slots",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "interviews",
+      "column": "round",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "scheduling_token",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "interviews",
+      "column": "status",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "interviews",
+      "column": "submission_uuid",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "job_openings",
+      "column": "assigned_recruiter",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "job_openings",
+      "column": "client_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "job_openings",
+      "column": "client_uuid",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "job_openings",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "job_openings",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "job_openings",
+      "column": "description",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "job_openings",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "bool",
+      "table": "job_openings",
+      "column": "is_confidential",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "job_openings",
+      "column": "job_title",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "job_openings",
+      "column": "location",
+      "not_null": false
+    },
+    {
+      "type": "int4",
+      "table": "job_openings",
+      "column": "open_positions",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "job_openings",
+      "column": "priority",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "job_openings",
+      "column": "requirements",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "job_openings",
+      "column": "salary_max",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "job_openings",
+      "column": "salary_min",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "job_openings",
+      "column": "status",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "job_openings",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "notifications",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "notifications",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "bool",
+      "table": "notifications",
+      "column": "is_read",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "notifications",
+      "column": "message",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "notifications",
+      "column": "related_id",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "notifications",
+      "column": "related_table",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "notifications",
+      "column": "title",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "notifications",
+      "column": "type",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "notifications",
+      "column": "user_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "candidate_id",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "candidate_uuid",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "client_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "client_uuid",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "offers",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "offers",
+      "column": "ctc",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "interview_uuid",
+      "not_null": false
+    },
+    {
+      "type": "date",
+      "table": "offers",
+      "column": "joining_date",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "offers",
+      "column": "joining_status",
+      "not_null": false
+    },
+    {
+      "type": "date",
+      "table": "offers",
+      "column": "offer_date",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "offers",
+      "column": "offer_status",
+      "not_null": false
+    },
+    {
+      "type": "numeric",
+      "table": "offers",
+      "column": "salary",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "offers",
+      "column": "submission_uuid",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "offers",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "profiles",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "department",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "email",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "full_name",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "profiles",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "bool",
+      "table": "profiles",
+      "column": "is_active",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "phone",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "profiles",
+      "column": "role_request",
+      "not_null": false
+    },
+    {
+      "type": "user_status",
+      "table": "profiles",
+      "column": "status",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "profiles",
+      "column": "updated_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "candidate_id",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "candidate_uuid",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "client_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "client_uuid",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "submissions",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "job_id",
+      "not_null": false
+    },
+    {
+      "type": "uuid",
+      "table": "submissions",
+      "column": "job_uuid",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "submissions",
+      "column": "remarks",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "submissions",
+      "column": "role_title",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "submissions",
+      "column": "status",
+      "not_null": false
+    },
+    {
+      "type": "date",
+      "table": "submissions",
+      "column": "submission_date",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "sync_logs",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "jsonb",
+      "table": "sync_logs",
+      "column": "errors",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "sync_logs",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "sync_logs",
+      "column": "message",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "sync_logs",
+      "column": "module",
+      "not_null": true
+    },
+    {
+      "type": "int4",
+      "table": "sync_logs",
+      "column": "rows_created",
+      "not_null": true
+    },
+    {
+      "type": "int4",
+      "table": "sync_logs",
+      "column": "rows_scanned",
+      "not_null": true
+    },
+    {
+      "type": "int4",
+      "table": "sync_logs",
+      "column": "rows_skipped",
+      "not_null": true
+    },
+    {
+      "type": "int4",
+      "table": "sync_logs",
+      "column": "rows_updated",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "sync_logs",
+      "column": "status",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "sync_logs",
+      "column": "triggered_by",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "user_roles",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "user_roles",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "app_role",
+      "table": "user_roles",
+      "column": "role",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "user_roles",
+      "column": "user_id",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "action_type",
+      "not_null": true
+    },
+    {
+      "type": "timestamptz",
+      "table": "workflow_rules",
+      "column": "created_at",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "workflow_rules",
+      "column": "created_by",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "field_name",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "field_value",
+      "not_null": true
+    },
+    {
+      "type": "uuid",
+      "table": "workflow_rules",
+      "column": "id",
+      "not_null": true
+    },
+    {
+      "type": "bool",
+      "table": "workflow_rules",
+      "column": "is_active",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "name",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "notify_message",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "notify_target",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "notify_title",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "table_name",
+      "not_null": true
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "update_field_name",
+      "not_null": false
+    },
+    {
+      "type": "text",
+      "table": "workflow_rules",
+      "column": "update_field_value",
+      "not_null": false
+    },
+    {
+      "type": "timestamptz",
+      "table": "workflow_rules",
+      "column": "updated_at",
+      "not_null": true
+    }
+  ],
+  "foreign_keys": [
+    {
+      "table": "app_settings",
+      "column": "updated_by",
+      "ref_table": "users",
+      "constraint": "app_settings_updated_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "audit_logs",
+      "column": "user_id",
+      "ref_table": "users",
+      "constraint": "audit_logs_user_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "billing",
+      "column": "candidate_id",
+      "ref_table": "candidates",
+      "constraint": "billing_candidate_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "billing",
+      "column": "candidate_uuid",
+      "ref_table": "candidates",
+      "constraint": "billing_candidate_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "billing",
+      "column": "client_id",
+      "ref_table": "clients",
+      "constraint": "billing_client_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "billing",
+      "column": "client_uuid",
+      "ref_table": "clients",
+      "constraint": "billing_client_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "billing",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "billing_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "billing",
+      "column": "offer_uuid",
+      "ref_table": "offers",
+      "constraint": "billing_offer_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "candidate_stage_history",
+      "column": "candidate_id",
+      "ref_table": "candidates",
+      "constraint": "candidate_stage_history_candidate_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "candidate_stage_history",
+      "column": "changed_by",
+      "ref_table": "profiles",
+      "constraint": "candidate_stage_history_changed_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "candidates",
+      "column": "assigned_recruiter",
+      "ref_table": "users",
+      "constraint": "candidates_assigned_recruiter_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "candidates",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "candidates_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "clients",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "clients_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "email_log",
+      "column": "sent_by",
+      "ref_table": "users",
+      "constraint": "email_log_sent_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "interviews",
+      "column": "candidate_id",
+      "ref_table": "candidates",
+      "constraint": "interviews_candidate_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "interviews",
+      "column": "candidate_uuid",
+      "ref_table": "candidates",
+      "constraint": "interviews_candidate_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "interviews",
+      "column": "client_id",
+      "ref_table": "clients",
+      "constraint": "interviews_client_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "interviews",
+      "column": "client_uuid",
+      "ref_table": "clients",
+      "constraint": "interviews_client_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "interviews",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "interviews_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "interviews",
+      "column": "submission_uuid",
+      "ref_table": "submissions",
+      "constraint": "interviews_submission_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "job_openings",
+      "column": "assigned_recruiter",
+      "ref_table": "users",
+      "constraint": "job_openings_assigned_recruiter_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "job_openings",
+      "column": "client_id",
+      "ref_table": "clients",
+      "constraint": "job_openings_client_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "job_openings",
+      "column": "client_uuid",
+      "ref_table": "clients",
+      "constraint": "job_openings_client_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "job_openings",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "job_openings_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "notifications",
+      "column": "user_id",
+      "ref_table": "users",
+      "constraint": "notifications_user_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "offers",
+      "column": "candidate_id",
+      "ref_table": "candidates",
+      "constraint": "offers_candidate_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "offers",
+      "column": "candidate_uuid",
+      "ref_table": "candidates",
+      "constraint": "offers_candidate_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "offers",
+      "column": "client_id",
+      "ref_table": "clients",
+      "constraint": "offers_client_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "offers",
+      "column": "client_uuid",
+      "ref_table": "clients",
+      "constraint": "offers_client_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "offers",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "offers_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "offers",
+      "column": "interview_uuid",
+      "ref_table": "interviews",
+      "constraint": "offers_interview_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "offers",
+      "column": "submission_uuid",
+      "ref_table": "submissions",
+      "constraint": "offers_submission_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "profiles",
+      "column": "id",
+      "ref_table": "users",
+      "constraint": "profiles_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "submissions",
+      "column": "candidate_id",
+      "ref_table": "candidates",
+      "constraint": "submissions_candidate_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "submissions",
+      "column": "candidate_uuid",
+      "ref_table": "candidates",
+      "constraint": "submissions_candidate_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "submissions",
+      "column": "client_id",
+      "ref_table": "clients",
+      "constraint": "submissions_client_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "submissions",
+      "column": "client_uuid",
+      "ref_table": "clients",
+      "constraint": "submissions_client_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "submissions",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "submissions_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "submissions",
+      "column": "job_id",
+      "ref_table": "job_openings",
+      "constraint": "submissions_job_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "submissions",
+      "column": "job_uuid",
+      "ref_table": "job_openings",
+      "constraint": "submissions_job_uuid_fkey",
+      "ref_column": "id",
+      "ref_schema": "public"
+    },
+    {
+      "table": "user_roles",
+      "column": "user_id",
+      "ref_table": "users",
+      "constraint": "user_roles_user_id_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    },
+    {
+      "table": "workflow_rules",
+      "column": "created_by",
+      "ref_table": "users",
+      "constraint": "workflow_rules_created_by_fkey",
+      "ref_column": "id",
+      "ref_schema": "auth"
+    }
+  ],
+  "check_constraints": [
+    {
+      "table": "app_settings",
+      "constraint": "app_settings_singleton",
+      "expression": "CHECK (id = 1)"
+    },
+    {
+      "table": "google_integrations",
+      "constraint": "google_integrations_header_row_positive",
+      "expression": "CHECK (header_row >= 1)"
+    },
+    {
+      "table": "google_integrations",
+      "constraint": "google_integrations_last_synced_row_positive",
+      "expression": "CHECK (last_synced_row >= 1)"
+    },
+    {
+      "table": "google_integrations",
+      "constraint": "google_integrations_sync_frequency_positive",
+      "expression": "CHECK (sync_frequency_minutes >= 1)"
+    },
+    {
+      "table": "workflow_rules",
+      "constraint": "workflow_rules_action_type_check",
+      "expression": "CHECK (action_type = ANY (ARRAY['notify'::text, 'update_field'::text]))"
+    },
+    {
+      "table": "workflow_rules",
+      "constraint": "workflow_rules_notify_target_check",
+      "expression": "CHECK (notify_target = ANY (ARRAY['assigned_recruiter'::text, 'role:admin'::text, 'role:recruiter'::text, 'role:operations'::text, 'role:finance'::text, 'role:viewer'::text]))"
+    },
+    {
+      "table": "workflow_rules",
+      "constraint": "workflow_rules_table_name_check",
+      "expression": "CHECK (table_name = ANY (ARRAY['candidates'::text, 'submissions'::text, 'interviews'::text, 'offers'::text, 'billing'::text, 'clients'::text]))"
+    }
+  ]
+}

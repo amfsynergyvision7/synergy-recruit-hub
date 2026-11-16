@@ -2,7 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
 import { CandidateBoard } from "@/components/CandidateBoard";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { canMountApprovedCrm } from "@/lib/crm-shell-access";
 import { supabase } from "@/integrations/supabase/client";
+import { readVerifiedRecruiterChoices } from "@/lib/recruiter-selector-read";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
 import { ResumeSummaryButton } from "@/components/ResumeSummaryButton";
@@ -35,26 +38,62 @@ const STAGE_TONE: Record<string, PillTone> = {
 };
 
 function Page() {
+  const { user, profile, role, loading } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Checking candidate access…</p>;
+  if (!canMountApprovedCrm(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Approved CRM access is required.</p>;
+  return <CandidateWorkspace key={user!.id + ":" + role} />;
+}
+
+function CandidateWorkspace() {
   const [recruiters, setRecruiters] = useState<{ value: string; label: string }[]>([]);
+  const [recruiterDirectoryReady, setRecruiterDirectoryReady] = useState(false);
+  const [recruiterDirectoryFailed, setRecruiterDirectoryFailed] = useState(false);
   const [view, setView] = useState<"table" | "board">("table");
 
   useEffect(() => {
+    // Only active, approved recruiters may be offered as assignees.
+    // The owner/role-keyed candidate workspace is not mounted before login.
+    const controller = new AbortController();
+    let current = true;
+    setRecruiters([]);
+    setRecruiterDirectoryReady(false);
+    setRecruiterDirectoryFailed(false);
     const fetchRecruiters = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('status', 'approved')
-        .order('full_name');
-      
-      if (!error && data) {
-        setRecruiters(data.map((recruiter: { id: string; full_name: string; email: string }) => ({
-          value: recruiter.id,
-          label: recruiter.full_name || recruiter.email
-        })));
+      try {
+        const choices = await readVerifiedRecruiterChoices(
+          async (from, to, signal) => {
+            const result = await supabase.from("user_roles")
+              .select("id, user_id, role", { count: "exact" })
+              .eq("role", "recruiter")
+              .order("id", { ascending: true }).range(from, to)
+              .abortSignal(signal);
+            return { data: result.data, count: result.count, error: result.error };
+          },
+          async (ids, signal) => {
+            const result = await supabase.from("profiles")
+              .select("id, full_name", { count: "exact" })
+              .in("id", Array.from(ids)).eq("status", "approved")
+              .eq("is_active", true)
+              .order("id", { ascending: true })
+              .range(0, ids.length - 1).abortSignal(signal);
+            return { data: result.data, count: result.count, error: result.error };
+          },
+          controller.signal,
+        );
+        if (!current || controller.signal.aborted) return;
+        setRecruiters(choices);
+        setRecruiterDirectoryReady(true);
+      } catch {
+        if (current && !controller.signal.aborted) {
+          setRecruiters([]);
+          setRecruiterDirectoryReady(false);
+          setRecruiterDirectoryFailed(true);
+        }
       }
     };
-    
-    fetchRecruiters();
+    void fetchRecruiters();
+    return () => { current = false; controller.abort(); };
   }, []);
 
   return (
@@ -70,6 +109,13 @@ function Page() {
           </Button>
         </div>
       </div>
+      {!recruiterDirectoryReady && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {recruiterDirectoryFailed
+            ? "Recruiter assignee choices could not be verified. Candidate editing and exports remain held."
+            : "Verifying complete recruiter assignee choices; candidate editing and exports remain held."}
+        </p>
+      )}
       {view === "board" ? (
         <div className="space-y-4">
           <div>
@@ -84,6 +130,7 @@ function Page() {
       description="Full candidate pipeline with automated stage tracking."
       table="candidates"
       module="candidates"
+      requiredReferenceReady={recruiterDirectoryReady}
       detailView
       emailField="email"
       searchFields={["full_name","email","mobile","candidate_code","position_applied"]}

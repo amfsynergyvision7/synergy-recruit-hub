@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CrudModule } from "@/components/CrudModule";
+import { useAuth } from "@/hooks/use-auth";
+import { canReadFinancialAnalytics } from "@/lib/crm-report-access";
 import { StatusPill, type PillTone } from "@/components/StatusPill";
 
 export const Route = createFileRoute("/_app/billing")({ component: Page });
@@ -12,10 +14,13 @@ const PAYMENT_STATUS_TONE: Record<string, PillTone> = {
 };
 
 function Page() {
+  const { user, profile, role } = useAuth();
+  if (!canReadFinancialAnalytics(user?.id, profile, role))
+    return <p className="text-sm text-muted-foreground">Billing and financial reporting are paused pending independent finance and security approval.</p>;
   return (
     <CrudModule
       title="Billing & Invoices"
-      description="Track invoices, placement fees, GST and payment status."
+      description="Review existing invoices and payment status. Financial changes are paused pending separate finance approval."
       table="billing"
       module="billing"
       searchFields={["invoice_number","payment_status"]}

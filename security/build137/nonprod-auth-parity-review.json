@@ -1,0 +1,105 @@
+{
+  "build": 137,
+  "purpose": "Independently reviewed Auth UAT laboratory readiness; nonproduction-only; no executable SQL",
+  "date": "2026-11-14",
+  "lab_project_id": "dhlhlasnaapzckjyvffn",
+  "source_reference_files": [
+    "security/build136/read-only-lab-object-evidence.json",
+    "security/build47/catalog-inventory.json",
+    "security/build72/live-function-public-acl-snapshot.json",
+    "security/nonprod-auth-uat/README.md (separate PR #15, not currently merged)"
+  ],
+  "note": "Comparison uses a historical production-reviewed inventory, not a live production query. Absence from lab is not absence from production.",
+  "observed_readonly": {
+    "public_tables": 19,
+    "forced_rls_tables": 19,
+    "public_views": 13,
+    "security_invoker_views": 13,
+    "lab_public_security_definer_functions": 7,
+    "public_rls_policies": 0,
+    "auth_users": 0,
+    "enabled_public_application_triggers": 0,
+    "anon_table_select_grants": 0,
+    "authenticated_table_select_grants": 0,
+    "independently_counted_public_tables": 19,
+    "all_public_table_rows": 0
+  },
+  "historically_expected_not_present_in_lab": [
+    {
+      "signature": "get_user_role(uuid)",
+      "category": "role_authorization",
+      "priority": "P0",
+      "next_action": "Review exact trusted role lookup and definer grants before UAT"
+    },
+    {
+      "signature": "has_role(uuid,app_role)",
+      "category": "role_authorization",
+      "priority": "P0",
+      "next_action": "Verify unique approved role binding and anti-IDOR semantics"
+    },
+    {
+      "signature": "is_approved(uuid)",
+      "category": "approval_authorization",
+      "priority": "P0",
+      "next_action": "Verify approved/active subject check and role/public EXECUTE limits"
+    },
+    {
+      "signature": "handle_new_user()",
+      "category": "auth_profile_lifecycle",
+      "priority": "P0",
+      "next_action": "Review Auth-user trigger side effects and avoid automatic policy activation"
+    },
+    {
+      "signature": "resolve_candidate_uuid(text)",
+      "category": "legacy_reference_resolution",
+      "priority": "P1",
+      "next_action": "Review minimum required candidate mapping and caller privileges"
+    },
+    {
+      "signature": "resolve_client_uuid(text)",
+      "category": "legacy_reference_resolution",
+      "priority": "P1",
+      "next_action": "Review minimum required client mapping and caller privileges"
+    },
+    {
+      "signature": "resolve_job_uuid(text)",
+      "category": "legacy_reference_resolution",
+      "priority": "P1",
+      "next_action": "Review minimum required job mapping and caller privileges"
+    },
+    {
+      "signature": "rls_auto_enable()",
+      "category": "schema_lifecycle",
+      "priority": "P1",
+      "next_action": "Review event-trigger need and remove unnecessary production-level privileges from lab"
+    },
+    {
+      "signature": "generate_reminders()",
+      "category": "automation",
+      "priority": "P2",
+      "next_action": "Keep disabled for inert UAT until message/finance effects are independently reviewed"
+    }
+  ],
+  "blockers": {
+    "main_protected": false,
+    "main_rulesets": 0,
+    "auth_pr15_independent_submitted_reviews": 0,
+    "auth_pr15_merged": false,
+    "protected_github_environment_config_verified": false,
+    "protected_environment_verification_reason": "Connected repository interface does not expose environment details; absence/presence unknown",
+    "auth_users_provisioned": 0,
+    "inert_rows_seeded": 0,
+    "signed_role_uat_accepted": 0,
+    "production_security_remediations_accepted": 0,
+    "release_signoffs_accepted": 0
+  },
+  "independent_owner_sequence": [
+    "Repository administrator enables protected main and substantive CI review; obtain real separate PR #15 approval",
+    "Environment owner verifies amf-nonprod-auth-review independent required reviewers and lab-only secrets without printing them",
+    "Security owner reconciles nine historic function signatures against fresh lab metadata and separately authorized production inventory; draft exact least-privilege policy/RPC plan",
+    "Authorized lab operator runs fresh non-mutating AUDIT_ONLY; only after separate reviewed approval bootstrap exactly 9 fictional Auth subjects and 38 inert rows",
+    "Independent signed-HTTP test owner validates RLS policies, SELECT/EXECUTE grants, negative role access and five controlled writes",
+    "Security/release owners sign 48 production objects, backups/PITR, legal/finance approvals and all formal gates"
+  ],
+  "status": "REVIEW_HANDOFF_ONLY__ZERO_GATES_CLOSED"
+}

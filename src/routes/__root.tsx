@@ -35,13 +35,10 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
-  console.error(error);
+function ErrorComponent({ reset }: { error: unknown; reset: () => void }) {
+  // Never disclose backend exceptions, candidate PII or sensitive endpoints.
   const router = useRouter();
-  // The router now types a caught error as `unknown` rather than `Error`
-  // (anything can be thrown in JS, not just Error instances), so this reads
-  // a message defensively instead of assuming `.message` exists.
-  const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+  const message = "This page could not be loaded. Please retry or contact an administrator.";
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">

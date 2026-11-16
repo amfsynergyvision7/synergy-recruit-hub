@@ -1,0 +1,42 @@
+# Build 75 — real hosted-test prerequisites, auth bootstrap safety and accountable release blockers
+
+**DRAFT / NOT DEPLOYED.** This build deliberately focuses on the actual prerequisites for moving `0/140` genuinely hosted test cases, rather than claiming further offline tests are release acceptance. Neither staging nor production nor hosted nonproduction was written to; no Auth accounts were created. Financial functions, email, sync, PR merge and deployment remain inactive/blocked.
+
+## What actual live metadata showed
+
+On 12 November 2026, a read-only PostgreSQL catalog audit found exactly **32 enabled application triggers on 12 public tables**, and **one additional enabled `auth.users` trigger** not included in the original 32-table-trigger fixture plan. All 32 public triggers are now pinned by table, trigger name, `pg_get_triggerdef` MD5 and owning function MD5 in `live-trigger-and-auth-hook-manifest.json`. Six are connected to workflow-rule evaluation, four to interview/candidate/offer/submission lifecycle transitions, and other triggers cover assignment, sync mapping and invoice number generation. Twelve of the 32 invoke `SECURITY DEFINER` functions. This metadata-only inventory includes no function bodies, customer/candidate records or credentials.
+
+**New critical blocker:** the production `auth.users` trigger runs `public.handle_new_user()` and automatically inserts BOTH a profile and a role on registration. The live definition also contains an email-conditioned administrator bootstrap branch. The source hash is pinned, but the literal privileged email is deliberately absent from repo evidence. Copying this hook unchanged into the proposed synthetic-only hosted UAT would invalidate historical slot 09, which **must have no profile or role**, and would introduce an unsafe email-dependent privilege mechanism. The dedicated nonprod project contains **zero user-registration triggers**.
+
+Seven other live default values were audited read-only and stored in `live-inert-defaults.json`: `workflow_rules.is_active` defaults **true**, `email_log.status` defaults **sent**, and `sync_logs.status` defaults **success**. These three defaults must be explicitly neutralized or avoided in approved fake data; integration auto-sync defaults are false, but must still be explicitly pinned false. Billing/offer transition triggers and workflow/email outputs require independent nonproduction isolation review.
+
+## Verifiable actual held environment
+
+`isolated-hosted-preseed.readonly.sql` is a single, nonmutating catalog/count SELECT. It will only signal **technical** pre-seed readiness when exactly **19 public CRM tables with RLS and no anon/authenticated TRUNCATE**, **13 invoker-safe non-anon-readable views**, **all 32 exact source-hashed application triggers disabled during initial synthetic seeding**, **zero `auth.users` triggers and zero GoTrue users** are confirmed.
+
+It was **actually executed read-only** against the dedicated synthetic nonproduction project. As of the recorded observation, there were **0 public CRM tables, 0 views, 0 application triggers, 0 auth triggers and 0 Auth users**. It correctly returned **`HOLD_NONPROD_PRESEED_SCHEMA_TRIGGER_AUTH_OR_GRANTS`**. This is saved in `live-nonprod-preseed-observation.json`. A future technical PASS would **not independently authorize** fixture creation.
+
+`isolated-hosted-postseed.readonly.sql` specifies the separate count-only integrity check after independently approved synthetic provisioning: **9 real GoTrue users using only `example.invalid` addresses, 8 matching profiles and 8 user roles, exactly one deliberately unprofiled/unroled ninth identity, expected status/role groups and two invented recruiter-owned candidates**. This is **not** a case result and has NOT been run against a seeded hosted system.
+
+`auth-autoprofile-and-nine-slot.rollback.sql` proves in **disposable PostgreSQL 17** that an enabled synthetic auth-profile trigger automatically creates a profile/role (invalidating the ninth-user control), while an isolated disabled synthetic trigger preserves the 9/8/8 fixture. The SQL verifies positive identity/ownership integrity, then deliberately rejects a ninth profile/role, a finance-owned candidate, and a non-`example.invalid` user. All data are invented; test transaction ends in unconditional ROLLBACK with separate CI cleanup checks.
+
+`auth-bootstrap-no-email-admin.rollback.sql` contains an **additional lab-only replacement design** for the insecure production onboarding mechanism: new signups become `pending`, `inactive`, `viewer`, even when user-supplied metadata requests administrator or finance roles. It tests those semantics on production-shaped `profiles` and `user_roles` DDL using a safe function search path and no caller `EXECUTE`. It is **not a deployable migration or permission to change current production account provisioning**; authorized HR/security owners must approve onboarding compatibility, independent admin role assignment and rollback first.
+
+Source, fixture and controlled-default contracts are in `trigger-and-hosted-fixture-contract.test.mjs`, `auth-bootstrap-hardening-contract.test.mjs` and `inert-defaults-contract.test.mjs`. Both CI workflows run the fast contracts; full guarded CI also runs the real disposable PostgreSQL tests and preserves `production-release-hold`.
+
+## Concrete release-unblocking ownership now tracked
+
+Rather than continuing to repeat the same formal 0/48, 0/140 and 0/9 counters as though mock/CI engineering were acceptance, Build75 created and assigned two actionable GitHub issues to the repository owner:
+
+- **Issue #13**: https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/13 — review source-hashed 32 triggers and auth-hook isolation; approve a safe dedicated 19-table/13-view synthetic-only UAT lab; use proper GoTrue Auth Admin APIs to create nine invented users; then execute and independently accept genuine hosted tests. No direct SQL insertion into `auth.users`.
+- **Issue #14**: https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/14 — human administrator must enable `main` ruleset/branch protection, name independent PR reviewer and nine release signatories, approve DR/PITR restoration, and confirm HR/finance/legal policy decisions. Connected GitHub actions **cannot modify branch protection**; generic business approval cannot count as an independent third-party reviewer or restore test.
+
+**Why the counters have not changed:** the technical branch has passed offline and disposable test suites, but dedicated hosted GoTrue+CRM fixture setup has not been performed; the available Supabase connector **does not expose an Auth Admin account-creation action**, and SQL-inserting into `auth.users` is unsupported/unsafe. Earlier scope restricted staging/production writes and activation. The GitHub connector has no branch-protection write action, and nobody else has submitted an independent PR review or security signature. These cannot be legitimately marked complete by writing another CI test.
+
+## Next actions and forecast
+
+Issue #13's individually checked isolation and synthetic account steps come **before** the 135 genuine historical signed READ cases and five separately governed write cases. The 16 authenticated positive and 20 anonymous negative probes and current-browser/view/function compatibility must also be accepted. Trigger-disabled fixture seeding is not itself evidence of correct production trigger behavior; conduct a separate safe trigger compatibility suite before release.
+
+Issue #14 covers independent review, restore/PITR, legal/finance/retention and protected main. The project's formal counters remain **0/48 accepted live production remediations, 0/140 genuine accepted hosted tests, 0/9 signed release approvals, 0/6 programme workstreams closed**, because none of those independent/live events has yet occurred.
+
+**Build-count estimate should no longer be presented as a countdown:** after secure hosted provisioning and named independent reviewers are actually in place, an indicative additional **5–10+ significant CRM engineering/release iterations** and **15–30+ six-workstream programme iterations** may be needed; without those external prerequisites the number of chat-driven builds is **not bounded** and further offline-only builds cannot legitimately make the above counters advance. These are not financial bills or guaranteed deadlines.

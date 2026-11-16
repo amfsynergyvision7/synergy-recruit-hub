@@ -1,0 +1,581 @@
+{
+  "evidence_type": "PRODUCTION_CATALOG_ONLY_SYNTHETIC_FIXTURE_SOURCE_CONTRACT",
+  "captured_on": "2026-11-12",
+  "production_schema": "public",
+  "source": "Read-only information_schema.columns / pg_catalog.pg_trigger / information_schema FOREIGN KEY metadata; never business data",
+  "source_tables": [
+    "app_settings",
+    "billing",
+    "candidate_stage_history",
+    "candidates",
+    "clients",
+    "email_log",
+    "interviews",
+    "job_openings",
+    "offers",
+    "profiles",
+    "submissions",
+    "workflow_rules"
+  ],
+  "source_table_count": 12,
+  "table_columns": [
+    {
+      "table_name": "app_settings",
+      "column_count": 6,
+      "required_fields": []
+    },
+    {
+      "table_name": "billing",
+      "column_count": 17,
+      "required_fields": []
+    },
+    {
+      "table_name": "candidate_stage_history",
+      "column_count": 7,
+      "required_fields": [
+        {
+          "column": "new_stage",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "candidates",
+      "column_count": 26,
+      "required_fields": [
+        {
+          "column": "full_name",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "clients",
+      "column_count": 12,
+      "required_fields": [
+        {
+          "column": "company_name",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "email_log",
+      "column_count": 11,
+      "required_fields": [
+        {
+          "column": "related_table",
+          "type": "text"
+        },
+        {
+          "column": "related_id",
+          "type": "uuid"
+        },
+        {
+          "column": "to_email",
+          "type": "text"
+        },
+        {
+          "column": "subject",
+          "type": "text"
+        },
+        {
+          "column": "body",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "interviews",
+      "column_count": 16,
+      "required_fields": [
+        {
+          "column": "candidate_id",
+          "type": "uuid"
+        }
+      ]
+    },
+    {
+      "table_name": "job_openings",
+      "column_count": 17,
+      "required_fields": [
+        {
+          "column": "job_title",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "offers",
+      "column_count": 16,
+      "required_fields": [
+        {
+          "column": "candidate_id",
+          "type": "uuid"
+        }
+      ]
+    },
+    {
+      "table_name": "profiles",
+      "column_count": 10,
+      "required_fields": [
+        {
+          "column": "id",
+          "type": "uuid"
+        },
+        {
+          "column": "full_name",
+          "type": "text"
+        },
+        {
+          "column": "email",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "table_name": "submissions",
+      "column_count": 13,
+      "required_fields": [
+        {
+          "column": "candidate_id",
+          "type": "uuid"
+        }
+      ]
+    },
+    {
+      "table_name": "workflow_rules",
+      "column_count": 15,
+      "required_fields": [
+        {
+          "column": "name",
+          "type": "text"
+        },
+        {
+          "column": "table_name",
+          "type": "text"
+        },
+        {
+          "column": "field_name",
+          "type": "text"
+        },
+        {
+          "column": "field_value",
+          "type": "text"
+        },
+        {
+          "column": "action_type",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "noninternal_trigger_count": 29,
+  "triggers": [
+    {
+      "table_name": "app_settings",
+      "trigger_name": "t_app_settings_u",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "billing_invoice_number_trigger",
+      "function_name": "set_invoice_number",
+      "events": "INSERT ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "billing_updated_at_trigger",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "normalize_billing_relationships_trigger",
+      "function_name": "normalize_billing_relationships",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "workflow_rules_trigger",
+      "function_name": "run_workflow_rules",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "candidates_sync_defaults_trigger",
+      "function_name": "set_candidate_sync_defaults",
+      "events": "INSERT ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "candidates_updated_at_trigger",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "set_assigned_recruiter_trigger",
+      "function_name": "set_assigned_recruiter",
+      "events": "INSERT ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "set_candidate_sync_defaults_trigger",
+      "function_name": "set_candidate_sync_defaults",
+      "events": "INSERT ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "track_stage_changes_trigger",
+      "function_name": "track_stage_changes",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "trg_candidate_stage_change",
+      "function_name": "on_candidate_stage_change",
+      "events": "UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "workflow_rules_trigger",
+      "function_name": "run_workflow_rules",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "clients",
+      "trigger_name": "clients_updated_at_trigger",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "clients",
+      "trigger_name": "t_clients_u",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "clients",
+      "trigger_name": "workflow_rules_trigger",
+      "function_name": "run_workflow_rules",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "interviews",
+      "trigger_name": "interviews_stage_trigger",
+      "function_name": "on_interview_change",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "interviews",
+      "trigger_name": "normalize_interviews_relationships_trigger",
+      "function_name": "normalize_interview_relationships",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "interviews",
+      "trigger_name": "workflow_rules_trigger",
+      "function_name": "run_workflow_rules",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "job_openings",
+      "trigger_name": "job_openings_updated_at_trigger",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "job_openings",
+      "trigger_name": "normalize_job_openings_relationships_trigger",
+      "function_name": "normalize_job_opening_relationships",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "normalize_offers_relationships_trigger",
+      "function_name": "normalize_offer_relationships",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "offers_stage_billing_trigger",
+      "function_name": "on_offer_change",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "offers_updated_at_trigger",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "workflow_rules_trigger",
+      "function_name": "run_workflow_rules",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "profiles",
+      "trigger_name": "t_profiles_u",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "submissions",
+      "trigger_name": "normalize_submissions_relationships_trigger",
+      "function_name": "normalize_submission_relationships",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    },
+    {
+      "table_name": "submissions",
+      "trigger_name": "submissions_stage_trigger",
+      "function_name": "on_submission_insert",
+      "events": "INSERT ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "submissions",
+      "trigger_name": "workflow_rules_trigger",
+      "function_name": "run_workflow_rules",
+      "events": "INSERT UPDATE ",
+      "seed_gate": "BLOCK_UNTIL_SIDE_EFFECT_ISOLATION_REVIEW"
+    },
+    {
+      "table_name": "workflow_rules",
+      "trigger_name": "workflow_rules_set_updated_at",
+      "function_name": "set_updated_at",
+      "events": "UPDATE ",
+      "seed_gate": "REVIEW_BEFORE_ANY_INSERT"
+    }
+  ],
+  "foreign_key_count": 26,
+  "foreign_keys": [
+    {
+      "table_name": "billing",
+      "constraint_name": "billing_candidate_id_fkey",
+      "column_name": "candidate_id",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "billing",
+      "constraint_name": "billing_candidate_uuid_fkey",
+      "column_name": "candidate_uuid",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "billing",
+      "constraint_name": "billing_client_id_fkey",
+      "column_name": "client_id",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "billing",
+      "constraint_name": "billing_client_uuid_fkey",
+      "column_name": "client_uuid",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "billing",
+      "constraint_name": "billing_offer_uuid_fkey",
+      "column_name": "offer_uuid",
+      "referenced_table": "offers",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "candidate_stage_history",
+      "constraint_name": "candidate_stage_history_candidate_id_fkey",
+      "column_name": "candidate_id",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "candidate_stage_history",
+      "constraint_name": "candidate_stage_history_changed_by_fkey",
+      "column_name": "changed_by",
+      "referenced_table": "profiles",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "interviews",
+      "constraint_name": "interviews_candidate_id_fkey",
+      "column_name": "candidate_id",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "interviews",
+      "constraint_name": "interviews_candidate_uuid_fkey",
+      "column_name": "candidate_uuid",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "interviews",
+      "constraint_name": "interviews_client_id_fkey",
+      "column_name": "client_id",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "interviews",
+      "constraint_name": "interviews_client_uuid_fkey",
+      "column_name": "client_uuid",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "interviews",
+      "constraint_name": "interviews_submission_uuid_fkey",
+      "column_name": "submission_uuid",
+      "referenced_table": "submissions",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "job_openings",
+      "constraint_name": "job_openings_client_id_fkey",
+      "column_name": "client_id",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "job_openings",
+      "constraint_name": "job_openings_client_uuid_fkey",
+      "column_name": "client_uuid",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "offers",
+      "constraint_name": "offers_candidate_id_fkey",
+      "column_name": "candidate_id",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "offers",
+      "constraint_name": "offers_candidate_uuid_fkey",
+      "column_name": "candidate_uuid",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "offers",
+      "constraint_name": "offers_client_id_fkey",
+      "column_name": "client_id",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "offers",
+      "constraint_name": "offers_client_uuid_fkey",
+      "column_name": "client_uuid",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "offers",
+      "constraint_name": "offers_interview_uuid_fkey",
+      "column_name": "interview_uuid",
+      "referenced_table": "interviews",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "offers",
+      "constraint_name": "offers_submission_uuid_fkey",
+      "column_name": "submission_uuid",
+      "referenced_table": "submissions",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "submissions",
+      "constraint_name": "submissions_candidate_id_fkey",
+      "column_name": "candidate_id",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "submissions",
+      "constraint_name": "submissions_candidate_uuid_fkey",
+      "column_name": "candidate_uuid",
+      "referenced_table": "candidates",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "submissions",
+      "constraint_name": "submissions_client_id_fkey",
+      "column_name": "client_id",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "submissions",
+      "constraint_name": "submissions_client_uuid_fkey",
+      "column_name": "client_uuid",
+      "referenced_table": "clients",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "submissions",
+      "constraint_name": "submissions_job_id_fkey",
+      "column_name": "job_id",
+      "referenced_table": "job_openings",
+      "referenced_column": "id"
+    },
+    {
+      "table_name": "submissions",
+      "constraint_name": "submissions_job_uuid_fkey",
+      "column_name": "job_uuid",
+      "referenced_table": "job_openings",
+      "referenced_column": "id"
+    }
+  ],
+  "high_risk_trigger_functions": [
+    "run_workflow_rules",
+    "on_candidate_stage_change",
+    "on_offer_change",
+    "on_interview_change",
+    "on_submission_insert"
+  ],
+  "provisioning_allowed": false,
+  "nonproduction_seed_performed": false,
+  "mandatory_preconditions": [
+    "Independent approval of synthetic-only isolated nonproduction 19-table and 13-view fixture plan, source DDL and trigger isolation",
+    "All billing, offers, candidate stage, interview and workflow side effects disabled or guarded in approved synthetic environment",
+    "Nine independently verified synthetic GoTrue accounts, exact per-slot UUID map, no real staff or candidate data copied",
+    "Human verification of foreign-key relationships, required fields and current RLS/view/function schema",
+    "No live candidate, client, invoice, contact, payroll, email or financial events created"
+  ],
+  "notice": "This catalog is NOT SQL to execute, NOT an approval to disable triggers, and NOT evidence that a production migration is safe. Any fixture mutations remain on HOLD."
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -14,7 +14,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { canReadPrivateUserDirectory } from "@/lib/crm-sensitive-route-access";
+import { finiteImportNumber, canonicalImportDate } from "@/lib/offline-import-coerce";
+import { MAX_IMPORT_PREVIEW_ROWS, MAX_IMPORT_PREVIEW_COLUMNS, validateImportFileMetadata, validateImportGrid } from "@/lib/import-file-guard";
+import { LEGACY_BULK_IMPORT_WRITES_PAUSED, BULK_IMPORT_HOLD_REASON } from "@/lib/release-safety";
+import { commitCandidateImport } from "@/lib/candidate-batch-import";
 import { IMPORT_SCHEMAS, type ImportSchema, type ImportFieldDef } from "@/lib/import-schemas";
 import { toast } from "sonner";
 import { Download, Upload, FileSpreadsheet, ArrowLeft, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -56,17 +60,36 @@ async function parseFile(file: File): Promise<{ headers: string[]; rows: Record<
   if (ext === "csv") {
     return new Promise((resolve, reject) => {
       Papa.parse(file, {
-        header: true, skipEmptyLines: true,
-        complete: (res) => resolve({ headers: res.meta.fields ?? [], rows: res.data as any[] }),
+        header: true, skipEmptyLines: true, preview: MAX_IMPORT_PREVIEW_ROWS + 1,
+        complete: (res) => {
+          // PapaParse silently renames repeated header names. Never treat
+          // normalized duplicates as distinct import fields.
+          if (res.errors.length || Object.keys((res.meta as { renamedHeaders?: Record<string, string> }).renamedHeaders ?? {}).length > 0)
+            reject(new Error("Malformed or ambiguous CSV headers"));
+          else resolve({ headers: res.meta.fields ?? [], rows: res.data as any[] });
+        },
         error: reject,
       });
     });
   }
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
+  const wb = XLSX.read(buf, { type: "array", sheetRows: MAX_IMPORT_PREVIEW_ROWS + 2 });
+  // Do not silently ignore additional worksheets or rows hidden by sheetRows.
+  if (wb.SheetNames.length !== 1) throw new Error("Expected one worksheet");
   const ws = wb.Sheets[wb.SheetNames[0]];
+  if (!ws || !ws["!ref"]) throw new Error("Empty worksheet");
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const originalRange = XLSX.utils.decode_range(ws["!fullref"] ?? ws["!ref"]);
+  if (originalRange.e.r - originalRange.s.r > MAX_IMPORT_PREVIEW_ROWS ||
+      originalRange.e.c - originalRange.s.c + 1 > MAX_IMPORT_PREVIEW_COLUMNS ||
+      range.e.r - range.s.r > MAX_IMPORT_PREVIEW_ROWS ||
+      range.e.c - range.s.c + 1 > MAX_IMPORT_PREVIEW_COLUMNS)
+    throw new Error("Worksheet exceeds local preview bounds");
+  // Read actual header cells before SheetJS auto-disambiguates duplicates.
+  const firstRow = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" })[0] as unknown;
+  if (!Array.isArray(firstRow)) throw new Error("Worksheet headers unavailable");
+  const headers = firstRow.map(String);
   const json: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-  const headers = json.length ? Object.keys(json[0]) : [];
   return { headers, rows: json };
 }
 
@@ -92,34 +115,40 @@ function coerce(value: any, field: ImportFieldDef): { value: any; error?: string
   }
   const s = String(value).trim();
   if (field.type === "number") {
-    const n = Number(s);
-    if (isNaN(n)) return { value: null, error: "Not a number" };
+    const n = finiteImportNumber(s);
+    if (n === null) return { value: null, error: "Invalid or non-finite number" };
     return { value: n };
   }
   if (field.type === "date") {
     if (typeof value === "number") {
       const d = XLSX.SSF.parse_date_code(value);
-      if (d) return { value: `${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}` };
+      const normalized = d
+        ? canonicalImportDate(`${d.y}-${String(d.m).padStart(2,"0")}-${String(d.d).padStart(2,"0")}`)
+        : null;
+      return normalized ? { value: normalized } : { value: null, error: "Invalid Excel date" };
     }
-    const d = new Date(s);
-    if (isNaN(d.getTime())) return { value: null, error: "Invalid date" };
-    return { value: d.toISOString().slice(0, 10) };
+    const normalized = canonicalImportDate(s);
+    return normalized ? { value: normalized } : { value: null, error: "Use YYYY-MM-DD date" };
   }
   if (field.type === "email" && !/^\S+@\S+\.\S+$/.test(s)) return { value: s, error: "Invalid email" };
   if (field.enum && !field.enum.includes(s)) return { value: null, error: `Must be one of: ${field.enum.join(", ")}` };
   return { value: s };
 }
 
-const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function refMap(rows: any[], keys: string[]) {
-  const map = new Map<string, string>();
-  rows.forEach((row) => keys.forEach((key) => row[key] && map.set(String(row[key]).trim().toLowerCase(), row.id)));
-  return map;
+function Page() {
+  const { user, profile, role, loading } = useAuth();
+  if (loading) return <p className="text-sm text-muted-foreground">Checking import authorization…</p>;
+  if (!canReadPrivateUserDirectory(user?.id, profile, role)) return (
+    <Alert variant="destructive">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertTitle>Administrator access required</AlertTitle>
+      <AlertDescription>This private import workspace requires an active, approved administrator.</AlertDescription>
+    </Alert>
+  );
+  return <AdminImportWorkspace key={user!.id} />;
 }
 
-function Page() {
-  const { role } = useAuth();
+function AdminImportWorkspace() {
   const [moduleKey, setModuleKey] = useState<string>("clients");
   const [step, setStep] = useState<Step>("upload");
   const [file, setFile] = useState<File | null>(null);
@@ -127,73 +156,58 @@ function Page() {
   const [rawRows, setRawRows] = useState<Record<string, any>[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [mappedRows, setMappedRows] = useState<MappedRow[]>([]);
-  const [existingKeys, setExistingKeys] = useState<Set<string>>(new Set());
   const [updateExisting, setUpdateExisting] = useState(true);
   const [skipInvalid, setSkipInvalid] = useState(true);
   const [progress, setProgress] = useState(0);
   const [running, setRunning] = useState(false);
+  const [assignedRecruiter, setAssignedRecruiter] = useState("");
+  // An uncertain network result is retried with the SAME request ID and payload.
+  // A different file must use a deliberate reset before getting a new ID.
+  const importRequestId = useRef<string | null>(null);
+  const previewEpoch = useRef(0);
   const [result, setResult] = useState<{ created: number; updated: number; skipped: number; errors: string[] } | null>(null);
 
   const schema = IMPORT_SCHEMAS[moduleKey];
 
-  if (role !== "admin") {
-    return (
-      <div className="max-w-2xl">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Admin only</AlertTitle>
-          <AlertDescription>Bulk data import is restricted to administrators.</AlertDescription>
-        </Alert>
-        <Button asChild variant="outline" className="mt-4"><Link to="/settings"><ArrowLeft className="h-4 w-4 mr-2"/>Back to Settings</Link></Button>
-      </div>
-    );
-  }
-
   const reset = () => {
+    previewEpoch.current++;
     setStep("upload"); setFile(null); setFileHeaders([]); setRawRows([]);
-    setMapping({}); setMappedRows([]); setExistingKeys(new Set()); setProgress(0); setResult(null);
+    setMapping({}); setMappedRows([]); setProgress(0); setResult(null);
+    setAssignedRecruiter(""); importRequestId.current = null;
   };
 
   const onFile = async (f: File) => {
-    setFile(f);
+    const epoch = ++previewEpoch.current;
+    // Reject a second file without retaining a previous file's sensitive preview.
+    setFile(null); setRawRows([]); setMappedRows([]); setFileHeaders([]);
+    setMapping({}); setStep("upload");
+    const fileError = validateImportFileMetadata(f);
+    if (fileError) { toast.error(fileError); return; }
+    importRequestId.current = null;
     try {
       const { headers, rows } = await parseFile(f);
-      if (!rows.length) { toast.error("No rows found in file"); return; }
+      if (epoch !== previewEpoch.current) return;
+      const gridError = validateImportGrid({ headers, rows });
+      if (gridError) { toast.error(gridError); return; }
+      setFile(f);
       setFileHeaders(headers);
       setRawRows(rows);
       setMapping(autoMap(headers, schema));
+      setMappedRows([]);
       setStep("map");
-    } catch (e: any) {
-      toast.error("Parse failed: " + e.message);
+    } catch {
+      // Never display parser exceptions or potentially private file contents.
+      if (epoch === previewEpoch.current)
+        toast.error("Unable to parse this file safely.");
     }
   };
 
-  const buildPreview = async () => {
-    // Validate required mappings
+  const buildPreview = () => {
+    // Release-hold: strictly local validation. Never query existing candidates,
+    // clients, employee directories, jobs or finance for an offline preview.
     const missing = schema.fields.filter((f) => f.required && !mapping[f.name]).map((f) => f.label);
     if (missing.length) { toast.error("Map required fields: " + missing.join(", ")); return; }
-
-    // Fetch existing unique keys for duplicate detection
-    const { data: existing } = await supabase.from(schema.table as any).select(schema.uniqueField);
-    const keys = new Set<string>((existing ?? []).map((r: any) => String(r[schema.uniqueField] ?? "").toLowerCase()).filter(Boolean));
-    setExistingKeys(keys);
-
-    const [{ data: candidateRefs }, { data: clientRefs }, { data: jobRefs }] = await Promise.all([
-      supabase.from("candidates" as any).select("id,candidate_code,email,full_name"),
-      supabase.from("clients" as any).select("id,company_name,email"),
-      supabase.from("job_openings" as any).select("id,job_title"),
-    ]);
-    const candidates = refMap(candidateRefs ?? [], ["id", "candidate_code", "email", "full_name"]);
-    const clients = refMap(clientRefs ?? [], ["id", "company_name", "email"]);
-    const jobs = refMap(jobRefs ?? [], ["id", "job_title"]);
-
-    const resolveRef = (value: any, map: Map<string, string>) => {
-      const raw = String(value ?? "").trim();
-      if (!raw) return null;
-      if (uuidRe.test(raw)) return raw;
-      return map.get(raw.toLowerCase()) ?? null;
-    };
-
+    const keys = new Set<string>();
     const out: MappedRow[] = rawRows.map((raw, i) => {
       const data: Record<string, any> = {};
       const errors: RowError[] = [];
@@ -204,61 +218,71 @@ function Page() {
         if (error) errors.push({ row: i + 2, field: f.name, message: `${f.label}: ${error}` });
         if (value !== null && value !== undefined && value !== "") data[f.name] = value;
       });
-      if (moduleKey !== "candidates" && data.candidate_id) {
-        const id = resolveRef(data.candidate_id, candidates);
-        if (id) { data.candidate_uuid = id; data.candidate_id = id; }
-        else errors.push({ row: i + 2, field: "candidate_id", message: `Candidate not found: ${data.candidate_id}` });
-      }
-      if (["jobs", "submissions", "interviews", "offers", "billing"].includes(moduleKey) && data.client_id) {
-        const id = resolveRef(data.client_id, clients);
-        if (id) { data.client_uuid = id; data.client_id = id; }
-        else errors.push({ row: i + 2, field: "client_id", message: `Client not found: ${data.client_id}` });
-      }
-      if (moduleKey === "submissions" && data.job_id) {
-        const id = resolveRef(data.job_id, jobs);
-        if (id) { data.job_uuid = id; data.job_id = id; }
-        else errors.push({ row: i + 2, field: "job_id", message: `Job not found: ${data.job_id}` });
-      }
-      const keyVal = String(data[schema.uniqueField] ?? "").toLowerCase();
+      const keyVal = String(data[schema.uniqueField] ?? "").trim().toLowerCase();
       const isDuplicate = !!keyVal && keys.has(keyVal);
+      if (isDuplicate) errors.push({ row: i + 2, field: schema.uniqueField, message: "Repeated key in uploaded file" });
+      if (keyVal) keys.add(keyVal);
       return { data, errors, isDuplicate, rowIndex: i + 2 };
     });
     setMappedRows(out);
     setStep("preview");
   };
 
+  // Build53: candidate create-only import has a single audited SQL transaction.
+  // The unconditional release hold remains ON, including this future RPC.
   const runImport = async () => {
-    setRunning(true); setProgress(0);
-    let created = 0, updated = 0, skipped = 0;
-    const errors: string[] = [];
-    const valid = mappedRows.filter((r) => skipInvalid ? r.errors.length === 0 : true);
-
-    for (let i = 0; i < valid.length; i++) {
-      const row = valid[i];
-      try {
-        if (row.isDuplicate) {
-          if (!updateExisting) { skipped++; }
-          else {
-            const keyVal = row.data[schema.uniqueField];
-            const { error } = await supabase.from(schema.table as any).update(row.data).eq(schema.uniqueField, keyVal);
-            if (error) { errors.push(`Row ${row.rowIndex}: ${error.message}`); skipped++; }
-            else updated++;
-          }
-        } else {
-          const { error } = await supabase.from(schema.table as any).insert(row.data);
-          if (error) { errors.push(`Row ${row.rowIndex}: ${error.message}`); skipped++; }
-          else created++;
-        }
-      } catch (e: any) {
-        errors.push(`Row ${row.rowIndex}: ${e.message}`); skipped++;
-      }
-      setProgress(Math.round(((i + 1) / valid.length) * 100));
+    if (LEGACY_BULK_IMPORT_WRITES_PAUSED) {
+      toast.error(BULK_IMPORT_HOLD_REASON);
+      return;
     }
-    if (skipInvalid) skipped += mappedRows.length - valid.length;
-    setResult({ created, updated, skipped, errors });
-    setRunning(false);
-    setStep("result");
-    toast.success(`Imported: ${created} created, ${updated} updated, ${skipped} skipped`);
+    if (moduleKey !== "candidates") {
+      toast.error("Other module imports require independently reviewed server write commands.");
+      return;
+    }
+    if (!assignedRecruiter || mappedRows.length === 0 || mappedRows.length > 50) {
+      toast.error("Select an approved recruiter and use a batch of 1–50 rows.");
+      return;
+    }
+    if (updateExisting || skipInvalid || mappedRows.some((r) => r.errors.length || r.isDuplicate)) {
+      toast.error("Candidate import is create-only and atomic: do not update, skip or import invalid/duplicate rows.");
+      return;
+    }
+    if (mappedRows.some((r) => r.data.stage && r.data.stage !== "lead_received")) {
+      toast.error("Imported candidates must start at lead_received; stage automation is not authorized.");
+      return;
+    }
+    const rows = mappedRows.map((r) => {
+      const { stage: _initialStage, ...ordinaryFields } = r.data;
+      return ordinaryFields;
+    });
+    if (!importRequestId.current) importRequestId.current = crypto.randomUUID();
+    setRunning(true); setProgress(0); setResult(null);
+    try {
+      const { data, error } = await commitCandidateImport({
+        requestId: importRequestId.current,
+        assignedRecruiter,
+        rows,
+      });
+      if (error || !data) {
+        toast.error(error?.message || "Import result not confirmed; retry using the same request ID.");
+        return;
+      }
+      setProgress(100);
+      setResult({
+        created: data.status === "created" ? data.count : 0,
+        updated: 0,
+        skipped: data.status === "replayed" ? data.count : 0,
+        errors: [],
+      });
+      setStep("result");
+      toast.success(data.status === "replayed" ? "Previously committed batch confirmed" : "Atomic candidate batch committed");
+    } catch {
+      // An HTTP timeout is not proof that the database rolled back.
+      // Keep importRequestId.current unchanged so a retry is idempotent.
+      toast.error("Import outcome unknown. Retry this same batch without changing its request ID.");
+    } finally {
+      setRunning(false);
+    }
   };
 
   const validCount = useMemo(() => mappedRows.filter((r) => r.errors.length === 0).length, [mappedRows]);
@@ -270,18 +294,25 @@ function Page() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Bulk Data Import</h1>
-          <p className="text-sm text-muted-foreground">Upload Excel or CSV files. Admin only.</p>
+          <p className="text-sm text-muted-foreground">Excel/CSV review and mapping only. No database imports are enabled.</p>
         </div>
         <Button asChild variant="outline" size="sm"><Link to="/settings"><ArrowLeft className="h-4 w-4 mr-2"/>Settings</Link></Button>
       </div>
 
+      {LEGACY_BULK_IMPORT_WRITES_PAUSED && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Import writes paused</AlertTitle>
+          <AlertDescription>{BULK_IMPORT_HOLD_REASON}</AlertDescription>
+        </Alert>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>1. Choose Module</CardTitle>
           <CardDescription>Select what kind of data you want to import.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={moduleKey} onValueChange={(v) => { setModuleKey(v); reset(); }}>
+          <Tabs value={moduleKey} onValueChange={(v) => { setModuleKey(v); reset(); setUpdateExisting(v !== "candidates"); setSkipInvalid(v !== "candidates"); }}>
             <TabsList className="flex flex-wrap h-auto">
               {Object.values(IMPORT_SCHEMAS).map((s) => (
                 <TabsTrigger key={s.key} value={s.key}>{s.label}</TabsTrigger>
@@ -349,7 +380,7 @@ function Page() {
             ))}
             <div className="flex gap-2 pt-2">
               <Button variant="outline" onClick={reset}>Back</Button>
-              <Button onClick={buildPreview}>Preview Import</Button>
+              <Button onClick={buildPreview}>Offline Preview</Button>
             </div>
           </CardContent>
         </Card>
@@ -359,26 +390,31 @@ function Page() {
         <Card>
           <CardHeader>
             <CardTitle>4. Preview</CardTitle>
-            <CardDescription>Review before importing. Invalid rows can be skipped.</CardDescription>
+            <CardDescription>Offline file checks only; existing CRM records, database references and recruiter status are not verified. Imports remain paused.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">Total: {mappedRows.length}</Badge>
-              <Badge className="bg-emerald-600 hover:bg-emerald-600">Valid: {validCount}</Badge>
+              <Badge className="bg-emerald-600 hover:bg-emerald-600">Locally valid: {validCount}</Badge>
               <Badge variant="destructive">Errors: {errorCount}</Badge>
-              <Badge variant="outline">Duplicates: {duplicateCount}</Badge>
+              <Badge variant="outline">Repeated file keys: {duplicateCount}</Badge>
             </div>
             <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={updateExisting} onCheckedChange={(v) => setUpdateExisting(!!v)} />
+                <Checkbox checked={updateExisting} disabled={moduleKey === "candidates"} onCheckedChange={(v) => setUpdateExisting(!!v)} />
                 Update existing records (matched by {schema.uniqueField})
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={skipInvalid} onCheckedChange={(v) => setSkipInvalid(!!v)} />
+                <Checkbox checked={skipInvalid} disabled={moduleKey === "candidates"} onCheckedChange={(v) => setSkipInvalid(!!v)} />
                 Skip invalid rows
               </label>
             </div>
 
+            {moduleKey === "candidates" && (
+              <p className="text-sm text-muted-foreground">
+                Recruiter assignment is unavailable during the import release hold. No employee directory is queried.
+              </p>
+            )}
             <div className="border rounded-md max-h-96 overflow-auto">
               <Table>
                 <TableHeader>
@@ -396,7 +432,7 @@ function Page() {
                       <TableCell>
                         {r.errors.length ? <Badge variant="destructive">Invalid</Badge>
                           : r.isDuplicate ? <Badge variant="outline">Duplicate</Badge>
-                          : <Badge className="bg-emerald-600 hover:bg-emerald-600">New</Badge>}
+                          : <Badge className="bg-emerald-600 hover:bg-emerald-600">Locally valid</Badge>}
                       </TableCell>
                       {schema.fields.slice(0, 5).map((f) => (
                         <TableCell key={f.name} className="max-w-[180px] truncate">{String(r.data[f.name] ?? "")}</TableCell>
@@ -413,8 +449,8 @@ function Page() {
 
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setStep("map")} disabled={running}>Back</Button>
-              <Button onClick={runImport} disabled={running}>
-                {running ? `Importing… ${progress}%` : "Start Import"}
+              <Button onClick={runImport} disabled={running || LEGACY_BULK_IMPORT_WRITES_PAUSED}>
+                {LEGACY_BULK_IMPORT_WRITES_PAUSED ? "Import paused" : running ? `Importing… ${progress}%` : "Start Import"}
               </Button>
             </div>
           </CardContent>

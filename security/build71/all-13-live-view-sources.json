@@ -1,0 +1,75 @@
+{
+  "artifact_kind": "LIVE_SOURCE_EXACT_ALL_13_PUBLIC_VIEWS_CATALOG_ONLY",
+  "observed_date": "2026-11-12",
+  "source": "read-only pg_get_viewdef + md5 of actual public views; no business data",
+  "proposed_public_release_hold": true,
+  "source_views": [
+    {
+      "name": "available_recruiters",
+      "md5": "be4b16ba453445979b692fce4ad76b89",
+      "sql": " SELECT id,\n    full_name,\n    email,\n    'Available'::text AS status\n   FROM profiles\n  WHERE status = 'approved'::user_status\n  ORDER BY full_name;"
+    },
+    {
+      "name": "candidates_for_assignment",
+      "md5": "fac3fc9311d674f0735ddbb34b4c0bea",
+      "sql": " SELECT id,\n    candidate_code,\n    full_name,\n    position_applied,\n    stage,\n    created_at,\n    assigned_recruiter,\n        CASE\n            WHEN assigned_recruiter IS NULL THEN 'NOT ASSIGNED'::text\n            ELSE 'ASSIGNED'::text\n        END AS assignment_status\n   FROM candidates\n  ORDER BY assigned_recruiter NULLS FIRST, created_at DESC;"
+    },
+    {
+      "name": "recruiter_performance",
+      "md5": "5b47ad70a6abd7be1c4d6897b128627f",
+      "sql": " SELECT p.id AS recruiter_id,\n    p.full_name AS recruiter_name,\n    p.email AS recruiter_email,\n    count(c.id) AS total_candidates,\n    count(\n        CASE\n            WHEN c.stage = 'lead_received'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS lead_received,\n    count(\n        CASE\n            WHEN c.stage = 'contacted'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS contacted,\n    count(\n        CASE\n            WHEN c.stage = 'interested'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS interested,\n    count(\n        CASE\n            WHEN c.stage = 'resume_collected'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS resume_collected,\n    count(\n        CASE\n            WHEN c.stage = 'submitted_to_client'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS submitted_to_client,\n    count(\n        CASE\n            WHEN c.stage = 'interview_scheduled'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS interview_scheduled,\n    count(\n        CASE\n            WHEN c.stage = 'interview_completed'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS interview_completed,\n    count(\n        CASE\n            WHEN c.stage = 'selected'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS selected,\n    count(\n        CASE\n            WHEN c.stage = 'offer_released'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS offer_released,\n    count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS joined,\n    count(\n        CASE\n            WHEN c.stage = 'rejected'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS rejected,\n    count(\n        CASE\n            WHEN c.stage = 'dropped'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS dropped,\n    count(\n        CASE\n            WHEN c.created_at > (now() - '30 days'::interval) THEN 1\n            ELSE NULL::integer\n        END) AS last_30_days,\n    round(count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END)::numeric / NULLIF(count(\n        CASE\n            WHEN c.stage = 'selected'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END), 0)::numeric * 100::numeric, 2) AS conversion_to_join_rate\n   FROM profiles p\n     LEFT JOIN candidates c ON c.assigned_recruiter = p.id\n  WHERE p.status = 'approved'::user_status\n  GROUP BY p.id, p.full_name, p.email\n  ORDER BY (count(c.id)) DESC;"
+    },
+    {
+      "name": "recruiter_performance_with_names",
+      "md5": "95e34f87e7e4f11ca82d19887dd05546",
+      "sql": " SELECT p.full_name AS recruiter_name,\n    p.id AS recruiter_id,\n    count(c.id) AS total_candidates,\n    count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS placements,\n    count(\n        CASE\n            WHEN c.stage = 'lead_received'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS new_leads,\n    count(\n        CASE\n            WHEN c.stage = ANY (ARRAY['interview_scheduled'::candidate_stage, 'interview_completed'::candidate_stage]) THEN 1\n            ELSE NULL::integer\n        END) AS interviewing,\n    count(\n        CASE\n            WHEN c.stage = ANY (ARRAY['rejected'::candidate_stage, 'dropped'::candidate_stage]) THEN 1\n            ELSE NULL::integer\n        END) AS lost,\n    round(count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END)::numeric / NULLIF(count(c.id), 0)::numeric * 100::numeric, 2) AS placement_rate\n   FROM profiles p\n     LEFT JOIN candidates c ON c.assigned_recruiter = p.id\n  WHERE p.status = 'approved'::user_status\n  GROUP BY p.id, p.full_name\n  ORDER BY (count(c.id)) DESC;"
+    },
+    {
+      "name": "recruiter_stats",
+      "md5": "d1c7c0dd3475898cdc5b2ee02c1f0cde",
+      "sql": " SELECT p.id,\n    p.full_name,\n    count(c.id) AS total,\n    count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS placed,\n    count(\n        CASE\n            WHEN c.stage = 'lead_received'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS new_leads,\n    count(\n        CASE\n            WHEN c.stage = ANY (ARRAY['interview_scheduled'::candidate_stage, 'interview_completed'::candidate_stage]) THEN 1\n            ELSE NULL::integer\n        END) AS interviewing,\n    round(count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END)::numeric / NULLIF(count(c.id), 0)::numeric * 100::numeric, 2) AS conversion_rate\n   FROM profiles p\n     LEFT JOIN candidates c ON c.assigned_recruiter = p.id\n  WHERE p.status = 'approved'::user_status\n  GROUP BY p.id, p.full_name\n  ORDER BY (count(c.id)) DESC;"
+    },
+    {
+      "name": "recruiter_summary",
+      "md5": "f96652112290df365e786c23320d5938",
+      "sql": " SELECT p.full_name AS recruiter,\n    count(c.id) AS total_candidates,\n    count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END) AS hires,\n    count(\n        CASE\n            WHEN c.stage = ANY (ARRAY['rejected'::candidate_stage, 'dropped'::candidate_stage]) THEN 1\n            ELSE NULL::integer\n        END) AS lost,\n    count(\n        CASE\n            WHEN c.stage <> ALL (ARRAY['joined'::candidate_stage, 'rejected'::candidate_stage, 'dropped'::candidate_stage]) THEN 1\n            ELSE NULL::integer\n        END) AS active_pipeline\n   FROM profiles p\n     LEFT JOIN candidates c ON c.assigned_recruiter = p.id\n  WHERE p.status = 'approved'::user_status\n  GROUP BY p.id, p.full_name\n  ORDER BY (count(\n        CASE\n            WHEN c.stage = 'joined'::candidate_stage THEN 1\n            ELSE NULL::integer\n        END)) DESC;"
+    },
+    {
+      "name": "vw_billing_filters",
+      "md5": "005700ffaf4b7fc8e3957445a2d41413",
+      "sql": " SELECT id,\n    invoice_number,\n    candidate_id,\n    client_id,\n    salary,\n    placement_fee,\n    gst,\n    invoice_amount,\n    payment_status,\n    outstanding_amount,\n    invoice_date,\n    created_by,\n    created_at,\n    updated_at,\n    candidate_uuid,\n    client_uuid,\n    offer_uuid\n   FROM billing;"
+    },
+    {
+      "name": "vw_candidate_filters",
+      "md5": "d1471d48998dfc2bf6fba92862331aab",
+      "sql": " SELECT id,\n    candidate_code,\n    full_name,\n    location,\n    position_applied,\n    experience_years,\n    status,\n    stage,\n    assigned_recruiter,\n    created_at\n   FROM candidates;"
+    },
+    {
+      "name": "vw_client_filters",
+      "md5": "0da6b3ac023805637feaf4a31170d525",
+      "sql": " SELECT id,\n    company_name,\n    contact_person,\n    status,\n    agreement_type,\n    billing_model,\n    active_positions,\n    created_at\n   FROM clients;"
+    },
+    {
+      "name": "vw_interview_filters",
+      "md5": "802fa2546b71e09b63545668e6d9dd08",
+      "sql": " SELECT id,\n    candidate_id,\n    client_id,\n    round,\n    interview_date,\n    interview_time,\n    mode,\n    feedback,\n    status,\n    created_by,\n    created_at,\n    candidate_uuid,\n    client_uuid,\n    submission_uuid\n   FROM interviews;"
+    },
+    {
+      "name": "vw_job_filters",
+      "md5": "4fcfff9411bf90fc94651c46a09e84de",
+      "sql": " SELECT id,\n    job_title,\n    location,\n    priority,\n    status,\n    assigned_recruiter,\n    open_positions,\n    created_at\n   FROM job_openings;"
+    },
+    {
+      "name": "vw_offer_filters",
+      "md5": "e18c25f23b5312b13489689cd279b5be",
+      "sql": " SELECT id,\n    candidate_id,\n    client_id,\n    offer_date,\n    joining_date,\n    salary,\n    ctc,\n    offer_status,\n    joining_status,\n    created_by,\n    created_at,\n    updated_at,\n    candidate_uuid,\n    client_uuid,\n    submission_uuid,\n    interview_uuid\n   FROM offers;"
+    },
+    {
+      "name": "vw_submission_filters",
+      "md5": "8a24b9878d98a42ab794cf06d60410d1",
+      "sql": " SELECT id,\n    candidate_id,\n    client_id,\n    job_id,\n    role_title,\n    submission_date,\n    status,\n    remarks,\n    created_by,\n    created_at,\n    candidate_uuid,\n    client_uuid,\n    job_uuid\n   FROM submissions;"
+    }
+  ],
+  "source_count": 13,
+  "not_applied_to_live_database": true
+}

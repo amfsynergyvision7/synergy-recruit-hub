@@ -1,0 +1,30 @@
+{
+  "evidence_type": "EXECUTED_READONLY_DEDICATED_NONPROD_HOSTED_PRESEED_GATE",
+  "date": "2026-11-12",
+  "project_ref": "dhlhlasnaapzckjyvffn",
+  "catalog_only": true,
+  "source_sql": "security/build75/isolated-hosted-preseed.readonly.sql",
+  "source_blob_sha": "0e559d0265e39ff0e099ca1bbe0f784d7c685f7d",
+  "results": {
+    "matched_tables": 0,
+    "actual_public_tables": 0,
+    "rls_enabled_tables": 0,
+    "anon_truncate_tables": 0,
+    "authenticated_truncate_tables": 0,
+    "matched_views": 0,
+    "actual_public_views": 0,
+    "invoker_views": 0,
+    "anon_readable_views": 0,
+    "actual_app_triggers": 0,
+    "source_exact_app_triggers": 0,
+    "not_disabled_app_triggers": 0,
+    "auth_user_hooks": 0,
+    "auth_user_count": 0,
+    "seed_gate": "HOLD_NONPROD_PRESEED_SCHEMA_TRIGGER_AUTH_OR_GRANTS"
+  },
+  "actual_hosted_users_created": 0,
+  "actual_hosted_cases_accepted": 0,
+  "sql_write_count": 0,
+  "scope": "read-only auth user count and schema metadata; no Auth identity values, personal rows, secrets or business records extracted",
+  "notes": "HOLD is expected until reviewed separate synthetic-only 19-table/13-view/32-trigger environment is provisioned, original auth user autoprofiler is absent/isolated, and 19 RLS/permission safeguards are reviewed. Even PASS is technical-only, never independent approval to create users or mutate data."
+}

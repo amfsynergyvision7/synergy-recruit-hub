@@ -1,0 +1,72 @@
+name: Build202 CRM email journal review integration (NO SEND / NO APPLY)
+on:
+  push:
+    branches: [security/build34-guarded-sync-review-20261111]
+    paths:
+      - 'security/build155-email-audit/**'
+      - 'security/build158-email-outbox/**'
+      - 'security/build159-email-journal/**'
+      - 'security/build160-email-reconciliation/**'
+      - 'security/build161-audit-writers/**'
+      - 'src/lib/email.functions.ts'
+      - 'src/lib/crm-email-audit-integrity.server.ts'
+      - 'src/lib/crm-email-reconciliation-hold.server.ts'
+      - 'src/components/EmailComposeDialog.tsx'
+      - '.github/workflows/build155-email-audit.yml'
+  pull_request:
+    paths:
+      - 'security/build155-email-audit/**'
+      - 'security/build158-email-outbox/**'
+      - 'security/build159-email-journal/**'
+      - 'security/build160-email-reconciliation/**'
+      - 'security/build161-audit-writers/**'
+      - 'src/lib/email.functions.ts'
+      - 'src/lib/crm-email-audit-integrity.server.ts'
+      - 'src/lib/crm-email-reconciliation-hold.server.ts'
+      - 'src/components/EmailComposeDialog.tsx'
+      - '.github/workflows/build155-email-audit.yml'
+permissions:
+  contents: read
+jobs:
+  audit-protocol:
+    name: Source-reviewed email journal and reconciliation (no outbound)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Test fail-closed journal, outbox, reconciliation and audit writer contracts
+        run: node --experimental-strip-types --test security/build155-email-audit/contract.test.mjs security/build158-email-outbox/contract.test.mjs security/build159-email-journal/contract.test.mjs security/build160-email-reconciliation/contract.test.mjs security/build161-audit-writers/contract.test.mjs
+  pg17-partial-unique-rehearsal:
+    name: Disposable PostgreSQL 17 email journal and concurrent reservation (rollback)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci_email_lab
+          POSTGRES_PASSWORD: ci_fixture_only
+          POSTGRES_DB: amf_build158_email_lab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_email_lab -d amf_build158_email_lab"
+          --health-interval 5s --health-timeout 5s --health-retries 15
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: ci_email_lab
+      PGPASSWORD: ci_fixture_only
+      PGDATABASE: amf_build158_email_lab
+      BUILD158_CI_DISPOSABLE: "true"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Rehearse source-identical unresolved-recipient uniqueness and rollback
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build158-email-outbox/disposable-pg17-rehearsal.sql
+      - name: Check competing requests for same recipient in two isolated PG17 sessions
+        run: bash security/build158-email-outbox/disposable-pg17-concurrent.sh
+      - name: Rehearse exact trusted journal RPC, provider confirmation and audit rollback
+        run: psql -X -v ON_ERROR_STOP=1 -f security/build159-email-journal/disposable-pg17-trusted-journal.sql

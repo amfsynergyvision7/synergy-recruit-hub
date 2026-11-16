@@ -1,0 +1,125 @@
+{
+  "evidence_type": "LIVE_SOURCE_EXPLICIT_VS_PUBLIC_FUNCTION_EXECUTE_ACL_REVIEW",
+  "observation_date": "2026-11-12",
+  "read_only": true,
+  "source": "pg_catalog.pg_proc aclexplode; function bodies not retrieved",
+  "rows": [
+    {
+      "signature": "generate_reminders()",
+      "function_name": "generate_reminders",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "get_user_role(uuid)",
+      "function_name": "get_user_role",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "handle_new_user()",
+      "function_name": "handle_new_user",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "has_role(uuid,app_role)",
+      "function_name": "has_role",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "is_approved(uuid)",
+      "function_name": "is_approved",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "on_candidate_stage_change()",
+      "function_name": "on_candidate_stage_change",
+      "default_acl": false,
+      "public_execute": false,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "on_interview_change()",
+      "function_name": "on_interview_change",
+      "default_acl": false,
+      "public_execute": false,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "on_offer_change()",
+      "function_name": "on_offer_change",
+      "default_acl": false,
+      "public_execute": false,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "on_submission_insert()",
+      "function_name": "on_submission_insert",
+      "default_acl": false,
+      "public_execute": false,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "resolve_candidate_uuid(text)",
+      "function_name": "resolve_candidate_uuid",
+      "default_acl": false,
+      "public_execute": false,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "resolve_client_uuid(text)",
+      "function_name": "resolve_client_uuid",
+      "default_acl": false,
+      "public_execute": false,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "resolve_job_uuid(text)",
+      "function_name": "resolve_job_uuid",
+      "default_acl": false,
+      "public_execute": false,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "rls_auto_enable()",
+      "function_name": "rls_auto_enable",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "run_workflow_rules()",
+      "function_name": "run_workflow_rules",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "set_assigned_recruiter()",
+      "function_name": "set_assigned_recruiter",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    },
+    {
+      "signature": "track_stage_changes()",
+      "function_name": "track_stage_changes",
+      "default_acl": false,
+      "public_execute": true,
+      "explicit_anon_execute": true
+    }
+  ],
+  "security_definer_count": 16,
+  "explicit_anon_execute_count": 16,
+  "public_execute_count": 9,
+  "action": "Must revoke explicit anon EXECUTE and PUBLIC EXECUTE where granted, then independently review authenticated helper role allowances; do not invoke any real function or change hosted DB.",
+  "production_changed": false
+}

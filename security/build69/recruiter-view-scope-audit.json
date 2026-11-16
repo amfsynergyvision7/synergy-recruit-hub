@@ -1,0 +1,64 @@
+{
+  "evidence_type": "READ_ONLY_LIVE_PRODUCTION_RECRUITER_VIEW_ROLE_AND_ACTIVE_SCOPE_REVIEW",
+  "observed_date": "2026-11-12",
+  "baseline": "five actual production view definitions via pg_get_viewdef/catalg MD5; no business rows inspected",
+  "views": [
+    {
+      "view_name": "available_recruiters",
+      "definition_md5": "be4b16ba453445979b692fce4ad76b89",
+      "approved_status_predicate": true,
+      "active_flag_predicate": false,
+      "role_scope_predicate": false,
+      "left_join_candidate": false
+    },
+    {
+      "view_name": "recruiter_performance",
+      "definition_md5": "5b47ad70a6abd7be1c4d6897b128627f",
+      "approved_status_predicate": true,
+      "active_flag_predicate": false,
+      "role_scope_predicate": false,
+      "left_join_candidate": true
+    },
+    {
+      "view_name": "recruiter_performance_with_names",
+      "definition_md5": "95e34f87e7e4f11ca82d19887dd05546",
+      "approved_status_predicate": true,
+      "active_flag_predicate": false,
+      "role_scope_predicate": false,
+      "left_join_candidate": true
+    },
+    {
+      "view_name": "recruiter_stats",
+      "definition_md5": "d1c7c0dd3475898cdc5b2ee02c1f0cde",
+      "approved_status_predicate": true,
+      "active_flag_predicate": false,
+      "role_scope_predicate": false,
+      "left_join_candidate": true
+    },
+    {
+      "view_name": "recruiter_summary",
+      "definition_md5": "f96652112290df365e786c23320d5938",
+      "approved_status_predicate": true,
+      "active_flag_predicate": false,
+      "role_scope_predicate": false,
+      "left_join_candidate": true
+    }
+  ],
+  "source_view_count": 5,
+  "source_scope_issue": "Approved profile is not equivalent to currently active, assigned recruiter. The current five views lack explicit active and recruiter-role predicates.",
+  "proposed_human_review_predicates": [
+    "profile.status = approved",
+    "profile.is_active = true",
+    "EXISTS user_roles(user_id=profile.id, role=recruiter)"
+  ],
+  "consequences_to_test": [
+    "Approved admin/finance/operations/viewer profile must not appear as recruiter",
+    "Approved but inactive recruiter profile must be excluded",
+    "Pending/rejected recruiter profile must be excluded",
+    "Both approved active recruiter A/B remain visible with their own candidate scopes",
+    "Adding security_invoker and role checks may change existing browser filter results and base table permission requirements"
+  ],
+  "proposed_action": "Prepare separate review-only, source-fingerprint-guarded view semantic correction and role tests; DO NOT mutate hosted production or overwrite approved Build59 source fingerprints automatically.",
+  "formal_release_acceptance": 0,
+  "production_changed": false
+}

@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, canEdit } from "@/hooks/use-auth";
+import { CRM_MAX_ROWS, CRM_PAGE_SIZE, readCompleteCrmRows } from "@/lib/bounded-crm-read";
+import { LEGACY_CANDIDATE_WRITES_PAUSED, CANDIDATE_MUTATION_HOLD_REASON } from "@/lib/release-safety";
+import { changeCandidateStage, isReviewableStageTarget } from "@/lib/candidate-stage";
 import { TONE_VAR, type PillTone } from "@/components/StatusPill";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface StageDef {
@@ -27,15 +30,11 @@ interface CandidateRow {
   stage: string;
 }
 
-// Standalone board view, deliberately not built on CrudModule — it needs its
-// own data flow entirely (grouped-by-stage rendering, drag-and-drop) rather
-// than a row-per-line table, and keeping it separate means it can't regress
-// the other seven modules that share CrudModule's generic engine. Same
-// realtime-subscription pattern CrudModule itself uses, just scoped to the
-// handful of fields the board actually displays.
+// Standalone, ID-paginated board view. Keep a separate stage-focused
+// projection from generic CrudModule and never subscribe to unrestricted
+// candidate realtime feeds. Server-side RLS remains authoritative.
 export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoardProps) {
   const { role } = useAuth();
-  const editable = canEdit(role, "candidates");
   const [rows, setRows] = useState<CandidateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -48,24 +47,50 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
     return map;
   }, [recruiters]);
 
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [lastSuccessfulRead, setLastSuccessfulRead] = useState<string | null>(null);
+  const editable = canEdit(role, "candidates") && !LEGACY_CANDIDATE_WRITES_PAUSED &&
+    !loading && !loadFailed && !!lastSuccessfulRead;
+  const loadEpoch = useRef(0);
+  const requestController = useRef<AbortController | null>(null);
   const load = async () => {
+    const epoch = ++loadEpoch.current;
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
+    setRows([]);
     setLoading(true);
-    const { data, error } = await supabase
-      .from("candidates")
-      .select("id, candidate_code, full_name, position_applied, assigned_recruiter, stage")
-      .order("created_at", { ascending: false });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    setRows((data as CandidateRow[]) ?? []);
+    setLoadFailed(false);
+    setLastSuccessfulRead(null);
+    try {
+      // Count-reconciled role-visible ID pages, not browser authorization.
+      // Never render partial stage totals when a backend cap truncates results.
+      const data = await readCompleteCrmRows((from, to, signal) =>
+        supabase.from("candidates")
+          .select("id, candidate_code, full_name, position_applied, assigned_recruiter, stage", { count: "exact" })
+          .order("id", { ascending: true }).range(from, to).abortSignal(signal),
+        controller.signal);
+      if (controller.signal.aborted || epoch !== loadEpoch.current) return;
+      const stageValues = new Set(stages.map(stage => stage.value));
+      if (data.some(row => typeof row.id !== "string" || !row.id ||
+              typeof row.stage !== "string" || !stageValues.has(row.stage))) {
+        setLoadFailed(true);
+        return;
+      }
+      setRows(data as CandidateRow[]);
+      setLastSuccessfulRead(new Date().toISOString());
+    } catch {
+      if (!controller.signal.aborted && epoch === loadEpoch.current) setLoadFailed(true);
+    } finally {
+      if (!controller.signal.aborted && epoch === loadEpoch.current) setLoading(false);
+    }
   };
 
   useEffect(() => {
-    load();
-    const ch = supabase
-      .channel("rt-candidates-board")
-      .on("postgres_changes", { event: "*", schema: "public", table: "candidates" }, load)
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    void load();
+    // Never subscribe to unfiltered candidate INSERT/UPDATE/DELETE events.
+    // Account changes unmount the keyed board and abort its pending requests.
+    return () => { loadEpoch.current++; requestController.current?.abort(); };
   }, []);
 
   const filtered = useMemo(() => {
@@ -85,20 +110,34 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
   }, [filtered]);
 
   const moveCandidate = async (candidateId: string, newStage: string) => {
+    if (LEGACY_CANDIDATE_WRITES_PAUSED) { toast.error(CANDIDATE_MUTATION_HOLD_REASON); return; }
     const candidate = rows.find((r) => r.id === candidateId);
     if (!candidate || candidate.stage === newStage) return;
     setRows((prev) => prev.map((r) => (r.id === candidateId ? { ...r, stage: newStage } : r)));
-    const { error } = await supabase.from("candidates" as any).update({ stage: newStage }).eq("id", candidateId);
+    const { error } = await changeCandidateStage({ candidateId, expectedStage: candidate.stage, newStage });
     if (error) {
-      toast.error(error.message);
+      toast.error("Candidate stage change could not be verified.");
       load(); // roll back the optimistic move
       return;
     }
+    await load(); // read server result rather than trusting optimistic UI state
     toast.success(`Moved to ${newStage.replace(/_/g, " ")}`);
   };
 
   return (
     <div className="space-y-3">
+      {loadFailed && <p className="text-sm text-destructive">Candidate board data is incomplete or unavailable. No partial pipeline is displayed.</p>}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">
+          {lastSuccessfulRead && !loadFailed && !loading
+            ? `Current read: ${rows.length} role-visible candidates (maximum ${CRM_MAX_ROWS}, in ${CRM_PAGE_SIZE}-row pages); no realtime updates.`
+            : "Candidate data has not been fully verified for this read."}
+        </span>
+        <button type="button" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+          disabled={loading} onClick={() => { void load(); }}>
+          <RefreshCw className="h-3.5 w-3.5" />Refresh candidate board
+        </button>
+      </div>
       <div className="relative w-64">
         <Search
           className="pointer-events-none absolute text-muted-foreground"
@@ -112,7 +151,9 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
         />
       </div>
 
-      {!editable && <p className="text-xs text-muted-foreground">Read-only — drag-to-advance is disabled for your role.</p>}
+      {LEGACY_CANDIDATE_WRITES_PAUSED ? (
+        <p className="text-xs text-muted-foreground">{CANDIDATE_MUTATION_HOLD_REASON}</p>
+      ) : !editable && <p className="text-xs text-muted-foreground">Read-only — drag-to-advance is disabled for your role.</p>}
 
       <div className="flex gap-3 overflow-x-auto pb-2">
         {stages.map((stage) => {
@@ -122,14 +163,14 @@ export function CandidateBoard({ stages, stageTone, recruiters }: CandidateBoard
           return (
             <div
               key={stage.value}
-              onDragOver={(e) => { if (editable) e.preventDefault(); }}
-              onDragEnter={() => editable && setDragOverStage(stage.value)}
+              onDragOver={(e) => { if (editable && isReviewableStageTarget(stage.value)) e.preventDefault(); }}
+              onDragEnter={() => editable && isReviewableStageTarget(stage.value) && setDragOverStage(stage.value)}
               onDragLeave={() => setDragOverStage((s) => (s === stage.value ? null : s))}
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverStage(null);
                 const id = e.dataTransfer.getData("text/plain");
-                if (id) moveCandidate(id, stage.value);
+                if (id && editable && isReviewableStageTarget(stage.value)) moveCandidate(id, stage.value);
               }}
               className={`flex w-64 shrink-0 flex-col rounded-lg border bg-muted/20 transition-colors ${
                 isDragOver ? "border-primary ring-2 ring-primary/30" : "border-border"

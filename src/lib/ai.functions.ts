@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertApprovedRole } from "./access-gates.server";
+import { assertExternalEffectReleased } from "./external-effects-hold.server";
 import {
   matchCandidatesToJob,
   matchCandidateResume,
@@ -15,10 +17,10 @@ export const matchCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
-    // No extra role gate beyond "signed in and approved" (already enforced
-    // by requireSupabaseAuth + the candidates/job_openings RLS policies
-    // context.supabase reads through) — this is a read-only insight, not a
-    // write, so anyone who can already see the pipeline can ask for a match.
+    // Approval and role checks are defense-in-depth, not a substitute for
+    // per-record RLS, column grants, ownership checks or release validation.
+    assertExternalEffectReleased("candidate_ai_processing");
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     return matchCandidatesToJob(context.supabase, data.jobId);
   });
 
@@ -32,7 +34,12 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
     z.object({ jobId: z.string().uuid(), candidateId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
-    return matchCandidateResume(context.supabase, data.jobId, data.candidateId);
+    assertExternalEffectReleased("candidate_ai_processing");
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
+    // Never return raw extracted resume text or candidate contact fields to
+    // a browser client. Only the bounded scored result is necessary here.
+    const { match } = await matchCandidateResume(context.supabase, data.jobId, data.candidateId);
+    return { match };
   });
 
 // Standalone resume summary (no job involved) — manually triggered from a
@@ -41,6 +48,8 @@ export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_ai_processing");
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     return generateResumeSummary(context.supabase, data.candidateId);
   });
 
@@ -52,6 +61,8 @@ export const generateCandidateAtsScoreFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_ai_processing");
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     return generateCandidateAtsScore(context.supabase, data.candidateId);
   });
 
@@ -64,6 +75,8 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertExternalEffectReleased("candidate_ai_processing");
+    await assertApprovedRole(context.userId, ["admin", "recruiter"]);
     const { candidate, resume } = await restructureResumeForClient(context.supabase, data.candidateId);
 
     const { data: settings } = await context.supabase
@@ -95,5 +108,7 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
 export const checkDriveForNewResumes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    return runResumeDriveImport(context.supabase);
+    assertExternalEffectReleased("drive_bulk_import");
+    await assertApprovedRole(context.userId, ["admin"]);
+    return runResumeDriveImport(context.supabase, context.userId);
   });

@@ -42,6 +42,8 @@
 // leaving SMTP_FROM_EMAIL unset — its from address too) — nothing in this
 // file needs to change.
 import nodemailer from "nodemailer";
+import { createHash } from "node:crypto";
+import { isExternalEffectPaused } from "./external-effects-hold.server";
 
 export interface SendEmailResult {
   success: boolean;
@@ -64,7 +66,10 @@ function getTransporter(user: string, pass: string) {
   // an env var (e.g. testing a different account) without redeploying the
   // whole function still picks up fresh config instead of reusing a stale
   // cached transporter from before the change.
-  const key = `${host}:${port}:${secure}:${user}`;
+  // Secret rotation must invalidate a warm transport without storing the
+  // raw SMTP password in the cache key or logging the secret.
+  const passFingerprint = createHash("sha256").update(pass, "utf8").digest("hex");
+  const key = `${host}:${port}:${secure}:${user}:${passFingerprint}`;
   if (_transporter && _transporterKey === key) return _transporter;
   _transporter = nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
   _transporterKey = key;
@@ -76,6 +81,11 @@ export async function sendEmail(opts: {
   subject: string;
   html: string;
 }): Promise<SendEmailResult> {
+  // Defense in depth: no SMTP configuration, credential, or alternative
+  // server caller can bypass the hard-coded draft release hold.
+  if (isExternalEffectPaused("crm_email")) {
+    return { success: false, error: "CRM email delivery is paused pending release approval" };
+  }
   // .trim() on every value read here: a stray trailing space or line break
   // (easy to introduce when copy-pasting into Vercel's env var UI) is
   // invisible in the dashboard but turns an otherwise-correct address into
@@ -101,7 +111,7 @@ export async function sendEmail(opts: {
   if (!fromEmail.includes("@")) {
     return {
       success: false,
-      error: `SMTP_FROM_EMAIL is missing or invalid (it currently resolves to "${fromEmail}", which isn't a real email address). Set SMTP_FROM_EMAIL on Vercel to a real address on your verified domain (e.g. yourname@amfsynergyvision.com) and redeploy.`,
+      error: "SMTP_FROM_EMAIL is missing or invalid. Configure a verified sender address in protected server settings.",
     };
   }
 
@@ -113,12 +123,10 @@ export async function sendEmail(opts: {
       html: opts.html,
     });
     return { success: true, providerId: info.messageId };
-  } catch (err: any) {
-    // A bad/expired credential, a from address not on a verified domain, or
-    // a sending cap all surface here as a thrown error from nodemailer
-    // rather than an HTTP status — message text is whatever the SMTP server
-    // replied with, which is usually specific enough to act on directly.
-    return { success: false, error: err?.message ?? "SMTP send failed for an unknown reason." };
+  } catch {
+    // SMTP provider errors may include addresses, transport details or
+    // headers. Never reflect those raw strings into API or database logs.
+    return { success: false, error: "SMTP delivery failed; review restricted server diagnostics." };
   }
 }
 

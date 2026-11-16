@@ -1,0 +1,69 @@
+{
+  "evidence_type": "LIVE_READONLY_SEVEN_SIDE_EFFECT_RELEVANT_DEFAULTS",
+  "captured_date": "2026-11-12",
+  "production_metadata_only": true,
+  "items": [
+    {
+      "table_name": "billing",
+      "column_name": "payment_status",
+      "default_expr": "'unpaid'::text"
+    },
+    {
+      "table_name": "email_log",
+      "column_name": "status",
+      "default_expr": "'sent'::text"
+    },
+    {
+      "table_name": "google_integrations",
+      "column_name": "auto_sync_enabled",
+      "default_expr": "false"
+    },
+    {
+      "table_name": "integrations",
+      "column_name": "auto_sync",
+      "default_expr": "false"
+    },
+    {
+      "table_name": "offers",
+      "column_name": "offer_status",
+      "default_expr": "'pending'::text"
+    },
+    {
+      "table_name": "sync_logs",
+      "column_name": "status",
+      "default_expr": "'success'::text"
+    },
+    {
+      "table_name": "workflow_rules",
+      "column_name": "is_active",
+      "default_expr": "true"
+    }
+  ],
+  "unsafe_default_cases": [
+    {
+      "table_name": "email_log",
+      "column_name": "status",
+      "default_expr": "'sent'::text"
+    },
+    {
+      "table_name": "sync_logs",
+      "column_name": "status",
+      "default_expr": "'success'::text"
+    },
+    {
+      "table_name": "workflow_rules",
+      "column_name": "is_active",
+      "default_expr": "true"
+    }
+  ],
+  "hard_stops": [
+    "workflow_rules.is_active defaults TRUE: every synthetic workflow rule must be explicitly inert or absent before any seeding",
+    "email_log.status defaults sent: never insert a synthetic email record without an explicit never-sent test status and no actual send",
+    "sync_logs.status defaults success: do not represent a synthetic unrun sync as successful",
+    "on_candidate_stage_change and on_offer_change trigger functions have billing-insert source paths: require independent finance isolation review",
+    "the production auth.users hook creates a profile and role on registration and has a hardcoded privileged-email admin branch: never clone into synthetic lab without independent security review"
+  ],
+  "app_trigger_count_critical": 32,
+  "production_mutations": 0,
+  "hosted_fixture_rows_written": 0
+}

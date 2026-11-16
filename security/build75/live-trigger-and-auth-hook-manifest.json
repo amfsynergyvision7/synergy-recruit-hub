@@ -1,0 +1,341 @@
+{
+  "evidence_type": "LIVE_SOURCE_PINNED_32_PUBLIC_TRIGGERS_AND_AUTH_USERS_BOOTSTRAP_AUDIT",
+  "observed_date": "2026-11-12",
+  "source_method": "SELECT-only pg_catalog and pg_get_functiondef Boolean structure / MD5; no function text or personal literals exported",
+  "target_catalog": "production_readonly",
+  "app_trigger_count": 32,
+  "app_trigger_table_count": 12,
+  "application_triggers": [
+    {
+      "table_name": "app_settings",
+      "trigger_name": "t_app_settings_u",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "9a04600f7d4a3142c2070444d3fdab06",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "billing_invoice_number_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_invoice_number()",
+      "privileged_function": false,
+      "trigger_md5": "4a2accd0af08e68cc2eee3ff7bca5346",
+      "function_md5": "c05e9fee1d19cc4216b70c17b25f6be0"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "billing_updated_at_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "b158e983fd438d437642ca765869189d",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "normalize_billing_relationships_trigger",
+      "enabled_mode": "O",
+      "function_signature": "normalize_billing_relationships()",
+      "privileged_function": false,
+      "trigger_md5": "40d87485e3b5c90a021cd479e4130d9d",
+      "function_md5": "6b8868e4e576b839f817620230d9233b"
+    },
+    {
+      "table_name": "billing",
+      "trigger_name": "workflow_rules_trigger",
+      "enabled_mode": "O",
+      "function_signature": "run_workflow_rules()",
+      "privileged_function": true,
+      "trigger_md5": "684e34796a3b3df43e0af7eda2070625",
+      "function_md5": "a935a8de320a15354a988ae5b980064a"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "candidates_sync_defaults_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_candidate_sync_defaults()",
+      "privileged_function": false,
+      "trigger_md5": "06b4c3404841fce6d28f62ee50ec3093",
+      "function_md5": "e393543a1e26824770f57000f7c7b440"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "candidates_updated_at_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "28387c4bdc82635cf845aeb8911bcbb3",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "set_assigned_recruiter_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_assigned_recruiter()",
+      "privileged_function": true,
+      "trigger_md5": "f0e8035858775f92d6d3077f11a02fe8",
+      "function_md5": "e400aad0d20359265b58d9718d4f48a4"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "set_candidate_sync_defaults_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_candidate_sync_defaults()",
+      "privileged_function": false,
+      "trigger_md5": "badb8fbc46029f4132c534c2563003df",
+      "function_md5": "e393543a1e26824770f57000f7c7b440"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "track_stage_changes_trigger",
+      "enabled_mode": "O",
+      "function_signature": "track_stage_changes()",
+      "privileged_function": true,
+      "trigger_md5": "553468e85bd324fcd4f3153321dc1d70",
+      "function_md5": "86c1f9eb50c225a673ae61e82d4e7397"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "trg_candidate_stage_change",
+      "enabled_mode": "O",
+      "function_signature": "on_candidate_stage_change()",
+      "privileged_function": true,
+      "trigger_md5": "5600acd792f6b5cc319a8f082f4e73b3",
+      "function_md5": "dd20fc0b4ddf8f11d8a7788942321d12"
+    },
+    {
+      "table_name": "candidates",
+      "trigger_name": "workflow_rules_trigger",
+      "enabled_mode": "O",
+      "function_signature": "run_workflow_rules()",
+      "privileged_function": true,
+      "trigger_md5": "d71773af2a4d444abd11fc0466631bab",
+      "function_md5": "a935a8de320a15354a988ae5b980064a"
+    },
+    {
+      "table_name": "clients",
+      "trigger_name": "clients_updated_at_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "ac7bd81cd01a77e5ef99fb5c9601bdaa",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "clients",
+      "trigger_name": "t_clients_u",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "425bf3c60b7f2aefff94f763fdf54bf4",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "clients",
+      "trigger_name": "workflow_rules_trigger",
+      "enabled_mode": "O",
+      "function_signature": "run_workflow_rules()",
+      "privileged_function": true,
+      "trigger_md5": "6a1ea095ac63fcde47fc712bc654022a",
+      "function_md5": "a935a8de320a15354a988ae5b980064a"
+    },
+    {
+      "table_name": "google_integrations",
+      "trigger_name": "set_google_integrations_updated_at",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "0ad2205c2fc406a5113231a579a1e4a9",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "google_integrations",
+      "trigger_name": "sync_google_integration_mapping_trigger",
+      "enabled_mode": "O",
+      "function_signature": "sync_google_integration_mapping()",
+      "privileged_function": false,
+      "trigger_md5": "078a3d7116665ed8708444326dfa0dba",
+      "function_md5": "657f79e6f4296b8ac38d61d26d896bdd"
+    },
+    {
+      "table_name": "integrations",
+      "trigger_name": "integrations_updated_at",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "a387cb5105c1ec1864d5971b5ffc825e",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "interviews",
+      "trigger_name": "interviews_stage_trigger",
+      "enabled_mode": "O",
+      "function_signature": "on_interview_change()",
+      "privileged_function": true,
+      "trigger_md5": "681b0d81ba23a07c6670d0d04fe18bce",
+      "function_md5": "d2d016a1a9689aeb57ce29124ebddf52"
+    },
+    {
+      "table_name": "interviews",
+      "trigger_name": "normalize_interviews_relationships_trigger",
+      "enabled_mode": "O",
+      "function_signature": "normalize_interview_relationships()",
+      "privileged_function": false,
+      "trigger_md5": "edd141a128cc7cd713e1e8df35daa659",
+      "function_md5": "95167a9052d86ea03c0950637fa0493d"
+    },
+    {
+      "table_name": "interviews",
+      "trigger_name": "workflow_rules_trigger",
+      "enabled_mode": "O",
+      "function_signature": "run_workflow_rules()",
+      "privileged_function": true,
+      "trigger_md5": "f90cd09980c74e634376c74ee9378fe1",
+      "function_md5": "a935a8de320a15354a988ae5b980064a"
+    },
+    {
+      "table_name": "job_openings",
+      "trigger_name": "job_openings_updated_at_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "431b78f85459c3867fc600fd1521b29d",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "job_openings",
+      "trigger_name": "normalize_job_openings_relationships_trigger",
+      "enabled_mode": "O",
+      "function_signature": "normalize_job_opening_relationships()",
+      "privileged_function": false,
+      "trigger_md5": "b972ec803bb490eab14afaaa74ef5281",
+      "function_md5": "2a14be58c05db0f0b980d71612a8abee"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "normalize_offers_relationships_trigger",
+      "enabled_mode": "O",
+      "function_signature": "normalize_offer_relationships()",
+      "privileged_function": false,
+      "trigger_md5": "d0f4e2d239443c329c4cbad3c114e128",
+      "function_md5": "ae3dda7fc72c8f7d54b24593a5210bed"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "offers_stage_billing_trigger",
+      "enabled_mode": "O",
+      "function_signature": "on_offer_change()",
+      "privileged_function": true,
+      "trigger_md5": "cc2e3a5d69a32975cbec4cd3db211829",
+      "function_md5": "d2c141f7d297ec7bdd96f70c1ad76079"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "offers_updated_at_trigger",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "a71f3c8806b3dafd6f4c547c5b6d0a3d",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "offers",
+      "trigger_name": "workflow_rules_trigger",
+      "enabled_mode": "O",
+      "function_signature": "run_workflow_rules()",
+      "privileged_function": true,
+      "trigger_md5": "444a773a3d0461e49fdf1f93a2f593a3",
+      "function_md5": "a935a8de320a15354a988ae5b980064a"
+    },
+    {
+      "table_name": "profiles",
+      "trigger_name": "t_profiles_u",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "0574e1037fa84bf203cb22afd301a427",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    },
+    {
+      "table_name": "submissions",
+      "trigger_name": "normalize_submissions_relationships_trigger",
+      "enabled_mode": "O",
+      "function_signature": "normalize_submission_relationships()",
+      "privileged_function": false,
+      "trigger_md5": "b26d4f04764dc9ee30e8bbc3e467096e",
+      "function_md5": "7d3aa116d97d1540151d9670955360f9"
+    },
+    {
+      "table_name": "submissions",
+      "trigger_name": "submissions_stage_trigger",
+      "enabled_mode": "O",
+      "function_signature": "on_submission_insert()",
+      "privileged_function": true,
+      "trigger_md5": "9f7c163a6d3cc1a3ee35f7c9f175359d",
+      "function_md5": "4feb3b6d8daeba95e6cd282876209be6"
+    },
+    {
+      "table_name": "submissions",
+      "trigger_name": "workflow_rules_trigger",
+      "enabled_mode": "O",
+      "function_signature": "run_workflow_rules()",
+      "privileged_function": true,
+      "trigger_md5": "87d31da5d1d4cfda253b255279f55680",
+      "function_md5": "a935a8de320a15354a988ae5b980064a"
+    },
+    {
+      "table_name": "workflow_rules",
+      "trigger_name": "workflow_rules_set_updated_at",
+      "enabled_mode": "O",
+      "function_signature": "set_updated_at()",
+      "privileged_function": false,
+      "trigger_md5": "538f41d94f0b28a5a42c4b91ec94c88c",
+      "function_md5": "e81033fd9e7d0e7ee6b87545c0f6fb2c"
+    }
+  ],
+  "workflow_triggers": [
+    "billing.workflow_rules_trigger",
+    "candidates.workflow_rules_trigger",
+    "clients.workflow_rules_trigger",
+    "interviews.workflow_rules_trigger",
+    "offers.workflow_rules_trigger",
+    "submissions.workflow_rules_trigger"
+  ],
+  "lifecycle_triggers": [
+    "candidates.trg_candidate_stage_change",
+    "interviews.interviews_stage_trigger",
+    "offers.offers_stage_billing_trigger",
+    "submissions.submissions_stage_trigger"
+  ],
+  "other_side_effect_sensitive_triggers": [
+    "billing.billing_invoice_number_trigger",
+    "candidates.set_assigned_recruiter_trigger",
+    "candidates.track_stage_changes_trigger",
+    "google_integrations.sync_google_integration_mapping_trigger"
+  ],
+  "auth_user_trigger_count": 1,
+  "auth_user_triggers": [
+    {
+      "trigger_name": "on_auth_user_created",
+      "enabled_mode": "O",
+      "function_signature": "handle_new_user()",
+      "privileged_function": true,
+      "trigger_md5": "786e53a33077b3a68f1ec248e238d18a",
+      "function_md5": "46329135f1c4754fe71fe5d6a81bed36",
+      "inserts_profile": true,
+      "inserts_role": true,
+      "email_condition": true,
+      "privileged_email_branch": true
+    }
+  ],
+  "auth_hook_unconditionally_inserts_profile_and_role": true,
+  "auth_hook_has_hardcoded_privileged_email_branch": true,
+  "hardcoded_email_value_saved": false,
+  "live_personal_rows_queried": 0,
+  "live_database_writes": 0,
+  "planned_for_nonproduction_application": false,
+  "formal_hosted_uat_cases_accepted": 0,
+  "notice": "Original auth.users trigger creates profile/role for each new user; ninth unprofiled identity is incompatible if reproduced. Never copy embedded privileged email literal. Independently review auth bootstrap and suppress or replace hook only in a dedicated controlled lab after documented gate. Disabled app triggers and absent auth hook are pre-SEED isolation only, not acceptance of production trigger behavior."
+}
