@@ -638,3 +638,33 @@ test('Build197 catalog-sourced production approval helper remains source pinned 
  assert.doesNotMatch(generator,/\$only_fixture\$/);
  assert.match(http,/BUILD197_GOTRUE_FULL_35_POLICY_HTTP_85_OF_85_PASS_DISPOSABLE_ONLY/);
 });
+
+
+test('Build198 original production get_user_role is source-pinned, cross-user gap reproducible, candidate separate',()=>{
+ const original=load('build198-original-get-user-role.DISPOSABLE.sql.txt');
+ const overlay=load('build198-caller-bound-get-user-role.REVIEW-ONLY.sql.txt');
+ const executor=load('build198-real-role-rpc.disposable.mjs');
+ const generator=load('build195-prepare-full-gotrue.disposable.mjs');
+ const integrated=load('build195-full-gotrue-35-policy-http.test.mjs');
+ assert.equal(blobSha(original),'19ed98d1216c6ef4ef55deabfaef9e21172dc544');
+ assert.match(original,/83d72d3932a91c90ffa33f431063a831/);
+ assert.match(original,/current_database\(\)<>'amf_build195_gotrue_35_policy_lab'/);
+ assert.match(original,/SECURITY DEFINER/);
+ assert.match(original,/SET search_path TO 'public'/);
+ assert.match(original,/ORDER BY CASE role/);
+ assert.match(overlay,/REVIEW-ONLY CANDIDATE/);
+ assert.match(overlay,/current_database\(\)<>'amf_build195_gotrue_35_policy_lab'/);
+ assert.match(overlay,/auth\.uid\(\) IS NOT NULL/);
+ assert.match(overlay,/_user_id=auth\.uid\(\)/);
+ assert.match(overlay,/SET search_path=''/);
+ assert.match(overlay,/FROM PUBLIC,anon,authenticated/);
+ assert.match(executor,/BUILD198_ORIGINAL_DRAFT_AUTHENTICATED_FOREIGN_ROLE_LOOKUP_GAP_REPRODUCED/);
+ assert.match(executor,/BUILD198_CANDIDATE_ADMIN_CROSS_USER_LOOKUP_NULL_REVIEW_CALLERS/);
+ assert.match(executor,/BUILD198_14_OF_14_ROLE_LOOKUP_ORIGINAL_AND_CANDIDATE_CASES_PASS_DISPOSABLE_ONLY/);
+ assert.match(generator,/prodRoleLookup:\['build198-original-get-user-role\.DISPOSABLE\.sql\.txt'/);
+ assert.match(generator,/19ed98d1216c6ef4ef55deabfaef9e21172dc544/);
+ assert.match(generator,/specs\.prodRoleLookup\[0\]/);
+ assert.match(integrated,/await runBuild198\(\{uids,tokens,yes\}\)/);
+ assert.match(integrated,/assert\.equal\(outcomes\.length,99/);
+ assert.match(integrated,/BUILD198_GOTRUE_FULL_35_POLICY_HTTP_99_OF_99_PASS_DISPOSABLE_ONLY/);
+});
