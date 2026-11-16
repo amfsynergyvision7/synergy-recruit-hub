@@ -1,0 +1,23 @@
+-- Build198 live production get_user_role() catalog definition snapshot.
+-- SELECT-only source extraction; DO NOT APPLY TO HOSTED PROJECTS.
+-- This exact SQL contains existing legacy SECURITY DEFINER search_path=public,
+-- NOT a recommended safe design. Execute solely in fictional disposable CI.
+DO $guard$
+BEGIN
+ IF current_database()<>'amf_build195_gotrue_35_policy_lab'
+ OR session_user<>'postgres'
+ THEN RAISE EXCEPTION 'Build198 original role-lookup source must run only in disposable DB';
+ END IF;
+END $guard$;
+CREATE OR REPLACE FUNCTION public.get_user_role(_user_id uuid)
+ RETURNS app_role
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT role FROM public.user_roles WHERE user_id = _user_id
+  ORDER BY CASE role
+    WHEN 'admin' THEN 1 WHEN 'recruiter' THEN 2 WHEN 'operations' THEN 3
+    WHEN 'finance' THEN 4 WHEN 'viewer' THEN 5 END
+  LIMIT 1
+$function$
