@@ -537,6 +537,9 @@ test('Build195 end-to-end actual 35-policy + PR23 helper with GoTrue-issued JWTs
   assert(prep.includes(feature)||feature==='BUILD195_NO_HOSTED_TARGET_AUTHORIZED',feature);
  assert.match(prep,/install-only-in-ephemeral-db.sql/);
  assert.match(prep,/CREATE OR REPLACE FUNCTION public\.is_approved/);
+ assert.match(prep,/request\.jwt\.claims/);
+ assert.match(http,/GOTRUE_ISSUED_JWT_RESOLVES_CURRENT_USER_ROLE/);
+ assert.match(http,/GOTRUE_SUBJECT_SELF_PROFILE_VISIBLE/);
  assert.match(runner,/set -euo pipefail/);
  assert.match(runner,/supabase\/gotrue:v2\.197\.0/);
  assert.match(runner,/postgrest\/postgrest:v12\.2\.3/);
