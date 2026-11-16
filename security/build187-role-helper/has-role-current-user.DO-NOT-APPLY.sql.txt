@@ -1,0 +1,31 @@
+-- BUILD187 REVIEW PROPOSAL. DO NOT APPLY TO ANY HOSTED DATABASE.
+-- NOT A MIGRATION OR RELEASE APPROVAL. Verified only using disposable PG17.
+-- This preserves existing callable name and argument types for 41/41 production
+-- RLS policies confirmed to pass auth.uid() on 16 November 2026.
+-- Must NOT be applied until a qualified DBA independently verifies callers,
+-- required grants, signed JWT behavior, backup/PITR and safe rollback.
+--
+-- SECURITY DEFINER is retained ONLY to avoid recursive user_roles RLS checks;
+-- actual owner/privileges must be separately inspected before any live change.
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $reviewed_body$
+  SELECT auth.uid() IS NOT NULL
+    AND _user_id = auth.uid()
+    AND EXISTS (
+      SELECT 1 FROM public.user_roles AS ur
+      WHERE ur.user_id = auth.uid() AND ur.role = _role
+    );
+$reviewed_body$;
+
+-- Remove inherited PUBLIC default execution and explicit anon/auth grants;
+-- regrant only authenticated for user-bound policy expressions.
+-- Independently check further grants / memberships / API exposure at release.
+REVOKE ALL ON FUNCTION public.has_role(uuid,public.app_role)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid,public.app_role)
+  TO authenticated;
