@@ -313,3 +313,45 @@ test("Build187 session-bound policy caller catalog preflight is SELECT-only and 
  assert(!/\b(?:FROM|JOIN)\s+(?:public|auth|storage)\.(?:user_roles|audit_logs|profiles|candidates|billing|email_log)\b/i.test(executable));
  assert(!/\b(?:INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|GRANT|REVOKE|COPY)\s+(?:INTO|FROM|TABLE|ROLE|POLICY|FUNCTION|SCHEMA)\b/iu.test(executable));
 });
+
+
+test("Build188 signed-JWT HTTP test suite is disposable, includes 25 real RPC/RLS cases, keeps release HOLD",()=>{
+ const dir=join(root,"../build188-signed-rpc");
+ const fixture=readFileSync(join(dir,"bootstrap.disposable.sql"),"utf8");
+ const runner=readFileSync(join(dir,"run_signed_rpc.sh"),"utf8");
+ const script=readFileSync(join(dir,"signed-role-rpc.test.mjs"),"utf8");
+ const doc=readFileSync(join(dir,"README.md"),"utf8");
+ const ci=readFileSync(join(root,"../../.github/workflows/build177-audit-main.yml"),"utf8");
+ assert.match(fixture,/\\i security\/build187-role-helper\/has-role-current-user\.DO-NOT-APPLY\.sql\.txt/);
+ assert.match(fixture,/CREATE ROLE anon NOLOGIN/);
+ assert.match(fixture,/CREATE ROLE authenticated NOLOGIN/);
+ assert.match(fixture,/CREATE ROLE service_role NOLOGIN/);
+ assert.match(fixture,/CREATE ROLE authenticator LOGIN/);
+ assert.match(fixture,/CREATE POLICY "B188 admin-only audit SELECT"/);
+ assert.match(fixture,/CREATE POLICY "B188 approved staff sample SELECT"/);
+ assert.match(runner,/set -euo pipefail/);
+ assert.match(runner,/postgres:\/\//);
+ assert.match(runner,/postgrest\/postgrest:v12\.2\.3/);
+ assert.match(runner,/127\.0\.0\.1:3000/);
+ assert.match(runner,/trap cleanup EXIT/);
+ assert.match(script,/createHmac\('sha256'/);
+ assert.match(script,/\/rpc\/has_role/);
+ assert.match(script,/BUILD188_SIGNED_POSTGREST_RPC_25_OF_25_PASS_SYNTHETIC_ONLY/);
+ assert.match(script,/assert\.equal\(cases\.length,25\)/);
+ for(const label of [
+  "ADMIN_SELF_ROLE","ADMIN_CROSS_USER_RECRUITER_DENIED","ADMIN_AUDIT_VIEW",
+  "RECRUITER_CANNOT_ENUMERATE_ADMIN","RECRUITER_AUDIT_DENIED",
+  "FINANCE_SELF_ROLE","NO_ROLE_FALSE","ANON_RPC_DENIED",
+  "MALFORMED_RPC_DENIED","TAMPERED_RPC_DENIED","EXPIRED_RPC_DENIED",
+  "SERVICE_ROLE_WITHOUT_USER_FALSE","NO_DIRECT_USER_ROLE_TABLE_SELECT"
+ ]) {
+  if(!["ANON_RPC_DENIED","MALFORMED_RPC_DENIED","TAMPERED_RPC_DENIED",
+       "EXPIRED_RPC_DENIED"].includes(label))assert(script.includes(label),label);
+ }
+ assert.match(ci,/security\/build188-signed-rpc\/\*\*/);
+ assert.match(ci,/signed-postgrest-rpc:/);
+ assert.match(ci,/bash security\/build188-signed-rpc\/run_signed_rpc\.sh/);
+ assert.match(ci,/main-release-hold:/);
+ assert.match(doc,/not GoTrue|not prove.*GoTrue|not GoTrue-issued/i);
+ assert(!/https:\/\/(?!github\.com)/i.test(runner));
+});
