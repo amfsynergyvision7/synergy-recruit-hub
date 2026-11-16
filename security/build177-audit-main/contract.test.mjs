@@ -402,13 +402,16 @@ test("Build190 pinned Git source inventory covers main and integration without h
  for(const literal of ["direct_user_roles_client","direct_audit_logs_client",
  "has_role_call_or_literal","trusted_email_rpc_mentions",
  "dynamic_rpc_candidates","audit_logs_mentions",
- "user_roles_mentions","BUILD190_STATIC_INVENTORY_COMPLETE_NOT_RELEASE_OR_EXTERNAL_CALLER_CLEAN"])
+ "user_roles_mentions","direct_user_roles_mutation","direct_audit_logs_mutation",
+ "BUILD190_STATIC_INVENTORY_COMPLETE_NOT_RELEASE_OR_EXTERNAL_CALLER_CLEAN"])
   assert(src.includes(literal),literal);
  assert.match(src,/execFileSync\('git'/);
  assert.match(src,/git',\['show'/);
  assert.match(src,/rev-parse/);
  assert.match(src,/bytesScanned/);
  assert.match(src,/tracked_files/);
+ assert.match(src,/runtimeCounts/);
+ assert.match(src,/sourceKind/);
  assert.match(readme,/qualified DBA/);
  assert.match(readme,/not a complete behavioral audit/);
  assert.match(ci,/security\/build190-static-callers\/\*\*/);
