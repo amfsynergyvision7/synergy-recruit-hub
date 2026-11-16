@@ -71,8 +71,8 @@ const after=[
  '\\i '+root+specs.prodApproval[0],
  "DO $meta$ BEGIN IF (SELECT count(*) FROM pg_catalog.pg_policies WHERE schemaname='public')<>35",
  " OR NOT (SELECT prosecdef FROM pg_catalog.pg_proc WHERE oid=to_regprocedure('public.has_role(uuid,public.app_role)'))",
- " OR pg_catalog.has_function_privilege('anon','public.has_role(uuid,public.app_role)','EXECUTE')
- OR (SELECT coalesce(array_to_string(proconfig,','),'') FROM pg_catalog.pg_proc WHERE oid=to_regprocedure('public.is_approved(uuid)'))<>'search_path=public'",
+ " OR pg_catalog.has_function_privilege('anon','public.has_role(uuid,public.app_role)','EXECUTE')",
+ " OR (SELECT coalesce(array_to_string(proconfig,','),'') FROM pg_catalog.pg_proc WHERE oid=to_regprocedure('public.is_approved(uuid)'))<>'search_path=public'",
  " THEN RAISE EXCEPTION 'Build195 proposed source metadata mismatched'; END IF;",
  " RAISE NOTICE 'BUILD195_ONLY_DISPOSABLE_35_POLICIES_COMMITTED'; END $meta$;"
 ].join('\n')+'\n';
