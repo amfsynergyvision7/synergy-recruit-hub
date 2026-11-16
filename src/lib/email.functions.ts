@@ -1,9 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { sendEmail, textToHtml } from "./email.server";
 import { assertApprovedRole } from "./access-gates.server";
 import { assertExternalEffectReleased } from "./external-effects-hold.server";
+import {
+  assertCrmEmailAuditIntegrityReleased,
+  executeCrmEmailAuditProtocol,
+  isCrmEmailRequestId,
+} from "./crm-email-audit-integrity.server";
+import { assertCrmEmailReconciliationReleased } from "./crm-email-reconciliation-hold.server";
 import { isCrmEmailRecipientBound } from "./crm-email-recipient-policy";
 import { assertCrmEmailRecordReadAccess } from "./crm-email-record-access.server";
 
@@ -23,6 +30,7 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       toEmail: z.string().email(),
       subject: z.string().min(1).max(200),
       body: z.string().min(1).max(10000),
+      requestId: z.string().uuid().refine(isCrmEmailRequestId, "Invalid email attempt key"),
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
@@ -36,6 +44,9 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     // A compile-time server release interlock precedes all SMTP, database
     // logging and recipient processing. No environment toggle bypasses it.
     assertExternalEffectReleased("crm_email");
+    // Separate, immutable audit integrity hold: independent approval is
+    // required even if the general SMTP release interlock is changed.
+    assertCrmEmailAuditIntegrityReleased();
     // When reviewed for release, use the exact-one-role, approved+active
     // service-side gate rather than the old any-matching-role query.
     await assertApprovedRole(context.userId, ["admin", "recruiter"]);
@@ -76,37 +87,68 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
       approvedRole: role,
     })) throw new Error("Email recipient authorization denied");
 
-    const result = await sendEmail({
-      to: data.toEmail,
-      subject: data.subject,
-      html: textToHtml(data.body),
+    // Require a committed, actor-bound journal reservation/readback BEFORE
+    // the external SMTP side effect. The current database lacks a user
+    // UPDATE policy, and the proposed RLS removes even INSERT: the separate
+    // compile-time audit hold must remain until a reviewed RPC/outbox and
+    // signed hosted UAT prove both stages and idempotency are safe.
+    // Reuse the caller's stable request UUID as email_log's existing PRIMARY
+    // KEY. Concurrent/replayed requests with the same ID cannot reserve
+    // another audit row or invoke SMTP after a database duplicate-key error.
+    // No conflict-upsert or SELECT-existing-then-send race is allowed.
+    const attemptId = data.requestId;
+    return await executeCrmEmailAuditProtocol({
+      attempt: {
+        id: attemptId,
+        actorId: context.userId,
+        relatedTable: data.relatedTable,
+        relatedId: data.relatedId,
+      },
+      reserve: async () => {
+        // Server-only service-role RPC; browser tokens cannot execute it.
+        // Both immutable external-effect holds and all user/record/recipient
+        // authorization checks have already succeeded above this call.
+        // The RPC independently revalidates actor/role/record/recipient.
+        const { data: rows, error: logError } = await (supabaseAdmin.rpc as any)(
+          "crm_email_reserve_trusted", {
+            p_attempt: attemptId,
+            p_actor: context.userId,
+            p_table: data.relatedTable,
+            p_record: data.relatedId,
+            p_recipient: data.toEmail,
+            p_subject: data.subject,
+            p_body: data.body,
+          },
+        );
+        if (logError) {
+          console.error("[email_log] insert failed; review restricted server diagnostics");
+        }
+        const reserved = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+        return { row: reserved, error: logError };
+      },
+      deliver: () => sendEmail({
+        to: data.toEmail,
+        subject: data.subject,
+        html: textToHtml(data.body),
+      }),
+      settle: async (finalStatus, providerId) => {
+        // Only the service-role RPC can transition this exact pending row.
+        // Never retry provider delivery if the journal update is uncertain.
+        const { data: rows, error: settlementError } = await (supabaseAdmin.rpc as any)(
+          "crm_email_settle_trusted", {
+            p_attempt: attemptId,
+            p_actor: context.userId,
+            p_status: finalStatus,
+            p_provider_id: providerId,
+          },
+        );
+        if (settlementError) {
+          console.error("[email_log] update failed; review restricted server diagnostics");
+        }
+        const finalized = Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
+        return { row: finalized, error: settlementError };
+      },
     });
-
-    // Log the attempt either way — a failed send (e.g. domain not verified
-    // yet) is exactly as useful to see in the record's correspondence history
-    // as a successful one, so nobody re-sends the same email twice thinking
-    // the first one silently vanished.
-    const { error: logError } = await context.supabase.from("email_log" as any).insert({
-      related_table: data.relatedTable,
-      related_id: data.relatedId,
-      to_email: data.toEmail,
-      subject: data.subject,
-      body: data.body,
-      status: result.success ? "sent" : "failed",
-      error: result.error ?? null,
-      provider_id: result.providerId ?? null,
-      sent_by: context.userId,
-    });
-    if (logError) {
-      // Don't mask a real send failure behind a logging failure, but do
-      // surface both if the send itself also failed.
-      console.error("[email_log] insert failed; review restricted server diagnostics");
-    }
-
-    if (!result.success) {
-      throw new Error(result.error ?? "Email failed to send for an unknown reason.");
-    }
-    return { success: true };
   });
 
 export const listEmailHistory = createServerFn({ method: "POST" })
@@ -223,4 +265,32 @@ export const getEmailMergeContext = createServerFn({ method: "POST" })
       position: null,
       ownerName: await resolveOwnerName(client?.created_by ?? null),
     };
+  });
+/** Build160: independently held administrator-only, provider-verified
+ * confirmation. This endpoint never invokes sendEmail.
+ */
+export const confirmCrmEmailSent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input:unknown) =>
+    z.object({
+      attemptId: z.string().uuid().refine(isCrmEmailRequestId),
+      caseReference: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]{9,119}$/),
+      providerId: z.string().min(1).max(256).regex(/^[!-~]+$/),
+    }).strict().parse(input),
+  )
+  .handler(async ({ context,data }) => {
+    assertCrmEmailReconciliationReleased();
+    await assertApprovedRole(context.userId, ["admin"]);
+    const { data: rows,error } = await (supabaseAdmin.rpc as any)(
+      "crm_email_confirm_sent_trusted", {
+        p_attempt: data.attemptId,
+        p_admin: context.userId,
+        p_case_ref: data.caseReference,
+        p_provider_id: data.providerId,
+      },
+    );
+    if (error || !Array.isArray(rows) || rows.length!==1 ||
+        rows[0]?.id!==data.attemptId || rows[0]?.status!=="sent")
+      throw new Error("CRM email reconciliation unavailable; release remains paused");
+    return { confirmed:true } as const;
   });
