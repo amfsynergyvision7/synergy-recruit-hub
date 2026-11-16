@@ -430,3 +430,21 @@ test('Build192 exact PostgreSQL-derived proposed 35-policy digest detects predic
  assert.match(gen,/ROLLBACK TO SAVEPOINT b192_predicate_drift/);
  assert.match(gen,/BUILD192_ORIGINAL_67_POLICY_CATALOG_RESTORED/);
 });
+
+
+test('Build192 reviewer handover requires BOTH catalog postflight and exact 35-policy digest gate',()=>{
+ const doc=load('BUILD192_FULL_DRAFT_REHEARSAL.md');
+ const readme=load('README.md');
+ const proposed=load('build192-exact-35-policy-fingerprint.readonly.sql');
+ assert.match(doc,/actual 67-to-35 policy/);
+ assert.match(doc,/same-count predicate/);
+ assert.match(doc,/count-only|count\/permissions/);
+ assert.match(doc,/build191-postflight\.readonly\.sql/);
+ assert.match(doc,/build192-exact-35-policy-fingerprint\.readonly\.sql/);
+ assert.match(doc,/632d447f4cb5b5a88777e48916e288f9/);
+ assert.match(doc,/0\/48/);
+ assert.match(doc,/140/);
+ assert.match(readme,/Build192/);
+ assert.match(readme,/mandatory together/);
+ assert.match(proposed,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
+});
