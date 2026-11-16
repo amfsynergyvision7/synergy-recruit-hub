@@ -1,9 +1,10 @@
-name: Build177–187 audit and role-helper isolation — disposable PG17 only
+name: Build177–188 audit isolation + disposable signed JWT role-helper HTTP
 on:
   pull_request:
     paths:
       - 'security/build177-audit-main/**'
       - 'security/build187-role-helper/**'
+      - 'security/build188-signed-rpc/**'
       - '.github/workflows/build177-audit-main.yml'
 permissions:
   contents: read
@@ -64,6 +65,40 @@ jobs:
           # The exact DO-NOT-APPLY helper proposal is executed only in an
           # ephemeral PG17 transaction and rolled back, never on hosted data.
           psql -X -v ON_ERROR_STOP=1 -f security/build187-role-helper/pg17-role-helper-behavior.sql
+  signed-postgrest-rpc:
+    name: Disposable signed-JWT PostgREST has_role RPC and RLS checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-disposable-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Run signed-JWT HTTP tests against disposable PG17/PostgREST ONLY
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: synthetic-disposable-only
+          B188_JWT_SECRET: BUILD188_DISPOSABLE_HMAC_ONLY_NEVER_A_LIVE_CREDENTIAL_2026
+        run: |
+          set -euo pipefail
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          bash security/build188-signed-rpc/run_signed_rpc.sh
   main-release-hold:
     if: github.base_ref == 'main'
     name: Audit production merge and deployment — HOLD (intentionally fails)
