@@ -486,3 +486,30 @@ test('Build193 real drafted RLS role-matrix runs only inside source-pinned dispo
  assert(!/\b(?:COMMIT|ROLLBACK)\s*;/iu.test(pg),
  'Behavior tests must rely on the enclosing, unconditional draft rollback');
 });
+
+
+test('Build194 cross-PR source snapshot must exactly match PR23 reviewed role helper; run in disposable 35-policy transaction only',()=>{
+ const helper=load('build194-role-helper.PR23-SNAPSHOT.DO-NOT-APPLY.sql.txt');
+ const behavior=load('build193-rls-authorization.disposable.pg17.sql');
+ const replay=load('build192-replay-actual-proposal.disposable.mjs');
+ assert.equal(blobSha(helper),'f12ceaa01d63e40a8860d12457c13f2612609953',
+  'PR23 has_role reviewed source snapshot changed: require fresh cross-branch review');
+ assert.match(helper,/DO NOT APPLY TO ANY HOSTED DATABASE/);
+ assert.match(helper,/CREATE OR REPLACE FUNCTION public\.has_role\(_user_id uuid, _role public\.app_role\)/);
+ assert.match(helper,/SECURITY DEFINER[\s\S]*SET search_path = ''/);
+ assert.match(helper,/auth\.uid\(\) IS NOT NULL/);
+ assert.match(helper,/_user_id = auth\.uid\(\)/);
+ assert.match(helper,/FROM PUBLIC, anon, authenticated/);
+ assert.match(helper,/TO authenticated/);
+ assert.match(behavior,/\\i security\/build151-production-permissions-review\/build194-role-helper\.PR23-SNAPSHOT\.DO-NOT-APPLY\.sql\.txt/);
+ assert.doesNotMatch(behavior,/\$fixture_role\$/);
+ for(const marker of ['BUILD194_PR23_CALLER_BOUND_HELPER_APPLIED_DISPOSABLE_ONLY',
+ 'BUILD194_ADMIN_SELF_ROLE_TRUE_CROSS_USER_FALSE',
+ 'BUILD194_RECRUITER_HELPER_SELF_TRUE_ADMIN_ENUMERATION_FALSE',
+ 'BUILD194_SERVICE_ROLE_NO_SUBJECT_RETURNS_FALSE_REVIEW_EXTERNAL_CALLERS',
+ 'BUILD194_NO_SUBJECT_HELPER_FALSE'])
+   assert(behavior.includes(marker),marker);
+ assert.match(behavior,/current_database\(\)<>'amf_build192_full_policy_lab'/);
+ assert.match(replay,/build193-rls-authorization\.disposable\.pg17\.sql/);
+ assert.match(replay,/BUILD192_REAL_DRAFT_TRANSACTION_ROLLED_BACK/);
+});
