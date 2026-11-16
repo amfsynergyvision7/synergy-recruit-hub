@@ -242,3 +242,22 @@ test("Build186 hardens admin policy helper dependency in review-only audit catal
  assert.equal((pg.match(/SELECT 1\/0;/g)||[]).length,33);
  assert(!/\b(?:ALTER|DROP|GRANT|REVOKE|INSERT|UPDATE|DELETE|CREATE)\s+(?:TABLE|ROLE|POLICY|FUNCTION|PROCEDURE)\b/iu.test(sql));
 });
+
+
+test("Build186 helper impact inventory is source-pinned, catalog-only and never auto-approves",()=>{
+ const sql=readFileSync(join(root,"role-helper-impact.readonly.sql"),"utf8");
+ const doc=readFileSync(join(root,"BUILD186-HELPER-IMPACT.md"),"utf8");
+ const executable=sql.split("\n").filter(line=>!line.trimStart().startsWith("--")).join("\n");
+ for(const fragment of [
+  "pg_catalog.pg_policies","pg_catalog.pg_proc",
+  "pg_catalog.has_function_privilege('anon',p.oid,'EXECUTE')",
+  "pg_catalog.to_regprocedure('public.has_role(uuid,public.app_role)')",
+  "HOLD_STATIC_HELPER_CALLER_INVENTORY_REQUIRES_OWNER_REVIEW",
+  "HOLD_HELPER_ABSENT_DEPENDENT_POLICIES_STILL_NEED_REVIEW"
+ ])assert(executable.includes(fragment),fragment);
+ for(const term of ["41","38","73","92","No hosted writes","PITR","independent"])
+  assert(doc.includes(term),term);
+ assert(!/\b(?:FROM|JOIN)\s+(?:public|auth|storage)\.(?:user_roles|audit_logs|profiles|candidates|billing|email_log)\b/i.test(executable));
+ assert(!/\b(?:INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|GRANT|REVOKE|COPY)\s+(?:INTO|FROM|TABLE|ROLE|POLICY|FUNCTION|SCHEMA)\b/iu.test(executable));
+ assert(!/\b(?:COMMIT|CALL)\s*[\(;]/i.test(executable));
+});
