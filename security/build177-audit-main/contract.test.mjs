@@ -93,19 +93,19 @@ test("Build179 catalog positive-control uses deliberately inert mock reconciliat
  assert.match(sql,/NOOP_NOT_A_REAL_RECONCILIATION/);
  assert.match(sql,/REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE/);
  assert.match(sql,/BUILD179_CATALOG_MATCH_IS_NOT_BEHAVIOR_OR_RELEASE/);
- assert.match(sql,/CREATE FUNCTION public\.crm_email_confirm_sent_trusted\(uuid,uuid,text,text\)/);
+ assert.match(sql,/CREATE FUNCTION public\.crm_email_confirm_sent_trusted\(p_attempt uuid,p_admin uuid,p_case_ref text,p_provider_id text\)/);
  assert.match(sql,/SECURITY INVOKER SET search_path=''/);
  assert.match(sql,/REVOKE ALL ON FUNCTION .* FROM PUBLIC/);
  assert.match(sql,/ROLLBACK;/);
  assert(!sql.includes("SUPABASE_SERVICE_ROLE_KEY"));
 });
-test("Build179–181 twenty-two independent privilege/policy/function regressions are required to HOLD",()=>{
+test("Build179–184 twenty-six independent privilege/policy/function regressions are required to HOLD",()=>{
  const sql=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,22);
- assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,22);
- assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,22);
+ assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,26);
+ assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,26);
+ assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,26);
  assert.equal((sql.match(/BUILD179_EXPECTED_HOLD_\d\d/g)||[]).length,14);
- assert.equal((sql.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,24);
+ assert.equal((sql.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,28);
  assert.match(sql,/GRANT TRUNCATE ON public\.audit_logs TO anon/);
  assert.match(sql,/GRANT UPDATE ON public\.audit_logs TO authenticated/);
  assert.match(sql,/GRANT MAINTAIN ON public\.audit_logs TO authenticated/);
@@ -127,7 +127,7 @@ test("Build179 disposable CI uses only temporary local database service and reta
 
 test("Build179 failure controls have a PostgreSQL nonzero error path, never unsupported psql quit arguments",()=>{
  const script=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,25);
+ assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,29);
  assert(!/\\quit\s+[345]/.test(script));
  assert.match(script,/ON_ERROR_STOP on/);
 });
@@ -160,7 +160,7 @@ test("Build180 RLS bypass, restrictive-only policy and app-role ownership are fa
  assert.match(fixture,/ALTER TABLE public\.audit_logs OWNER TO authenticated/);
  for(const n of [15,16,17,18])assert(fixture.includes("BUILD180_EXPECTED_HOLD_"+n),n);
  assert.equal((fixture.match(/BUILD180_EXPECTED_HOLD_\d\d/g)||[]).length,4);
- assert.equal((fixture.match(/SELECT 1\/0;/g)||[]).length,25);
+ assert.equal((fixture.match(/SELECT 1\/0;/g)||[]).length,29);
  assert(!/\b(?:CREATE|DROP|ALTER|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE)\s+(?:TABLE|POLICY|ROLE|FUNCTION)\b/iu.test(sql));
 });
 
@@ -177,6 +177,25 @@ test("Build181 ensures audited RPC is a normal set-returning function with corre
  assert.match(pg,/RETURNS TABLE\(record_id uuid,outcome text\)/);
  for(const n of [19,20,21,22])assert(pg.includes("BUILD181_EXPECTED_HOLD_"+n),n);
  assert.equal((pg.match(/BUILD181_EXPECTED_HOLD_\d\d/g)||[]).length,4);
- assert.equal((pg.match(/SELECT 1\/0;/g)||[]).length,25);
+ assert.equal((pg.match(/SELECT 1\/0;/g)||[]).length,29);
  assert(!/\b(?:ALTER|DROP|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE|CREATE)\s+(?:TABLE|ROLE|POLICY|FUNCTION|PROCEDURE)\b/iu.test(sql));
+});
+
+
+test("Build184 guards exact PostgREST input-name contract and four single-name variants",()=>{
+ const v2=readFileSync(join(root,"audit-integrity.pg17-corrected.readonly.sql"),"utf8");
+ const pg=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
+ const reviewed=read("reconcile-confirm-sent.DO-NOT-APPLY.sql.txt");
+ const names=["p_attempt","p_admin","p_case_ref","p_provider_id"];
+ for(let i=0;i<names.length;i++){
+  assert(reviewed.includes(names[i]+" "+(i<2?"uuid":"text")),names[i]+" reviewed");
+  assert(v2.includes("proargnames["+(i+1)+"]='"+names[i]+"'"),names[i]+" checked");
+  assert(pg.includes("BUILD184_EXPECTED_HOLD_"+(23+i)),"negative "+(23+i));
+  assert(pg.includes("not_"+names[i]),names[i]+" mutated");
+ }
+ assert.equal((pg.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,26);
+ assert.equal((pg.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,26);
+ assert.equal((pg.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,28);
+ assert.equal((pg.match(/SELECT 1\/0;/g)||[]).length,29);
+ assert(!/\b(?:ALTER|DROP|GRANT|REVOKE|INSERT|UPDATE|DELETE|CREATE)\s+(?:TABLE|ROLE|POLICY|FUNCTION|PROCEDURE)\b/iu.test(v2));
 });
