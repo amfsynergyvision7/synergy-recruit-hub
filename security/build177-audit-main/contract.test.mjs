@@ -293,3 +293,20 @@ test("Build187 proposed helper preserves 41 current-user policy calls and refuse
  assert.match(ci,/security\/build187-role-helper\/\*\*/);
  assert.match(ci,/psql -X -v ON_ERROR_STOP=1 -f security\/build187-role-helper\/pg17-role-helper-behavior\.sql/);
 });
+
+
+test("Build187 session-bound policy caller catalog preflight is SELECT-only and release-gated",()=>{
+ const sql=readFileSync(join(root,"../build187-role-helper/policy-caller-compatibility.readonly.sql"),"utf8");
+ const executable=sql.split("\n").filter(x=>!x.trimStart().startsWith("--")).join("\n");
+ for(const fragment of ["pg_catalog.pg_policies",
+   "regexp_replace(expr","non_session_bound_policy_count",
+   "pg_catalog.to_regprocedure('public.has_role(uuid,public.app_role)')",
+   "HOLD_SHARED_HELPER_MISSING_NO_HOSTED_PARITY",
+   "HOLD_NO_DEPENDENT_POLICY_EVIDENCE",
+   "HOLD_POLICY_CALLER_REVIEW_REQUIRED",
+   "REVIEW_ONLY_ALL_KNOWN_POLICY_CALLS_SESSION_BOUND_NO_DEPLOYMENT"])
+  assert(executable.includes(fragment),fragment);
+ assert.match(executable,/SELECT dependent_policy_count,non_session_bound_policy_count/);
+ assert(!/\b(?:FROM|JOIN)\s+(?:public|auth|storage)\.(?:user_roles|audit_logs|profiles|candidates|billing|email_log)\b/i.test(executable));
+ assert(!/\b(?:INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|GRANT|REVOKE|COPY)\s+(?:INTO|FROM|TABLE|ROLE|POLICY|FUNCTION|SCHEMA)\b/iu.test(executable));
+});
