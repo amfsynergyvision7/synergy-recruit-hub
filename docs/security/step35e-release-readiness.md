@@ -29,6 +29,14 @@ Status: **NOT APPROVED FOR PRODUCTION**. This document is a working evidence reg
 - Selectively reviewed `security-isolation-test/tests/fixtures/sec11_outbox_constraints_regression.sql` and **executed it** on isolated project `dhlhlasnaapzckjyvffn` inside BEGIN/ROLLBACK. Duplicate idempotency key, missing consent and external-domain recipient insertions were rejected as expected. The result reported `synthetic_held_count=1`, `max_attempts=0` before rollback. The verified fixture is now copied into `tests/sql/step35e-isolated-outbox-constraints.sql`; no live email was sent.
 - This verifies representative database constraints only; it does **not** prove SMTP delivery, retries, outbox worker authorization, or production-schema behavior. GitHub Actions completion and latest new-commit Preview remain unverified.
 
+
+## Verification checkpoint — 2026-11-16
+- Isolated Vercel Preview for commit `097b8802a4546be3906e6f46d70a7f9c852cc95d` reports **READY**, with build logs showing `Deployment completed`. The returned events do not contain a complete TAP test summary, so no new test pass count is asserted.
+- GitHub commit workflow lookup for that SHA returned zero PR-triggered runs. Because this lookup is PR-scoped, it does not prove the branch push workflow passed or failed.
+- Read-only inspection of `security_lab.sec11_outbox` confirmed a restrictive trigger and constraints: only `held`/`cancelled` states, zero attempts, immutable recipient/identity fields, and no deletion.
+- Executed a rollback-only SQL regression in isolated Supabase `dhlhlasnaapzckjyvffn`: six invalid mutations were rejected (missing suppression, sending state, nonzero attempts, consent removal, recipient modification, and deletion); a valid synthetic held intent remained unchanged within the transaction. Result: `PASS: six outbox mutation denials; rollback follows`. Fixture: `tests/sql/step35e-isolated-outbox-mutation-guards.sql`. This is synthetic constraint/trigger evidence, not outbox worker or production readiness.
+- Selectively reconciled the outbox mutation-guard test concept from `security-isolation-test` without merging its broad schema migrations. Full synthetic CRM schema and six-role runtime verification remain outstanding.
+
 ## Outstanding acceptance checks
 1. Obtain a confirmed GitHub Actions test conclusion and logs for the latest commit. The Vercel build independently ran the 19-test suite, but GitHub Actions execution remains unverified.
 2. Run integration tests against a synthetic CRM-compatible schema with `public.profiles`, `user_roles`, `candidates`, `job_openings`, `clients` and appropriate RLS, without copying production records. The current `security_lab` fixture is not a complete CRM replica.
