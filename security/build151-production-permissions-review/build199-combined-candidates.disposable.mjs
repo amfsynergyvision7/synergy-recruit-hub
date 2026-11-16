@@ -8,12 +8,24 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 const env=process.env;
 assert(env.B195_DISPOSABLE_ONLY==='true'&&env.PGHOST==='127.0.0.1'&&
  env.PGDATABASE==='amf_build195_gotrue_35_policy_lab'&&
  env.PGUSER==='postgres'&&env.PGPASSWORD==='synthetic-disposable-only',
  'Build199 refuses any non-disposable database');
 const root='security/build151-production-permissions-review/';
+const reviewSources=[
+ ['build196-notification-role-required.REVIEW-ONLY.sql.txt','9100d89d6f63316fac798cd50e29070642649cc8'],
+ ['build198-caller-bound-get-user-role.REVIEW-ONLY.sql.txt','54c61175b92ede5cc9a010abc4a30545103f35cf'],
+ ['build198-caller-bound-is-approved.REVIEW-ONLY.sql.txt','0765668ec71d066a6e78dfd3bef25556690bb742']
+];
+for(const [path,expected] of reviewSources){
+ const content=readFileSync(new URL(path,import.meta.url),'utf8');
+ const sha=createHash('sha1').update('blob '+Buffer.byteLength(content)+'\0').update(content).digest('hex');
+ assert.equal(sha,expected,'Build199 review-only candidate source drift '+path);
+}
+console.log('BUILD199_THREE_SEPARATE_REVIEW_CANDIDATE_SOURCE_BLOBS_PINNED');
 const prefix='http://127.0.0.1:3000';
 function uuid(v){
  assert.match(v,/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
@@ -166,6 +178,6 @@ export async function runBuild199({uids,tokens,query,rpc,mutation,yes}){
  sql("UPDATE public.profiles SET status='approved'::public.user_status WHERE id="+uuid(own)+";");
  v=await approved('recruiterA',own);
  check('B199_REAPPROVED_SELF_TRUE',v.status===200&&v.result===true,v);
- assert.equal(tests,32,'All 32 Build199 combined acceptance assertions must run');
- console.log('BUILD199_32_OF_32_COMBINED_UNAPPROVED_CANDIDATE_HTTP_AND_SERVICE_CHECKS_PASS');
+ assert.equal(tests,33,'All 33 Build199 combined review-only assertions must run');
+ console.log('BUILD199_33_OF_33_COMBINED_UNAPPROVED_CANDIDATE_HTTP_AND_SERVICE_CHECKS_PASS');
 }
