@@ -458,6 +458,9 @@ test('Build193 real drafted RLS role-matrix runs only inside source-pinned dispo
  assert.match(pg,/CREATE OR REPLACE FUNCTION public\.has_role/);
  assert.match(pg,/CREATE OR REPLACE FUNCTION public\.is_approved/);
  assert.match(pg,/SET LOCAL ROLE authenticated/);
+ assert.match(pg,/current_database\(\)<>'amf_build192_full_policy_lab'/);
+ assert.match(pg,/session_user<>'postgres'/);
+ assert.match(pg,/crm_admin_manage_user\(uuid,text,text\)/);
  assert.match(pg,/RESET ROLE/);
  assert.match(pg,/request\.jwt\.claim\.sub/);
  for(const label of ['BUILD193_ANON_PRIVATE_ACL_DENIED',
