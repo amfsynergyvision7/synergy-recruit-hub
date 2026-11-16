@@ -199,5 +199,6 @@ yes('BROWSER_ROLE_MUTATION_DENIED',[401,403].includes(roleMutation.status),roleM
 const sub=await mutation('recruiterA','POST','submissions',{id:'61000000-0000-4000-8000-000000000003',candidate_uuid:'c1000000-0000-4000-8000-000000000001'});
 yes('RECRUITER_SUBMISSION_WRITE_DENIED',[401,403].includes(sub.status),sub);
 const good=outcomes.filter(x=>x.ok).length;
-assert(good>=50&&good===outcomes.length);
+assert.equal(outcomes.length,58,'Build195 58 expected HTTP authorization assertions');
+assert.equal(good,58);
 console.log('BUILD195_GOTRUE_FULL_35_POLICY_HTTP_'+good+'_OF_'+good+'_PASS_DISPOSABLE_ONLY');
