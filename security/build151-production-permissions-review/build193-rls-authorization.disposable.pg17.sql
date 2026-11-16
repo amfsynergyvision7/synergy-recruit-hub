@@ -3,6 +3,16 @@
 -- Synthetic roles/records, fixture-only auth.uid/has_role/is_approved bodies.
 -- NOT real GoTrue JWTs, actual prod helper bodies, hosted UAT or approval.
 \set ON_ERROR_STOP on
+DO $b193_disposable_guard$
+BEGIN
+ IF current_database()<>'amf_build192_full_policy_lab'
+ OR session_user<>'postgres'
+ OR to_regprocedure('public.crm_admin_manage_user(uuid,text,text)') IS NULL
+ OR to_regprocedure('public.crm_update_own_profile(text,text,text)') IS NULL
+ THEN RAISE EXCEPTION
+ 'Build193 refuses execution outside exact disposable PG17 draft fixture';
+ END IF;
+END $b193_disposable_guard$;
 
 -- The Build73 snapshot has inert privileged helpers. Replace ONLY INSIDE
 -- THIS NEVER-COMMITTED DISPOSABLE TRANSACTION with meaningful fixture logic.
