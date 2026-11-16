@@ -33,6 +33,8 @@ CREATE FUNCTION public.has_role(_user_id uuid,_role public.app_role)
  SELECT EXISTS(SELECT 1 FROM public.user_roles
                WHERE user_id=_user_id AND role=_role)
  $legacy$;
+-- Reproduce the production's explicit service_role EXECUTE grant too.
+GRANT EXECUTE ON FUNCTION public.has_role(uuid,public.app_role) TO service_role;
 SELECT (has_function_privilege('anon',
  'public.has_role(uuid,public.app_role)','EXECUTE')
  AND has_function_privilege('authenticated',
@@ -72,6 +74,8 @@ SELECT (
  'public.has_role(uuid,public.app_role)','EXECUTE')
  AND has_function_privilege('authenticated',
  'public.has_role(uuid,public.app_role)','EXECUTE')
+ AND has_function_privilege('service_role',
+ 'public.has_role(uuid,public.app_role)','EXECUTE')
  AND NOT has_table_privilege('authenticated','public.user_roles','SELECT')
  AND (SELECT p.prosecdef AND array_position(p.proconfig,'search_path=""') IS NOT NULL
   FROM pg_proc p WHERE p.oid=
@@ -83,6 +87,22 @@ SELECT (
  \echo 'BUILD187_FAIL: role privileges or search path wrong'
  SELECT 1/0;
 \endif
+
+-- A DIRECT service_role grant survives the scoped revocation, matching the
+-- observed production ACL. A service/background caller without an end-user
+-- session will now receive FALSE: explicitly require owner compatibility
+-- review rather than claiming that this is always a safe runtime change.
+SET LOCAL ROLE service_role;
+SELECT (
+ NOT public.has_role('11111111-1111-4111-8111-111111111111'::uuid,'admin'::public.app_role)
+) AS build187_service_without_identity_denied \gset
+\if :build187_service_without_identity_denied
+ \echo 'BUILD187_SERVICE_ROLE_NO_SESSION_FALSE_REVIEW_CALLER_COMPATIBILITY'
+\else
+ \echo 'BUILD187_FAIL: unbound service_role was treated as an end user'
+ SELECT 1/0;
+\endif
+RESET ROLE;
 
 -- With a missing signed-in identity, even an authenticated DB role sees no
 -- privileged result and no audit rows.
