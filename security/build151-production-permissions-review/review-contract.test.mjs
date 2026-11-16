@@ -379,3 +379,33 @@ test('Build191 PG17 disposable candidate checker detects 25 unsafe permission/po
  assert.match(workflow,/python3 - <<'PY'/);
  assert.match(workflow,/build191-postflight-disposable\.pg17\.sql/);
 });
+
+
+test('Build192 actual proposal replay pins exact Git source blobs, withholds COMMIT, requires disposable PG17',()=>{
+ const generator=load('build192-replay-actual-proposal.disposable.mjs');
+ for(const name of ['disposable-rehearsal.DO-NOT-RUN.sql.txt',
+   'legacy-67-policies.DO-NOT-RUN.sql.txt',
+   'complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt',
+   'build191-postflight.readonly.sql','policy-fingerprint.readonly.sql'])
+  assert(generator.includes(name),name);
+ for(const sha of ['858542a266e0052124b486610a3eac7266b63ddc',
+ '59ac1f0d25215333868012fdb8e6b9382ed12e14',
+ '484c251cdbfd932bdab5ffcf039a107e7478633e',
+ '6815eebf2fb6fcc70cfc071bd499c98b73bdcc9e',
+ '7c7185769033b22aeef9fcd5661874ae90329a71'])
+  assert(generator.includes(sha),sha);
+ assert.match(generator,/B192_DISPOSABLE_ONLY/);
+ assert.match(generator,/amf_build192_full_policy_lab/);
+ assert.match(generator,/PGHOST!=='127\.0\.0\.1'/);
+ assert.match(generator,/proposal\.slice\(0,at\)/);
+ assert.match(generator,/ROLLBACK;/);
+ assert.match(generator,/BUILD192_ORIGINAL_67_POLICY_CATALOG_RESTORED/);
+ assert.match(generator,/BUILD192_PROPOSED_ACCOUNT_RPCS_ROLLED_BACK/);
+ const workflow=readFileSync(resolve(dir,'../../.github/workflows/build151-production-permission-review.yml'),'utf8');
+ assert.match(workflow,/actual-source-policy-draft-rollback:/);
+ assert.match(workflow,/image: postgres:17/);
+ assert.match(workflow,/CREATE DATABASE amf_build192_full_policy_lab/);
+ assert.match(workflow,/B192_DISPOSABLE_ONLY: 'true'/);
+ assert.match(workflow,/BUILD192_ACTUAL_REVIEW_PROPOSAL_TESTED_DISPOSABLE_ONLY_NO_PRODUCTION_SQL/);
+ assert(!/supabase\/migrations\/build192/.test(generator));
+});
