@@ -771,19 +771,19 @@ test('Build200 private service-only invoker functions deny public/authenticated 
  'B200_BOTH_PRIVATE_HELPERS_SECURITY_INVOKER',
  'B200_ANON_PRIVATE_SCHEMA_DENIED',
  'B200_AUTHENTICATED_PRIVATE_SCHEMA_DENIED',
- 'B200_AUTHENTICATED_SQL_DIRECT_CALL_DENIED',
- 'B200_ANON_HTTP_PRIVATE_FUNCTION_NOT_EXPOSED',
- 'B200_SERVICE_PENDING_APPROVAL_READ',
+ '_SQL_DIRECT_CALL_DENIED',
+ '_HTTP_PRIVATE_FUNCTION_NOT_EXPOSED',
+ '_APPROVAL_READ',
  'B200_BROWSER_FINANCE_CANDIDATES_DENIED',
  'BUILD200_SERVICE_ALTERNATIVE_UNAPPROVED_NO_AUDITED_SERVER_ROUTE',
- 'BUILD200_30_OF_30_PRIVATE_SERVICE_DESIGN_CASES_PASS_DISPOSABLE_ONLY'])
+ 'BUILD200_31_OF_31_PRIVATE_SERVICE_DESIGN_CASES_PASS_DISPOSABLE_ONLY'])
   assert(checks.includes(marker),marker);
- assert.match(checks,/assert\.equal\(cases,30/);
+ assert.match(checks,/assert\.equal\(cases,31/);
  assert.match(checks,/B195_DISPOSABLE_ONLY/);
  assert.match(checks,/PGDATABASE==='amf_build195_gotrue_35_policy_lab'/);
  assert.match(checks,/56fd30f7531b1303ef8f2ce26e3ec54471eb0403/);
  assert.match(wrapper,/await runBuild200\(\{uids,tokens,query,yes\}\)/);
- assert.match(wrapper,/assert\.equal\(outcomes\.length,175/);
- assert.match(wrapper,/BUILD200_GOTRUE_AND_SERVICE_PRIVATE_HTTP_175_OF_175_PASS_DISPOSABLE_ONLY/);
+ assert.match(wrapper,/assert\.equal\(outcomes\.length,176/);
+ assert.match(wrapper,/BUILD200_GOTRUE_AND_SERVICE_PRIVATE_HTTP_176_OF_176_PASS_DISPOSABLE_ONLY/);
  assert.match(workflow,/full-policy-gotrue-jwt-http:/);
 });
