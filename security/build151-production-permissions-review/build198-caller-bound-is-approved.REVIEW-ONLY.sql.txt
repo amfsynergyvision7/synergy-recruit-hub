@@ -1,0 +1,24 @@
+-- Build198 independent REVIEW-ONLY candidate; NOT AN APPROVED REMEDIATION.
+-- Same current user binding as revised has_role proposal. The original
+-- production public.is_approved(UUID) remains unchanged in hosted Supabase.
+DO $guard$ BEGIN
+ IF current_database()<>'amf_build195_gotrue_35_policy_lab'
+ OR session_user<>'postgres'
+ THEN RAISE EXCEPTION 'Build198 approval candidate refuses non-disposable DB'; END IF;
+END $guard$;
+CREATE OR REPLACE FUNCTION public.is_approved(_user_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+AS $b198$
+ SELECT coalesce(
+   auth.uid() IS NOT NULL
+   AND _user_id IS NOT NULL
+   AND _user_id=auth.uid()
+   AND EXISTS(SELECT 1 FROM public.profiles p
+     WHERE p.id=_user_id AND p.status='approved'::public.user_status
+       AND p.is_active=true),false);
+$b198$;
+REVOKE EXECUTE ON FUNCTION public.is_approved(uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.is_approved(uuid) TO authenticated;
+-- service_role existing direct grant intentionally retained; a background
+-- session without auth.uid() would receive false. Inspect actual service and
+-- admin callers and obtain independent approval before authoring a migration.
