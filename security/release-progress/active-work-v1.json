@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "snapshot_build": 164,
+  "id": "AUD",
+  "label": "Audit-history append-only permissions and producer continuity",
+  "official_gate": "CRM09",
+  "workstream": "CRM",
+  "acceptance_rule": "Source tests cannot satisfy 48/48 accepted production security remediations",
+  "steps": [
+    {
+      "id": "AUD01",
+      "title": "Production metadata ACL and audit RLS exposure inventoried",
+      "status": "source_evidenced",
+      "proof": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/19"
+      ],
+      "owner": "Security engineering"
+    },
+    {
+      "id": "AUD02",
+      "title": "Review-only append-only ACL/RLS proposal prepared",
+      "status": "source_evidenced",
+      "proof": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/18"
+      ],
+      "owner": "DB engineering"
+    },
+    {
+      "id": "AUD03",
+      "title": "Disposable PG17 role denial and audit atomicity rehearsal passed",
+      "status": "source_evidenced",
+      "proof": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43700114616"
+      ],
+      "owner": "Security engineering"
+    },
+    {
+      "id": "AUD04",
+      "title": "Preliminary application and catalog producer inventories inspected",
+      "status": "source_evidenced",
+      "proof": [
+        "https://github.com/amfsynergyvision7/synergy-recruit-hub/blob/439727eb6af67b4d984778312ed8411871ff4e82/security/build162-audit-access/audit-producer-inventory.readonly.sql"
+      ],
+      "owner": "CRM engineering"
+    },
+    {
+      "id": "AUD05",
+      "title": "Trace external, scheduled, historical, indirect and dynamic writers",
+      "status": "blocked",
+      "proof": [],
+      "owner": "Independent reviewer / owner"
+    },
+    {
+      "id": "AUD06",
+      "title": "Independent DBA/security migration, backup and rollback acceptance",
+      "status": "blocked",
+      "proof": [],
+      "owner": "Independent reviewer / owner"
+    },
+    {
+      "id": "AUD07",
+      "title": "Hosted real-role admin read, append-only writer and denial UAT signed",
+      "status": "blocked",
+      "proof": [],
+      "owner": "Independent reviewer / owner"
+    },
+    {
+      "id": "AUD08",
+      "title": "Approved coordinated live security migration executed",
+      "status": "blocked",
+      "proof": [],
+      "owner": "Independent reviewer / owner"
+    },
+    {
+      "id": "AUD09",
+      "title": "Post-change live readback and independent acceptance recorded",
+      "status": "blocked",
+      "proof": [],
+      "owner": "Independent reviewer / owner"
+    }
+  ],
+  "dependencies": [
+    "REL01 protected main",
+    "REL02 independent PR15 review and protected merge",
+    "REL03 protected nonprod environment",
+    "CRM06 hosted 9 Auth users",
+    "CRM07 hosted 38 fictional fixtures"
+  ],
+  "planning": {
+    "min_batches_after_approvals": 2,
+    "max_batches_after_approvals": 5,
+    "no_approval_no_forecast": true
+  }
+}

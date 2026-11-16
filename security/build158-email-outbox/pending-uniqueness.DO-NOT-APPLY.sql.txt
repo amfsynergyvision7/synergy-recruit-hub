@@ -1,0 +1,14 @@
+-- Build158 REVIEW-ONLY / DO NOT APPLY to production or staging.
+-- Not a migration. No business approval, collision preflight or restore signoff.
+-- Exact same SQL is rehearsed solely in a disposable PostgreSQL 17 CI database.
+-- Policy choice requiring independent review: block any second unresolved
+-- outbound attempt for the SAME CRM record and normalized recipient, even if
+-- it comes from a different actor, browser session or request UUID.
+-- This is NOT permanent deduplication of previously sent correspondence.
+CREATE UNIQUE INDEX email_log_one_unresolved_per_recipient_idx
+ON public.email_log (
+  related_table,
+  related_id,
+  (lower(btrim(to_email)))
+)
+WHERE status IN ('pending', 'unknown');

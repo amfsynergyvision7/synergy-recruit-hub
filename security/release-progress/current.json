@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "snapshot_build": 138,
-  "as_of": "2026-11-14",
+  "snapshot_build": 164,
+  "as_of": "2026-11-15",
   "scorecard_version": "v1",
   "prior_comparable_baseline_points": 22,
   "expected_earned_points": 26,
@@ -709,6 +709,21 @@
       "release_signoffs_accepted": 0,
       "external_delivery_or_finance_activated": false,
       "new_independently_accepted_milestones": 0
+    },
+    "build164_reporting": {
+      "state": "DRAFT_AUDIT_ENGINEERING_NOT_PRODUCTION_ACCEPTANCE",
+      "active_official_gate": "CRM09",
+      "source_evidenced_audit_steps": 4,
+      "audit_work_package_steps": 9,
+      "accepted_production_remediations": 0,
+      "new_milestones_closed": 0,
+      "protected_main": false,
+      "independent_pr15_reviews": 0,
+      "hosted_auth_users": 0,
+      "hosted_fixture_rows": 0,
+      "signed_hosted_uat": 0,
+      "release_signoffs": 0,
+      "no_real_external_effects": true
     }
   },
   "statuses": [
@@ -961,7 +976,7 @@
     }
   ],
   "notes": "Build138 draft changes: independent GitHub read confirms Build137 final guarded CI completed 36/37 jobs passing, only intentional production-release-hold. Browser integration config detect/save/sync controls now mirror permanent server release holds; Sheets links and raw historical row/provider errors are withheld, and admin-only history is explicitly a maximum 50-run preview with no misleading empty state on errors. Privileged sync_logs query now selects only sanitizable fields instead of select(*). One historical Build129 notice assertion was restored without weakening restrictions. Intermediate Build138 fast 909/909 offline, 11 independent safety cases plus app build/TypeScript passed; exact final commit requires new verification. Isolated nonprod lab read-only: 19/19 public RLS tables, zero policies/Auth users/app triggers, exact zero rows in every table. No SQL writes, protected merge or deploy. Acceptance 26/100, 12/43 evidenced and 31 open. main unprotected, PR12/15 reviews zero, GitHub protected environment unverified; Vercel build-rate-limit remains external.",
-  "previous_file": "build137-evidence-baseline.json",
+  "previous_file": "build138-evidence-baseline.json",
   "previous_earned_points": 26,
   "delta_points": 0,
   "newly_closed_ids": [],
