@@ -70,7 +70,7 @@ export async function runBuild198({uids,tokens,yes}){
  assert.notEqual(after,before,'Build198 overlay must change function definition');
  const config=localSql("SELECT coalesce(array_to_string(proconfig,','),'') "+
  "FROM pg_proc WHERE oid=to_regprocedure('public.get_user_role(uuid)');");
- assert.equal(config,'search_path=');
+ assert.ok(config==='search_path='||config==='search_path=""','Unexpected hardened function search_path: '+config);
  const anon=localSql("SELECT has_function_privilege('anon',"+
  "'public.get_user_role(uuid)','EXECUTE')");
  assert.equal(anon,'f');
