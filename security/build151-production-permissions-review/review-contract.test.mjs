@@ -574,7 +574,7 @@ test('Build196 signed JWT survives while DB role/profile revocations immediately
  assert.match(testCode,/PGDATABASE==='amf_build195_gotrue_35_policy_lab'/);
  assert.match(testCode,/PGUSER==='postgres'/);
  assert.match(testCode,/BUILD196_REVOKED_UNEXPIRED_GOTRUE_JWT_ACCESS_CUT_OFF/);
- assert.match(testCode,/BUILD196_24_OF_24_ORIGINAL_GAP_AND_REVIEW_OVERLAY_CASES_PASS_DISPOSABLE_ONLY/);
+ assert.match(testCode,/BUILD197_27_OF_27_REVOCATION_AND_NOTIFICATION_READ_WRITE_CASES_PASS_DISPOSABLE_ONLY/);
  assert.match(testCode,/DELETE FROM public\.user_roles WHERE user_id/);
  assert.match(testCode,/UPDATE public\.profiles SET is_active=false/);
  assert.match(testCode,/UPDATE public\.profiles SET status='suspended'/);
@@ -595,8 +595,8 @@ test('Build196 signed JWT survives while DB role/profile revocations immediately
  assert.match(wrapper,/import \{runBuild196\} from '\.\/build196-role-revocation\.disposable\.mjs'/);
  assert.match(wrapper,/await runBuild196\(\{uids,query,rpc,mutation,yes\}\)/);
  assert.match(wrapper,/assert\.equal\(outcomes\.length,58/);
- assert.match(wrapper,/assert\.equal\(outcomes\.length,82/);
- assert.match(wrapper,/BUILD196_GOTRUE_FULL_35_POLICY_HTTP_82_OF_82_PASS_DISPOSABLE_ONLY/);
+ assert.match(wrapper,/assert\.equal\(outcomes\.length,85/);
+ assert.match(wrapper,/BUILD197_GOTRUE_FULL_35_POLICY_HTTP_85_OF_85_PASS_DISPOSABLE_ONLY/);
  assert.match(runner,/BUILD195_EPHEMERAL_DATABASE_REMOVED_VERIFIED/);
  assert(!testCode.includes('supabase.co'));
 });
@@ -608,11 +608,32 @@ test('Build196 role-revoked notification candidate intentionally diverges from f
  assert.match(patch,/DO NOT APPLY TO HOSTED OR PRODUCTION DB/);
  assert.match(patch,/current_database\(\)<>'amf_build195_gotrue_35_policy_lab'/);
  assert.match(patch,/ALTER POLICY notifications_read ON public.notifications/);
+ assert.match(patch,/ALTER POLICY notifications_update ON public.notifications/);
  assert.match(patch,/SELECT 1 FROM public.user_roles/);
  assert.match(code,/BUILD196_RELEASE_HOLD_ORIGINAL_NOTIFICATION_POLICY_ALLOWS_ROLE_REVOKED_RECIPIENT/);
  assert.match(code,/BUILD196_CANDIDATE_POLICY_DIVERGES_FROM_REVIEWED_35_POLICY_SOURCE_HOLD/);
  assert.match(code,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
  assert.match(code,/B196_REVIEW_ONLY_PATCH_REVOKED_NOTIFICATIONS_DENIED/);
- assert.match(code,/BUILD196_24_OF_24_ORIGINAL_GAP_AND_REVIEW_OVERLAY_CASES_PASS_DISPOSABLE_ONLY/);
+ assert.match(code,/B197_OLD_DRAFT_ROLELESS_NOTIFICATION_UPDATE_PERSISTED/);
+ assert.match(code,/B197_REVIEW_ONLY_PATCH_ROLELESS_NOTIFICATION_UPDATE_NO_EFFECT/);
+ assert.match(code,/BUILD197_27_OF_27_REVOCATION_AND_NOTIFICATION_READ_WRITE_CASES_PASS_DISPOSABLE_ONLY/);
  assert.doesNotMatch(patch,/^COMMIT;/m);
+});
+
+
+test('Build197 catalog-sourced production approval helper remains source pinned and disposable-only',()=>{
+ const approval=load('build197-prod-is-approved.snapshot.DISPOSABLE-ONLY.sql.txt');
+ const generator=load('build195-prepare-full-gotrue.disposable.mjs');
+ const http=load('build195-full-gotrue-35-policy-http.test.mjs');
+ assert.equal(blobSha(approval),'5e8f3f758b2f551111e883141a728a0b82e38373');
+ assert.match(approval,/refuses non-disposable target/);
+ assert.match(approval,/SECURITY DEFINER/);
+ assert.match(approval,/SET search_path TO 'public'/);
+ assert.match(approval,/SELECT EXISTS\(SELECT 1 FROM public.profiles/);
+ assert.match(approval,/status='approved' AND is_active=true/);
+ assert.match(generator,/prodApproval:\['build197-prod-is-approved\.snapshot\.DISPOSABLE-ONLY\.sql\.txt'/);
+ assert.match(generator,/5e8f3f758b2f551111e883141a728a0b82e38373/);
+ assert.match(generator,/specs\.prodApproval\[0\]/);
+ assert.doesNotMatch(generator,/\$only_fixture\$/);
+ assert.match(http,/BUILD197_GOTRUE_FULL_35_POLICY_HTTP_85_OF_85_PASS_DISPOSABLE_ONLY/);
 });
