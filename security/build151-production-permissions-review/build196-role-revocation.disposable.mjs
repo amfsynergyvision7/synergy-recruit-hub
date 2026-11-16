@@ -5,6 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
 
 function psqlInDisposable(sql){
  const e=process.env;
@@ -45,7 +46,25 @@ export async function runBuild196({uids,query,rpc,mutation,yes}){
  const afterSubs=await query(actor,'submissions');
  yes('B196_REVOKED_SUBMISSIONS_INVISIBLE',afterSubs.status===200&&afterSubs.count===0,afterSubs);
  const afterNotifications=await query(actor,'notifications');
- yes('B196_REVOKED_NOTIFICATIONS_INVISIBLE',afterNotifications.status===200&&afterNotifications.count===0,afterNotifications);
+ yes('B196_ORIGINAL_DRAFT_ROLELESS_NOTIFICATION_GAP_REPRODUCED',
+   afterNotifications.status===200&&afterNotifications.count===1,afterNotifications);
+ console.log('BUILD196_RELEASE_HOLD_ORIGINAL_NOTIFICATION_POLICY_ALLOWS_ROLE_REVOKED_RECIPIENT');
+
+ // Candidate NOT approved for release: apply review-only ALTER POLICY exclusively
+ // to disposable DB after the original policy gap has been reproduced.
+ const overlay=readFileSync(new URL('./build196-notification-role-required.REVIEW-ONLY.sql.txt',import.meta.url),'utf8');
+ assert.match(overlay,/ALTER POLICY notifications_read/);
+ assert.match(overlay,/EXISTS\s*\(/);
+ psqlInDisposable(overlay);
+ const validator=spawnSync('psql',['-X','-At','-v','ON_ERROR_STOP=1','-f',
+   'security/build151-production-permissions-review/build192-exact-35-policy-fingerprint.readonly.sql'],
+   {encoding:'utf8',env:process.env,timeout:15000});
+ assert.equal(validator.status,0);
+ assert.match(validator.stdout,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
+ console.log('BUILD196_CANDIDATE_POLICY_DIVERGES_FROM_REVIEWED_35_POLICY_SOURCE_HOLD');
+ const patchedNotifications=await query(actor,'notifications');
+ yes('B196_REVIEW_ONLY_PATCH_REVOKED_NOTIFICATIONS_DENIED',
+   patchedNotifications.status===200&&patchedNotifications.count===0,patchedNotifications);
  const afterUserRole=await query(actor,'user_roles');
  yes('B196_REVOKED_ROLE_RECORD_ABSENT',afterUserRole.status===200&&afterUserRole.count===0,afterUserRole);
  const ownRole=await role();
@@ -102,5 +121,5 @@ export async function runBuild196({uids,query,rpc,mutation,yes}){
  const final=await candidate();
  yes('B196_REAPPROVED_CANDIDATES_RECOVER',final.status===200&&final.count===2,final);
 
- console.log('BUILD196_23_OF_23_ROLE_AND_APPROVAL_CHANGE_CASES_PASS_DISPOSABLE_ONLY');
+ console.log('BUILD196_24_OF_24_ORIGINAL_GAP_AND_REVIEW_OVERLAY_CASES_PASS_DISPOSABLE_ONLY');
 }
