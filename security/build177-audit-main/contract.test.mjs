@@ -355,3 +355,39 @@ test("Build188 signed-JWT HTTP test suite is disposable, includes 25 real RPC/RL
  assert.match(doc,/not GoTrue|not prove.*GoTrue|not GoTrue-issued/i);
  assert(!/https:\/\/(?!github\.com)/i.test(runner));
 });
+
+
+test("Build189 real GoTrue-issued JWT HTTP test is disposable, source-pinned and release-held",()=>{
+ const root189=join(root,"../build189-gotrue-rpc");
+ const b42=readFileSync(join(root189,"gotrue-auth-base-schema.disposable.sql"));
+ assert.equal(sha(b42),"27058f2f2c3f91552686a02cea3e9110132bb0cd",
+   "Build42 GoTrue auth base schema must remain source-pinned");
+ const boot=readFileSync(join(root189,"app-bootstrap.disposable.sql"),"utf8");
+ const runner=readFileSync(join(root189,"run_gotrue_role_rpc.sh"),"utf8");
+ const testCode=readFileSync(join(root189,"gotrue-issued-role-rpc.test.mjs"),"utf8");
+ const doc=readFileSync(join(root189,"README.md"),"utf8");
+ const ci=readFileSync(join(root,"../../.github/workflows/build177-audit-main.yml"),"utf8");
+ assert.match(boot,/\\i security\/build187-role-helper\/has-role-current-user\.DO-NOT-APPLY\.sql\.txt/);
+ assert.match(boot,/CREATE POLICY "Build189 only admin audit reader"/);
+ assert.match(boot,/CREATE POLICY "Build189 admin or recruiter reader"/);
+ assert.match(boot,/CREATE TABLE public\.user_roles/);
+ assert.match(runner,/supabase\/gotrue:v2\.197\.0/);
+ assert.match(runner,/postgrest\/postgrest:v12\.2\.3/);
+ assert.match(runner,/trap cleanup EXIT/);
+ assert.match(runner,/127\.0\.0\.1:9999/);
+ assert.match(runner,/127\.0\.0\.1:3000/);
+ assert.match(runner,/security\/build189-gotrue-rpc\/app-bootstrap\.disposable\.sql/);
+ assert.match(testCode,/\/token\?grant_type=password/);
+ assert.match(testCode,/claims\.sub,id/);
+ assert.match(testCode,/claims\.role,'authenticated'/);
+ assert.match(testCode,/B189_CI_DISPOSABLE_ONLY==='true'/);
+ assert.match(testCode,/BUILD189_GOTRUE_ISSUED_JWT_HTTP_26_OF_26_PASS_DISPOSABLE_ONLY/);
+ assert.match(testCode,/assert\.equal\(cases\.length,26\)/);
+ assert.match(testCode,/ANONYMOUS_RPC_DENIED/);
+ assert.match(testCode,/TAMPERED_GOTRUE_TOKEN_DENIED/);
+ assert.match(testCode,/DIRECT_USER_ROLES_READ_DENIED/);
+ assert.match(ci,/security\/build189-gotrue-rpc\/\*\*/);
+ assert.match(ci,/disposable-gotrue-issuer-rpc:/);
+ assert.match(ci,/main-release-hold:/);
+ assert.match(doc,/not a test in any connected Supabase project|not a test.*connected Supabase project|not a test.*hosted/i);
+});
