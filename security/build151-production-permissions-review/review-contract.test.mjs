@@ -688,3 +688,23 @@ test('Build198 approval helper cross-user lookup has distinct unapproved, caller
  assert.match(cases,/BUILD198_13_OF_13_APPROVAL_LOOKUP_ORIGINAL_AND_CANDIDATE_CASES_PASS_DISPOSABLE_ONLY/);
  assert.match(cases,/BUILD198_27_OF_27_TOTAL_HELPER_LOOKUP_CASES_PASS_DISPOSABLE_ONLY/);
 });
+
+
+test('Build198 function-body fingerprint catches helper rewrite without relying on 35-policy text hashes',()=>{
+ const readOnly=load('build198-lookup-functions-fingerprint.readonly.sql');
+ const runner=load('build198-real-role-rpc.disposable.mjs');
+ assert.match(readOnly,/^-- Build198 SELECT-ONLY/);
+ assert.match(readOnly,/pg_catalog\.pg_get_functiondef/);
+ assert.match(readOnly,/public\.get_user_role\(uuid\)/);
+ assert.match(readOnly,/public\.is_approved\(uuid\)/);
+ assert.match(readOnly,/83d72d3932a91c90ffa33f431063a831/);
+ assert.match(readOnly,/b001be894ffd87ad17165cf28adea82e/);
+ assert.match(readOnly,/REVIEW_ONLY_LEGACY_FUNCTION_SOURCE_MATCH_NO_RELEASE/);
+ assert.match(readOnly,/HOLD_LOOKUP_HELPER_DEFINITION_DRIFT/);
+ const source=readOnly.split('\n').filter(s=>!s.trimStart().startsWith('--')).join('\n');
+ assert.doesNotMatch(source,/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|CREATE|ALTER|REVOKE|GRANT|DROP|COMMIT|DO|CALL|EXECUTE)\b/im);
+ assert.match(runner,/BUILD198_ORIGINAL_TWO_FUNCTION_BODY_FINGERPRINT_MATCH_NOT_RELEASE/);
+ assert.match(runner,/BUILD198_ROLE_FUNCTION_SOURCE_DRIFT_EXPECTED_HOLD/);
+ assert.match(runner,/BUILD198_APPROVAL_FUNCTION_SOURCE_DRIFT_EXPECTED_HOLD/);
+ assert.match(runner,/bodyGate\.split\('\|'\)\.at\(-1\)/);
+});
