@@ -5,6 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {runBuild196} from './build196-role-revocation.disposable.mjs';
 const env=process.env;
 assert(env.B195_DISPOSABLE_ONLY==='true'&&env.PGHOST==='127.0.0.1'&&
  env.PGDATABASE==='amf_build195_gotrue_35_policy_lab'&&env.PGUSER==='postgres'&&
@@ -202,3 +203,8 @@ const good=outcomes.filter(x=>x.ok).length;
 assert.equal(outcomes.length,58,'Build195 58 expected HTTP authorization assertions');
 assert.equal(good,58);
 console.log('BUILD195_GOTRUE_FULL_35_POLICY_HTTP_'+good+'_OF_'+good+'_PASS_DISPOSABLE_ONLY');
+await runBuild196({uids,query,rpc,mutation,yes});
+const b196Good=outcomes.filter(x=>x.ok).length;
+assert.equal(outcomes.length,81,'Build196 must run all 58 baseline plus 23 dynamic revocation cases');
+assert.equal(b196Good,81);
+console.log('BUILD196_GOTRUE_FULL_35_POLICY_HTTP_81_OF_81_PASS_DISPOSABLE_ONLY');
