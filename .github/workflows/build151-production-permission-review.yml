@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
       - run: node --test security/build151-production-permissions-review/review-contract.test.mjs
   proposed-postflight-pg17:
-    name: Proposed 48-object postflight + 21 PG17 rollback-scoped unsafe mutations
+    name: Proposed 48-object postflight + 25 PG17 rollback-scoped unsafe mutations
     runs-on: ubuntu-latest
     timeout-minutes: 12
     services:
