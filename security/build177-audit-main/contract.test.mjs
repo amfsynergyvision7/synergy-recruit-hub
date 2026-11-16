@@ -272,6 +272,7 @@ test("Build187 proposed helper preserves 41 current-user policy calls and refuse
  assert.match(proposal,/RETURNS boolean[\s\S]*SECURITY DEFINER[\s\S]*SET search_path = ''/);
  assert.match(proposal,/auth\.uid\(\) IS NOT NULL/);
  assert.match(proposal,/_user_id = auth\.uid\(\)/);
+ assert.match(proposal,/_user_id IS NOT NULL/);
  assert.match(proposal,/SELECT 1 FROM public\.user_roles AS ur/);
  assert.match(proposal,/ur\.user_id = auth\.uid\(\) AND ur\.role = _role/);
  assert.match(proposal,/FROM PUBLIC, anon, authenticated;/);
@@ -282,6 +283,7 @@ test("Build187 proposed helper preserves 41 current-user policy calls and refuse
  for(const item of ["BUILD187_LEGACY_GRANT_EXPOSURE_REPRODUCED",
  "BUILD187_EXPECTED_ROLE_GRANTS_AND_EMPTY_PATH","BUILD187_NO_IDENTITY_DENIED",
  "BUILD187_ADMIN_SELF_SCOPING_AND_RLS_PASS",
+ "BUILD194_NULL_USER_ID_BOOLEAN_FALSE_NOT_NULL",
  "BUILD187_RECRUITER_SCOPING_AND_RLS_PASS",
  "BUILD187_FINANCE_ISOLATION_AND_RLS_PASS",
  "BUILD187_SERVICE_ROLE_NO_SESSION_FALSE_REVIEW_CALLER_COMPATIBILITY",
@@ -336,8 +338,9 @@ test("Build188 signed-JWT HTTP test suite is disposable, includes 25 real RPC/RL
  assert.match(runner,/trap cleanup EXIT/);
  assert.match(script,/createHmac\('sha256'/);
  assert.match(script,/\/rpc\/has_role/);
- assert.match(script,/BUILD188_SIGNED_POSTGREST_RPC_25_OF_25_PASS_SYNTHETIC_ONLY/);
- assert.match(script,/assert\.equal\(cases\.length,25\)/);
+ assert.match(script,/BUILD194_SIGNED_POSTGREST_RPC_26_OF_26_PASS_SYNTHETIC_ONLY/);
+ assert.match(script,/assert\.equal\(cases\.length,26\)/);
+ assert.match(script,/ADMIN_NULL_USER_ID_BOOLEAN_FALSE/);
  for(const label of [
   "ADMIN_SELF_ROLE","ADMIN_CROSS_USER_RECRUITER_DENIED","ADMIN_AUDIT_VIEW",
   "RECRUITER_CANNOT_ENUMERATE_ADMIN","RECRUITER_AUDIT_DENIED",
@@ -381,8 +384,9 @@ test("Build189 real GoTrue-issued JWT HTTP test is disposable, source-pinned and
  assert.match(testCode,/claims\.sub,id/);
  assert.match(testCode,/claims\.role,'authenticated'/);
  assert.match(testCode,/B189_CI_DISPOSABLE_ONLY==='true'/);
- assert.match(testCode,/BUILD189_GOTRUE_ISSUED_JWT_HTTP_26_OF_26_PASS_DISPOSABLE_ONLY/);
- assert.match(testCode,/assert\.equal\(cases\.length,26\)/);
+ assert.match(testCode,/BUILD194_GOTRUE_ISSUED_JWT_HTTP_27_OF_27_PASS_DISPOSABLE_ONLY/);
+ assert.match(testCode,/assert\.equal\(cases\.length,27\)/);
+ assert.match(testCode,/GOTRUE_NULL_USER_ID_BOOLEAN_FALSE/);
  assert.match(testCode,/ANONYMOUS_RPC_DENIED/);
  assert.match(testCode,/TAMPERED_GOTRUE_TOKEN_DENIED/);
  assert.match(testCode,/DIRECT_USER_ROLES_READ_DENIED/);
