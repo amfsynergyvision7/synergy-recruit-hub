@@ -455,7 +455,7 @@ test('Build193 real drafted RLS role-matrix runs only inside source-pinned dispo
  const gen=load('build192-replay-actual-proposal.disposable.mjs');
  assert.match(pg,/DISPOSABLE PG17 ONLY/);
  assert.match(pg,/CREATE OR REPLACE FUNCTION auth\.uid\(\)/);
- assert.match(pg,/CREATE OR REPLACE FUNCTION public\.has_role/);
+ assert.match(pg,/build194-role-helper\.PR23-SNAPSHOT\.DO-NOT-APPLY\.sql\.txt/);
  assert.match(pg,/CREATE OR REPLACE FUNCTION public\.is_approved/);
  assert.match(pg,/SET LOCAL ROLE authenticated/);
  assert.match(pg,/current_database\(\)<>'amf_build192_full_policy_lab'/);
@@ -492,13 +492,14 @@ test('Build194 cross-PR source snapshot must exactly match PR23 reviewed role he
  const helper=load('build194-role-helper.PR23-SNAPSHOT.DO-NOT-APPLY.sql.txt');
  const behavior=load('build193-rls-authorization.disposable.pg17.sql');
  const replay=load('build192-replay-actual-proposal.disposable.mjs');
- assert.equal(blobSha(helper),'f12ceaa01d63e40a8860d12457c13f2612609953',
+ assert.equal(blobSha(helper),'309b62681dd6ce221f24733766aa9b48da845c8f',
   'PR23 has_role reviewed source snapshot changed: require fresh cross-branch review');
  assert.match(helper,/DO NOT APPLY TO ANY HOSTED DATABASE/);
  assert.match(helper,/CREATE OR REPLACE FUNCTION public\.has_role\(_user_id uuid, _role public\.app_role\)/);
  assert.match(helper,/SECURITY DEFINER[\s\S]*SET search_path = ''/);
  assert.match(helper,/auth\.uid\(\) IS NOT NULL/);
  assert.match(helper,/_user_id = auth\.uid\(\)/);
+ assert.match(helper,/_user_id IS NOT NULL/);
  assert.match(helper,/FROM PUBLIC, anon, authenticated/);
  assert.match(helper,/TO authenticated/);
  assert.match(behavior,/\\i security\/build151-production-permissions-review\/build194-role-helper\.PR23-SNAPSHOT\.DO-NOT-APPLY\.sql\.txt/);
