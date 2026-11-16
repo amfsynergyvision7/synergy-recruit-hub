@@ -347,6 +347,90 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
 ROLLBACK TO SAVEPOINT build179_mutation;
 RELEASE SAVEPOINT build179_mutation;
 
+
+-- Build181 mutation 19: same-signature procedure is NOT callable function
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE PROCEDURE public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)
+ LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT 1; $stub$;
+REVOKE ALL ON PROCEDURE public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON PROCEDURE public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build181_expected_hold \gset
+\if :build181_expected_hold
+ \echo 'BUILD181_EXPECTED_HOLD_19: same-signature procedure is NOT callable function'
+\else
+ \echo 'Build181 invalid callable-contract configuration was incorrectly accepted: same-signature procedure is NOT callable function'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+
+-- Build181 mutation 20: same-input scalar function has wrong return type
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)
+ RETURNS text LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT 'NOOP_INCORRECT_SCALAR'::text $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build181_expected_hold \gset
+\if :build181_expected_hold
+ \echo 'BUILD181_EXPECTED_HOLD_20: same-input scalar function has wrong return type'
+\else
+ \echo 'Build181 invalid callable-contract configuration was incorrectly accepted: same-input scalar function has wrong return type'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+
+-- Build181 mutation 21: TABLE result id column has incompatible text type
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)
+ RETURNS TABLE(id text,status text) LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT 'NOT_UUID'::text,'NOOP_INCORRECT_OUTPUT'::text WHERE false $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build181_expected_hold \gset
+\if :build181_expected_hold
+ \echo 'BUILD181_EXPECTED_HOLD_21: TABLE result id column has incompatible text type'
+\else
+ \echo 'Build181 invalid callable-contract configuration was incorrectly accepted: TABLE result id column has incompatible text type'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+
+-- Build181 mutation 22: TABLE result column names do not match accepted contract
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)
+ RETURNS TABLE(record_id uuid,outcome text) LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT NULL::uuid,'NOOP_RENAMED_OUTPUT'::text WHERE false $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT')
+ AS build181_expected_hold \gset
+\if :build181_expected_hold
+ \echo 'BUILD181_EXPECTED_HOLD_22: TABLE result column names do not match accepted contract'
+\else
+ \echo 'Build181 invalid callable-contract configuration was incorrectly accepted: TABLE result column names do not match accepted contract'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
 -- Mutations reverted, candidate corrected mock positive control must match again.
 \i /tmp/build179-corrected-preflight.gset.sql
 SELECT (:'audit_audit_integrity_gate'='REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE')

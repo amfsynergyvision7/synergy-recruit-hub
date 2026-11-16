@@ -99,13 +99,13 @@ test("Build179 catalog positive-control uses deliberately inert mock reconciliat
  assert.match(sql,/ROLLBACK;/);
  assert(!sql.includes("SUPABASE_SERVICE_ROLE_KEY"));
 });
-test("Build179–180 eighteen independent privilege/policy/function regressions are required to HOLD",()=>{
+test("Build179–181 twenty-two independent privilege/policy/function regressions are required to HOLD",()=>{
  const sql=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,18);
- assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,18);
- assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,18);
+ assert.equal((sql.match(/^SAVEPOINT build179_mutation;/gm)||[]).length,22);
+ assert.equal((sql.match(/^ROLLBACK TO SAVEPOINT build179_mutation;/gm)||[]).length,22);
+ assert.equal((sql.match(/^RELEASE SAVEPOINT build179_mutation;/gm)||[]).length,22);
  assert.equal((sql.match(/BUILD179_EXPECTED_HOLD_\d\d/g)||[]).length,14);
- assert.equal((sql.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,20);
+ assert.equal((sql.match(/\\i \/tmp\/build179-corrected-preflight\.gset\.sql/g)||[]).length,24);
  assert.match(sql,/GRANT TRUNCATE ON public\.audit_logs TO anon/);
  assert.match(sql,/GRANT UPDATE ON public\.audit_logs TO authenticated/);
  assert.match(sql,/GRANT MAINTAIN ON public\.audit_logs TO authenticated/);
@@ -127,7 +127,7 @@ test("Build179 disposable CI uses only temporary local database service and reta
 
 test("Build179 failure controls have a PostgreSQL nonzero error path, never unsupported psql quit arguments",()=>{
  const script=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
- assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,21);
+ assert.equal((script.match(/SELECT 1\/0;/g)||[]).length,25);
  assert(!/\\quit\s+[345]/.test(script));
  assert.match(script,/ON_ERROR_STOP on/);
 });
@@ -162,4 +162,21 @@ test("Build180 RLS bypass, restrictive-only policy and app-role ownership are fa
  assert.equal((fixture.match(/BUILD180_EXPECTED_HOLD_\d\d/g)||[]).length,4);
  assert.equal((fixture.match(/SELECT 1\/0;/g)||[]).length,21);
  assert(!/\b(?:CREATE|DROP|ALTER|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE)\s+(?:TABLE|POLICY|ROLE|FUNCTION)\b/iu.test(sql));
+});
+
+test("Build181 ensures audited RPC is a normal set-returning function with correct TABLE output contract",()=>{
+ const sql=readFileSync(join(root,"audit-integrity.pg17-corrected.readonly.sql"),"utf8");
+ const pg=readFileSync(join(root,"pg17-gate-sensitivity.sql"),"utf8");
+ for(const key of ["prokind='f'","proretset","prorettype='record'::regtype",
+  "array_length(proallargtypes,1)=6","proallargtypes[5]='uuid'::regtype",
+  "proallargtypes[6]='text'::regtype","proargmodes[5]='t'","proargmodes[6]='t'",
+  "proargnames[5]='id'","proargnames[6]='status'"]) assert(sql.includes(key),key);
+ assert.match(pg,/CREATE PROCEDURE public\.crm_email_confirm_sent_trusted\(uuid,uuid,text,text\)/);
+ assert.match(pg,/RETURNS text LANGUAGE sql SECURITY INVOKER/);
+ assert.match(pg,/RETURNS TABLE\(id text,status text\)/);
+ assert.match(pg,/RETURNS TABLE\(record_id uuid,outcome text\)/);
+ for(const n of [19,20,21,22])assert(pg.includes("BUILD181_EXPECTED_HOLD_"+n),n);
+ assert.equal((pg.match(/BUILD181_EXPECTED_HOLD_\d\d/g)||[]).length,4);
+ assert.equal((pg.match(/SELECT 1\/0;/g)||[]).length,25);
+ assert(!/\b(?:ALTER|DROP|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE|CREATE)\s+(?:TABLE|ROLE|POLICY|FUNCTION|PROCEDURE)\b/iu.test(sql));
 });

@@ -1,10 +1,13 @@
 -- BUILD179 PROPOSED PG17-CORRECTED READ-ONLY CATALOG REVIEW. NOT RELEASE AUTHORIZATION.
 -- Original BUILD160 SQL preserved byte-for-byte in reviewed/ directory.
 -- A correct catalog-only result is REVIEW_ONLY, never email or production approval.
+-- Build181 rejects PROCEDURE/scalar/wrong TABLE-return routines that share
+-- the RPC name, input signature, search_path and EXECUTE privileges.
 -- Build180 adds safeguards against BYPASSRLS drift, app-role table ownership
 -- and restrictive-only admin SELECT policies. It does not prove function semantics.
 WITH funcs AS (
- SELECT p.oid,p.pronargs,p.proargtypes,p.prosecdef,p.proconfig,
+ SELECT p.oid,p.pronargs,p.proargtypes,p.prokind,p.proretset,p.prorettype,
+  p.proallargtypes,p.proargmodes,p.proargnames,p.prosecdef,p.proconfig,
   has_function_privilege('anon',p.oid,'EXECUTE') AS anon_exec,
   has_function_privilege('authenticated',p.oid,'EXECUTE') AS auth_exec,
   has_function_privilege('service_role',p.oid,'EXECUTE') AS service_exec
@@ -67,7 +70,17 @@ WITH funcs AS (
    FROM pg_catalog.pg_roles WHERE rolname='authenticated'),false) AS auth_rls_enforced
 ), facts AS (
  SELECT (SELECT count(*) FROM funcs) AS named_rpc_count,
- (SELECT count(*) FROM funcs WHERE pronargs=4 AND NOT prosecdef
+ (SELECT count(*) FROM funcs WHERE pronargs=4 AND prokind='f'
+  AND proretset AND prorettype='record'::regtype
+  -- Original reviewed RPC returns TABLE(id uuid,status text).
+  -- pg_proc stores these TABLE outputs with mode "t"; a procedure, scalar
+  -- function or incompatible column shape must NEVER count as the RPC.
+  AND array_length(proallargtypes,1)=6
+  AND proallargtypes[5]='uuid'::regtype
+  AND proallargtypes[6]='text'::regtype
+  AND proargmodes[5]='t' AND proargmodes[6]='t'
+  AND proargnames[5]='id' AND proargnames[6]='status'
+  AND NOT prosecdef
   AND proargtypes[0]='uuid'::regtype AND proargtypes[1]='uuid'::regtype
   AND proargtypes[2]='text'::regtype AND proargtypes[3]='text'::regtype
   AND service_exec AND NOT anon_exec AND NOT auth_exec
