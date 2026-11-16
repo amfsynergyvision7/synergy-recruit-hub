@@ -409,3 +409,24 @@ test('Build192 actual proposal replay pins exact Git source blobs, withholds COM
  assert.match(workflow,/BUILD192_ACTUAL_REVIEW_PROPOSAL_TESTED_DISPOSABLE_ONLY_NO_PRODUCTION_SQL/);
  assert(!/supabase\/migrations\/build192/.test(generator));
 });
+
+
+test('Build192 exact PostgreSQL-derived proposed 35-policy digest detects predicate-only drift',()=>{
+ const sql=load('build192-exact-35-policy-fingerprint.readonly.sql');
+ const gen=load('build192-replay-actual-proposal.disposable.mjs');
+ assert.match(sql,/^-- BUILD192 READ ONLY:/);
+ assert.match(sql,/FROM pg_catalog\.pg_policies WHERE schemaname='public'/);
+ assert.match(sql,/actual_policy_count=35 AND actual_policy_tables=19/);
+ assert.match(sql,/632d447f4cb5b5a88777e48916e288f9/);
+ assert.match(sql,/REVIEW_ONLY_EXACT_35_POLICY_SOURCE_MATCH_NOT_RELEASE/);
+ assert.match(sql,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
+ assert.equal((sql.match(/;\s*$/gm)||[]).length,1);
+ const executable=sql.split('\n').filter(l=>!l.trimStart().startsWith('--')).join('\n');
+ assert.doesNotMatch(executable,/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|DROP|CREATE|TRUNCATE|REVOKE|GRANT|ALTER|CALL|DO|COPY|EXECUTE|COMMIT|BEGIN)\b/im);
+ assert.match(gen,/41a08c33f3d423b5b3f0a4b91bffe8e2c97acd0e/);
+ assert.match(gen,/ALTER POLICY candidates_read ON public\.candidates USING\(true\)/);
+ assert.match(gen,/BUILD192_EXACT_POLICY_FINGERPRINT_CAUGHT_SAME_COUNT_PREDICATE_DRIFT/);
+ assert.match(gen,/BUILD192_EXACT_35_POLICY_FINGERPRINT_RECOVERED/);
+ assert.match(gen,/ROLLBACK TO SAVEPOINT b192_predicate_drift/);
+ assert.match(gen,/BUILD192_ORIGINAL_67_POLICY_CATALOG_RESTORED/);
+});
