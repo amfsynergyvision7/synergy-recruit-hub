@@ -331,3 +331,51 @@ test('Build154 documentation is review-only and never counts as acceptance',()=>
  assert.equal(runtimeEvidence.execution,'NO_NETWORK_NO_DATABASE_NO_SEND_NO_DEPLOY');
  assert.equal(manifest.acceptance.approved_for_execution,false);
 });
+
+
+test('Build191 proposed 48-object postflight covers all unsafe DML/column grants and remains READ ONLY',()=>{
+ const sql=load('build191-postflight.readonly.sql');
+ const expected=inventory.objects;
+ assert.match(sql,/BUILD191: READ-ONLY/);
+ for(const name of expected.tables)assert(sql.includes("('"+name+"')"),name);
+ for(const name of expected.views)assert(sql.includes("('"+name+"')"),name);
+ for(const name of expected.functions)assert(sql.includes("public."+name+"("),name);
+ for(const field of ['anon_table_grants','anon_unapproved_column_select',
+ 'anon_column_update','anon_branding_columns_select',
+ 'authenticated_high_risk_table_grants',
+ 'authenticated_direct_account_mutations',
+ 'anon_executable_privileged_functions',
+ 'publicly_granted_privileged_functions',
+ 'service_executable_privileged_functions','all_public_policies',
+ 'universal_public_all_policies','reviewed_admin_rpcs_present',
+ 'auth_admin_rpcs_callable','exposed_admin_rpcs'])
+  assert(sql.includes(field),field);
+ assert.match(sql,/has_column_privilege\(/);
+ assert.match(sql,/has_table_privilege\(/);
+ assert.match(sql,/REVIEW_ONLY_PROPOSED_POSTFLIGHT_METADATA_MATCH_NO_RELEASE/);
+ assert.match(sql,/HOLD_48_OBJECT_AND_35_POLICY_POSTFLIGHT_INCOMPLETE/);
+ assert.equal((sql.match(/;\s*$/gm)||[]).length,1,'Must be exactly one executable SQL statement');
+ const executable=sql.split('\n').filter(line=>!line.trimStart().startsWith('--')).join('\n');
+ assert.doesNotMatch(executable,/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|DROP|CREATE|TRUNCATE|REVOKE|GRANT|ALTER|CALL|DO|COPY|EXECUTE|COMMIT|BEGIN)\b/im);
+ assert.doesNotMatch(executable,/\b(?:FROM|JOIN)\s+(?:public|auth)\.(?:user_roles|audit_logs|profiles|billing|candidates)\b/i);
+});
+test('Build191 PG17 disposable candidate checker detects 21 unsafe permission/policy defects and always rolls back',()=>{
+ const script=load('build191-postflight-disposable.pg17.sql');
+ const workflow=readFileSync(resolve(dir,'../../.github/workflows/build151-production-permission-review.yml'),'utf8');
+ assert.match(script,/DISPOSABLE PostgreSQL17 ONLY/);
+ assert.match(script,/^BEGIN;$/m);
+ assert.match(script,/^ROLLBACK;$/m);
+ assert.match(script,/BUILD191_FULL_CATALOG_ROLLBACK_VERIFIED/);
+ assert.match(script,/BUILD191_CATALOG_SHAPE_MATCH_IS_REVIEW_ONLY_NOT_REAL_AUTHORIZATION/);
+ assert.match(script,/BUILD191_SAFE_FIXTURE_RECOVERED_AFTER_21_ADVERSE_CASES/);
+ for(let i=1;i<=21;i++)assert(script.includes('BUILD191_EXPECTED_HOLD_'+i),i);
+ assert.equal((script.match(/^SAVEPOINT build191_adverse;/gm)||[]).length,21);
+ assert.equal((script.match(/^ROLLBACK TO SAVEPOINT build191_adverse;/gm)||[]).length,21);
+ assert.equal((script.match(/^RELEASE SAVEPOINT build191_adverse;/gm)||[]).length,21);
+ assert.equal((script.match(/\\i \/tmp\/build191-postflight.gset.sql/g)||[]).length,23);
+ assert.match(workflow,/proposed-postflight-pg17:/);
+ assert.match(workflow,/image: postgres:17/);
+ assert.match(workflow,/BUILD191_ONLY_DISPOSABLE_PG17_NO_HOSTED_WRITES/);
+ assert.match(workflow,/python3 - <<'PY'/);
+ assert.match(workflow,/build191-postflight-disposable\.pg17\.sql/);
+});
