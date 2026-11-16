@@ -1,4 +1,4 @@
--- Build191: disposable PostgreSQL17 ONLY; no Supabase hosted DB, no external users.
+-- Build191: DISPOSABLE PostgreSQL17 ONLY; no Supabase hosted DB, no external users.
 -- This is an entirely fabricated 19-table/13-view/16-function/35-policy
 -- catalogue to TEST THE QUERY LOGIC, not a rehearsal of live business behavior.
 \set ON_ERROR_STOP on
