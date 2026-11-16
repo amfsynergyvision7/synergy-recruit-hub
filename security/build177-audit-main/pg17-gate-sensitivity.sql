@@ -18,7 +18,7 @@ GRANT SELECT ON public.audit_logs TO authenticated;
 GRANT INSERT ON public.audit_logs TO service_role;
 -- THIS FUNCTION IS INTENTIONALLY A NO-OP. Its catalog signature matches the
 -- preflight, which cannot establish runtime correctness, authentication, or SMTP.
-CREATE FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text)
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(p_attempt uuid,p_admin uuid,p_case_ref text,p_provider_id text)
  RETURNS TABLE(id uuid,status text)
  LANGUAGE sql SECURITY INVOKER SET search_path=''
  AS $stub$ SELECT NULL::uuid, 'NOOP_NOT_A_REAL_RECONCILIATION'::text WHERE false $stub$;
@@ -426,6 +426,83 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD181_EXPECTED_HOLD_22: TABLE result column names do not match accepted contract'
 \else
  \echo 'Build181 invalid callable-contract configuration was incorrectly accepted: TABLE result column names do not match accepted contract'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+
+-- Build184 negative 23: same SQL argument types, incompatible PostgREST argument name.
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(not_p_attempt uuid,p_admin uuid,p_case_ref text,p_provider_id text)
+ RETURNS TABLE(id uuid,status text) LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT NULL::uuid,'NOOP_BAD_NAME_23'::text WHERE false $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build184_expected_hold \gset
+\if :build184_expected_hold
+ \echo 'BUILD184_EXPECTED_HOLD_23: incorrect input name'
+\else
+ \echo 'Build184 gate incorrectly accepted renamed parameter p_attempt'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+-- Build184 negative 24: same SQL argument types, incompatible PostgREST argument name.
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(p_attempt uuid,not_p_admin uuid,p_case_ref text,p_provider_id text)
+ RETURNS TABLE(id uuid,status text) LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT NULL::uuid,'NOOP_BAD_NAME_24'::text WHERE false $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build184_expected_hold \gset
+\if :build184_expected_hold
+ \echo 'BUILD184_EXPECTED_HOLD_24: incorrect input name'
+\else
+ \echo 'Build184 gate incorrectly accepted renamed parameter p_admin'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+-- Build184 negative 25: same SQL argument types, incompatible PostgREST argument name.
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(p_attempt uuid,p_admin uuid,not_p_case_ref text,p_provider_id text)
+ RETURNS TABLE(id uuid,status text) LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT NULL::uuid,'NOOP_BAD_NAME_25'::text WHERE false $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build184_expected_hold \gset
+\if :build184_expected_hold
+ \echo 'BUILD184_EXPECTED_HOLD_25: incorrect input name'
+\else
+ \echo 'Build184 gate incorrectly accepted renamed parameter p_case_ref'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+-- Build184 negative 26: same SQL argument types, incompatible PostgREST argument name.
+SAVEPOINT build179_mutation;
+DROP FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text);
+CREATE FUNCTION public.crm_email_confirm_sent_trusted(p_attempt uuid,p_admin uuid,p_case_ref text,not_p_provider_id text)
+ RETURNS TABLE(id uuid,status text) LANGUAGE sql SECURITY INVOKER SET search_path=''
+ AS $stub$ SELECT NULL::uuid,'NOOP_BAD_NAME_26'::text WHERE false $stub$;
+REVOKE ALL ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.crm_email_confirm_sent_trusted(uuid,uuid,text,text) TO service_role;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build184_expected_hold \gset
+\if :build184_expected_hold
+ \echo 'BUILD184_EXPECTED_HOLD_26: incorrect input name'
+\else
+ \echo 'Build184 gate incorrectly accepted renamed parameter p_provider_id'
  SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
