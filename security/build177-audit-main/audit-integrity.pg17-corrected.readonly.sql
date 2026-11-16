@@ -4,6 +4,8 @@
 -- Build181 rejects PROCEDURE/scalar/wrong TABLE-return routines that share
 -- the RPC name, input signature, search_path and EXECUTE privileges.
 -- Build184 checks exact four PostgREST named input arguments.
+-- Build186 adds a fail-closed audit-reader dependency check for public.has_role.
+-- A catalog match never proves safe helper semantics or authentic user identity.
 -- Build180 adds safeguards against BYPASSRLS drift, app-role table ownership
 -- and restrictive-only admin SELECT policies. It does not prove function semantics.
 WITH funcs AS (
@@ -56,6 +58,24 @@ WITH funcs AS (
   AND p.permissive='PERMISSIVE'
   AND p.roles::text='{authenticated}'
   AND btrim(coalesce(p.qual,''))='has_role(auth.uid(), ''admin''::app_role)'
+), admin_helper AS (
+ -- The proposed admin RLS reader relies on public.has_role(uuid,app_role).
+ -- Require hardened SECURITY DEFINER metadata, pinned empty search_path,
+ -- no anonymous EXECUTE, authenticated EXECUTE and trusted ownership.
+ -- This is necessary catalog evidence, NEVER sufficient behavior evidence.
+ SELECT count(*) AS safe_admin_helper_count
+ FROM pg_catalog.pg_proc p
+ JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='public'
+  AND p.oid=to_regprocedure('public.has_role(uuid,public.app_role)')
+  AND p.prokind='f' AND p.prosecdef AND p.prorettype='boolean'::regtype
+  AND p.pronargs=2
+  AND p.proargtypes[0]='uuid'::regtype
+  AND p.proargtypes[1]='public.app_role'::regtype
+  AND array_position(p.proconfig,'search_path=""') IS NOT NULL
+  AND has_function_privilege('authenticated',p.oid,'EXECUTE')
+  AND NOT has_function_privilege('anon',p.oid,'EXECUTE')
+  AND pg_get_userbyid(p.proowner) NOT IN ('anon','authenticated','service_role')
 ), rls AS (
  SELECT relrowsecurity AS rls_enabled,
   -- A data API principal owning this table could bypass RLS unless FORCE
@@ -91,10 +111,12 @@ WITH funcs AS (
   -- PG17 stores explicitly empty search_path as the string search_path="".
   AND array_position(proconfig,'search_path=""') IS NOT NULL) AS safe_rpc_count,
  permissions.*,policies.broadly_permissive_all,policies.total_audit_policies,
- admin_reader.admin_select_policies,rls.rls_enabled,rls.independent_table_owner,
+ admin_reader.admin_select_policies,admin_helper.safe_admin_helper_count,
+ has_schema_privilege('authenticated','public','USAGE') AS auth_public_schema_usage,
+ rls.rls_enabled,rls.independent_table_owner,
  app_rls_roles.anon_rls_enforced,app_rls_roles.auth_rls_enforced
- FROM permissions CROSS JOIN policies CROSS JOIN admin_reader CROSS JOIN rls
- CROSS JOIN app_rls_roles
+ FROM permissions CROSS JOIN policies CROSS JOIN admin_reader CROSS JOIN admin_helper
+ CROSS JOIN rls CROSS JOIN app_rls_roles
 )
 SELECT named_rpc_count,safe_rpc_count,
  anon_select,anon_insert,anon_update,anon_delete,anon_truncate,
@@ -103,7 +125,8 @@ SELECT named_rpc_count,safe_rpc_count,
  auth_references,auth_trigger,auth_maintain,
  service_insert,service_update,service_delete,service_truncate,
  service_references,service_trigger,service_maintain,
- broadly_permissive_all,total_audit_policies,admin_select_policies,rls_enabled,
+ broadly_permissive_all,total_audit_policies,admin_select_policies,
+ safe_admin_helper_count,auth_public_schema_usage,rls_enabled,
  independent_table_owner,anon_rls_enforced,auth_rls_enforced,
  CASE WHEN named_rpc_count=1 AND safe_rpc_count=1
  AND NOT anon_select AND NOT anon_insert AND NOT anon_update AND NOT anon_delete
@@ -115,7 +138,8 @@ SELECT named_rpc_count,safe_rpc_count,
  AND service_insert AND NOT service_update AND NOT service_delete AND NOT service_truncate
  AND NOT service_references AND NOT service_trigger AND NOT service_maintain
  AND broadly_permissive_all=0 AND total_audit_policies=1
- AND admin_select_policies=1 AND rls_enabled
+ AND admin_select_policies=1 AND safe_admin_helper_count=1
+ AND auth_public_schema_usage AND rls_enabled
  AND independent_table_owner AND anon_rls_enforced AND auth_rls_enforced
  THEN 'REVIEW_ONLY_AUDIT_RECONCILIATION_CATALOG_MATCH_NO_EMAIL_RELEASE'
  ELSE 'HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT'
