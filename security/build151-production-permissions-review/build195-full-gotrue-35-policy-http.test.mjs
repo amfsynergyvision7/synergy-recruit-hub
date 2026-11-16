@@ -128,6 +128,12 @@ console.log('BUILD195_FICTIONAL_AUTH_DIAGNOSTIC '+JSON.stringify({
  profileStatus:profileProbe.status,profileCount:profileProbe.count,
  userRolesStatus:rolesProbe.status,userRolesCount:rolesProbe.count
 }));
+yes('GOTRUE_ISSUED_JWT_RESOLVES_CURRENT_USER_ROLE',
+ roleProbe.status===200&&roleProbe.result===true,roleProbe);
+yes('GOTRUE_ISSUED_JWT_APPROVED_PROFILE',
+ approvalProbe.status===200&&approvalProbe.result===true,approvalProbe);
+yes('GOTRUE_SUBJECT_SELF_PROFILE_VISIBLE',
+ profileProbe.status===200&&profileProbe.count===5,profileProbe);
 for(const [role,table,expected] of [
  ['admin','candidates',2],['admin','job_openings',2],
  ['admin','billing',1],['admin','audit_logs',1],
