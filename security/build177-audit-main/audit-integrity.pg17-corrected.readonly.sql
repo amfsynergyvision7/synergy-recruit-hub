@@ -3,6 +3,7 @@
 -- A correct catalog-only result is REVIEW_ONLY, never email or production approval.
 -- Build181 rejects PROCEDURE/scalar/wrong TABLE-return routines that share
 -- the RPC name, input signature, search_path and EXECUTE privileges.
+-- Build184 checks exact four PostgREST named input arguments.
 -- Build180 adds safeguards against BYPASSRLS drift, app-role table ownership
 -- and restrictive-only admin SELECT policies. It does not prove function semantics.
 WITH funcs AS (
@@ -83,6 +84,9 @@ WITH funcs AS (
   AND NOT prosecdef
   AND proargtypes[0]='uuid'::regtype AND proargtypes[1]='uuid'::regtype
   AND proargtypes[2]='text'::regtype AND proargtypes[3]='text'::regtype
+  -- Named PostgREST RPC dispatch also depends on input parameter names.
+  AND proargnames[1]='p_attempt' AND proargnames[2]='p_admin'
+  AND proargnames[3]='p_case_ref' AND proargnames[4]='p_provider_id'
   AND service_exec AND NOT anon_exec AND NOT auth_exec
   -- PG17 stores explicitly empty search_path as the string search_path="".
   AND array_position(proconfig,'search_path=""') IS NOT NULL) AS safe_rpc_count,
