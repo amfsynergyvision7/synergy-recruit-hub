@@ -35,3 +35,9 @@ This is **database simulation**, not a verified signed GoTrue JWT, REST/PostgRES
 5. Keep the source-only draft and original five `reviewed/` SQL blobs isolated; DO NOT APPLY or merge/deploy merely because the ephemeral checks pass.
 
 **Formal status:** Category C 6/10, programme 26/100, 12/43 accepted, 31 open. No milestone acceptance from this engineering rehearsal.
+
+## Build187 confirmed compatibility preflight — same exact source SQL run on both hosted projects
+
+The separately source-pinned [READ-ONLY policy-caller compatibility preflight](./policy-caller-compatibility.readonly.sql) removes every `has_role(auth.uid(), ...)` call in each policy expression and **refuses a REVIEW_ONLY status if any unbound `has_role(...)` invocation remains**. Live catalog results on 16 Nov 2026 were: **production 41 dependent policies, zero non-session-bound calls, helper present, REVIEW_ONLY_NO_DEPLOYMENT**; **isolated lab 38 dependent policies, zero non-session-bound calls, helper absent, explicit HOLD_NO_HOSTED_PARITY**. This corroborates that a session-bound helper may preserve the 41 statically inspected production policies without any textual policy edits. It cannot discover additional service-side RPC consumers, dynamic SQL, authorization bugs, signed JWT failures or actual production upgrade compatibility. It grants **zero** additional acceptance points.
+
+Source checks verify that this SQL accesses only `pg_policies` and function-signature metadata and cannot mutate data. No hosted SQL beyond SELECT metadata was executed.
