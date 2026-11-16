@@ -23,7 +23,8 @@ assert(process.env.B195_DISPOSABLE_ONLY==='true'&&
  process.env.PGUSER==='postgres'&&process.env.B195_JWT_SECRET?.length>=32,
  'Build195 non-disposable execution refused');
 const base=read('base'),from='CREATE TYPE public.app_role AS ENUM';
-const body=base.slice(base.indexOf(from),base.indexOf('-- Reuse exact live catalog-only preflight'));
+const body=base.slice(base.indexOf(from),base.indexOf('-- Reuse exact live catalog-only preflight'))
+ .replaceAll('b73_anon','anon').replaceAll('b73_authenticated','authenticated');
 assert(body.startsWith(from)&&body.includes('CREATE TABLE public.candidates')&&
  body.includes('CREATE VIEW public.vw_submission_filters'));
 assert(!/^\s*(?:BEGIN|COMMIT|ROLLBACK);/m.test(body));
