@@ -70,6 +70,8 @@ const tail=[
  '-- BUILD192 WITHHOLD original proposal COMMIT for transaction rollback.',
  "\\echo 'BUILD192_SOURCE_PROPOSAL_STATEMENTS_COMPLETE_PENDING_POSTFLIGHT'",
  '\\i '+p('postflight.gset.sql'),
+ "SELECT md5(string_agg(tablename||chr(31)||policyname||chr(31)||permissive||chr(31)||roles::text||chr(31)||cmd||chr(31)||coalesce(qual,'<NULL>')||chr(31)||coalesce(with_check,'<NULL>'),chr(10) ORDER BY tablename,policyname)) AS b192_policy_md5 FROM pg_catalog.pg_policies WHERE schemaname='public' \\gset",
+ "\\echo 'BUILD192_PROPOSED_35_POLICY_MD5' :b192_policy_md5",
  "SELECT (:'reviewer_gate'='REVIEW_ONLY_PROPOSED_POSTFLIGHT_METADATA_MATCH_NO_RELEASE') AS b192_pass \\gset",
  '\\if :b192_pass',
  " \\echo 'BUILD192_DRAFT_FULL_POSTFLIGHT_REVIEW_ONLY_MATCH'",
