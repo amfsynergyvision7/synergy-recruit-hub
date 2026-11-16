@@ -1,0 +1,64 @@
+-- Build200 REVIEW-ONLY INTERNAL SERVICE ALTERNATIVE; NOT AN APPROVED MIGRATION.
+-- NEVER APPLY TO A HOSTED SUPABASE PROJECT OR PRODUCTION/STAGING DB.
+-- This file deliberately uses a NON-EXPOSED schema, SECURITY INVOKER,
+-- explicit role grants and no user-facing PUBLIC/anon/authenticated EXECUTE.
+-- It requires independent DBA/Security/Privacy/CRM review before adoption.
+DO $b200_guard$
+BEGIN
+ IF current_database()<>'amf_build195_gotrue_35_policy_lab' OR
+    session_user<>'postgres'
+ THEN RAISE EXCEPTION 'Build200 refuses non-disposable PostgreSQL database';
+ END IF;
+END $b200_guard$;
+CREATE SCHEMA b200_review_internal AUTHORIZATION postgres;
+REVOKE ALL ON SCHEMA b200_review_internal FROM PUBLIC, anon, authenticated;
+GRANT USAGE ON SCHEMA b200_review_internal TO service_role;
+
+CREATE FUNCTION b200_review_internal.staff_role(_user_id uuid)
+RETURNS public.app_role
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path=''
+AS $lookup$
+ SELECT (SELECT r.role FROM public.user_roles AS r
+         WHERE r.user_id=_user_id
+         ORDER BY CASE r.role
+          WHEN 'admin' THEN 1 WHEN 'recruiter' THEN 2
+          WHEN 'operations' THEN 3 WHEN 'finance' THEN 4
+          WHEN 'viewer' THEN 5 END LIMIT 1)
+ WHERE _user_id IS NOT NULL;
+$lookup$;
+
+CREATE FUNCTION b200_review_internal.staff_approved(_user_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path=''
+AS $lookup$
+ SELECT coalesce(_user_id IS NOT NULL AND EXISTS(
+  SELECT 1 FROM public.profiles AS p
+  WHERE p.id=_user_id AND p.status='approved'::public.user_status
+    AND p.is_active=true
+ ),false);
+$lookup$;
+
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA b200_review_internal FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION b200_review_internal.staff_role(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION b200_review_internal.staff_approved(uuid) TO service_role;
+
+-- Explicitly assert intended shape while STILL only in disposable CI:
+DO $b200_check$
+BEGIN
+ IF has_schema_privilege('anon','b200_review_internal','USAGE')
+ OR has_schema_privilege('authenticated','b200_review_internal','USAGE')
+ OR NOT has_schema_privilege('service_role','b200_review_internal','USAGE')
+ OR has_function_privilege('anon','b200_review_internal.staff_role(uuid)','EXECUTE')
+ OR has_function_privilege('authenticated','b200_review_internal.staff_approved(uuid)','EXECUTE')
+ OR NOT has_function_privilege('service_role','b200_review_internal.staff_role(uuid)','EXECUTE')
+ OR NOT has_function_privilege('service_role','b200_review_internal.staff_approved(uuid)','EXECUTE')
+ OR EXISTS(
+  SELECT 1 FROM pg_catalog.pg_proc AS proc
+  WHERE proc.oid IN (
+    to_regprocedure('b200_review_internal.staff_role(uuid)'),
+    to_regprocedure('b200_review_internal.staff_approved(uuid)')
+  ) AND proc.prosecdef
+ )
+ THEN RAISE EXCEPTION 'Build200 review-only internal helper privileges unsafe';
+ END IF;
+END $b200_check$;

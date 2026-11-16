@@ -1,0 +1,17 @@
+-- Build197 SELECT-only derived production is_approved(uuid) definition snapshot.
+-- DO NOT APPLY to any hosted database. SECURITY DEFINER search_path=public
+-- is the LIVE legacy configuration, not an independently approved safe pattern.
+-- Only installed under exact named throwaway Build195/197 CI database.
+DO $guard$
+BEGIN
+ IF current_database()<>'amf_build195_gotrue_35_policy_lab' OR session_user<>'postgres'
+ THEN RAISE EXCEPTION 'Build197 real-helper source refuses non-disposable target'; END IF;
+END $guard$;
+CREATE OR REPLACE FUNCTION public.is_approved(_user_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS(SELECT 1 FROM public.profiles WHERE id = _user_id AND status='approved' AND is_active=true)
+$function$

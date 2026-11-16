@@ -1,0 +1,39 @@
+-- Build196: CANDIDATE REVIEW OVERLAY, NOT AN APPROVED COMPANY ACCESS POLICY.
+-- DO NOT APPLY TO HOSTED OR PRODUCTION DB; this changes the source-pinned
+-- proposed 35-policy fingerprint and requires separate DBA/security/CRM signoff.
+-- The original Build48 / PR16 draft is intentionally unchanged.
+DO $guard$
+BEGIN
+ IF current_database()<>'amf_build195_gotrue_35_policy_lab'
+    OR session_user<>'postgres'
+ THEN RAISE EXCEPTION 'Build196 notification candidate refuses non-disposable database'; END IF;
+END $guard$;
+-- Tighten recipient-read semantics for an *approved* yet role-revoked user:
+-- presence of any current user_roles membership is required to read personal
+-- notifications, even when an existing GoTrue JWT is still unexpired.
+-- A qualified owner must determine whether onboarding and roleless self-service
+-- notifications need a distinct, minimal, non-CRM data policy.
+ALTER POLICY notifications_read ON public.notifications
+  USING (
+    public.is_approved(auth.uid())
+    AND EXISTS (
+      SELECT 1 FROM public.user_roles ur WHERE ur.user_id=auth.uid()
+    )
+    AND (user_id=auth.uid() OR public.has_role(auth.uid(),'admin'))
+  );
+
+-- Build197: separately restrict notification UPDATE under the SAME current
+-- membership requirement. A revoked user's UPDATE can otherwise be authorized
+-- by its own USING/WITH CHECK predicates even if a SELECT policy is later changed.
+-- This is still only an unapproved disposable security review candidate.
+ALTER POLICY notifications_update ON public.notifications
+  USING (
+    public.is_approved(auth.uid())
+    AND EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id=auth.uid())
+    AND user_id=auth.uid()
+  )
+  WITH CHECK (
+    public.is_approved(auth.uid())
+    AND EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id=auth.uid())
+    AND user_id=auth.uid()
+  );

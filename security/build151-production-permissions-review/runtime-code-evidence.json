@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "build": 154,
+  "source_pr": 12,
+  "source_pr_head": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6",
+  "source_files": [
+    {
+      "source_path": "src/lib/email.functions.ts",
+      "source_blob_sha": "91023fb4500f942490398b1c8438900213319dda",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__lib__email.functions.ts.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/lib/sheets-sync.server.ts",
+      "source_blob_sha": "cc144ec3130d870e68d777337e098ef24b4e3329",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__lib__sheets-sync.server.ts.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/integrations/supabase/client.server.ts",
+      "source_blob_sha": "93006aa1d60b3da9b8ff9e57e12a2aa1cb0058cd",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__integrations__supabase__client.server.ts.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/routes/_app.notifications.tsx",
+      "source_blob_sha": "9414e79b44dc58a6f2d8f116b26e40ae468e019a",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__routes___app.notifications.tsx.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/lib/admin-settings.ts",
+      "source_blob_sha": "77cfd9c95d85d0757eaa098a862cb18188f1f0af",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__lib__admin-settings.ts.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/lib/user-administration.ts",
+      "source_blob_sha": "2190078a92039c3f8a4776f66f3aac509ce9bf18",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__lib__user-administration.ts.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/lib/profile-settings.ts",
+      "source_blob_sha": "40e50c1e937185de6ed761cf03f1a60ea1f8fdf2",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__lib__profile-settings.ts.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/routes/_app.audit.tsx",
+      "source_blob_sha": "97b7e0215562215772fef4875742b021ce045827",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__routes___app.audit.tsx.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/routes/_app.activities.tsx",
+      "source_blob_sha": "230ccf268a5a4470032eaf4a6033e8d65e969b24",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__routes___app.activities.tsx.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    },
+    {
+      "source_path": "src/lib/candidate-stage.ts",
+      "source_blob_sha": "2c7ec9bccf25bcd3768d323b908ae8cc1aa86df1",
+      "review_copy": "security/build151-production-permissions-review/runtime-sources/src__lib__candidate-stage.ts.source.txt",
+      "provenance_pr": 12,
+      "provenance_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+    }
+  ],
+  "traces": [
+    {
+      "id": "email-send-before-log",
+      "source_path": "src/lib/email.functions.ts",
+      "source_blob_sha": "91023fb4500f942490398b1c8438900213319dda",
+      "line": 79,
+      "needle": "const result = await sendEmail({",
+      "ordinal": 1,
+      "evidence": "Email side effect precedes logging"
+    },
+    {
+      "id": "email-log-user-scoped-write",
+      "source_path": "src/lib/email.functions.ts",
+      "source_blob_sha": "91023fb4500f942490398b1c8438900213319dda",
+      "line": 89,
+      "needle": "context.supabase.from(\"email_log\" as any).insert({",
+      "ordinal": 1,
+      "evidence": "Authenticated context attempts email history INSERT"
+    },
+    {
+      "id": "email-log-nonfatal-error",
+      "source_path": "src/lib/email.functions.ts",
+      "source_blob_sha": "91023fb4500f942490398b1c8438900213319dda",
+      "line": 100,
+      "needle": "if (logError) {",
+      "ordinal": 1,
+      "evidence": "Logging failure is logged without failing a successful send"
+    },
+    {
+      "id": "sync-success-log",
+      "source_path": "src/lib/sheets-sync.server.ts",
+      "source_blob_sha": "cc144ec3130d870e68d777337e098ef24b4e3329",
+      "line": 471,
+      "needle": "await supabaseAdmin.from(\"sync_logs\").insert({",
+      "ordinal": 1,
+      "evidence": "Trusted server admin client logs sync completion"
+    },
+    {
+      "id": "sync-failure-log",
+      "source_path": "src/lib/sheets-sync.server.ts",
+      "source_blob_sha": "cc144ec3130d870e68d777337e098ef24b4e3329",
+      "line": 512,
+      "needle": "await supabaseAdmin.from(\"sync_logs\").insert({",
+      "ordinal": 2,
+      "evidence": "Trusted server admin client logs sync failure"
+    },
+    {
+      "id": "supabase-service-role",
+      "source_path": "src/integrations/supabase/client.server.ts",
+      "source_blob_sha": "93006aa1d60b3da9b8ff9e57e12a2aa1cb0058cd",
+      "line": 26,
+      "needle": "createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY",
+      "ordinal": 1,
+      "evidence": "Server-only admin client uses service-role credential"
+    },
+    {
+      "id": "notification-read-update",
+      "source_path": "src/routes/_app.notifications.tsx",
+      "source_blob_sha": "9414e79b44dc58a6f2d8f116b26e40ae468e019a",
+      "line": 111,
+      "needle": ".update({ is_read: true }).eq(\"id\", id).eq(\"user_id\", userId)",
+      "ordinal": 1,
+      "evidence": "User-scoped notification read acknowledgment"
+    },
+    {
+      "id": "admin-setting-rpc",
+      "source_path": "src/lib/admin-settings.ts",
+      "source_blob_sha": "77cfd9c95d85d0757eaa098a862cb18188f1f0af",
+      "line": 27,
+      "needle": "rpcClient.rpc(\"crm_admin_update_setting\"",
+      "ordinal": 1,
+      "evidence": "Admin setting update occurs through RPC"
+    },
+    {
+      "id": "user-management-rpc",
+      "source_path": "src/lib/user-administration.ts",
+      "source_blob_sha": "2190078a92039c3f8a4776f66f3aac509ce9bf18",
+      "line": 38,
+      "needle": "rpc.rpc(\"crm_admin_manage_user\"",
+      "ordinal": 1,
+      "evidence": "User management occurs through RPC"
+    },
+    {
+      "id": "self-profile-rpc",
+      "source_path": "src/lib/profile-settings.ts",
+      "source_blob_sha": "40e50c1e937185de6ed761cf03f1a60ea1f8fdf2",
+      "line": 31,
+      "needle": "rpc.rpc(\"crm_update_own_profile\"",
+      "ordinal": 1,
+      "evidence": "Profile self-update occurs through RPC"
+    },
+    {
+      "id": "audit-log-list",
+      "source_path": "src/routes/_app.audit.tsx",
+      "source_blob_sha": "97b7e0215562215772fef4875742b021ce045827",
+      "line": 57,
+      "needle": "supabase.from(\"audit_logs\")",
+      "ordinal": 1,
+      "evidence": "Audit route reads audit events"
+    },
+    {
+      "id": "activity-list",
+      "source_path": "src/routes/_app.activities.tsx",
+      "source_blob_sha": "230ccf268a5a4470032eaf4a6033e8d65e969b24",
+      "line": 30,
+      "needle": "supabase.from(\"candidate_activities\")",
+      "ordinal": 1,
+      "evidence": "Activity route reads candidate activities"
+    },
+    {
+      "id": "candidate-stage-rpc",
+      "source_path": "src/lib/candidate-stage.ts",
+      "source_blob_sha": "2c7ec9bccf25bcd3768d323b908ae8cc1aa86df1",
+      "line": 37,
+      "needle": "rpc.rpc(\"crm_change_candidate_stage\"",
+      "ordinal": 1,
+      "evidence": "Candidate stage transition uses RPC"
+    }
+  ],
+  "risk_register": [
+    {
+      "id": "R154-01",
+      "priority": "RELEASE_BLOCKER",
+      "table": "email_log",
+      "policy_change": "Removed user-visible INSERT policy declaration",
+      "source_refs": [
+        "email-send-before-log",
+        "email-log-user-scoped-write",
+        "email-log-nonfatal-error"
+      ],
+      "finding": "Email is attempted before user-scoped email_log INSERT. The proposed policy only declares SELECT. A successful send with an unrecorded correspondence event is possible if the effective INSERT is denied.",
+      "owner_review": "Communications, security, CRM and privacy",
+      "uat_requirement": "No real outbound sending. Verify on an independently approved isolated test tenant that delivery cannot be reported successful without durable, authorized correspondence audit; approve a trusted logging/outbox design."
+    },
+    {
+      "id": "R154-02",
+      "priority": "HIGH",
+      "table": "sync_logs",
+      "policy_change": "Removed direct INSERT policy declaration",
+      "source_refs": [
+        "sync-success-log",
+        "sync-failure-log",
+        "supabase-service-role"
+      ],
+      "finding": "Sync logs are written using a trusted server-side service-role Supabase client. RLS removal may not block this pathway, but audit persistence, service credential isolation, and error handling still require review.",
+      "owner_review": "Integrations, operations and security",
+      "uat_requirement": "Use fictional rows and a disabled external-effects test harness to check success/failure sync logging and least-privilege access."
+    },
+    {
+      "id": "R154-03",
+      "priority": "HIGH",
+      "table": "audit_logs",
+      "policy_change": "Removed direct INSERT/UPDATE/DELETE declarations",
+      "source_refs": [
+        "audit-log-list"
+      ],
+      "finding": "Audit page reads events. This trace does not establish how upstream audit inserts occur or whether triggers/RPCs preserve all required audit events.",
+      "owner_review": "Security and audit",
+      "uat_requirement": "Trace all event producers and assert that required approval/mutation audit records persist; avoid real personal data."
+    },
+    {
+      "id": "R154-04",
+      "priority": "HIGH",
+      "table": "candidate_activities",
+      "policy_change": "Removed direct INSERT/UPDATE/DELETE declarations",
+      "source_refs": [
+        "activity-list",
+        "candidate-stage-rpc"
+      ],
+      "finding": "Activities page reads records and stage changes use an RPC; it remains unverified whether the RPC and triggers preserve activity records under the combined policy changes.",
+      "owner_review": "Recruitment operations and security",
+      "uat_requirement": "Verify fictional candidate stage transitions, activity history and role isolation through the staged browser/API flows."
+    },
+    {
+      "id": "R154-05",
+      "priority": "REVIEW",
+      "table": "notifications",
+      "policy_change": "Removed DELETE declaration; UPDATE remains",
+      "source_refs": [
+        "notification-read-update"
+      ],
+      "finding": "The UI still uses a user-id-scoped notification is_read UPDATE, which retains declared UPDATE coverage. Ownership and exact-row confirmation need hosted role-level testing.",
+      "owner_review": "CRM operations",
+      "uat_requirement": "Verify own-row read acknowledgments and denial of edits/deletes to other users' notices."
+    },
+    {
+      "id": "R154-06",
+      "priority": "REVIEW",
+      "table": "app_settings",
+      "policy_change": "Removed direct UPDATE declaration",
+      "source_refs": [
+        "admin-setting-rpc"
+      ],
+      "finding": "The UI uses an administrative settings RPC rather than direct table UPDATE. Its secure, approved deployment and function-level EXECUTE privilege are not established by a source-only trace.",
+      "owner_review": "CRM administrator and security",
+      "uat_requirement": "Confirm approved admin settings updates with non-admin denial and sensitive Drive configuration isolation."
+    },
+    {
+      "id": "R154-07",
+      "priority": "HIGH",
+      "table": "profiles",
+      "policy_change": "Removed direct INSERT declaration; dedicated RPC operations proposed",
+      "source_refs": [
+        "self-profile-rpc",
+        "user-management-rpc"
+      ],
+      "finding": "User and profile mutations call dedicated RPCs. Review role enforcement, locked-account handling and account-creation trigger dependencies with the new policy and ACL changes.",
+      "owner_review": "Identity, security and HR",
+      "uat_requirement": "Verify fictional self-profile update, admin role changes, self-lockout denial and audit records."
+    }
+  ],
+  "limits": "Static source trace only. References are immutable Git blob copies; it cannot establish effective PostgreSQL permissions, trigger behavior, live UAT, external-provider behavior or company approvals.",
+  "execution": "NO_NETWORK_NO_DATABASE_NO_SEND_NO_DEPLOY",
+  "formal_acceptance": "HOLD_0_OF_48_PRODUCTION_FIXES"
+}

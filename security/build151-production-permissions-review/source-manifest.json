@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "build": 154,
+  "purpose": "SOURCE-PINNED REVIEW ONLY, no production or staging writes, no PR merge authorization",
+  "source_pr": 12,
+  "source_pr_head": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6",
+  "base_main_head_at_extraction": "c735292fbace6605d691a68b602a02b2c6f9e137",
+  "original_sources": [
+    {
+      "source_path": "security/build47/catalog-inventory.json",
+      "review_copy": "security/build151-production-permissions-review/baseline-48.json",
+      "source_blob_sha": "7b76ac7aa5fe47a86b036b12e5560f603f8b5aa5"
+    },
+    {
+      "source_path": "security/build73/48-object-release-preflight.readonly.sql",
+      "review_copy": "security/build151-production-permissions-review/production-preflight.readonly.sql",
+      "source_blob_sha": "397a608717afe03f90fb284a983f345e215baae3"
+    },
+    {
+      "source_path": "security/build47/48-object-lockdown-review-only.sql",
+      "review_copy": "security/build151-production-permissions-review/lockdown.DO-NOT-APPLY.review.sql",
+      "source_blob_sha": "b9e5bee59aa03c42c675245f13fcfe8f18562922"
+    },
+    {
+      "source_path": "security/build73/48-object-permission-before-after.rollback.sql",
+      "review_copy": "security/build151-production-permissions-review/disposable-rehearsal.DO-NOT-RUN.sql.txt",
+      "source_blob_sha": "858542a266e0052124b486610a3eac7266b63ddc"
+    },
+    {
+      "source_path": "security/build48/live-67-policy-catalog.json",
+      "review_copy": "security/build151-production-permissions-review/baseline-67-policies.json",
+      "source_blob_sha": "70ea14d642c53c4e146fdb0a0f0bdf87def1d2e9"
+    },
+    {
+      "source_path": "security/build48/live-67-policy-replay.fixture.sql",
+      "review_copy": "security/build151-production-permissions-review/legacy-67-policies.DO-NOT-RUN.sql.txt",
+      "source_blob_sha": "59ac1f0d25215333868012fdb8e6b9382ed12e14"
+    },
+    {
+      "source_path": "security/build49/67-policy-plus-account-rpcs-review-only.sql",
+      "review_copy": "security/build151-production-permissions-review/complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt",
+      "source_blob_sha": "484c251cdbfd932bdab5ffcf039a107e7478633e"
+    },
+    {
+      "source_path": "security/build49/user-admin-rpc-review-only.sql",
+      "review_copy": "security/build151-production-permissions-review/admin-account-rpc.DO-NOT-APPLY.sql.txt",
+      "source_blob_sha": "a6eac136cde9a261544fc9d66a4cd2e070634d6f"
+    },
+    {
+      "source_path": "security/build49/self-profile-rpc-review-only.sql",
+      "review_copy": "security/build151-production-permissions-review/self-profile-rpc.DO-NOT-APPLY.sql.txt",
+      "source_blob_sha": "72629d5926e50231550ac51adb22ce0a5000cfd5"
+    },
+    {
+      "source_path": "security/build74/live-release-source-fingerprints.json",
+      "review_copy": "security/build151-production-permissions-review/prior-source-fingerprints.json",
+      "source_blob_sha": "10524c34f69ecdba33d3ff9b41992ff2dc9685a5"
+    }
+  ],
+  "expected_catalog": {
+    "tables": 19,
+    "views": 13,
+    "privileged_functions": 16,
+    "security_objects": 48
+  },
+  "live_readonly_observation_2026_11_15": {
+    "project_ref": "wusntntcqgtpgokggdzv",
+    "permission_preflight": "HOLD_48_OBJECT_PERMISSIONS_NOT_SAFE_OR_SCOPE_DRIFT",
+    "matched_tables": 19,
+    "anon_truncate_tables": 19,
+    "authenticated_truncate_tables": 19,
+    "matched_views": 13,
+    "security_invoker_views": 0,
+    "anon_readable_views": 13,
+    "privileged_functions": 16,
+    "anon_executable_privileged_functions": 16,
+    "public_executable_privileged_functions": 9,
+    "rows_queried": 0,
+    "writes": 0
+  },
+  "acceptance": {
+    "production_remediations_applied": 0,
+    "independently_accepted": 0,
+    "total": 48,
+    "approved_for_execution": false,
+    "owner_signoffs": 0,
+    "full_rls_policy_replacement_applied": false,
+    "full_rls_policy_replacement_accepted": false
+  },
+  "safety": "Do not execute any review-only SQL. Disposable rehearsal is archived as .sql.txt. No merge, promotion, DB writes, real user access, billing or financial activation. The complete policy replacement and proposed account RPCs are archived only as .sql.txt, not migrations.",
+  "live_readonly_policy_observation_2026_11_15": {
+    "project_ref": "wusntntcqgtpgokggdzv",
+    "policy_count": 67,
+    "covered_tables": 18,
+    "broad_permissive_allow_all_policies": 15,
+    "observed_policy_md5": "a70190f31ed8436b2989082898a02b51",
+    "expected_policy_md5": "a70190f31ed8436b2989082898a02b51",
+    "matching_review_source": true,
+    "actual_business_rows_queried": 0,
+    "production_writes": 0,
+    "release_decision": "SOURCE_MATCH_REVIEW_ONLY_RELEASE_HOLD"
+  },
+  "impact_review": {
+    "schema_version": 1,
+    "source_files": [
+      "security/build151-production-permissions-review/baseline-67-policies.json",
+      "security/build151-production-permissions-review/complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt"
+    ],
+    "total_tables_in_scope": 19,
+    "old_policies": 67,
+    "proposed_policies": 35,
+    "removed_universal_all_policy_declarations": 15,
+    "tables_losing_declared_policy_operations": 7,
+    "tables_gaining_declared_policy_operations": 1,
+    "independent_table_approvals": 0,
+    "owner_approved": false,
+    "NOTE": "Source-level declared policy command matrix, not an effective privilege simulation or production migration approval"
+  },
+  "runtime_review": {
+    "source_pr": 12,
+    "source_sha": "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6",
+    "source_snapshots": 10,
+    "evidence_anchors": 13,
+    "risk_items": 7,
+    "critical_email_log_integrity_blocker": "UNRESOLVED",
+    "owner_signoffs": 0,
+    "execution": "NEVER_RUN_FROM_REVIEW_PR"
+  }
+}

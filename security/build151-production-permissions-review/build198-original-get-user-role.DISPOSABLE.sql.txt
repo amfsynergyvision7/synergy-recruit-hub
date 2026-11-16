@@ -1,0 +1,21 @@
+-- Build198 SELECT-only source of live public.get_user_role(uuid).
+-- Production pg_get_functiondef() text MD5: 83d72d3932a91c90ffa33f431063a831
+-- Reproduced for DISPOSABLE CI ONLY; NOT a reviewed safe access design.
+DO $guard$ BEGIN
+ IF current_database()<>'amf_build195_gotrue_35_policy_lab'
+ OR session_user<>'postgres'
+ THEN RAISE EXCEPTION 'Build198 refuses other databases'; END IF;
+END $guard$;
+CREATE OR REPLACE FUNCTION public.get_user_role(_user_id uuid)
+ RETURNS app_role
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT role FROM public.user_roles WHERE user_id = _user_id
+  ORDER BY CASE role
+    WHEN 'admin' THEN 1 WHEN 'recruiter' THEN 2 WHEN 'operations' THEN 3
+    WHEN 'finance' THEN 4 WHEN 'viewer' THEN 5 END
+  LIMIT 1
+$function$
+

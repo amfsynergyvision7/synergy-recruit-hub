@@ -1,0 +1,38 @@
+{
+  "evidence_type": "LIVE_READ_ONLY_RELEASE_SOURCE_FINGERPRINT_RECONCILIATION",
+  "date": "2026-11-12",
+  "project_ref": "wusntntcqgtpgokggdzv",
+  "source_basis": "Read-only pg_catalog.pg_policies, pg_get_viewdef, pg_get_functiondef and pg_get_function_identity_arguments exact digest queries from protected Build49, Build59 and Build58 review drafts",
+  "checks": [
+    {
+      "scope": "existing_public_rls_policies",
+      "count": 67,
+      "observed_md5": "a70190f31ed8436b2989082898a02b51",
+      "expected_md5": "a70190f31ed8436b2989082898a02b51",
+      "source": "security/build49/67-policy-plus-account-rpcs-review-only.sql",
+      "match": true
+    },
+    {
+      "scope": "all_thirteen_public_views",
+      "count": 13,
+      "observed_md5": "a90d4a1fab9552d47697127888e10d19",
+      "expected_md5": "a90d4a1fab9552d47697127888e10d19",
+      "source": "security/build59/13-view-write-acl-review-only.sql",
+      "match": true
+    },
+    {
+      "scope": "four_legacy_function_definitions",
+      "count": 4,
+      "observed_md5": "ea5005b2208a2d0891e3f8004fd7de80",
+      "expected_md5": "ea5005b2208a2d0891e3f8004fd7de80",
+      "unset_search_path_count": 4,
+      "security_definer_count": 2,
+      "source": "security/build58/function-search-path-review-only.sql",
+      "match": true
+    }
+  ],
+  "matched_source_checks": 3,
+  "actual_business_rows_queried": 0,
+  "live_database_writes": 0,
+  "caveat": "Fingerprint checks prove expected source matches at observation time; they are not approval of proposed changes or evidence of legal, finance, retention, disaster recovery, browser/API acceptance. Re-run immediately before any independently authorized migration."
+}
