@@ -391,3 +391,30 @@ test("Build189 real GoTrue-issued JWT HTTP test is disposable, source-pinned and
  assert.match(ci,/main-release-hold:/);
  assert.match(doc,/not a test in any connected Supabase project|not a test.*connected Supabase project|not a test.*hosted/i);
 });
+
+
+test("Build190 pinned Git source inventory covers main and integration without hosted side effects",()=>{
+ const src=readFileSync(join(root,"../build190-static-callers/source-inventory.mjs"),"utf8");
+ const readme=readFileSync(join(root,"../build190-static-callers/README.md"),"utf8");
+ const ci=readFileSync(join(root,"../../.github/workflows/build177-audit-main.yml"),"utf8");
+ assert.match(src,/c735292fbace6605d691a68b602a02b2c6f9e137/);
+ assert.match(src,/b2734b14c0e19d2ce2b8daa87655ca18c2d932d6/);
+ for(const literal of ["direct_user_roles_client","direct_audit_logs_client",
+ "has_role_call_or_literal","trusted_email_rpc_mentions",
+ "dynamic_rpc_candidates","audit_logs_mentions",
+ "user_roles_mentions","BUILD190_STATIC_INVENTORY_COMPLETE_NOT_RELEASE_OR_EXTERNAL_CALLER_CLEAN"])
+  assert(src.includes(literal),literal);
+ assert.match(src,/execFileSync\('git'/);
+ assert.match(src,/git',\['show'/);
+ assert.match(src,/rev-parse/);
+ assert.match(src,/bytesScanned/);
+ assert.match(src,/tracked_files/);
+ assert.match(readme,/qualified DBA/);
+ assert.match(readme,/not a complete behavioral audit/);
+ assert.match(ci,/security\/build190-static-callers\/\*\*/);
+ assert.match(ci,/pinned-source-caller-inventory:/);
+ assert.match(ci,/git fetch --no-tags --depth=1 origin/);
+ assert.match(ci,/node security\/build190-static-callers\/source-inventory\.mjs/);
+ assert.match(ci,/main-release-hold:/);
+ assert(!/\bmcp__|https:\/\/api\.supabase|SUPABASE_SERVICE_ROLE_KEY/.test(src));
+});
