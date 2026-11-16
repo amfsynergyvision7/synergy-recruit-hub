@@ -1,8 +1,9 @@
-name: Build177–186 audit-log isolation — disposable PG17 only
+name: Build177–187 audit and role-helper isolation — disposable PG17 only
 on:
   pull_request:
     paths:
       - 'security/build177-audit-main/**'
+      - 'security/build187-role-helper/**'
       - '.github/workflows/build177-audit-main.yml'
 permissions:
   contents: read
@@ -60,6 +61,9 @@ jobs:
           printf '\gset audit_\n' >> /tmp/build179-corrected-preflight.gset.sql
           psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-disposable-rollback.sql
           psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-gate-sensitivity.sql
+          # The exact DO-NOT-APPLY helper proposal is executed only in an
+          # ephemeral PG17 transaction and rolled back, never on hosted data.
+          psql -X -v ON_ERROR_STOP=1 -f security/build187-role-helper/pg17-role-helper-behavior.sql
   main-release-hold:
     if: github.base_ref == 'main'
     name: Audit production merge and deployment — HOLD (intentionally fails)
