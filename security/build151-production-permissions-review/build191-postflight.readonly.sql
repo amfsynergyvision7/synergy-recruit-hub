@@ -140,6 +140,16 @@ WITH expected_tables(name) AS (VALUES
  (SELECT count(*) FROM col_rights WHERE principal='anon' AND allowed
   AND privilege='SELECT' AND name='app_settings'
   AND attname IN ('id','logo_url','default_color_theme')) AS anon_branding_columns_select,
+ (SELECT count(*) FROM pg_catalog.pg_roles
+  WHERE rolname IN ('anon','authenticated')
+  AND (rolbypassrls OR rolsuper)) AS data_api_roles_bypassing_rls,
+ (SELECT count(*) FROM (VALUES ('anon'),('authenticated')) v(role_name)
+   WHERE pg_catalog.has_schema_privilege(role_name,'public','CREATE'))
+  + (SELECT count(*) FROM pg_catalog.pg_namespace ns
+     CROSS JOIN LATERAL pg_catalog.aclexplode(COALESCE(ns.nspacl,
+       pg_catalog.acldefault('n',ns.nspowner))) a
+     WHERE ns.nspname='public' AND a.grantee=0 AND a.privilege_type='CREATE')
+     AS public_schema_create_exposure,
  (SELECT count(*) FROM app_table_rights WHERE principal='authenticated'
   AND allowed AND (
     (name='user_roles' AND privilege IN ('INSERT','UPDATE','DELETE'))
@@ -176,6 +186,8 @@ SELECT *,
   AND anon_table_grants=0 AND anon_unapproved_column_select=0
   AND anon_column_update=0 AND anon_branding_columns_select=3
   AND authenticated_direct_account_mutations=0
+  AND data_api_roles_bypassing_rls=0
+  AND public_schema_create_exposure=0
   AND views_present=13 AND actual_public_views=13
   AND invoker_views=13 AND anon_selectable_views=0
   AND privileged_functions_present=16
