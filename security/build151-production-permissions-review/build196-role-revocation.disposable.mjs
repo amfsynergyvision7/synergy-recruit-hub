@@ -18,9 +18,10 @@ function psqlInDisposable(sql){
  " OR session_user<>'postgres' THEN",
  " RAISE EXCEPTION 'Build196 non-disposable target refused'; END IF; END $guard$;"
  ].join('\n');
- const out=spawnSync('psql',['-X','-v','ON_ERROR_STOP=1','-c',guard+'\n'+sql],
+ const out=spawnSync('psql',['-X','-At','-v','ON_ERROR_STOP=1','-c',guard+'\n'+sql],
   {encoding:'utf8',env:e,timeout:15000});
  assert.equal(out.status,0,'Build196 synthetic permission update: '+String(out.stderr).slice(0,350));
+ return out.stdout.trim().split(/\r?\n/).at(-1);
 }
 function safeUuid(input){
  assert.match(input,/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
@@ -49,6 +50,21 @@ export async function runBuild196({uids,query,rpc,mutation,yes}){
  yes('B196_ORIGINAL_DRAFT_ROLELESS_NOTIFICATION_GAP_REPRODUCED',
    afterNotifications.status===200&&afterNotifications.count===1,afterNotifications);
  console.log('BUILD196_RELEASE_HOLD_ORIGINAL_NOTIFICATION_POLICY_ALLOWS_ROLE_REVOKED_RECIPIENT');
+ // The unchanged draft also allows the *revoked but approved* recipient
+ // to mutate their own notification. Observe persisted fictional row state,
+ // not merely HTTP status (PostgREST may return 204 for 0-row UPDATE).
+ const b197NotificationId="'f1000000-0000-4000-8000-000000000001'::uuid";
+ const oldPatch=await mutation(actor,'PATCH','notifications',{is_read:false},
+  '?id=eq.f1000000-0000-4000-8000-000000000001');
+ yes('B197_OLD_DRAFT_ROLELESS_NOTIFICATION_UPDATE_HTTP_ACCEPTED',
+  [200,204].includes(oldPatch.status),oldPatch);
+ const oldPersisted=psqlInDisposable(
+  'SELECT is_read FROM public.notifications WHERE id='+b197NotificationId+';');
+ yes('B197_OLD_DRAFT_ROLELESS_NOTIFICATION_UPDATE_PERSISTED',
+  oldPersisted==='f',{value:oldPersisted});
+ console.log('BUILD197_ORIGINAL_ROLE_REVOKED_NOTIFICATION_WRITE_GAP_REPRODUCED');
+ // Restore the fictional row to make post-patch no-effect observable.
+ psqlInDisposable('UPDATE public.notifications SET is_read=true WHERE id='+b197NotificationId+';');
 
  // Candidate NOT approved for release: apply review-only ALTER POLICY exclusively
  // to disposable DB after the original policy gap has been reproduced.
@@ -65,6 +81,19 @@ export async function runBuild196({uids,query,rpc,mutation,yes}){
  const patchedNotifications=await query(actor,'notifications');
  yes('B196_REVIEW_ONLY_PATCH_REVOKED_NOTIFICATIONS_DENIED',
    patchedNotifications.status===200&&patchedNotifications.count===0,patchedNotifications);
+ const guardedPatch=await mutation(actor,'PATCH','notifications',{is_read:false},
+  '?id=eq.f1000000-0000-4000-8000-000000000001');
+ const guardedPersisted=psqlInDisposable(
+  'SELECT is_read FROM public.notifications WHERE id='+b197NotificationId+';');
+ yes('B197_REVIEW_ONLY_PATCH_ROLELESS_NOTIFICATION_UPDATE_NO_EFFECT',
+  [200,204,401,403].includes(guardedPatch.status)&&guardedPersisted==='t',
+  {status:guardedPatch.status,persisted:guardedPersisted});
+ const policyChecks=psqlInDisposable(
+  "SELECT count(*)=1 FROM pg_catalog.pg_policies WHERE schemaname='public' "+
+  "AND tablename='notifications' AND policyname='notifications_update' "+
+  "AND qual LIKE '%EXISTS%' AND with_check LIKE '%EXISTS%';");
+ assert.equal(policyChecks,'t','Reviewed candidate must restrict both UPDATE predicates');
+ console.log('BUILD197_DISPOSABLE_NOTIFICATION_UPDATE_USING_AND_WITH_CHECK_RESTRICTED');
  const afterUserRole=await query(actor,'user_roles');
  yes('B196_REVOKED_ROLE_RECORD_ABSENT',afterUserRole.status===200&&afterUserRole.count===0,afterUserRole);
  const ownRole=await role();
@@ -121,5 +150,5 @@ export async function runBuild196({uids,query,rpc,mutation,yes}){
  const final=await candidate();
  yes('B196_REAPPROVED_CANDIDATES_RECOVER',final.status===200&&final.count===2,final);
 
- console.log('BUILD196_24_OF_24_ORIGINAL_GAP_AND_REVIEW_OVERLAY_CASES_PASS_DISPOSABLE_ONLY');
+ console.log('BUILD197_27_OF_27_REVOCATION_AND_NOTIFICATION_READ_WRITE_CASES_PASS_DISPOSABLE_ONLY');
 }
