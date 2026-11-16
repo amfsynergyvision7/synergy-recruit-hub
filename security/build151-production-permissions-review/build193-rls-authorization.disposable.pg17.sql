@@ -132,7 +132,7 @@ SELECT (
  public.has_role('11111111-1111-4111-8111-111111111111','admin'::public.app_role)
  AND NOT public.has_role('22222222-2222-4222-8222-222222222222','recruiter'::public.app_role)
  AND NOT public.has_role(NULL::uuid,'admin'::public.app_role)
-) AS b194_admin_helper \\gset
+) AS b194_admin_helper \gset
 \if :b194_admin_helper
  \echo 'BUILD194_ADMIN_SELF_ROLE_TRUE_CROSS_USER_FALSE'
 \else
@@ -166,7 +166,7 @@ SELECT (
 SELECT (
  public.has_role('22222222-2222-4222-8222-222222222222','recruiter'::public.app_role)
  AND NOT public.has_role('11111111-1111-4111-8111-111111111111','admin'::public.app_role)
-) AS b194_recruiter_helper \\gset
+) AS b194_recruiter_helper \gset
 \if :b194_recruiter_helper
  \echo 'BUILD194_RECRUITER_HELPER_SELF_TRUE_ADMIN_ENUMERATION_FALSE'
 \else
@@ -309,7 +309,7 @@ RESET ROLE;
 SET LOCAL ROLE service_role;
 SELECT NOT public.has_role(
  '11111111-1111-4111-8111-111111111111','admin'::public.app_role)
- AS b194_service_no_subject \\gset
+ AS b194_service_no_subject \gset
 \if :b194_service_no_subject
  \echo 'BUILD194_SERVICE_ROLE_NO_SUBJECT_RETURNS_FALSE_REVIEW_EXTERNAL_CALLERS'
 \else
@@ -338,7 +338,7 @@ SELECT (
 SELECT set_config('request.jwt.claim.sub','',true);
 SELECT NOT public.has_role(
  '11111111-1111-4111-8111-111111111111','admin'::public.app_role)
- AS b194_no_subject_helper \\gset
+ AS b194_no_subject_helper \gset
 \if :b194_no_subject_helper
  \echo 'BUILD194_NO_SUBJECT_HELPER_FALSE'
 \else
