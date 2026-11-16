@@ -574,7 +574,7 @@ test('Build196 signed JWT survives while DB role/profile revocations immediately
  assert.match(testCode,/PGDATABASE==='amf_build195_gotrue_35_policy_lab'/);
  assert.match(testCode,/PGUSER==='postgres'/);
  assert.match(testCode,/BUILD196_REVOKED_UNEXPIRED_GOTRUE_JWT_ACCESS_CUT_OFF/);
- assert.match(testCode,/BUILD196_23_OF_23_ROLE_AND_APPROVAL_CHANGE_CASES_PASS_DISPOSABLE_ONLY/);
+ assert.match(testCode,/BUILD196_24_OF_24_ORIGINAL_GAP_AND_REVIEW_OVERLAY_CASES_PASS_DISPOSABLE_ONLY/);
  assert.match(testCode,/DELETE FROM public\.user_roles WHERE user_id/);
  assert.match(testCode,/UPDATE public\.profiles SET is_active=false/);
  assert.match(testCode,/UPDATE public\.profiles SET status='suspended'/);
@@ -582,6 +582,8 @@ test('Build196 signed JWT survives while DB role/profile revocations immediately
   'B196_REVOKED_BUT_JWT_STILL_VALID_SELF_PROFILE',
   'B196_REVOKED_CANDIDATES_INVISIBLE',
   'B196_REVOKED_CANDIDATE_WRITE_DENIED',
+  'B196_ORIGINAL_DRAFT_ROLELESS_NOTIFICATION_GAP_REPRODUCED',
+  'B196_REVIEW_ONLY_PATCH_REVOKED_NOTIFICATIONS_DENIED',
   'B196_REGRANTED_ROLE_HELPER_TRUE',
   'B196_INACTIVE_ROLE_LOOKUP_TRUE_NOT_AUTHORIZATION',
   'B196_INACTIVE_APPROVAL_BLOCKS_CANDIDATES',
@@ -593,8 +595,24 @@ test('Build196 signed JWT survives while DB role/profile revocations immediately
  assert.match(wrapper,/import \{runBuild196\} from '\.\/build196-role-revocation\.disposable\.mjs'/);
  assert.match(wrapper,/await runBuild196\(\{uids,query,rpc,mutation,yes\}\)/);
  assert.match(wrapper,/assert\.equal\(outcomes\.length,58/);
- assert.match(wrapper,/assert\.equal\(outcomes\.length,81/);
- assert.match(wrapper,/BUILD196_GOTRUE_FULL_35_POLICY_HTTP_81_OF_81_PASS_DISPOSABLE_ONLY/);
+ assert.match(wrapper,/assert\.equal\(outcomes\.length,82/);
+ assert.match(wrapper,/BUILD196_GOTRUE_FULL_35_POLICY_HTTP_82_OF_82_PASS_DISPOSABLE_ONLY/);
  assert.match(runner,/BUILD195_EPHEMERAL_DATABASE_REMOVED_VERIFIED/);
  assert(!testCode.includes('supabase.co'));
+});
+
+
+test('Build196 role-revoked notification candidate intentionally diverges from frozen PR16 source and never writes hosted',()=>{
+ const patch=load('build196-notification-role-required.REVIEW-ONLY.sql.txt');
+ const code=load('build196-role-revocation.disposable.mjs');
+ assert.match(patch,/DO NOT APPLY TO HOSTED OR PRODUCTION DB/);
+ assert.match(patch,/current_database\(\)<>'amf_build195_gotrue_35_policy_lab'/);
+ assert.match(patch,/ALTER POLICY notifications_read ON public.notifications/);
+ assert.match(patch,/SELECT 1 FROM public.user_roles/);
+ assert.match(code,/BUILD196_RELEASE_HOLD_ORIGINAL_NOTIFICATION_POLICY_ALLOWS_ROLE_REVOKED_RECIPIENT/);
+ assert.match(code,/BUILD196_CANDIDATE_POLICY_DIVERGES_FROM_REVIEWED_35_POLICY_SOURCE_HOLD/);
+ assert.match(code,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
+ assert.match(code,/B196_REVIEW_ONLY_PATCH_REVOKED_NOTIFICATIONS_DENIED/);
+ assert.match(code,/BUILD196_24_OF_24_ORIGINAL_GAP_AND_REVIEW_OVERLAY_CASES_PASS_DISPOSABLE_ONLY/);
+ assert.doesNotMatch(patch,/^COMMIT;/m);
 });
