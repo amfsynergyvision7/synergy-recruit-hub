@@ -12,7 +12,8 @@ const files={
  legacy:['legacy-67-policies.DO-NOT-RUN.sql.txt','59ac1f0d25215333868012fdb8e6b9382ed12e14'],
  proposal:['complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt','484c251cdbfd932bdab5ffcf039a107e7478633e'],
  fingerprint:['policy-fingerprint.readonly.sql','6815eebf2fb6fcc70cfc071bd499c98b73bdcc9e'],
- post:['build191-postflight.readonly.sql','7c7185769033b22aeef9fcd5661874ae90329a71']
+ post:['build191-postflight.readonly.sql','7c7185769033b22aeef9fcd5661874ae90329a71'],
+ proposed35:['build192-exact-35-policy-fingerprint.readonly.sql','41a08c33f3d423b5b3f0a4b91bffe8e2c97acd0e']
 };
 const hash=t=>createHash('sha1').update('blob '+Buffer.byteLength(t)+'\0').update(t).digest('hex');
 const read=key=>{
@@ -22,7 +23,7 @@ const read=key=>{
  return data;
 };
 const base=read('base'),legacy=read('legacy'),proposal=read('proposal'),
- fingerprint=read('fingerprint'),post=read('post');
+ fingerprint=read('fingerprint'),post=read('post'),proposed35=read('proposed35');
 if(process.env.B192_DISPOSABLE_ONLY!=='true' ||
    process.env.PGHOST!=='127.0.0.1' ||
    process.env.PGDATABASE!=='amf_build192_full_policy_lab')
@@ -61,6 +62,8 @@ assert(fingerprint.trimEnd().endsWith('FROM aggregate;'));
 assert(post.trimEnd().endsWith('FROM aggregate;'));
 writeFileSync(p('fingerprint.gset.sql'),fingerprint.trimEnd().slice(0,-1)+' \\gset\n');
 writeFileSync(p('postflight.gset.sql'),post.trimEnd().slice(0,-1)+' \\gset\n');
+assert(proposed35.trimEnd().endsWith('FROM fingerprint;'));
+writeFileSync(p('proposed-35-fingerprint.gset.sql'),proposed35.trimEnd().slice(0,-1)+' \\gset\n');
 const commit='\nCOMMIT;';
 const at=proposal.lastIndexOf(commit);
 assert(at>0&&proposal.indexOf(commit)===at,'exactly one final COMMIT required');
@@ -72,6 +75,41 @@ const tail=[
  '\\i '+p('postflight.gset.sql'),
  "SELECT md5(string_agg(tablename||chr(31)||policyname||chr(31)||permissive||chr(31)||roles::text||chr(31)||cmd||chr(31)||coalesce(qual,'<NULL>')||chr(31)||coalesce(with_check,'<NULL>'),chr(10) ORDER BY tablename,policyname)) AS b192_policy_md5 FROM pg_catalog.pg_policies WHERE schemaname='public' \\gset",
  "\\echo 'BUILD192_PROPOSED_35_POLICY_MD5' :b192_policy_md5",
+ '\\i '+p('proposed-35-fingerprint.gset.sql'),
+ "SELECT (:'proposed_policy_source_gate'='REVIEW_ONLY_EXACT_35_POLICY_SOURCE_MATCH_NOT_RELEASE') AS b192_exact_match \\gset",
+ '\\if :b192_exact_match',
+ " \\echo 'BUILD192_EXACT_35_POLICY_SOURCE_MATCH_NOT_RELEASE'",
+ '\\else',
+ " \echo 'BUILD192_FAIL_EXACT_35_SOURCE_DRIFT'",
+ ' SELECT 1/0;',
+ '\\endif',
+ '-- Source-count-only control must NOT be considered sufficient:',
+ 'SAVEPOINT b192_predicate_drift;',
+ 'ALTER POLICY candidates_read ON public.candidates USING(true);',
+ '\\i '+p('postflight.gset.sql'),
+ "SELECT (:'reviewer_gate'='REVIEW_ONLY_PROPOSED_POSTFLIGHT_METADATA_MATCH_NO_RELEASE') AS b192_old_false_positive \\gset",
+ '\\if :b192_old_false_positive',
+ " \\echo 'BUILD192_35_COUNT_ONLY_CHECKER_FALSE_POSITIVE_REPRODUCED'",
+ '\\else',
+ " \\echo 'BUILD192_COUNT_ONLY_CHECKER_TIGHTENED_AWAY_FALSE_POSITIVE'",
+ '\\endif',
+ '\\i '+p('proposed-35-fingerprint.gset.sql'),
+ "SELECT (:'proposed_policy_source_gate'='HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT') AS b192_detected \\gset",
+ '\\if :b192_detected',
+ " \\echo 'BUILD192_EXACT_POLICY_FINGERPRINT_CAUGHT_SAME_COUNT_PREDICATE_DRIFT'",
+ '\\else',
+ " \\echo 'BUILD192_FAIL_FINGERPRINT_ACCEPTED_UNSAFE_PREDICATE'",
+ ' SELECT 1/0;',
+ '\\endif',
+ 'ROLLBACK TO SAVEPOINT b192_predicate_drift;',
+ 'RELEASE SAVEPOINT b192_predicate_drift;',
+ '\\i '+p('proposed-35-fingerprint.gset.sql'),
+ "SELECT (:'proposed_policy_source_gate'='REVIEW_ONLY_EXACT_35_POLICY_SOURCE_MATCH_NOT_RELEASE') AS b192_recovered \\gset",
+ '\\if :b192_recovered',
+ " \\echo 'BUILD192_EXACT_35_POLICY_FINGERPRINT_RECOVERED'",
+ '\\else',
+ ' SELECT 1/0;',
+ '\\endif',
  "SELECT (:'reviewer_gate'='REVIEW_ONLY_PROPOSED_POSTFLIGHT_METADATA_MATCH_NO_RELEASE') AS b192_pass \\gset",
  '\\if :b192_pass',
  " \\echo 'BUILD192_DRAFT_FULL_POSTFLIGHT_REVIEW_ONLY_MATCH'",
