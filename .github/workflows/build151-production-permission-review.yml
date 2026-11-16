@@ -55,3 +55,42 @@ jobs:
           PY
           psql -X -v ON_ERROR_STOP=1 -f security/build151-production-permissions-review/build191-postflight-disposable.pg17.sql
           echo 'BUILD191_ONLY_DISPOSABLE_PG17_NO_HOSTED_WRITES'
+  actual-source-policy-draft-rollback:
+    name: Exact reviewed 67-to-35 SQL replay — ephemeral PG17 / no COMMIT
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-disposable-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Replay exact legacy and draft SQL inside disposable PG17 only, then ROLLBACK
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: amf_build192_full_policy_lab
+          PGPASSWORD: synthetic-disposable-only
+          B192_DISPOSABLE_ONLY: 'true'
+        run: |
+          set -euo pipefail
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          psql -X -v ON_ERROR_STOP=1 -d postgres -c 'CREATE DATABASE amf_build192_full_policy_lab'
+          node security/build151-production-permissions-review/build192-replay-actual-proposal.disposable.mjs
+          psql -X -v ON_ERROR_STOP=1 -d amf_build192_full_policy_lab -f "$RUNNER_TEMP/build192-disposable/synthetic-source-shaped-bootstrap.sql"
+          psql -X -v ON_ERROR_STOP=1 -d amf_build192_full_policy_lab -f "$RUNNER_TEMP/build192-disposable/fingerprint.gset.sql"
+          psql -X -v ON_ERROR_STOP=1 -d amf_build192_full_policy_lab -f "$RUNNER_TEMP/build192-disposable/real-draft-no-commit.rollback.sql"
+          echo 'BUILD192_ACTUAL_REVIEW_PROPOSAL_TESTED_DISPOSABLE_ONLY_NO_PRODUCTION_SQL'
