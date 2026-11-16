@@ -113,6 +113,7 @@ const tail=[
  "SELECT (:'reviewer_gate'='REVIEW_ONLY_PROPOSED_POSTFLIGHT_METADATA_MATCH_NO_RELEASE') AS b192_pass \\gset",
  '\\if :b192_pass',
  " \\echo 'BUILD192_DRAFT_FULL_POSTFLIGHT_REVIEW_ONLY_MATCH'",
+ '\\i security/build151-production-permissions-review/build193-rls-authorization.disposable.pg17.sql',
  '\\else',
  " \\echo 'BUILD192_DRAFT_POSTFLIGHT_HOLD_DETECTED'",
  ' SELECT 1/0;',
