@@ -51,8 +51,8 @@ const rpc=async(token,user,role)=>{
  const x=await http('/rpc/has_role',token,'POST',{_user_id:user,_role:role});
  return {status:x.status,value:x.body};
 };
-const rows=async(table,token)=>{
- const x=await http('/'+table+'?select=id',token);
+const rows=async(table,token,projection='id')=>{
+ const x=await http('/'+table+'?select='+encodeURIComponent(projection),token);
  return {status:x.status,count:Array.isArray(x.body)?x.body.length:-1};
 };
 for(let k=0;k<30;k++){
@@ -91,7 +91,7 @@ check('SIGNED_MISSING_SUBJECT_NO_ROLE',missing,
 const service=await rpc(tokens.service,ids.admin,'admin');
 check('SERVICE_ROLE_WITHOUT_USER_FALSE',service,x=>x.status===200&&x.value===false);
 check('MISMATCHED_SUB_DENIED',await rpc(tokens.admin,ids.finance,'finance'),{status:200,value:false});
-check('NO_DIRECT_USER_ROLE_TABLE_SELECT',await rows('user_roles',tokens.admin),x=>[401,403].includes(x.status));
+check('NO_DIRECT_USER_ROLE_TABLE_SELECT',await rows('user_roles',tokens.admin,'user_id'),x=>[401,403].includes(x.status));
 assert.equal(cases.length,25);
 assert.equal(cases.filter(x=>x.ok).length,25);
 console.log('BUILD188_SIGNED_POSTGREST_RPC_25_OF_25_PASS_SYNTHETIC_ONLY');
