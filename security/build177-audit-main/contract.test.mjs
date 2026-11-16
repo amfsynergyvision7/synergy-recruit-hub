@@ -284,8 +284,11 @@ test("Build187 proposed helper preserves 41 current-user policy calls and refuse
  "BUILD187_ADMIN_SELF_SCOPING_AND_RLS_PASS",
  "BUILD187_RECRUITER_SCOPING_AND_RLS_PASS",
  "BUILD187_FINANCE_ISOLATION_AND_RLS_PASS",
+ "BUILD187_SERVICE_ROLE_NO_SESSION_FALSE_REVIEW_CALLER_COMPATIBILITY",
  "BUILD187_ANON_EXECUTE_DENIED","BUILD187_FULL_ROLLBACK_VERIFIED"])
   assert(behavior.includes(item),item);
+ assert.match(behavior,/GRANT EXECUTE ON FUNCTION public\.has_role\(uuid,public\.app_role\) TO service_role/);
+ assert.match(behavior,/has_function_privilege\('service_role'/);
  assert.match(behavior,/^ROLLBACK;$/m);
  assert.match(note,/41\/41/);
  assert.match(note,/signed GoTrue JWT/);
