@@ -23,3 +23,7 @@ A security reviewer should inspect every flagged role-helper/direct membership a
 The current live production audit-table grants (anon, authenticated, service_role **8/8** effective privileges), universal PUBLIC ALL policy and missing trusted email reconciliation RPC have not been remediated. **Project formally remains 26/100, 12/43 accepted, 31 outstanding; Category C is 6/10.** No extra accepted milestone is generated merely by inventory creation.
 
 Related [critical audit issue #19](https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/19), [role helper issue #26](https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/26), and [release executive issue #14](https://github.com/amfsynergyvision7/synergy-recruit-hub/issues/14).
+
+## Verified two-branch classification and owner queue
+
+The independently rerunnable scanner and code review classifications are preserved in [Build190 findings](./BUILD190-FINDINGS.md), including the browser-side user-role mutation in current `main`, proposed held administrative RPC in the integration branch, server-admin role reads, audit display differences and the single dynamically dispatched candidate-sync lease RPC candidate. The scanner now distinguishes **direct** `user_roles` and `audit_logs` mutations from read references, and separately counts runtime vs migration function occurrences. All evidence remains source review only; actual caller completeness and production safety remain HOLD.
