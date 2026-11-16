@@ -64,6 +64,7 @@ for(let k=0;k<30;k++){
 check('ADMIN_SELF_ROLE',await rpc(tokens.admin,ids.admin,'admin'),{status:200,value:true});
 check('ADMIN_CROSS_USER_RECRUITER_DENIED',await rpc(tokens.admin,ids.recruiter,'recruiter'),{status:200,value:false});
 check('ADMIN_OTHER_ROLE_DENIED',await rpc(tokens.admin,ids.admin,'recruiter'),{status:200,value:false});
+check('ADMIN_NULL_USER_ID_BOOLEAN_FALSE',await rpc(tokens.admin,null,'admin'),{status:200,value:false});
 check('ADMIN_AUDIT_VIEW',await rows('audit_probe',tokens.admin),{status:200,count:1});
 check('ADMIN_CANDIDATE_VIEW',await rows('candidate_probe',tokens.admin),{status:200,count:1});
 check('RECRUITER_SELF_ROLE',await rpc(tokens.recruiter,ids.recruiter,'recruiter'),{status:200,value:true});
@@ -92,6 +93,6 @@ const service=await rpc(tokens.service,ids.admin,'admin');
 check('SERVICE_ROLE_WITHOUT_USER_FALSE',service,x=>x.status===200&&x.value===false);
 check('MISMATCHED_SUB_DENIED',await rpc(tokens.admin,ids.finance,'finance'),{status:200,value:false});
 check('NO_DIRECT_USER_ROLE_TABLE_SELECT',await rows('user_roles',tokens.admin,'user_id'),x=>[401,403].includes(x.status));
-assert.equal(cases.length,25);
-assert.equal(cases.filter(x=>x.ok).length,25);
-console.log('BUILD188_SIGNED_POSTGREST_RPC_25_OF_25_PASS_SYNTHETIC_ONLY');
+assert.equal(cases.length,26);
+assert.equal(cases.filter(x=>x.ok).length,26);
+console.log('BUILD194_SIGNED_POSTGREST_RPC_26_OF_26_PASS_SYNTHETIC_ONLY');
