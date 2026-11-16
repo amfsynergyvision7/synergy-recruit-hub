@@ -1,0 +1,166 @@
+name: Build177–190 audit security + source caller inventory (release HOLD)
+on:
+  pull_request:
+    paths:
+      - 'security/build177-audit-main/**'
+      - 'security/build187-role-helper/**'
+      - 'security/build188-signed-rpc/**'
+      - 'security/build189-gotrue-rpc/**'
+      - 'security/build190-static-callers/**'
+      - '.github/workflows/build177-audit-main.yml'
+permissions:
+  contents: read
+jobs:
+  audit-source-contracts:
+    name: Exact-source audit isolation and NO-APPLY contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - run: node --test security/build177-audit-main/contract.test.mjs
+  disposable-pg17:
+    name: Disposable PostgreSQL17 grant proposal + transaction rollback
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-disposable-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify source-pinned audit preflight before and after proposed revokes in disposable PG17
+        # Exact original Build160 SELECT is not edited or applied to hosted DBs.
+        # Only a transient local psql query buffer gets its final semicolon
+        # replaced with \gset so the test can assert the original HOLD.
+        # The reviewed SQL and production objects remain unchanged.
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: synthetic-disposable-only
+        run: |
+          set -euo pipefail
+          SOURCE=security/build177-audit-main/reviewed/audit-integrity.preflight.readonly.sql
+          test "$(tail -n 1 "$SOURCE")" = "FROM facts;"
+          sed '$s/;[[:space:]]*$//' "$SOURCE" > /tmp/build178-audit-preflight.gset.sql
+          printf '\gset audit_\n' >> /tmp/build178-audit-preflight.gset.sql
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          SOURCE_V2=security/build177-audit-main/audit-integrity.pg17-corrected.readonly.sql
+          test "$(tail -n 1 "$SOURCE_V2")" = "FROM facts;"
+          sed '$s/;[[:space:]]*$//' "$SOURCE_V2" > /tmp/build179-corrected-preflight.gset.sql
+          printf '\gset audit_\n' >> /tmp/build179-corrected-preflight.gset.sql
+          psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-disposable-rollback.sql
+          psql -X -v ON_ERROR_STOP=1 -f security/build177-audit-main/pg17-gate-sensitivity.sql
+          # The exact DO-NOT-APPLY helper proposal is executed only in an
+          # ephemeral PG17 transaction and rolled back, never on hosted data.
+          psql -X -v ON_ERROR_STOP=1 -f security/build187-role-helper/pg17-role-helper-behavior.sql
+  signed-postgrest-rpc:
+    name: Disposable signed-JWT PostgREST has_role RPC and RLS checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-disposable-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Run signed-JWT HTTP tests against disposable PG17/PostgREST ONLY
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: synthetic-disposable-only
+          B188_JWT_SECRET: BUILD188_DISPOSABLE_HMAC_ONLY_NEVER_A_LIVE_CREDENTIAL_2026
+        run: |
+          set -euo pipefail
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          bash security/build188-signed-rpc/run_signed_rpc.sh
+  disposable-gotrue-issuer-rpc:
+    name: Disposable GoTrue-issued JWT + PG17/PostgREST has_role and RLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic-disposable-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Execute real-GoTrue-issued JWT role helper HTTP checks using disposable PG17 only
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: postgres
+          PGPASSWORD: synthetic-disposable-only
+          B189_JWT_SECRET: BUILD189_EPHEMERAL_ONLY_AUTH_SECRET_DO_NOT_USE_IN_PRODUCTION_2026
+          B189_CI_DISPOSABLE_ONLY: 'true'
+        run: |
+          set -euo pipefail
+          command -v psql || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+          bash security/build189-gotrue-rpc/run_gotrue_role_rpc.sh
+  pinned-source-caller-inventory:
+    name: Read-only pinned main/integration CRM audit and role caller inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Fetch exact source review snapshots, fail on upstream drift
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/build190-main
+          git fetch --no-tags --depth=1 origin +refs/heads/security/build34-guarded-sync-review-20261111:refs/remotes/origin/build190-integration
+          test "$(git rev-parse refs/remotes/origin/build190-main)" = "c735292fbace6605d691a68b602a02b2c6f9e137"
+          test "$(git rev-parse refs/remotes/origin/build190-integration)" = "b2734b14c0e19d2ce2b8daa87655ca18c2d932d6"
+          node security/build190-static-callers/source-inventory.mjs
+  main-release-hold:
+    if: github.base_ref == 'main'
+    name: Audit production merge and deployment — HOLD (intentionally fails)
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo 'CRITICAL AUDIT RELEASE HOLD: live grants unsafe, no approved external writer inventory, restore validation, independent DBA/UAT or protected main.'
+          echo 'Source-only review. No SQL was applied outside the disposable PG17 test container.'
+          exit 1
