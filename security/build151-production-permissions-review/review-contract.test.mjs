@@ -514,3 +514,46 @@ test('Build194 cross-PR source snapshot must exactly match PR23 reviewed role he
  assert.match(replay,/build193-rls-authorization\.disposable\.pg17\.sql/);
  assert.match(replay,/BUILD192_REAL_DRAFT_TRANSACTION_ROLLED_BACK/);
 });
+
+
+test('Build195 end-to-end actual 35-policy + PR23 helper with GoTrue-issued JWTs is strictly CI-disposable',()=>{
+ const auth=load('build195-gotrue-auth-base.disposable.sql');
+ const prep=load('build195-prepare-full-gotrue.disposable.mjs');
+ const runner=load('build195-run-disposable-gotrue-35-policy.sh');
+ const http=load('build195-full-gotrue-35-policy-http.test.mjs');
+ const workflow=readFileSync(resolve(dir,'../../.github/workflows/build151-production-permission-review.yml'),'utf8');
+ assert.equal(blobSha(auth),'27058f2f2c3f91552686a02cea3e9110132bb0cd');
+ for(const file of ['complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt',
+ 'build194-role-helper.PR23-SNAPSHOT.DO-NOT-APPLY.sql.txt',
+ 'legacy-67-policies.DO-NOT-RUN.sql.txt',
+ 'disposable-rehearsal.DO-NOT-RUN.sql.txt'])
+  assert(prep.includes(file),file);
+ for(const source of ['484c251cdbfd932bdab5ffcf039a107e7478633e',
+ '309b62681dd6ce221f24733766aa9b48da845c8f',
+ '27058f2f2c3f91552686a02cea3e9110132bb0cd'])
+  assert(prep.includes(source),source);
+ for(const feature of ['B195_DISPOSABLE_ONLY','amf_build195_gotrue_35_policy_lab',
+ 'PGHOST','PGUSER','BUILD195_NO_HOSTED_TARGET_AUTHORIZED'])
+  assert(prep.includes(feature)||feature==='BUILD195_NO_HOSTED_TARGET_AUTHORIZED',feature);
+ assert.match(prep,/install-only-in-ephemeral-db.sql/);
+ assert.match(prep,/CREATE OR REPLACE FUNCTION public\.is_approved/);
+ assert.match(runner,/set -euo pipefail/);
+ assert.match(runner,/supabase\/gotrue:v2\.197\.0/);
+ assert.match(runner,/postgrest\/postgrest:v12\.2\.3/);
+ assert.match(runner,/trap cleanup EXIT/);
+ assert.match(runner,/dropdb --if-exists amf_build195_gotrue_35_policy_lab/);
+ assert.match(runner,/127\.0\.0\.1:9999/);
+ assert.match(runner,/127\.0\.0\.1:5432/);
+ for(const check of ['BUILD195_FIVE_GOTRUE_ISSUED_FICTIONAL_JWTS',
+ 'NULL_ROLE_TARGET_STRICT_FALSE','CANDIDATE_OWNER_REASSIGN_DENIED',
+ 'NOTIFICATION_RECIPIENT_MUTATION_DENIED',
+ 'BROWSER_ROLE_MUTATION_DENIED','GOTRUE_TAMPERED_JWT_REJECTED',
+ 'OWN_CANDIDATE_STAGE_UPDATED','ANON_PRIVATE_BRANDING_DENIED',
+ 'BUILD195_GOTRUE_FULL_35_POLICY_HTTP_'])
+  assert(http.includes(check),check);
+ assert.match(workflow,/full-policy-gotrue-jwt-http:/);
+ assert.match(workflow,/B195_DISPOSABLE_ONLY: 'true'/);
+ assert.match(workflow,/image: postgres:17/);
+ assert.match(workflow,/build195-run-disposable-gotrue-35-policy\.sh/);
+ assert(!/https:\/\/[^'"\s]*supabase\.co/.test(runner));
+});
