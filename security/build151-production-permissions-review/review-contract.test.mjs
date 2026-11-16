@@ -708,3 +708,42 @@ test('Build198 function-body fingerprint catches helper rewrite without relying 
  assert.match(runner,/BUILD198_APPROVAL_FUNCTION_SOURCE_DRIFT_EXPECTED_HOLD/);
  assert.match(runner,/bodyGate\.split\('\|'\)\.at\(-1\)/);
 });
+
+
+test('Build199 SOURCE PINNED simultaneous role/approval/notification overlays, strict HOLD and service no-subject consequence',()=>{
+ const suite=load('build199-combined-candidates.disposable.mjs');
+ const wrapper=load('build195-full-gotrue-35-policy-http.test.mjs');
+ const sourceContract=load('build198-lookup-functions-fingerprint.readonly.sql');
+ const policyContract=load('build192-exact-35-policy-fingerprint.readonly.sql');
+ const workflow=readFileSync(resolve(dir,'../../.github/workflows/build151-production-permission-review.yml'),'utf8');
+ for(const sha of ['9100d89d6f63316fac798cd50e29070642649cc8',
+ '54c61175b92ede5cc9a010abc4a30545103f35cf',
+ '0765668ec71d066a6e78dfd3bef25556690bb742'])
+  assert(suite.includes(sha),sha);
+ for(const id of [
+ 'BUILD199_THREE_SEPARATE_REVIEW_CANDIDATE_SOURCE_BLOBS_PINNED',
+ 'BUILD199_COMBINED_CANDIDATE_SOURCE_FINGERPRINTS_EXPECTED_HOLD',
+ 'BUILD199_FOREIGN_ROLE_LOOKUP_BLOCKED',
+ 'BUILD199_FOREIGN_APPROVAL_LOOKUP_BLOCKED',
+ 'BUILD199_ROLE_REVOKED_NOTIFICATION_WRITE_NO_EFFECT',
+ 'BUILD199_ROLE_REVOKED_APPROVAL_STILL_TRUE',
+ 'BUILD199_SERVICE_CALLER_COMPATIBILITY_HOLD_NO_SUBJECT',
+ 'BUILD199_REACTIVATED_APPROVAL_TRUE',
+ 'BUILD199_SUSPENDED_DATA_HIDDEN',
+ 'BUILD199_33_OF_33_COMBINED_UNAPPROVED_CANDIDATE_HTTP_AND_SERVICE_CHECKS_PASS'])
+  assert(suite.includes(id),id);
+ assert.match(suite,/current_database\(\)<>'amf_build195_gotrue_35_policy_lab'/);
+ assert.match(suite,/B195_DISPOSABLE_ONLY/);
+ assert.match(suite,/PGHOST==='127\.0\.0\.1'/);
+ assert.match(suite,/SET LOCAL ROLE service_role/);
+ assert.match(suite,/assert\.equal\(tests,33/);
+ assert.match(suite,/HOLD_LOOKUP_HELPER_DEFINITION_DRIFT/);
+ assert.match(suite,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
+ assert.match(sourceContract,/HOLD_LOOKUP_HELPER_DEFINITION_DRIFT/);
+ assert.match(policyContract,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
+ assert.match(wrapper,/await runBuild199\(\{uids,tokens,query,rpc,mutation,yes\}\)/);
+ assert.match(wrapper,/assert\.equal\(outcomes\.length,145/);
+ assert.match(wrapper,/BUILD199_GOTRUE_FULL_35_POLICY_HTTP_145_OF_145_PASS_DISPOSABLE_ONLY/);
+ assert.match(workflow,/full-policy-gotrue-jwt-http:/);
+ assert(!suite.includes('supabase.co'));
+});
