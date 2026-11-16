@@ -659,7 +659,7 @@ test('Build198 original production get_user_role is source-pinned, cross-user ga
  assert.match(overlay,/SET search_path=''/);
  assert.match(overlay,/FROM PUBLIC,anon,authenticated/);
  assert.match(executor,/BUILD198_ORIGINAL_DRAFT_AUTHENTICATED_FOREIGN_ROLE_LOOKUP_GAP_REPRODUCED/);
- assert.match(executor,/BUILD198_CANDIDATE_ADMIN_CROSS_USER_LOOKUP_NULL_REVIEW_CALLERS/);
+ assert.match(executor,/B198_CANDIDATE_ADMIN_CROSS_USER_LOOKUP_NULL_REVIEW_CALLERS/);
  assert.match(executor,/BUILD198_14_OF_14_ROLE_LOOKUP_ORIGINAL_AND_CANDIDATE_CASES_PASS_DISPOSABLE_ONLY/);
  assert.match(generator,/prodRoleLookup:\['build198-original-get-user-role\.DISPOSABLE\.sql\.txt'/);
  assert.match(generator,/19ed98d1216c6ef4ef55deabfaef9e21172dc544/);
