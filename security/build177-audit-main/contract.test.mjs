@@ -199,3 +199,25 @@ test("Build184 guards exact PostgREST input-name contract and four single-name v
  assert.equal((pg.match(/SELECT 1\/0;/g)||[]).length,29);
  assert(!/\b(?:ALTER|DROP|GRANT|REVOKE|INSERT|UPDATE|DELETE|CREATE)\s+(?:TABLE|ROLE|POLICY|FUNCTION|PROCEDURE)\b/iu.test(v2));
 });
+
+
+test("Build185 cross-schema audit-writer scan is metadata-only and refuses external-writer clearance",()=>{
+ const sql=readFileSync(join(root,"audit-writer-cross-schema.readonly.sql"),"utf8");
+ const doc=readFileSync(join(root,"BUILD185-WRITER-INVENTORY.md"),"utf8");
+ const executable=sql.split("\n").filter(line=>!line.trimStart().startsWith("--")).join("\n");
+ assert.match(sql,/READ-ONLY METADATA-ONLY WRITER INVENTORY/);
+ assert.match(executable,/pg_catalog\.pg_proc/);
+ assert.match(executable,/pg_catalog\.pg_trigger/);
+ assert.match(executable,/pg_catalog\.pg_depend/);
+ assert.match(executable,/pg_catalog\.pg_get_functiondef/);
+ assert.match(executable,/n\.nspname NOT IN \('pg_catalog','information_schema'\)/);
+ assert.match(executable,/REVIEW_ONLY_NOT_PROOF_OF_ABSENCE_OF_EXTERNAL_OR_DYNAMIC_WRITERS/);
+ assert(!/\b(?:FROM|JOIN)\s+public\.audit_logs\b/iu.test(executable));
+ assert(!/\b(?:INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|GRANT|REVOKE|COPY|EXECUTE)\b\s+(?:INTO|FROM|TABLE|ROLE|POLICY|FUNCTION|PROCEDURE|SCHEMA)\b/iu.test(executable));
+ assert.match(doc,/Production.*Isolated nonproduction/);
+ assert.match(doc,/158/);
+ assert.match(doc,/142/);
+ assert.match(doc,/zero|0/);
+ assert.match(doc,/not evidence|NOT evidence/i);
+ assert.match(doc,/PITR/);
+});
