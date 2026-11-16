@@ -12,7 +12,13 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 CREATE SCHEMA auth;
 CREATE TYPE public.app_role AS ENUM ('admin');
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $stub$ SELECT NULL::uuid $stub$;
-CREATE FUNCTION public.has_role(uuid,public.app_role) RETURNS boolean LANGUAGE sql STABLE AS $stub$ SELECT false $stub$;
+-- Fictional hardened helper metadata. The body is deliberately inert and
+-- cannot validate real app roles. This is NOT an executable remediation.
+CREATE FUNCTION public.has_role(uuid,public.app_role) RETURNS boolean
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
+ AS $stub$ SELECT false $stub$;
+REVOKE ALL ON FUNCTION public.has_role(uuid,public.app_role) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid,public.app_role) TO authenticated;
 CREATE POLICY "read audit" ON public.audit_logs FOR SELECT TO authenticated USING (has_role(auth.uid(), 'admin'::app_role));
 GRANT SELECT ON public.audit_logs TO authenticated;
 GRANT INSERT ON public.audit_logs TO service_role;
@@ -503,6 +509,62 @@ SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONC
  \echo 'BUILD184_EXPECTED_HOLD_26: incorrect input name'
 \else
  \echo 'Build184 gate incorrectly accepted renamed parameter p_provider_id'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+-- Build186 adverse 27: anonymous can invoke the definer role helper.
+SAVEPOINT build179_mutation;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid,public.app_role) TO anon;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build186_expected_hold \gset
+\if :build186_expected_hold
+ \echo 'BUILD186_EXPECTED_HOLD_27: helper metadata is not safe for review'
+\else
+ \echo 'Build186 improperly accepted unsafe helper case 27'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+-- Build186 adverse 28: authenticated cannot invoke the admin-policy helper.
+SAVEPOINT build179_mutation;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid,public.app_role) FROM authenticated;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build186_expected_hold \gset
+\if :build186_expected_hold
+ \echo 'BUILD186_EXPECTED_HOLD_28: helper metadata is not safe for review'
+\else
+ \echo 'Build186 improperly accepted unsafe helper case 28'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+-- Build186 adverse 29: definer helper has writable unpinned search_path.
+SAVEPOINT build179_mutation;
+ALTER FUNCTION public.has_role(uuid,public.app_role) SET search_path TO public;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build186_expected_hold \gset
+\if :build186_expected_hold
+ \echo 'BUILD186_EXPECTED_HOLD_29: helper metadata is not safe for review'
+\else
+ \echo 'Build186 improperly accepted unsafe helper case 29'
+ SELECT 1/0;
+\endif
+ROLLBACK TO SAVEPOINT build179_mutation;
+RELEASE SAVEPOINT build179_mutation;
+
+-- Build186 adverse 30: admin-policy helper no longer has reviewed definer execution.
+SAVEPOINT build179_mutation;
+ALTER FUNCTION public.has_role(uuid,public.app_role) SECURITY INVOKER;
+\i /tmp/build179-corrected-preflight.gset.sql
+SELECT (:'audit_audit_integrity_gate'='HOLD_AUDIT_LOG_READABLE_MUTABLE_OR_RECONCILIATION_RPC_ABSENT') AS build186_expected_hold \gset
+\if :build186_expected_hold
+ \echo 'BUILD186_EXPECTED_HOLD_30: helper metadata is not safe for review'
+\else
+ \echo 'Build186 improperly accepted unsafe helper case 30'
  SELECT 1/0;
 \endif
 ROLLBACK TO SAVEPOINT build179_mutation;
