@@ -135,6 +135,17 @@ SELECT (
  SELECT 1/0;
 \endif
 
+-- Build194 regression: a signed-in user supplying NULL target UUID must
+-- receive BOOLEAN FALSE, not SQL NULL (which silently unsets psql gset).
+SELECT (public.has_role(NULL::uuid,'admin'::public.app_role) IS FALSE)
+ AS build194_null_target_false \gset
+\if :build194_null_target_false
+ \echo 'BUILD194_NULL_USER_ID_BOOLEAN_FALSE_NOT_NULL'
+\else
+ \echo 'BUILD194_FAIL: NULL role-target returned nullable result'
+ SELECT 1/0;
+\endif
+
 -- Recruiter: own role works, foreign admin role cannot be probed,
 -- audit SELECT remains blocked and candidate sample SELECT is allowed.
 SELECT set_config('request.jwt.claim.sub',
