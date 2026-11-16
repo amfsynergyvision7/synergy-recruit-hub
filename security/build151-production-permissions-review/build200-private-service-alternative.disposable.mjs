@@ -47,6 +47,19 @@ export async function runBuild200({uids,tokens,query,yes}){
  function check(label,ok,actual){yes(label,ok,actual);cases++;}
  psql(candidate);
  console.log('BUILD200_PINNED_PRIVATE_SERVICE_FUNCTIONS_INSTALLED_DISPOSABLE_ONLY');
+ // The immutable Build73 local GoTrue fixture creates service_role NOLOGIN,
+ // but does not model production BYPASSRLS. Production role metadata was
+ // confirmed SELECT-only (rolbypassrls=true) on 16 November 2026.
+ // This is a CLUSTER-LEVEL privilege change ONLY to a throwaway CI PG17
+ // service, NOT to any connected Supabase DB. Do not change pinned auth base.
+ const initialBypass=select("SELECT rolbypassrls::text FROM pg_catalog.pg_roles WHERE rolname='service_role'");
+ assert.equal(initialBypass,'false','Build200 fixture security-model drift requires review');
+ console.log('BUILD200_LEGACY_GO_TRUE_FIXTURE_SERVICE_BYPASSRLS_MISMATCH_DETECTED');
+ psql('ALTER ROLE service_role BYPASSRLS;');
+ const nowBypass=select("SELECT rolbypassrls::text FROM pg_catalog.pg_roles WHERE rolname='service_role'");
+ check('B200_DISPOSABLE_SERVICE_ROLE_MATCHES_PRODUCTION_BYPASSRLS',
+  nowBypass==='true',{nowBypass});
+ console.log('BUILD200_DISPOSABLE_ONLY_SERVICE_ROLE_BYPASSRLS_MATCH_VERIFIED');
  const catalog=select("SELECT (count(*)=2)::text FROM pg_catalog.pg_proc WHERE pronamespace='b200_review_internal'::regnamespace AND NOT prosecdef");
  check('B200_BOTH_PRIVATE_HELPERS_SECURITY_INVOKER',catalog==='true',{catalog});
  const serviceSchema=select("SELECT has_schema_privilege('service_role','b200_review_internal','USAGE')::text");
@@ -105,7 +118,7 @@ export async function runBuild200({uids,tokens,query,yes}){
  check('B200_35_POLICY_COUNT_UNCHANGED',fullRls==='true',{fullRls});
  const privatePolicies=select("SELECT (count(*)=0)::text FROM pg_catalog.pg_policies WHERE schemaname='b200_review_internal'");
  check('B200_NO_PRIVATE_SCHEMA_POLICIES',privatePolicies==='true',{privatePolicies});
- assert.equal(cases,30,'Build200 requires 30 independently checked assertions');
- console.log('BUILD200_30_OF_30_PRIVATE_SERVICE_DESIGN_CASES_PASS_DISPOSABLE_ONLY');
+ assert.equal(cases,31,'Build200 requires 31 independently checked assertions');
+ console.log('BUILD200_31_OF_31_PRIVATE_SERVICE_DESIGN_CASES_PASS_DISPOSABLE_ONLY');
  console.log('BUILD200_SERVICE_ALTERNATIVE_UNAPPROVED_NO_AUDITED_SERVER_ROUTE');
 }
