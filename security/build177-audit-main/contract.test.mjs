@@ -160,7 +160,7 @@ test("Build180 RLS bypass, restrictive-only policy and app-role ownership are fa
  assert.match(fixture,/ALTER TABLE public\.audit_logs OWNER TO authenticated/);
  for(const n of [15,16,17,18])assert(fixture.includes("BUILD180_EXPECTED_HOLD_"+n),n);
  assert.equal((fixture.match(/BUILD180_EXPECTED_HOLD_\d\d/g)||[]).length,4);
- assert.equal((fixture.match(/SELECT 1\/0;/g)||[]).length,21);
+ assert.equal((fixture.match(/SELECT 1\/0;/g)||[]).length,25);
  assert(!/\b(?:CREATE|DROP|ALTER|GRANT|REVOKE|TRUNCATE|INSERT|UPDATE|DELETE)\s+(?:TABLE|POLICY|ROLE|FUNCTION)\b/iu.test(sql));
 });
 
