@@ -115,6 +115,19 @@ for(let i=0;i<35;i++){
  if(i===34)throw new Error('PostgREST schema not ready '+JSON.stringify(x).slice(0,190));
  await new Promise(resolve=>setTimeout(resolve,450));
 }
+const roleProbe=await rpc('admin',uids.admin,'admin');
+const approvalProbe=await http(rest+'/rpc/is_approved',{method:'POST',
+ headers:{Authorization:'Bearer '+tokens.admin,
+ 'Content-Type':'application/json',Accept:'application/json'},
+ body:JSON.stringify({_user_id:uids.admin})});
+const profileProbe=await query('admin','profiles');
+const rolesProbe=await query('admin','user_roles');
+console.log('BUILD195_FICTIONAL_AUTH_DIAGNOSTIC '+JSON.stringify({
+ roleStatus:roleProbe.status,roleValue:roleProbe.result,
+ approvalStatus:approvalProbe.status,approvalValue:approvalProbe.result,
+ profileStatus:profileProbe.status,profileCount:profileProbe.count,
+ userRolesStatus:rolesProbe.status,userRolesCount:rolesProbe.count
+}));
 for(const [role,table,expected] of [
  ['admin','candidates',2],['admin','job_openings',2],
  ['admin','billing',1],['admin','audit_logs',1],
