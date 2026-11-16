@@ -32,7 +32,7 @@ async function remoteRpc(name,uid,tokens){
  try{value=JSON.parse(t)}catch{value=t}
  return {status:resp.status,result:value};
 }
-export async function runBuild198({uids,tokens,yes}){
+export async function runBuild198({uids,tokens,query,yes}){
  const requested=async (actor,who)=>remoteRpc(actor,who===null?null:uids[who],tokens);
  // Unchanged production function body still has an arbitrary _user_id arg.
  // PR16 revokes anonymous EXECUTE, but grants authenticated EXECUTE.
@@ -101,4 +101,71 @@ export async function runBuild198({uids,tokens,yes}){
  yes('B198_CANDIDATE_ANON_FUNCTION_EXECUTE_DENIED',
   [401,403].includes(v.status),v);
  console.log('BUILD198_14_OF_14_ROLE_LOOKUP_ORIGINAL_AND_CANDIDATE_CASES_PASS_DISPOSABLE_ONLY');
+
+ // The actual production is_approved(uuid) is another unrestricted-target
+ // SECURITY DEFINER lookup. Test that original unmerged PR16 grant behavior
+ // permits reading a foreign user's current approval state through RPC.
+ const approvalRpc=async (actor,target)=>{
+  const headers={Accept:'application/json','Content-Type':'application/json'};
+  if(actor!==null)headers.Authorization='Bearer '+tokens[actor];
+  const response=await fetch('http://127.0.0.1:3000/rpc/is_approved',{
+   method:'POST',headers,body:JSON.stringify({_user_id:target===null?null:uids[target]}),
+   signal:AbortSignal.timeout(7000)});
+  const raw=await response.text();let value;
+  try{value=JSON.parse(raw)}catch{value=raw}
+  return {status:response.status,result:value};
+ };
+ const beforeApproval=localSql("SELECT md5(pg_get_functiondef(oid)) FROM pg_proc "+
+  "WHERE oid=to_regprocedure('public.is_approved(uuid)');");
+ assert.match(beforeApproval,/^[0-9a-f]{32}$/);
+ let ap=await approvalRpc('recruiterA','recruiterA');
+ yes('B198_ORIGINAL_APPROVAL_SELF_TRUE',ap.status===200&&ap.result===true,ap);
+ ap=await approvalRpc('recruiterA','admin');
+ yes('B198_ORIGINAL_APPROVAL_CROSS_USER_TRUE',
+   ap.status===200&&ap.result===true,ap);
+ ap=await approvalRpc('recruiterA','pending');
+ yes('B198_ORIGINAL_APPROVAL_CROSS_USER_PENDING_FALSE',
+   ap.status===200&&ap.result===false,ap);
+ ap=await approvalRpc(null,'admin');
+ yes('B198_ORIGINAL_PR16_ANON_APPROVAL_RPC_DENIED',
+   [401,403].includes(ap.status),ap);
+ console.log('BUILD198_ORIGINAL_DRAFT_FOREIGN_APPROVAL_BOOLEAN_LOOKUP_GAP_REPRODUCED');
+
+ const approvalOverlay=readFileSync(new URL('./build198-caller-bound-is-approved.REVIEW-ONLY.sql.txt',import.meta.url),'utf8');
+ assert.match(approvalOverlay,/REVIEW-ONLY candidate/i);
+ localSql(approvalOverlay);
+ const afterApproval=localSql("SELECT md5(pg_get_functiondef(oid)) FROM pg_proc "+
+  "WHERE oid=to_regprocedure('public.is_approved(uuid)');");
+ assert.notEqual(afterApproval,beforeApproval,
+  'The approval candidate must change the helper source');
+ const approvalPath=localSql("SELECT coalesce(array_to_string(proconfig,','),'') FROM pg_proc "+
+  "WHERE oid=to_regprocedure('public.is_approved(uuid)');");
+ assert.ok(approvalPath==='search_path='||approvalPath==='search_path=""');
+ const approvalAnon=localSql("SELECT has_function_privilege('anon',"+
+  "'public.is_approved(uuid)','EXECUTE')");
+ assert.equal(approvalAnon,'f');
+ ap=await approvalRpc('recruiterA','recruiterA');
+ yes('B198_CANDIDATE_APPROVAL_SELF_TRUE',ap.status===200&&ap.result===true,ap);
+ ap=await approvalRpc('recruiterA','admin');
+ yes('B198_CANDIDATE_APPROVAL_CROSS_USER_FALSE',ap.status===200&&ap.result===false,ap);
+ ap=await approvalRpc('admin','admin');
+ yes('B198_CANDIDATE_APPROVAL_ADMIN_SELF_TRUE',ap.status===200&&ap.result===true,ap);
+ ap=await approvalRpc('finance','finance');
+ yes('B198_CANDIDATE_APPROVAL_FINANCE_SELF_TRUE',ap.status===200&&ap.result===true,ap);
+ ap=await approvalRpc('pending','pending');
+ yes('B198_CANDIDATE_APPROVAL_PENDING_SELF_FALSE',ap.status===200&&ap.result===false,ap);
+ ap=await approvalRpc(null,'admin');
+ yes('B198_CANDIDATE_ANON_APPROVAL_RPC_DENIED',[401,403].includes(ap.status),ap);
+ let table=await query('recruiterA','candidates');
+ yes('B198_CANDIDATE_APPROVAL_RECRUITER_RLS_STILL_WORKS',
+  table.status===200&&table.count===2,table);
+ table=await query('finance','billing');
+ yes('B198_CANDIDATE_APPROVAL_FINANCE_RLS_STILL_WORKS',
+  table.status===200&&table.count===1,table);
+ table=await query('admin','candidates');
+ yes('B198_CANDIDATE_APPROVAL_ADMIN_RLS_STILL_WORKS',
+  table.status===200&&table.count===3,table);
+ console.log('BUILD198_13_OF_13_APPROVAL_LOOKUP_ORIGINAL_AND_CANDIDATE_CASES_PASS_DISPOSABLE_ONLY');
+ console.log('BUILD198_27_OF_27_TOTAL_HELPER_LOOKUP_CASES_PASS_DISPOSABLE_ONLY');
+
 }
