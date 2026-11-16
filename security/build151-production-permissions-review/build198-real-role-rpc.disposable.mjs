@@ -36,6 +36,11 @@ export async function runBuild198({uids,tokens,query,yes}){
  const requested=async (actor,who)=>remoteRpc(actor,who===null?null:uids[who],tokens);
  // Unchanged production function body still has an arbitrary _user_id arg.
  // PR16 revokes anonymous EXECUTE, but grants authenticated EXECUTE.
+ const bodyFingerprintSql=readFileSync(new URL('./build198-lookup-functions-fingerprint.readonly.sql',import.meta.url),'utf8');
+ let bodyGate=localSql(bodyFingerprintSql);
+ assert.equal(bodyGate.split('|').at(-1),'REVIEW_ONLY_LEGACY_FUNCTION_SOURCE_MATCH_NO_RELEASE',
+  'Unchanged original source functions must match pinned production catalog');
+ console.log('BUILD198_ORIGINAL_TWO_FUNCTION_BODY_FINGERPRINT_MATCH_NOT_RELEASE');
  const before=localSql("SELECT md5(pg_get_functiondef(oid)) FROM pg_proc "+
  "WHERE oid=to_regprocedure('public.get_user_role(uuid)');");
  assert.match(before,/^[0-9a-f]{32}$/);
@@ -75,6 +80,10 @@ export async function runBuild198({uids,tokens,query,yes}){
  "'public.get_user_role(uuid)','EXECUTE')");
  assert.equal(anon,'f');
  console.log('BUILD198_CANDIDATE_ROLE_HELPER_SOURCE_CHANGED_PENDING_REVIEW');
+ bodyGate=localSql(bodyFingerprintSql);
+ assert.equal(bodyGate.split('|').at(-1),'HOLD_LOOKUP_HELPER_DEFINITION_DRIFT',
+  'Function-source gate must detect candidate role helper drift');
+ console.log('BUILD198_ROLE_FUNCTION_SOURCE_DRIFT_EXPECTED_HOLD');
 
  v=await requested('recruiterA','recruiterA');
  yes('B198_CANDIDATE_RECRUITER_OWN_ROLE_PRESERVED',
@@ -138,6 +147,10 @@ export async function runBuild198({uids,tokens,query,yes}){
   "WHERE oid=to_regprocedure('public.is_approved(uuid)');");
  assert.notEqual(afterApproval,beforeApproval,
   'The approval candidate must change the helper source');
+ bodyGate=localSql(bodyFingerprintSql);
+ assert.equal(bodyGate.split('|').at(-1),'HOLD_LOOKUP_HELPER_DEFINITION_DRIFT',
+  'Function-source gate must detect candidate approval helper drift');
+ console.log('BUILD198_APPROVAL_FUNCTION_SOURCE_DRIFT_EXPECTED_HOLD');
  const approvalPath=localSql("SELECT coalesce(array_to_string(proconfig,','),'') FROM pg_proc "+
   "WHERE oid=to_regprocedure('public.is_approved(uuid)');");
  assert.ok(approvalPath==='search_path='||approvalPath==='search_path=""');
