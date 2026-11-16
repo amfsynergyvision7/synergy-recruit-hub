@@ -15,6 +15,7 @@ SECURITY DEFINER
 SET search_path = ''
 AS $reviewed_body$
   SELECT auth.uid() IS NOT NULL
+    AND _user_id IS NOT NULL
     AND _user_id = auth.uid()
     AND EXISTS (
       SELECT 1 FROM public.user_roles AS ur
