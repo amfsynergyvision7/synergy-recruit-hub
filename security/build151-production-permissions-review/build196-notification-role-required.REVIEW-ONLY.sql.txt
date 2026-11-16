@@ -21,3 +21,19 @@ ALTER POLICY notifications_read ON public.notifications
     )
     AND (user_id=auth.uid() OR public.has_role(auth.uid(),'admin'))
   );
+
+-- Build197: separately restrict notification UPDATE under the SAME current
+-- membership requirement. A revoked user's UPDATE can otherwise be authorized
+-- by its own USING/WITH CHECK predicates even if a SELECT policy is later changed.
+-- This is still only an unapproved disposable security review candidate.
+ALTER POLICY notifications_update ON public.notifications
+  USING (
+    public.is_approved(auth.uid())
+    AND EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id=auth.uid())
+    AND user_id=auth.uid()
+  )
+  WITH CHECK (
+    public.is_approved(auth.uid())
+    AND EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id=auth.uid())
+    AND user_id=auth.uid()
+  );
