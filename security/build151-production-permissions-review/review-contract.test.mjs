@@ -563,3 +563,38 @@ test('Build195 end-to-end actual 35-policy + PR23 helper with GoTrue-issued JWTs
  assert.match(workflow,/build195-run-disposable-gotrue-35-policy\.sh/);
  assert(!/https:\/\/[^'"\s]*supabase\.co/.test(runner));
 });
+
+
+test('Build196 signed JWT survives while DB role/profile revocations immediately change actual drafted RLS authorization',()=>{
+ const testCode=load('build196-role-revocation.disposable.mjs');
+ const wrapper=load('build195-full-gotrue-35-policy-http.test.mjs');
+ const runner=load('build195-run-disposable-gotrue-35-policy.sh');
+ assert.match(testCode,/B195_DISPOSABLE_ONLY/);
+ assert.match(testCode,/PGHOST==='127\.0\.0\.1'/);
+ assert.match(testCode,/PGDATABASE==='amf_build195_gotrue_35_policy_lab'/);
+ assert.match(testCode,/PGUSER==='postgres'/);
+ assert.match(testCode,/BUILD196_REVOKED_UNEXPIRED_GOTRUE_JWT_ACCESS_CUT_OFF/);
+ assert.match(testCode,/BUILD196_23_OF_23_ROLE_AND_APPROVAL_CHANGE_CASES_PASS_DISPOSABLE_ONLY/);
+ assert.match(testCode,/DELETE FROM public\.user_roles WHERE user_id/);
+ assert.match(testCode,/UPDATE public\.profiles SET is_active=false/);
+ assert.match(testCode,/UPDATE public\.profiles SET status='suspended'/);
+ for(const id of [
+  'B196_REVOKED_BUT_JWT_STILL_VALID_SELF_PROFILE',
+  'B196_REVOKED_CANDIDATES_INVISIBLE',
+  'B196_REVOKED_CANDIDATE_WRITE_DENIED',
+  'B196_REGRANTED_ROLE_HELPER_TRUE',
+  'B196_INACTIVE_ROLE_LOOKUP_TRUE_NOT_AUTHORIZATION',
+  'B196_INACTIVE_APPROVAL_BLOCKS_CANDIDATES',
+  'B196_INACTIVE_CANDIDATE_WRITE_DENIED',
+  'B196_SUSPENDED_CANDIDATES_INVISIBLE',
+  'B196_SUSPENDED_ROLE_LOOKUP_TRUE_BUT_DATA_DENIED',
+  'B196_REAPPROVED_CANDIDATES_RECOVER'
+ ]) assert(testCode.includes(id),id);
+ assert.match(wrapper,/import \{runBuild196\} from '\.\/build196-role-revocation\.disposable\.mjs'/);
+ assert.match(wrapper,/await runBuild196\(\{uids,query,rpc,mutation,yes\}\)/);
+ assert.match(wrapper,/assert\.equal\(outcomes\.length,58/);
+ assert.match(wrapper,/assert\.equal\(outcomes\.length,81/);
+ assert.match(wrapper,/BUILD196_GOTRUE_FULL_35_POLICY_HTTP_81_OF_81_PASS_DISPOSABLE_ONLY/);
+ assert.match(runner,/BUILD195_EPHEMERAL_DATABASE_REMOVED_VERIFIED/);
+ assert(!testCode.includes('supabase.co'));
+});
