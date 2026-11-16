@@ -10,7 +10,8 @@ const specs={
  proposal:['complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt','484c251cdbfd932bdab5ffcf039a107e7478633e'],
  old:['legacy-67-policies.DO-NOT-RUN.sql.txt','59ac1f0d25215333868012fdb8e6b9382ed12e14'],
  base:['disposable-rehearsal.DO-NOT-RUN.sql.txt','858542a266e0052124b486610a3eac7266b63ddc'],
- prodApproval:['build197-prod-is-approved.snapshot.DISPOSABLE-ONLY.sql.txt','5e8f3f758b2f551111e883141a728a0b82e38373']
+ prodApproval:['build197-prod-is-approved.snapshot.DISPOSABLE-ONLY.sql.txt','5e8f3f758b2f551111e883141a728a0b82e38373'],
+ prodRoleLookup:['build198-original-get-user-role.DISPOSABLE.sql.txt','19ed98d1216c6ef4ef55deabfaef9e21172dc544']
 };
 function read(key){
  const [path,expected]=specs[key],body=readFileSync(new URL(path,import.meta.url),'utf8');
@@ -69,6 +70,7 @@ const after=[
  '\\i '+root+specs.proposal[0],
  '\\i '+root+specs.helper[0],
  '\\i '+root+specs.prodApproval[0],
+ '\\i '+root+specs.prodRoleLookup[0],
  "DO $meta$ BEGIN IF (SELECT count(*) FROM pg_catalog.pg_policies WHERE schemaname='public')<>35",
  " OR NOT (SELECT prosecdef FROM pg_catalog.pg_proc WHERE oid=to_regprocedure('public.has_role(uuid,public.app_role)'))",
  " OR pg_catalog.has_function_privilege('anon','public.has_role(uuid,public.app_role)','EXECUTE')",
