@@ -9,7 +9,8 @@ const specs={
  helper:['build194-role-helper.PR23-SNAPSHOT.DO-NOT-APPLY.sql.txt','309b62681dd6ce221f24733766aa9b48da845c8f'],
  proposal:['complete-67-to-35-with-rpcs.DO-NOT-APPLY.sql.txt','484c251cdbfd932bdab5ffcf039a107e7478633e'],
  old:['legacy-67-policies.DO-NOT-RUN.sql.txt','59ac1f0d25215333868012fdb8e6b9382ed12e14'],
- base:['disposable-rehearsal.DO-NOT-RUN.sql.txt','858542a266e0052124b486610a3eac7266b63ddc']
+ base:['disposable-rehearsal.DO-NOT-RUN.sql.txt','858542a266e0052124b486610a3eac7266b63ddc'],
+ prodApproval:['build197-prod-is-approved.snapshot.DISPOSABLE-ONLY.sql.txt','5e8f3f758b2f551111e883141a728a0b82e38373']
 };
 function read(key){
  const [path,expected]=specs[key],body=readFileSync(new URL(path,import.meta.url),'utf8');
@@ -60,22 +61,18 @@ const boot=[
  '\\i '+p('old-67.sql')
 ].join('\n')+'\n';
 writeFileSync(p('source-shaped-bootstrap.sql'),boot);
-const approval=[
- 'CREATE OR REPLACE FUNCTION public.is_approved(_user_id uuid)',
- " RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''",
- ' AS $only_fixture$ SELECT _user_id IS NOT NULL AND EXISTS (',
- ' SELECT 1 FROM public.profiles p WHERE p.id=_user_id',
- " AND p.status='approved'::public.user_status AND p.is_active IS TRUE",
- ' ) $only_fixture$;'
-].join('\n');
+// Build197: same SQL definition as current production is_approved, read-only
+// catalog-sourced and fingerprint checked; executed only in disposable PG17.
 const after=[
  '-- Commits ONLY to ephemeral PG17, destroyed by CI.',
  '\\set ON_ERROR_STOP on',guard,
  '\\i '+root+specs.proposal[0],
- '\\i '+root+specs.helper[0],approval,
+ '\\i '+root+specs.helper[0],
+ '\\i '+root+specs.prodApproval[0],
  "DO $meta$ BEGIN IF (SELECT count(*) FROM pg_catalog.pg_policies WHERE schemaname='public')<>35",
  " OR NOT (SELECT prosecdef FROM pg_catalog.pg_proc WHERE oid=to_regprocedure('public.has_role(uuid,public.app_role)'))",
- " OR pg_catalog.has_function_privilege('anon','public.has_role(uuid,public.app_role)','EXECUTE')",
+ " OR pg_catalog.has_function_privilege('anon','public.has_role(uuid,public.app_role)','EXECUTE')
+ OR (SELECT coalesce(array_to_string(proconfig,','),'') FROM pg_catalog.pg_proc WHERE oid=to_regprocedure('public.is_approved(uuid)'))<>'search_path=public'",
  " THEN RAISE EXCEPTION 'Build195 proposed source metadata mismatched'; END IF;",
  " RAISE NOTICE 'BUILD195_ONLY_DISPOSABLE_35_POLICIES_COMMITTED'; END $meta$;"
 ].join('\n')+'\n';
