@@ -545,6 +545,9 @@ test('Build195 end-to-end actual 35-policy + PR23 helper with GoTrue-issued JWTs
  assert.match(runner,/postgrest\/postgrest:v12\.2\.3/);
  assert.match(runner,/trap cleanup EXIT/);
  assert.match(runner,/dropdb --if-exists amf_build195_gotrue_35_policy_lab/);
+ assert.match(runner,/BUILD195_EPHEMERAL_DATABASE_REMOVED_VERIFIED/);
+ assert.match(runner,/BUILD195_POSTFLIGHT_AND_EXACT_35_POLICY_FINGERPRINT_VERIFIED/);
+ assert.match(http,/assert\.equal\(outcomes\.length,58/);
  assert.match(runner,/127\.0\.0\.1:9999/);
  assert.match(runner,/127\.0\.0\.1:5432/);
  for(const check of ['BUILD195_FIVE_GOTRUE_ISSUED_FICTIONAL_JWTS',
