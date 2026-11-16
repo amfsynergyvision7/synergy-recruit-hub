@@ -448,3 +448,34 @@ test('Build192 reviewer handover requires BOTH catalog postflight and exact 35-p
  assert.match(readme,/mandatory together/);
  assert.match(proposed,/HOLD_PROPOSED_35_POLICY_SOURCE_OR_PREDICATE_DRIFT/);
 });
+
+
+test('Build193 real drafted RLS role-matrix runs only inside source-pinned disposable proposal transaction',()=>{
+ const pg=load('build193-rls-authorization.disposable.pg17.sql');
+ const gen=load('build192-replay-actual-proposal.disposable.mjs');
+ assert.match(pg,/DISPOSABLE PG17 ONLY/);
+ assert.match(pg,/CREATE OR REPLACE FUNCTION auth\.uid\(\)/);
+ assert.match(pg,/CREATE OR REPLACE FUNCTION public\.has_role/);
+ assert.match(pg,/CREATE OR REPLACE FUNCTION public\.is_approved/);
+ assert.match(pg,/SET LOCAL ROLE authenticated/);
+ assert.match(pg,/RESET ROLE/);
+ assert.match(pg,/request\.jwt\.claim\.sub/);
+ for(const label of ['BUILD193_ANON_PRIVATE_ACL_DENIED',
+ 'BUILD193_ADMIN_APPROVED_READ_MATRIX_PASS',
+ 'BUILD193_RECRUITER_A_ROW_ISOLATION_PASS',
+ 'BUILD193_RECRUITER_OWN_CANDIDATE_INSERT_PASS',
+ 'BUILD193_CROSS_RECRUITER_CANDIDATE_INSERT_DENIED',
+ 'BUILD193_RECRUITER_ALLOWLISTED_STAGE_UPDATE_PASS',
+ 'BUILD193_CANDIDATE_OWNER_COLUMN_UPDATE_DENIED',
+ 'BUILD193_RECRUITER_B_ROW_ISOLATION_PASS',
+ 'BUILD193_FINANCE_BILLING_ONLY_PASS',
+ 'BUILD193_PENDING_ADMIN_DATA_DENIED_PASS',
+ 'BUILD193_AUTHENTICATED_DB_ROLE_WITHOUT_SUBJECT_DENIED',
+ 'BUILD193_REAL_35_POLICY_BEHAVIOR_TESTS_COMPLETE_DISPOSABLE_ONLY'])
+  assert(pg.includes(label),label);
+ assert.match(gen,/build193-rls-authorization\.disposable\.pg17\.sql/);
+ assert.match(gen,/BUILD192_REAL_DRAFT_TRANSACTION_ROLLED_BACK/);
+ assert.match(gen,/BUILD192_ORIGINAL_67_POLICY_CATALOG_RESTORED/);
+ assert(!/\b(?:COMMIT|ROLLBACK)\s*;/iu.test(pg),
+ 'Behavior tests must rely on the enclosing, unconditional draft rollback');
+});
