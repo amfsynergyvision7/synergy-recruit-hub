@@ -59,6 +59,21 @@ INSERT INTO public.notifications(id,user_id,title,is_read) VALUES
  ('f1000000-0000-4000-8000-000000000001','22222222-2222-4222-8222-222222222222','fictional notification A',false),
  ('f1000000-0000-4000-8000-000000000002','33333333-3333-4333-8333-333333333333','fictional notification B',false);
 
+-- Fictional related rows for cross-table policies that traverse candidates.
+INSERT INTO public.submissions(id,candidate_uuid,status) VALUES
+ ('61000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','submitted'),
+ ('61000000-0000-4000-8000-000000000002','c1000000-0000-4000-8000-000000000002','submitted');
+INSERT INTO public.interviews(id,candidate_uuid,status) VALUES
+ ('71000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','scheduled'),
+ ('71000000-0000-4000-8000-000000000002','c1000000-0000-4000-8000-000000000002','scheduled');
+INSERT INTO public.candidate_stage_history(id,candidate_id,new_stage) VALUES
+ ('81000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','submitted'),
+ ('81000000-0000-4000-8000-000000000002','c1000000-0000-4000-8000-000000000002','submitted');
+INSERT INTO public.offers(id,candidate_uuid,offer_status) VALUES
+ ('91000000-0000-4000-8000-000000000001','c1000000-0000-4000-8000-000000000001','offered');
+INSERT INTO public.clients(id,company_name) VALUES
+ ('a2000000-0000-4000-8000-000000000001','fictional client');
+
 -- API-role ACL denial for anon is important independent of policy predicates.
 SELECT (
  NOT pg_catalog.has_table_privilege('anon','public.candidates','SELECT')
@@ -83,6 +98,11 @@ SELECT (
  AND (SELECT count(*) FROM public.audit_logs)=1
  AND (SELECT count(*) FROM public.user_roles)=5
  AND (SELECT count(*) FROM public.profiles)=5
+ AND (SELECT count(*) FROM public.submissions)=2
+ AND (SELECT count(*) FROM public.interviews)=2
+ AND (SELECT count(*) FROM public.candidate_stage_history)=2
+ AND (SELECT count(*) FROM public.offers)=1
+ AND (SELECT count(*) FROM public.clients)=1
 ) AS b193_admin_reads \gset
 \if :b193_admin_reads
  \echo 'BUILD193_ADMIN_APPROVED_READ_MATRIX_PASS'
@@ -102,6 +122,11 @@ SELECT (
  AND (SELECT count(*) FROM public.audit_logs)=0
  AND (SELECT count(*) FROM public.notifications)=1
  AND (SELECT count(*) FROM public.user_roles)=1
+ AND (SELECT count(*) FROM public.submissions)=1
+ AND (SELECT count(*) FROM public.interviews)=1
+ AND (SELECT count(*) FROM public.candidate_stage_history)=1
+ AND (SELECT count(*) FROM public.offers)=0
+ AND (SELECT count(*) FROM public.clients)=0
 ) AS b193_recruiter_a_reads \gset
 \if :b193_recruiter_a_reads
  \echo 'BUILD193_RECRUITER_A_ROW_ISOLATION_PASS'
@@ -153,6 +178,52 @@ BEGIN
  END;
 END $denied$;
 
+-- The recipient may mark their own notification read, but may not
+-- rewrite its recipient or another recruiter's notification.
+UPDATE public.notifications SET is_read=true
+ WHERE id='f1000000-0000-4000-8000-000000000001';
+SELECT (SELECT is_read FROM public.notifications WHERE
+ id='f1000000-0000-4000-8000-000000000001') AS b193_mark_read \gset
+\if :b193_mark_read
+ \echo 'BUILD193_OWN_NOTIFICATION_MARK_READ_ALLOWED'
+\else
+ SELECT 1/0;
+\endif
+DO $denied$
+BEGIN
+ BEGIN
+  UPDATE public.notifications
+  SET user_id='33333333-3333-4333-8333-333333333333'
+  WHERE id='f1000000-0000-4000-8000-000000000001';
+  RAISE EXCEPTION 'BUILD193_FAIL: notification recipient mutated';
+ EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'BUILD193_NOTIFICATION_RECIPIENT_UPDATE_DENIED';
+ END;
+END $denied$;
+SELECT (
+ (SELECT count(*) FROM public.submissions)=1
+ AND (SELECT count(*) FROM public.interviews)=1
+ AND (SELECT count(*) FROM public.candidate_stage_history)=1
+ AND (SELECT count(*) FROM public.offers)=0
+) AS b193_related_scopes \gset
+\if :b193_related_scopes
+ \echo 'BUILD193_RECRUITER_RELATED_RECORD_ISOLATION_PASS'
+\else
+ SELECT 1/0;
+\endif
+-- Recruiter must not use admin-only submission write path.
+DO $denied$
+BEGIN
+ BEGIN
+  INSERT INTO public.submissions(id,candidate_uuid)
+   VALUES('61000000-0000-4000-8000-000000000003',
+   'c1000000-0000-4000-8000-000000000001');
+  RAISE EXCEPTION 'BUILD193_FAIL: recruiter inserted admin-only submission';
+ EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'BUILD193_RECRUITER_SUBMISSION_WRITE_DENIED';
+ END;
+END $denied$;
+
 -- Recruiter B must be isolated from A, even after A inserted another row.
 SELECT set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
 SELECT (
@@ -162,6 +233,10 @@ SELECT (
  AND (SELECT count(*) FROM public.notifications)=1
  AND (SELECT count(*) FROM public.billing)=0
  AND (SELECT count(*) FROM public.audit_logs)=0
+ AND (SELECT count(*) FROM public.submissions)=1
+ AND (SELECT count(*) FROM public.interviews)=1
+ AND (SELECT count(*) FROM public.candidate_stage_history)=1
+ AND (SELECT count(*) FROM public.offers)=0
 ) AS b193_recruiter_b_reads \gset
 \if :b193_recruiter_b_reads
  \echo 'BUILD193_RECRUITER_B_ROW_ISOLATION_PASS'
@@ -177,6 +252,10 @@ SELECT (
  AND (SELECT count(*) FROM public.job_openings)=0
  AND (SELECT count(*) FROM public.audit_logs)=0
  AND (SELECT count(*) FROM public.user_roles)=1
+ AND (SELECT count(*) FROM public.submissions)=0
+ AND (SELECT count(*) FROM public.interviews)=0
+ AND (SELECT count(*) FROM public.offers)=0
+ AND (SELECT count(*) FROM public.clients)=0
 ) AS b193_finance_read \gset
 \if :b193_finance_read
  \echo 'BUILD193_FINANCE_BILLING_ONLY_PASS'
