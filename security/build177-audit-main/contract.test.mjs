@@ -261,3 +261,35 @@ test("Build186 helper impact inventory is source-pinned, catalog-only and never 
  assert(!/\b(?:INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE|GRANT|REVOKE|COPY)\s+(?:INTO|FROM|TABLE|ROLE|POLICY|FUNCTION|SCHEMA)\b/iu.test(executable));
  assert(!/\b(?:COMMIT|CALL)\s*[\(;]/i.test(executable));
 });
+
+
+test("Build187 proposed helper preserves 41 current-user policy calls and refuses cross-user checks",()=>{
+ const proposal=readFileSync(join(root,"../build187-role-helper/has-role-current-user.DO-NOT-APPLY.sql.txt"),"utf8");
+ const behavior=readFileSync(join(root,"../build187-role-helper/pg17-role-helper-behavior.sql"),"utf8");
+ const note=readFileSync(join(root,"../build187-role-helper/README.md"),"utf8");
+ assert.match(proposal,/DO NOT APPLY TO ANY HOSTED DATABASE/);
+ assert.match(proposal,/CREATE OR REPLACE FUNCTION public\.has_role\(_user_id uuid, _role public\.app_role\)/);
+ assert.match(proposal,/RETURNS boolean[\s\S]*SECURITY DEFINER[\s\S]*SET search_path = ''/);
+ assert.match(proposal,/auth\.uid\(\) IS NOT NULL/);
+ assert.match(proposal,/_user_id = auth\.uid\(\)/);
+ assert.match(proposal,/SELECT 1 FROM public\.user_roles AS ur/);
+ assert.match(proposal,/ur\.user_id = auth\.uid\(\) AND ur\.role = _role/);
+ assert.match(proposal,/FROM PUBLIC, anon, authenticated;/);
+ assert.match(proposal,/TO authenticated;/);
+ assert(!/\b(?:COMMIT|ROLLBACK)\s*;/iu.test(proposal),"not a transactional hosted migration");
+ assert.match(behavior,/BEGIN;/);
+ assert.match(behavior,/\\i security\/build187-role-helper\/has-role-current-user\.DO-NOT-APPLY\.sql\.txt/);
+ for(const item of ["BUILD187_LEGACY_GRANT_EXPOSURE_REPRODUCED",
+ "BUILD187_EXPECTED_ROLE_GRANTS_AND_EMPTY_PATH","BUILD187_NO_IDENTITY_DENIED",
+ "BUILD187_ADMIN_SELF_SCOPING_AND_RLS_PASS",
+ "BUILD187_RECRUITER_SCOPING_AND_RLS_PASS",
+ "BUILD187_FINANCE_ISOLATION_AND_RLS_PASS",
+ "BUILD187_ANON_EXECUTE_DENIED","BUILD187_FULL_ROLLBACK_VERIFIED"])
+  assert(behavior.includes(item),item);
+ assert.match(behavior,/^ROLLBACK;$/m);
+ assert.match(note,/41\/41/);
+ assert.match(note,/signed GoTrue JWT/);
+ const ci=readFileSync(join(root,"../../.github/workflows/build177-audit-main.yml"),"utf8");
+ assert.match(ci,/security\/build187-role-helper\/\*\*/);
+ assert.match(ci,/psql -X -v ON_ERROR_STOP=1 -f security\/build187-role-helper\/pg17-role-helper-behavior\.sql/);
+});
