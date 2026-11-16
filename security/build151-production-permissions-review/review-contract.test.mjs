@@ -340,7 +340,7 @@ test('Build191 proposed 48-object postflight covers all unsafe DML/column grants
  for(const name of expected.tables)assert(sql.includes("('"+name+"')"),name);
  for(const name of expected.views)assert(sql.includes("('"+name+"')"),name);
  for(const name of expected.functions)assert(sql.includes("public."+name+"("),name);
- for(const field of ['anon_table_grants','anon_unapproved_column_select',
+ for(const field of ['data_api_roles_bypassing_rls','public_schema_create_exposure','anon_table_grants','anon_unapproved_column_select',
  'anon_column_update','anon_branding_columns_select',
  'authenticated_high_risk_table_grants',
  'authenticated_direct_account_mutations',
@@ -359,7 +359,7 @@ test('Build191 proposed 48-object postflight covers all unsafe DML/column grants
  assert.doesNotMatch(executable,/(?:^|;)\s*(?:INSERT|UPDATE|DELETE|DROP|CREATE|TRUNCATE|REVOKE|GRANT|ALTER|CALL|DO|COPY|EXECUTE|COMMIT|BEGIN)\b/im);
  assert.doesNotMatch(executable,/\b(?:FROM|JOIN)\s+(?:public|auth)\.(?:user_roles|audit_logs|profiles|billing|candidates)\b/i);
 });
-test('Build191 PG17 disposable candidate checker detects 21 unsafe permission/policy defects and always rolls back',()=>{
+test('Build191 PG17 disposable candidate checker detects 25 unsafe permission/policy defects and always rolls back',()=>{
  const script=load('build191-postflight-disposable.pg17.sql');
  const workflow=readFileSync(resolve(dir,'../../.github/workflows/build151-production-permission-review.yml'),'utf8');
  assert.match(script,/DISPOSABLE PostgreSQL17 ONLY/);
@@ -367,12 +367,12 @@ test('Build191 PG17 disposable candidate checker detects 21 unsafe permission/po
  assert.match(script,/^ROLLBACK;$/m);
  assert.match(script,/BUILD191_FULL_CATALOG_ROLLBACK_VERIFIED/);
  assert.match(script,/BUILD191_CATALOG_SHAPE_MATCH_IS_REVIEW_ONLY_NOT_REAL_AUTHORIZATION/);
- assert.match(script,/BUILD191_SAFE_FIXTURE_RECOVERED_AFTER_21_ADVERSE_CASES/);
- for(let i=1;i<=21;i++)assert(script.includes('BUILD191_EXPECTED_HOLD_'+i),i);
- assert.equal((script.match(/^SAVEPOINT build191_adverse;/gm)||[]).length,21);
- assert.equal((script.match(/^ROLLBACK TO SAVEPOINT build191_adverse;/gm)||[]).length,21);
- assert.equal((script.match(/^RELEASE SAVEPOINT build191_adverse;/gm)||[]).length,21);
- assert.equal((script.match(/\\i \/tmp\/build191-postflight.gset.sql/g)||[]).length,23);
+ assert.match(script,/BUILD191_SAFE_FIXTURE_RECOVERED_AFTER_25_ADVERSE_CASES/);
+ for(let i=1;i<=25;i++)assert(script.includes('BUILD191_EXPECTED_HOLD_'+i),i);
+ assert.equal((script.match(/^SAVEPOINT build191_adverse;/gm)||[]).length,25);
+ assert.equal((script.match(/^ROLLBACK TO SAVEPOINT build191_adverse;/gm)||[]).length,25);
+ assert.equal((script.match(/^RELEASE SAVEPOINT build191_adverse;/gm)||[]).length,25);
+ assert.equal((script.match(/\\i \/tmp\/build191-postflight.gset.sql/g)||[]).length,27);
  assert.match(workflow,/proposed-postflight-pg17:/);
  assert.match(workflow,/image: postgres:17/);
  assert.match(workflow,/BUILD191_ONLY_DISPOSABLE_PG17_NO_HOSTED_WRITES/);
