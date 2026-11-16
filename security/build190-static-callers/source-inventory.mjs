@@ -23,6 +23,8 @@ const patterns=[
  {name:'has_role_call_or_literal',regex:/\b(?:public\s*\.\s*)?has_role\s*\(|\brpc\s*\(\s*["'\x60]has_role["'\x60]/g},
  {name:'direct_user_roles_client',regex:/\.from\s*\(\s*["'\x60]user_roles["'\x60]\s*\)/g},
  {name:'direct_audit_logs_client',regex:/\.from\s*\(\s*["'\x60]audit_logs["'\x60]\s*\)/g},
+ {name:'direct_user_roles_mutation',regex:/\.from\s*\(\s*["'\x60]user_roles["'\x60]\s*\)\s*\.\s*(?:insert|update|upsert|delete)\s*\(/g},
+ {name:'direct_audit_logs_mutation',regex:/\.from\s*\(\s*["'\x60]audit_logs["'\x60]\s*\)\s*\.\s*(?:insert|update|upsert|delete)\s*\(/g},
  {name:'audit_logs_mentions',regex:/\baudit_logs\b/g},
  {name:'user_roles_mentions',regex:/\buser_roles\b/g},
  {name:'trusted_email_rpc_mentions',regex:/\bcrm_email_confirm_sent_trusted\b/g},
@@ -59,12 +61,13 @@ for(const snapshot of snapshots){
   }
  }
  const counts=Object.fromEntries(patterns.map(p=>[p.name,findings.filter(f=>f.tag===p.name).length]));
+ const runtimeCounts=Object.fromEntries(patterns.map(p=>[p.name,findings.filter(f=>f.kind==='runtime'&&f.tag===p.name).length]));
  const runtime=paths.filter(p=>sourceKind(p)==='runtime').length;
  const migration=paths.length-runtime;
  releases.push({
   source:snapshot.label,sha:snapshot.sha,tracked_files:paths.length,
   runtime_files:runtime,migrations:migration,bytesScanned,
-  counts,findings:findings.sort((a,b)=>a.path.localeCompare(b.path)||a.line-b.line||a.tag.localeCompare(b.tag))
+  counts,runtimeCounts,findings:findings.sort((a,b)=>a.path.localeCompare(b.path)||a.line-b.line||a.tag.localeCompare(b.tag))
  });
 }
 const report={
@@ -82,9 +85,10 @@ writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n');
 for(const release of releases){
  console.log('BUILD190_SOURCE_SCAN '+release.source+' sha='+release.sha+
   ' scanned='+release.tracked_files+' runtime='+release.runtime_files+
-  ' migrations='+release.migrations+' counts='+JSON.stringify(release.counts));
+  ' migrations='+release.migrations+' counts='+JSON.stringify(release.counts)+' runtimeCounts='+JSON.stringify(release.runtimeCounts));
  for(const f of release.findings.filter(x=>[
   'has_role_call_or_literal','direct_user_roles_client','direct_audit_logs_client',
+  'direct_user_roles_mutation','direct_audit_logs_mutation',
   'trusted_email_rpc_mentions','dynamic_rpc_candidates'
  ].includes(x.tag))){
   console.log('BUILD190_REVIEW_MATCH '+f.source+' '+f.kind+' '+f.tag+
@@ -101,6 +105,6 @@ if(summary){
  '|---|---:|---:|---:|---:|---:|---:|\n'+
  releases.map(v=>'| '+v.source+' | '+v.tracked_files+' | '+v.runtime_files+
   ' | '+v.migrations+' | '+v.counts.direct_user_roles_client+
-  ' | '+v.counts.direct_audit_logs_client+' | '+v.counts.has_role_call_or_literal+' |').join('\n')+
+  ' | '+v.counts.direct_audit_logs_client+' | '+v.runtimeCounts.has_role_call_or_literal+' |').join('\n')+
  '\n\n**Review-only source scan:** pinned Git trees; not complete external/dynamic caller or runtime proof. Full source locations appear in logs and the runner-local JSON evidence.\n');
 }
