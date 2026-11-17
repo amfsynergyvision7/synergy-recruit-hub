@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertLegacyCandidateAiProcessingReleased, assertLegacyDriveBulkImportReleased } from "./legacy-ai-drive-release-hold.server";
 import {
   matchCandidatesToJob,
   matchCandidateResume,
@@ -15,6 +16,7 @@ export const matchCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ jobId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertLegacyCandidateAiProcessingReleased();
     // No extra role gate beyond "signed in and approved" (already enforced
     // by requireSupabaseAuth + the candidates/job_openings RLS policies
     // context.supabase reads through) — this is a read-only insight, not a
@@ -32,6 +34,7 @@ export const matchCandidateWithResume = createServerFn({ method: "POST" })
     z.object({ jobId: z.string().uuid(), candidateId: z.string().uuid() }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    assertLegacyCandidateAiProcessingReleased();
     return matchCandidateResume(context.supabase, data.jobId, data.candidateId);
   });
 
@@ -41,6 +44,7 @@ export const generateCandidateResumeSummary = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertLegacyCandidateAiProcessingReleased();
     return generateResumeSummary(context.supabase, data.candidateId);
   });
 
@@ -52,6 +56,7 @@ export const generateCandidateAtsScoreFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertLegacyCandidateAiProcessingReleased();
     return generateCandidateAtsScore(context.supabase, data.candidateId);
   });
 
@@ -64,6 +69,7 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ candidateId: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
+    assertLegacyCandidateAiProcessingReleased();
     const { candidate, resume } = await restructureResumeForClient(context.supabase, data.candidateId);
 
     const { data: settings } = await context.supabase
@@ -95,5 +101,6 @@ export const generateClientResumePdf = createServerFn({ method: "POST" })
 export const checkDriveForNewResumes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    assertLegacyDriveBulkImportReleased();
     return runResumeDriveImport(context.supabase);
   });

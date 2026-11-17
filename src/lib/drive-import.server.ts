@@ -33,6 +33,7 @@
 import { extractDriveFileId, fetchDriveBytes, extractText } from "./resume-fetch.server";
 import { extractCandidateFieldsFromResume } from "./ai.server";
 import { normalizeEmail, normalizePhone, normalizeName } from "./dedupe";
+import { assertLegacyDriveBulkImportReleased } from "./legacy-ai-drive-release-hold.server";
 
 const DRIVE_LIST_ENDPOINT = "https://www.googleapis.com/drive/v3/files";
 
@@ -162,6 +163,7 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
 }
 
 export async function runResumeDriveImport(supabase: any): Promise<DriveImportSummary> {
+  assertLegacyDriveBulkImportReleased();
   const apiKey = process.env.DRIVE_API_KEY;
   if (!apiKey) {
     throw new Error(
