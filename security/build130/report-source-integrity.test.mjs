@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY,
-  assertReportSourceIntegrity, validReportDay, validReportWindow,
+  assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportDay, validReportWindow,
 } from "../../src/lib/report-source-integrity.ts";
 import { canReadPipelineReports } from "../../src/lib/crm-report-access.ts";
 
@@ -22,6 +22,25 @@ test("Build130 all current candidate pipeline stages pass strict source integrit
     assert.doesNotThrow(()=>assertReportSourceIntegrity(x),stage);
   }
   assert.equal(ALLOWED_REPORT_STAGES.length,12);
+});
+
+test("Recruiter report integrity does not require denied client or offer rows",()=>{
+  const x=basic();
+  assert.doesNotThrow(()=>assertRecruiterReportSourceIntegrity({
+    candidates:x.candidates,submissions:x.submissions,interviews:x.interviews,
+  }));
+  x.submissions[0].candidate_uuid="hidden-candidate";
+  x.submissions[0].candidate_id="hidden-candidate";
+  assert.throws(()=>assertRecruiterReportSourceIntegrity({
+    candidates:x.candidates,submissions:x.submissions,interviews:x.interviews,
+  }),/linked candidate unavailable/);
+});
+
+test("Recruiter report route never queries denied client and offer sources",()=>{
+  assert(page.includes('const canReadOutcomes = role !== "recruiter"'));
+  assert(page.includes('canReadOutcomes ? readBoundedReportRows((from, to, abort) =>\n            supabase.from("offers")'));
+  assert(page.includes('canReadOutcomes ? readBoundedReportRows((from, to, abort) =>\n            supabase.from("clients")'));
+  assert(page.includes("assertRecruiterReportSourceIntegrity({ candidates, submissions, interviews })"));
 });
 
 test("Build130 unknown stage cannot silently disappear from pipeline share",()=>{
