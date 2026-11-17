@@ -13,7 +13,13 @@
  * whenever the value contains a comma, quote, or newline — the three
  * characters that would otherwise corrupt the column/row structure. */
  function escapeCsvCell(value: string | number | null | undefined): string {
-    const s = value == null ? "" : String(value);
+    const raw = value == null ? "" : String(value);
+    // Excel/Sheets may execute CSV cells beginning with =,+,-,@.
+    // Prefix user-originated strings, even after whitespace/zero-width
+    // padding. Preserve genuine numeric negative values as numbers.
+    const untrustedFormula =
+      typeof value === "string" && /^[\s\u200b-\u200d\ufeff]*[=+@-]/u.test(raw);
+    const s = untrustedFormula ? "'" + raw : raw;
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   }
   
