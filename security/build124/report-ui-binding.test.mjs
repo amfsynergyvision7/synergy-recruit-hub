@@ -55,6 +55,13 @@ test("Build124 dashboard candidate and offer source arrays are complete, bounded
   assert(section.includes('.order("id", { ascending: true }).range(from,to).abortSignal(abort)'),table);
  }
 });
+test("Dashboard month metrics use fixed Asia/Kolkata boundaries",()=>{
+ assert(dash.includes('const DASHBOARD_TIME_ZONE = "Asia/Kolkata"'));
+ assert(dash.includes("dashboardMonthStartIso(now)"));
+ assert(dash.includes('T00:00:00+05:30'));
+ assert(dash.includes("recentDashboardMonths(now)"));
+ assert(dash.includes("String(r.joining_date).slice(0, 7)"));
+});
 test("Build124 dashboard removes delayed request race and aborts previous in-flight HTTP reads",()=>{
  assert(dash.includes("let latest = 0;"));
  assert(dash.includes("const request = ++latest;"));
