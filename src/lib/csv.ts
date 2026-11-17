@@ -48,11 +48,16 @@
     URL.revokeObjectURL(url);
   }
   
-  /** Today's date as YYYY-MM-DD, for stamping export filenames. Local time,
-   * not UTC — matches the recruiter's own wall-clock day, same reasoning as
-   * scheduling.ts's slot handling. */
-  export function todayStamp(): string {
-    const d = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  /** Today's Asia/Kolkata business date as YYYY-MM-DD for export filenames. */
+  export function todayStamp(date: Date = new Date()): string {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+    return `${year}-${month}-${day}`;
   }
