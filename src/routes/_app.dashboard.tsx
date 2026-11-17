@@ -89,6 +89,38 @@ function ChartSkeleton() {
   );
 }
 
+const DASHBOARD_TIME_ZONE = "Asia/Kolkata";
+const dashboardMonthFormatter = new Intl.DateTimeFormat("en", {
+  timeZone: DASHBOARD_TIME_ZONE,
+  month: "short",
+});
+
+function dashboardMonthKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DASHBOARD_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return `${year}-${month}`;
+}
+
+function dashboardMonthStartIso(date: Date): string {
+  return new Date(`${dashboardMonthKey(date)}-01T00:00:00+05:30`).toISOString();
+}
+
+function recentDashboardMonths(date: Date): Record<string, { month: string; joined: number }> {
+  const [year, month] = dashboardMonthKey(date).split("-").map(Number);
+  const months: Record<string, { month: string; joined: number }> = {};
+  for (let offset = 5; offset >= 0; offset--) {
+    const first = new Date(Date.UTC(year, month - 1 - offset, 1));
+    const key = first.toISOString().slice(0, 7);
+    months[key] = { month: dashboardMonthFormatter.format(first), joined: 0 };
+  }
+  return months;
+}
+
 function Dashboard() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPipelineReports(user?.id, profile, role);
@@ -103,7 +135,8 @@ function Dashboard() {
 
   const load = async (isCurrent: () => boolean, signal: AbortSignal) => {
     if (!allowed || !isCurrent()) return;
-    const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0,0,0,0);
+    const now = new Date();
+    const startMonth = dashboardMonthStartIso(now);
     const [
       { count: totalCand, error: totalError },
       { count: newCand, error: newError },
@@ -118,7 +151,7 @@ function Dashboard() {
     ] = await Promise.all([
       supabase.from("candidates").select("id", { count: "exact", head: true }).abortSignal(signal),
       supabase.from("candidates").select("id", { count: "exact", head: true })
-        .gte("created_at", startMonth.toISOString()).abortSignal(signal),
+        .gte("created_at", startMonth).abortSignal(signal),
       supabase.from("interviews").select("id", { count: "exact", head: true })
         .eq("status","scheduled").abortSignal(signal),
       supabase.from("interviews").select("id", { count: "exact", head: true })
@@ -161,18 +194,13 @@ function Dashboard() {
     setStats({ totalCand, newCand, intSched, intDone, offers, joined, clients, jobs, exitRate });
 
     // Monthly joining trend
-    const months: Record<string, number> = {};
-    for (let i=5; i>=0; i--) {
-      const d = new Date(); d.setMonth(d.getMonth()-i);
-      const k = d.toLocaleString("en", { month: "short" });
-      months[k] = 0;
-    }
+    const months = recentDashboardMonths(now);
     candByMonth.forEach((r:any)=>{
       if (!r.joining_date) return;
-      const k = new Date(r.joining_date).toLocaleString("en",{ month: "short" });
-      if (k in months) months[k]++;
+      const key = String(r.joining_date).slice(0, 7);
+      if (key in months) months[key].joined++;
     });
-    setMonthly(Object.entries(months).map(([m,v])=>({ month:m, joined:v })));
+    setMonthly(Object.values(months));
 
     // Funnel — every forward-moving stage (rejected/dropped are "exits" from
     // the pipeline, reported separately as the Rejected/Dropped KPI above,
