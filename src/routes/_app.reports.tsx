@@ -136,15 +136,15 @@ function Reports() {
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
           readBoundedReportRows((from, to, abort) =>
             supabase.from("submissions")
-              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, created_at", { count: "exact" })
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, submission_date, created_at", { count: "exact" })
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
           readBoundedReportRows((from, to, abort) =>
             supabase.from("interviews")
-              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, created_at", { count: "exact" })
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, interview_date, created_at", { count: "exact" })
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
           readBoundedReportRows((from, to, abort) =>
             supabase.from("offers")
-              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, created_at", { count: "exact" })
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, offer_date, created_at", { count: "exact" })
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
           readBoundedReportRows((from, to, abort) =>
             supabase.from("clients")
@@ -185,9 +185,9 @@ function Reports() {
   }, [clients]);
 
   const candidatesInRange = useMemo(() => validWindow ? candidates.filter((c: any) => inRange(c.created_at, from, to)) : [], [candidates, from, to, validWindow]);
-  const submissionsInRange = useMemo(() => validWindow ? submissions.filter((s: any) => inRange(s.created_at, from, to)) : [], [submissions, from, to, validWindow]);
-  const interviewsInRange = useMemo(() => validWindow ? interviews.filter((i: any) => inRange(i.created_at, from, to)) : [], [interviews, from, to, validWindow]);
-  const offersInRange = useMemo(() => validWindow ? offers.filter((o: any) => inRange(o.created_at, from, to)) : [], [offers, from, to, validWindow]);
+  const submissionsInRange = useMemo(() => validWindow ? submissions.filter((s: any) => inRange(s.submission_date ?? s.created_at, from, to)) : [], [submissions, from, to, validWindow]);
+  const interviewsInRange = useMemo(() => validWindow ? interviews.filter((i: any) => inRange(i.interview_date ?? i.created_at, from, to)) : [], [interviews, from, to, validWindow]);
+  const offersInRange = useMemo(() => validWindow ? offers.filter((o: any) => inRange(o.offer_date ?? o.created_at, from, to)) : [], [offers, from, to, validWindow]);
 
   // --- Report 1: Candidate pipeline by stage ---
   const pipelineRows = useMemo(() => {
