@@ -255,6 +255,8 @@ test("Report rejects missing or corrupt event dates rather than silently droppin
   assert.doesNotThrow(()=>assertReportEventDates(valid));
   assert.doesNotThrow(()=>assertReportEventDates({...valid,offers:[]}));
   assert.throws(()=>assertReportEventDates({...valid,candidates:[{created_at:null}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,candidates:[{created_at:"2026-02-30"}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,submissions:[{submission_date:"next Tuesday",created_at:"2026-11-17"}]}),/event date/);
   assert.throws(()=>assertReportEventDates({...valid,submissions:[{submission_date:"not-a-date",created_at:"2026-11-16T09:00:00Z"}]}),/event date/);
   assert.throws(()=>assertReportEventDates({...valid,interviews:[{interview_date:null,created_at:""}]}),/event date/);
   assert.throws(()=>assertReportEventDates({...valid,offers:[{offer_date:null,created_at:null}]}),/event date/);

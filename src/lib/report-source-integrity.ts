@@ -108,7 +108,9 @@ export function assertReportEventDates(source: {
   offers: readonly { offer_date?: string | null; created_at?: string | null }[];
 }): void {
   const requireDate = (value: unknown): void => {
-    if (typeof value !== "string" || !value.trim() ||
+    if (typeof value !== "string" ||
+        !validReportDay(value.slice(0, 10)) ||
+        !(value.length === 10 || value[10] === "T" || value[10] === " ") ||
         !Number.isFinite(new Date(value).getTime()))
       throw new Error("Report event date cannot be verified");
   };
