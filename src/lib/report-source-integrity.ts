@@ -29,6 +29,12 @@ export interface ReportSources {
   clients: readonly Client[];
 }
 
+export interface RecruiterReportSources {
+  candidates: readonly Candidate[];
+  submissions: readonly Related[];
+  interviews: readonly Related[];
+}
+
 function linkedId(left: RefId, right: RefId): string | null {
   // Conflicting legacy and UUID aliases must not silently pick one.
   if (left != null && left !== "" && (typeof left !== "string" || !left.trim()))
@@ -65,6 +71,28 @@ export function assertReportSourceIntegrity(source: ReportSources): void {
       if (!candidateId || !candidates.has(candidateId) ||
           !clientId || !clients.has(clientId))
         throw new Error("Report linked candidate or client unavailable");
+    }
+  }
+}
+
+export function assertRecruiterReportSourceIntegrity(source: RecruiterReportSources): void {
+  const candidates = new Map(source.candidates.map(c => [c.id, c]));
+  const stages = new Set(ALLOWED_REPORT_STAGES);
+  if (candidates.size !== source.candidates.length)
+    throw new Error("Report source identity is inconsistent");
+  for (const row of source.candidates) {
+    if (typeof row.id !== "string" || !row.id.trim() || !stages.has(row.stage) ||
+        (row.assigned_recruiter != null &&
+         (typeof row.assigned_recruiter !== "string" || !row.assigned_recruiter.trim())))
+      throw new Error("Report candidate stage or recruiter cannot be verified");
+  }
+  for (const items of [source.submissions, source.interviews]) {
+    for (const row of items) {
+      if (typeof row.id !== "string" || !row.id.trim())
+        throw new Error("Report related record identity is invalid");
+      const candidateId = linkedId(row.candidate_uuid, row.candidate_id);
+      if (!candidateId || !candidates.has(candidateId))
+        throw new Error("Report linked candidate unavailable");
     }
   }
 }
