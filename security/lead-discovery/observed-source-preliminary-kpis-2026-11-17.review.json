@@ -1,0 +1,51 @@
+{
+  "schema": "CATEGORY-C-OBSERVED-SOURCE-RESEARCH-KPIS-V1",
+  "cutoff_day": "2026-11-17",
+  "timezone": "Asia/Kolkata",
+  "scope": "Three real corporate public-site factual spot checks; not a licensed authorized operational lead cohort.",
+  "source_ledger_file": "security/lead-discovery/observed-public-business-sources-2026-11-17.review.json",
+  "spotchecked_organizations": 3,
+  "unique_organization_names": 3,
+  "source_links_present": 3,
+  "preliminary_nonacceptance_metrics": {
+    "raw_source_link_coverage": {
+      "numerator": 3,
+      "denominator": 3,
+      "value_pct": 100,
+      "note": "All three spot checks have an official company URL. This does not prove rights to ingest or that a qualified lead exists."
+    },
+    "approved_provenance_coverage": {
+      "value": "N/A",
+      "reason": "Actual source rights for operational company-record import not approved"
+    },
+    "published_evidence_freshness_30d": {
+      "value": "N/A",
+      "reason": "Original publication dates of job/location pages not verified; observation date is not evidence publication freshness"
+    },
+    "deduplication_ratio": {
+      "numerator": 0,
+      "denominator": 3,
+      "value_pct": 0,
+      "note": "No duplicate company names among three spot checks; not a validation of underlying corporate identity or a broad source."
+    },
+    "growth_review_completion": {
+      "numerator": 0,
+      "denominator": 3,
+      "value_pct": 0,
+      "note": "No separate human business-level decisions were made on these new observed records"
+    },
+    "offline_handoff_preview_yield": {
+      "value": "N/A",
+      "reason": "Zero independently qualified/reviewed company records; denominator zero"
+    },
+    "actual_meeting_conversion": {
+      "value": "N/A",
+      "reason": "No outbound introduction or verified meeting"
+    }
+  },
+  "accepted_kpi_targets": null,
+  "reference_reconciliation": "NOT_INDEPENDENTLY_RECONCILED",
+  "business_owner_observed_sample_acceptance": "NOT_RECORDED",
+  "formal_ld05_score_awarded": false,
+  "commercial_contact_or_crm_writes": false
+}

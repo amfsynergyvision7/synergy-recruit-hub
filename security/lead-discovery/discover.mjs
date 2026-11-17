@@ -1,0 +1,219 @@
+/**
+ * Build 121 — OFFLINE ONLY, zero-network lead discovery from reviewed local
+ * synthetic JSON-LD website snapshots. This tool cannot crawl, send email,
+ * write a CRM record, or authorize any business prospect.
+ *
+ * Source boundaries follow the owner-controlled AMF Lead Research &
+ * Outreach Guardrails (REVIEW DRAFT): public business facts, provenance,
+ * no private contacts, no invented hiring signals, human review mandatory.
+ */
+import { readFile, realpath } from "node:fs/promises";
+import { resolve, dirname, relative, isAbsolute } from "node:path";
+import { fileURLToPath } from "node:url";
+import { isIP } from "node:net";
+
+export const LIMITS = Object.freeze({
+  sources: 12, htmlBytes: 250_000, scriptsPerSource: 25,
+  entitiesPerSource: 200, jsonLdNodesPerSource: 2500, leadName: 120, location: 90,
+});
+const MAX_MANIFEST_BYTES = 40_000;
+
+function safeString(input, limit) {
+  if (typeof input !== "string") return null;
+  const value = input.normalize("NFC").trim().replace(/\s+/g, " ");
+  // Company name, city and industry are organization-level metadata only.
+  // Reject embedded contact fields at discovery, not merely at later review:
+  // discovery output is itself a serializable, inspectable report.
+  if (!value || value.length > limit ||
+      /[<>{}\u0000-\u001f\u007f@]|\b(?:mailto|tel):|\+?\d[\d() -]{7,}\d/iu.test(value)) return null;
+  return value;
+}
+
+export function syntheticHttpsUrl(input) {
+  if (typeof input !== "string" || input.length > 500) return null;
+  let parsed;
+  try { parsed = new URL(input); } catch { return null; }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password ||
+      parsed.port || parsed.hash || isIP(parsed.hostname) ||
+      // URL.search can be empty for a trailing '?' even though the URL
+      // contains an untrusted query delimiter; reject both forms.
+      input.includes("?")) return null;
+  const host = parsed.hostname.toLowerCase(),path = parsed.pathname;
+  // Reserved .invalid DNS name: no live company or person can be contacted.
+  // Keep source provenance free of query tokens, encoded contact fragments,
+  // Unicode/punycode identity tricks and noncanonical DNS labels. These are
+  // intentionally strict synthetic-only URL semantics, not a live web policy.
+  if (!host.endsWith(".example.invalid") || host.length > 253 ||
+      host.startsWith(".") || host.includes("..") ||
+      host.split(".").some(s => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(s) ||
+        s.startsWith("xn--")) ||
+      path.length > 160 || !/^\/[A-Za-z0-9._/-]*$/.test(path) ||
+      path.includes("//")) return null;
+  return parsed;
+}
+
+export function normalizeCapturedDate(input) {
+  if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return null;
+  const d = new Date(input+"T00:00:00.000Z");
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10) === input ? input : null;
+}
+
+function trustedInlineJsonLdAttributes(attributes) {
+  // Treat the HTML script start tag as a bounded, unambiguous attribute list.
+  // Loose substring matching can mistake type= embedded in another quoted
+  // attribute for actual JSON-LD evidence.
+  let remaining=attributes.trimStart(),type=null,count=0;
+  while (remaining) {
+    const match=/^([a-z][a-z0-9:_-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>]+))(?=\s|$)/iu.exec(remaining);
+    if(!match||++count>16)return false;
+    const key=match[1].toLowerCase(),value=match[2]??match[3]??match[4];
+    if(key==="type") {
+      if(type!==null)return false; // duplicate type: ambiguous source semantics
+      type=value.toLowerCase();
+    }
+    // External scripts, handler attributes or malformed metadata must not
+    // be treated as immutable inline business provenance.
+    if(key==="src"||key.startsWith("on"))return false;
+    remaining=remaining.slice(match[0].length).trimStart();
+  }
+  return type==="application/ld+json";
+}
+
+function readBusinessEntities(html) {
+  const entities=[];
+  // An actual <script> tag with a real type= attribute is required.
+  // Script lookalikes or data-type/prototype attributes cannot count as proof.
+  const scripts=html.matchAll(/<script(?=[\s>])([^>]*)>([\s\S]*?)<\/script\s*>/giu);
+  let n=0,visited=0;
+  for (const match of scripts) {
+    const attributes=match[1];
+    if (!trustedInlineJsonLdAttributes(attributes)) continue;
+    if (++n > LIMITS.scriptsPerSource) throw new Error("Too many structured-data scripts");
+    let value;
+    try { value=JSON.parse(match[2]); } catch { throw new Error("Invalid snapshot JSON-LD"); }
+    const stack=[value];
+    while (stack.length) {
+      if (++visited>LIMITS.jsonLdNodesPerSource)
+        throw new Error("Too many structured-data nodes");
+      const entry=stack.pop();
+      if (Array.isArray(entry)) {
+        // Avoid unbounded spread arguments and unreviewable nested graph work.
+        if (entry.length>LIMITS.jsonLdNodesPerSource ||
+            stack.length+entry.length>LIMITS.jsonLdNodesPerSource)
+          throw new Error("Too many structured-data nodes");
+        for (const node of entry) stack.push(node);
+        continue;
+      }
+      if (!entry || typeof entry!=="object") continue;
+      const type=entry["@type"],types=Array.isArray(type)?type:[type];
+      // A mixed Person/Organization type cannot safely establish a company-
+      // only entity: reject the ambiguous individual record entirely.
+      if(!types.includes("Person") &&
+         (types.includes("Organization") || types.includes("LocalBusiness") ||
+          types.includes("Corporation"))) entities.push(entry);
+      if (entry["@graph"]) stack.push(entry["@graph"]);
+      if (entities.length > LIMITS.entitiesPerSource) throw new Error("Too many structured-data entities");
+    }
+  }
+  return entities;
+}
+
+export function discoverFromSnapshots(snapshots) {
+  if (!Array.isArray(snapshots) || !snapshots.length ||
+      snapshots.length > LIMITS.sources) throw new Error("Invalid source snapshot count");
+  const byDomain=new Map();
+  let discovered=0,duplicates=0,excluded=0;
+  for (const source of snapshots) {
+    const src=syntheticHttpsUrl(source?.source_url);
+    const date=normalizeCapturedDate(source?.captured_on);
+    if (!src || !date || typeof source.html!=="string" ||
+        Buffer.byteLength(source.html,"utf8") > LIMITS.htmlBytes)
+      throw new Error("Unapproved, unbounded or invalid source snapshot");
+    const nodes=readBusinessEntities(source.html);
+    for (const item of nodes) {
+      const name=safeString(item.name,LIMITS.leadName);
+      const site=syntheticHttpsUrl(item.url);
+      if (!name || !site) { excluded++; continue; }
+      const address=item.address && typeof item.address==="object" && !Array.isArray(item.address)
+        ? item.address : {};
+      const city=safeString(address.addressLocality,LIMITS.location);
+      const industry=safeString(item.industry,LIMITS.location);
+      if (!city || !industry) { excluded++; continue; }
+      discovered++;
+      const canonicalDomain=site.hostname.replace(/^www\./,"");
+      const proof={source_url:src.href, captured_on:date, evidence_type:"JSON-LD Organization"};
+      const previous=byDomain.get(canonicalDomain);
+      if(previous) {
+        // Domain identity alone does NOT establish that competing organization
+        // claims agree. Refuse the whole snapshot instead of silently taking
+        // the first source's name, location or industry as ground truth.
+        if (previous.company_name!==name || previous.location!==city ||
+            previous.industry!==industry)
+          throw new Error("Conflicting duplicate company metadata requires manual source reconciliation");
+        duplicates++;
+        if (!previous.evidence.some(x=>x.source_url===proof.source_url && x.captured_on===date))
+          previous.evidence.push(proof);
+        continue;
+      }
+      byDomain.set(canonicalDomain,{
+        // Deduplicate and *emit* the same canonical identity, whether the
+        // first fictional snapshot used www. or a bare business hostname.
+        company_name:name, business_website:"https://"+canonicalDomain,
+        location:city, industry, verified_hiring_signal:false,
+        research_status:"synthetic_only_needs_human_review",
+        outreach_authorized:false, crm_write_authorized:false,
+        evidence:[proof]
+      });
+    }
+  }
+  const leads=[...byDomain.values()].sort((a,b)=>a.business_website.localeCompare(b.business_website));
+  for (const lead of leads) lead.evidence.sort((a,b)=>a.source_url.localeCompare(b.source_url)||a.captured_on.localeCompare(b.captured_on));
+  return {
+    mode:"SYNTHETIC_OFFLINE_ONLY", network_requests:0, crm_writes:0, outbound_messages:0,
+    source_count:snapshots.length, extracted_businesses:discovered,
+    duplicates_merged:duplicates, excluded_incomplete:excluded,
+    lead_count:leads.length, human_review_required:true, leads
+  };
+}
+
+export async function runLocalManifest(manifestPath) {
+  const file=resolve(manifestPath);
+  const raw=await readFile(file);
+  if (raw.byteLength>MAX_MANIFEST_BYTES) throw new Error("Manifest too large");
+  let manifest;
+  try { manifest=JSON.parse(raw.toString("utf8")); } catch { throw new Error("Manifest must be valid JSON"); }
+  if (manifest?.mode!=="SYNTHETIC_OFFLINE_ONLY" ||
+      !Array.isArray(manifest.sources) || !manifest.sources.length ||
+      manifest.sources.length>LIMITS.sources) throw new Error("Only bounded synthetic offline discovery is supported");
+  const base=await realpath(dirname(file));
+  const snapshots=[];
+  for(const source of manifest.sources) {
+    const src=syntheticHttpsUrl(source?.source_url);
+    const date=normalizeCapturedDate(source?.captured_on);
+    const name=source?.snapshot;
+    if (!src || !date || typeof name!=="string" || !name.endsWith(".html") ||
+        isAbsolute(name) || name.includes("\\") || name.includes("\u0000"))
+      throw new Error("Manifest has unapproved source metadata");
+    const full=resolve(base,name),rel=relative(base,full);
+    if (!rel || rel===".." || rel.startsWith("../") || isAbsolute(rel))
+      throw new Error("Snapshot path escapes the local manifest directory");
+    const real=await realpath(full),realRel=relative(base,real);
+    if (!realRel || realRel===".." || realRel.startsWith("../") || isAbsolute(realRel))
+      throw new Error("Snapshot symlink escapes the local manifest directory");
+    const content=await readFile(real);
+    if (content.byteLength>LIMITS.htmlBytes) throw new Error("Snapshot exceeds the size limit");
+    snapshots.push({source_url:src.href,captured_on:date,html:content.toString("utf8")});
+  }
+  return discoverFromSnapshots(snapshots);
+}
+
+if (process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
+  try {
+    if (process.argv.length!==3) throw new Error("Usage: node discover.mjs <synthetic-manifest.json>");
+    const report=await runLocalManifest(process.argv[2]);
+    process.stdout.write(JSON.stringify(report,null,2)+"\n");
+  } catch (error) {
+    process.stderr.write("Offline discovery rejected input: "+error.message+"\n");
+    process.exitCode=1;
+  }
+}
