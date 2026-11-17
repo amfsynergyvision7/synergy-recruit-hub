@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { sendEmail, textToHtml } from "./email.server";
+import { assertCrmLegacyOutboundEmailReleased } from "./legacy-outbound-email-release-hold.server";
 
 // Which CrudModule tables can currently send email from their row actions
 // (Candidates, Clients — see emailField on those two route configs). Kept as
@@ -22,6 +23,8 @@ export const sendCrmEmail = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ context, data }) => {
+    // Immutable emergency interlock: the legacy route has unreviewed SMTP-before-audit ordering.
+    assertCrmLegacyOutboundEmailReleased();
     // Defense in depth: the UI only shows the Mail button when canEdit()
     // already says this role can edit Candidates/Clients (admin or
     // recruiter), but a server function is callable directly, and the
