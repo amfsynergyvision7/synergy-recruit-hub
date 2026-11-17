@@ -15,7 +15,7 @@ import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
 import { readBoundedReportRows } from "@/lib/bounded-report-read";
-import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertReportSourceIntegrity, validReportWindow } from "@/lib/report-source-integrity";
+import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportWindow } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
@@ -116,6 +116,7 @@ function ReportTable({ title, description, headers, rows, filenamePrefix, loadin
 function Reports() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPipelineReports(user?.id, profile, role);
+  const canReadOutcomes = role !== "recruiter";
   const [from, setFrom] = useState(() => isoDateNDaysAgo(30));
   const [to, setTo] = useState(() => reportingDateIso(new Date()));
   const validWindow = validReportWindow(from, to);
@@ -142,16 +143,19 @@ function Reports() {
             supabase.from("interviews")
               .select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, interview_date, created_at", { count: "exact" })
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
-          readBoundedReportRows((from, to, abort) =>
+          canReadOutcomes ? readBoundedReportRows((from, to, abort) =>
             supabase.from("offers")
               .select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, offer_date, created_at", { count: "exact" })
-              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
-          readBoundedReportRows((from, to, abort) =>
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal) : Promise.resolve([]),
+          canReadOutcomes ? readBoundedReportRows((from, to, abort) =>
             supabase.from("clients")
               .select("id, company_name", { count: "exact" })
-              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal) : Promise.resolve([]),
         ]);
-        assertReportSourceIntegrity({ candidates, submissions, interviews, offers, clients });
+        if (canReadOutcomes)
+          assertReportSourceIntegrity({ candidates, submissions, interviews, offers, clients });
+        else
+          assertRecruiterReportSourceIntegrity({ candidates, submissions, interviews });
         return { candidates, submissions, interviews, offers, clients };
       } catch {
         // Avoid exposing a raw database error or silently computing on
@@ -225,8 +229,11 @@ function Reports() {
 
     return Object.entries(rec)
       .sort((a, b) => b[1].added - a[1].added)
-      .map(([id, v]) => [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
-  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate]);
+      .map(([id, v]) => canReadOutcomes
+        ? [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined]
+        : [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews]
+      );
+  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate, canReadOutcomes]);
 
   // --- Report 3: Client-wise pipeline summary ---
   const clientRows = useMemo(() => {
@@ -303,14 +310,16 @@ function Reports() {
       <ReportTable
         title="Recruiter Performance"
         description="Activity attributed to each recruiter's assigned candidates within the window."
-        headers={["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]}
+        headers={canReadOutcomes
+          ? ["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]
+          : ["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews"]}
         rows={recruiterRows}
         filenamePrefix="recruiter-performance"
         loading={isLoading}
         emptyLabel="No recruiter activity in this window."
       />
 
-      <ReportTable
+      {canReadOutcomes && <ReportTable
         title="Client-wise Pipeline Summary"
         description="Submissions, interviews, and outcomes per client within the window."
         headers={["Client", "Submissions", "Interviews", "Offers", "Joined"]}
@@ -318,7 +327,7 @@ function Reports() {
         filenamePrefix="client-pipeline-summary"
         loading={isLoading}
         emptyLabel="No client activity in this window."
-      />
+      />}
         </>
       )}
 
