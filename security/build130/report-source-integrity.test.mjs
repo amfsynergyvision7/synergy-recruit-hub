@@ -124,6 +124,7 @@ test("Pipeline reports use the fixed Asia/Kolkata business date",()=>{
   assert(page.includes("setTo(reportingDateIso(new Date()))"));
   assert(page.includes("const reportingDay = reportingDateIso(date)"));
   assert(page.includes("return reportingDay >= from && reportingDay <= to"));
+  assert(page.includes("setFrom(isoDateNDaysAgo(days - 1))"));
 });
 
 test("Pipeline event windows use business-event dates with legacy fallback",()=>{
