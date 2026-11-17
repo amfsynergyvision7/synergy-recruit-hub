@@ -1,0 +1,84 @@
+{
+  "schema": "CATEGORY-C-PUBLIC-ORGANIZATION-SPOTCHECK-V1",
+  "recorded_on": "2026-11-17",
+  "timezone": "Asia/Kolkata",
+  "status": "RESEARCH_ONLY_NOT_OPERATIONAL_ACCEPTANCE",
+  "method": "Manual small-scope reading of publicly indexed organization pages; source URL recorded; no automated scraping/CRM/communication",
+  "data_rights": "Website terms require per-domain legal/operational review. Observing publicly stated business facts does not grant a bulk dataset or resale license.",
+  "government_catalog_candidates": [
+    {
+      "publisher": "Ministry of Corporate Affairs",
+      "catalog_url": "https://data.gov.in/catalog/company-master-data",
+      "title": "Company Master Data",
+      "catalog_only": true,
+      "resource_rows_accessed": 0,
+      "license_url": "https://data.gov.in/Godl",
+      "note": "Open catalog metadata verified; underlying resource and licence version still require access-mode revalidation. Cached and fresh search listings disagree about last-updated date; do not infer freshness."
+    },
+    {
+      "publisher": "Ministry of Micro, Small and Medium Enterprises",
+      "catalog_url": "https://data.gov.in/catalog/udyam-registration-msme-registration",
+      "title": "UDYAM Registration",
+      "catalog_only": true,
+      "resource_rows_accessed": 0,
+      "license_url": "https://data.gov.in/Godl",
+      "note": "Catalog metadata only; do not treat as verified company records; avoid personal proprietor details if present."
+    }
+  ],
+  "spotchecks": [
+    {
+      "organization": "Concentrix",
+      "sector": "Customer experience/contact-center services",
+      "region": "Kolkata, West Bengal (public job listing)",
+      "business_evidence_url": "https://jobs.concentrix.com/job/?id=R1612399",
+      "publisher_website_url": "https://www.concentrix.com/india/",
+      "site_terms_url": "https://www.concentrix.com/wp-content/uploads/2024/03/Concentrix-Website-Terms-of-Use_032624.pdf",
+      "observed_fact": "Public company careers site displays a Customer Service Representative role located in Kolkata",
+      "source_publication_date": null,
+      "observation_date": "2026-11-17",
+      "eligible_for_operational_import": false,
+      "reason": "Source-page use rights for commercial extraction/copying not cleared; not a verified role-open date"
+    },
+    {
+      "organization": "Startek",
+      "sector": "Customer experience/BPO services",
+      "region": "Kolkata operations listed by publisher",
+      "business_evidence_url": "https://www.startek.com/geo/geo-page-india/",
+      "publisher_website_url": "https://www.startek.com/careers/",
+      "site_terms_url": null,
+      "observed_fact": "Company's India page lists Kolkata among its delivery locations; careers section exists but no current Kolkata vacancy verified in this check",
+      "source_publication_date": null,
+      "observation_date": "2026-11-17",
+      "eligible_for_operational_import": false,
+      "reason": "Source-rights terms not fully verified, hiring-signal not validated"
+    },
+    {
+      "organization": "Teleperformance (TP)",
+      "sector": "Customer experience/BPO services",
+      "region": "Kolkata listed within employer's India job page",
+      "business_evidence_url": "https://www.tp.com/en-us/job-opportunities/india/digital-relationship-executives/",
+      "publisher_website_url": "https://www.tp.com/en-us/careers/job-opportunities/",
+      "site_terms_url": "https://www.tp.com/en-us/footer/legal-statement/",
+      "observed_fact": "Official employer page lists Kolkata as one of several possible locations for Digital Relationship Executives",
+      "source_publication_date": null,
+      "observation_date": "2026-11-17",
+      "eligible_for_operational_import": false,
+      "reason": "Legal notice limits commercial reproduction; factual spot check only, no copied job content or operational ingestion"
+    }
+  ],
+  "aggregate": {
+    "public_businesses_spotchecked": 3,
+    "unique_organization_names": 3,
+    "source_url_evidence": 3,
+    "actual_company_records_extracted_from_licensed_government_datasets": 0,
+    "independent_manual_reference_reconciliations": 0,
+    "approved_operational_lead_records": 0,
+    "outbound_messages": 0,
+    "crm_writes": 0,
+    "verified_meetings": 0,
+    "actual_meeting_conversion": "N/A"
+  },
+  "formal_ld02_approved": false,
+  "formal_ld05_approved": false,
+  "review_only": true
+}
