@@ -28,7 +28,7 @@ test("Build124 recruitment report fetch removes unneeded global full-name direct
  assert(!report.includes('supabase.from("billing")'));
  assert(!report.includes('ctc, salary'));
  assert(!report.includes("data?.profiles"));
- assert(report.includes('headers={["Recruiter (ID)"'));
+ assert(report.includes('headers={canReadOutcomes'));
 });
 test("Build124 report emits no CSV on failed or incomplete data",()=>{
  assert(report.includes("if (isError)"));
@@ -61,6 +61,14 @@ test("Dashboard month metrics use fixed Asia/Kolkata boundaries",()=>{
  assert(dash.includes('T00:00:00+05:30'));
  assert(dash.includes("recentDashboardMonths(now)"));
  assert(dash.includes("String(r.joining_date).slice(0, 7)"));
+});
+test("Recruiter dashboard skips denied offers, clients and outcome trend reads",()=>{
+ assert(dash.includes('const canReadOutcomes = role !== "recruiter"'));
+ assert(dash.includes('canReadOutcomes ? supabase.from("offers")'));
+ assert(dash.includes('canReadOutcomes ? supabase.from("clients")'));
+ assert(dash.includes("canReadOutcomes ? readBoundedReportRows((from,to,abort)=>"));
+ assert(dash.includes("...(canReadOutcomes ? [offersError,joinedError,clientsError] : [])"));
+ assert(dash.includes("{canReadOutcomes && <Card"));
 });
 test("Build124 dashboard removes delayed request race and aborts previous in-flight HTTP reads",()=>{
  assert(dash.includes("let latest = 0;"));
