@@ -117,12 +117,13 @@ test("Build130 malformed report date range still allows editing controls but no 
   assert(page.includes('type="date" value={to}'));
 });
 
-test("Build130 date presets use the local date rather than UTC rollover",()=>{
-  assert(page.includes("function localDateIso(date: Date)"));
-  assert(page.includes("date.getFullYear()"));
-  assert(page.includes("date.getMonth() + 1"));
-  assert(page.includes("date.getDate()"));
-  assert(page.includes("setTo(localDateIso(new Date()))"));
+test("Pipeline reports use the fixed Asia/Kolkata business date",()=>{
+  assert(page.includes('timeZone: "Asia/Kolkata"'));
+  assert(page.includes("function reportingDateIso(date: Date)"));
+  assert(page.includes("reportingDateFormatter.formatToParts(date)"));
+  assert(page.includes("setTo(reportingDateIso(new Date()))"));
+  assert(page.includes("const reportingDay = reportingDateIso(date)"));
+  assert(page.includes("return reportingDay >= from && reportingDay <= to"));
 });
 
 test("Build130 report still denies viewers, finance, suspended and unapproved accounts",()=>{
