@@ -173,3 +173,13 @@ test("Build130 source integrity is transport-only, with no privilege or mutation
   assert(!page.includes('supabase.from("billing")'));
   assert(!page.includes("ctc, salary"));
 });
+
+test("Build130 dashboard profile labels and ranking respect least privilege",()=>{
+ const src=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+ assert(src.includes('if (role === "admin" && recruiterIds.length > 0)'));
+ assert(src.includes(".select('id, full_name', { count: 'exact' })"));
+ assert(src.includes('profilesCount !== profiles.length'));
+ assert(src.includes('name: recruiterFallbackLabel(recruiterId)'));
+ assert(src.includes('b.count - a.count || b.joined - a.joined || a.name.localeCompare(b.name)'));
+ assert(!src.includes('name: recruiterId }'));
+});

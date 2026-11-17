@@ -89,6 +89,10 @@ function ChartSkeleton() {
   );
 }
 
+function recruiterFallbackLabel(id: string): string {
+  return `Recruiter ${id.slice(0, 8)}…`;
+}
+
 const DASHBOARD_TIME_ZONE = "Asia/Kolkata";
 const dashboardMonthFormatter = new Intl.DateTimeFormat("en", {
   timeZone: DASHBOARD_TIME_ZONE,
@@ -266,38 +270,46 @@ function Dashboard() {
       const recruiterId = c.assigned_recruiter;
       if (!recruiterId) return;
       if (!rec[recruiterId]) {
-        rec[recruiterId] = { count: 0, joined: 0, name: recruiterId };
+        // Operations and recruiter roles are not permitted to enumerate other
+        // users' profiles under the least-privilege profile policy. Keep the
+        // fallback bounded and pseudonymous rather than displaying a full UUID.
+        rec[recruiterId] = { count: 0, joined: 0, name: recruiterFallbackLabel(recruiterId) };
       }
       rec[recruiterId].count++;
       if (c.stage === "joined") rec[recruiterId].joined++;
     });
 
-    // Fetch recruiter names from profiles table
+    // Only administrators may resolve cross-user profile labels. Other roles
+    // already have the authorized candidate assignment IDs they need for the
+    // aggregate, but must not issue a profile-directory query that RLS denies.
     const recruiterIds = Object.keys(rec);
-    if (recruiterIds.length > 0) {
+    if (role === "admin" && recruiterIds.length > 0) {
       if (recruiterIds.length > 100) throw new Error("Dashboard recruiter scope exceeds safe bound");
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError, count: profilesCount } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name', { count: 'exact' })
         .in('id', recruiterIds)
         .abortSignal(signal);
       if (!isCurrent()) return;
-      if (profilesError || !profiles) throw new Error("Recruiter metadata unavailable");
-      if (profiles) {
-        profiles.forEach(profile => {
-          if (rec[profile.id]) {
-            rec[profile.id].name = profile.full_name || profile.id.substring(0,6);
-          }
-        });
-      }
+      if (profilesError || !profiles || profilesCount !== profiles.length)
+        throw new Error("Recruiter metadata unavailable");
+      const seenProfiles = new Set<string>();
+      profiles.forEach(profile => {
+        if (!rec[profile.id] || seenProfiles.has(profile.id))
+          throw new Error("Recruiter metadata identity is inconsistent");
+        seenProfiles.add(profile.id);
+        if (typeof profile.full_name === "string" && profile.full_name.trim())
+          rec[profile.id].name = profile.full_name.trim();
+      });
     }
 
-    // Fixed: Use the name directly, no need to check r.id
-    setRecruiters(Object.values(rec).slice(0,6).map(r => ({
-      name: r.name,
-      count: r.count,
-      joined: r.joined,
-    })));
+    // The card promises performance ranking. Object insertion order is not a
+    // ranking, so use deterministic workload/outcome/name ordering before the
+    // six-row display cap.
+    setRecruiters(Object.values(rec)
+      .sort((a, b) => b.count - a.count || b.joined - a.joined || a.name.localeCompare(b.name))
+      .slice(0,6)
+      .map(r => ({ name: r.name, count: r.count, joined: r.joined })));
     setLoading(false);
   };
 
