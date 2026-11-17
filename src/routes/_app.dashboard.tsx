@@ -201,7 +201,7 @@ function Dashboard() {
     // Current-stage snapshot per candidate, reused below for the funnel,
     // source effectiveness, and recruiter performance calculations — one
     // query already fetched this (candAll), no extra round-trip needed.
-    const stageCount: Record<string, number> = {};
+    const stageCount: Record<string, number> = Object.create(null);
     candAll.forEach((c:any)=>{ stageCount[c.stage]=(stageCount[c.stage]||0)+1; });
     const exitedCount = (stageCount["rejected"]||0) + (stageCount["dropped"]||0);
     const exitRate = candAll.length > 0 ? Math.round((exitedCount / candAll.length) * 100) : 0;
@@ -249,7 +249,7 @@ function Dashboard() {
     // Sources — raw lead volume (unchanged) plus, new, what fraction of each
     // source's candidates actually reached "joined". A source can produce a
     // lot of leads and still be a weak source if few of them ever get hired.
-    const srcMap: Record<string, { total: number; joined: number }> = {};
+    const srcMap: Record<string, { total: number; joined: number }> = Object.create(null);
     candAll.forEach((c:any)=>{
       const s = c.source || "Unknown";
       if (!srcMap[s]) srcMap[s] = { total: 0, joined: 0 };
@@ -272,7 +272,7 @@ function Dashboard() {
     // candidates are assigned (existing metric — workload/volume) and how
     // many of those actually reached "joined" (new — actual placements,
     // the number that matters more than raw assignment count).
-    const rec: Record<string, { count: number; joined: number; name: string }> = {};
+    const rec: Record<string, { count: number; joined: number; name: string }> = Object.create(null);
     candAll.forEach((c:any) => {
       const recruiterId = c.assigned_recruiter;
       if (!recruiterId) return;

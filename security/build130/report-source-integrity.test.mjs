@@ -202,3 +202,18 @@ test("Dashboard checks complete candidate stage snapshot before publishing KPIs"
   assert(src.includes("if (candAll.length !== totalCand)"));
   assert(src.indexOf("assertCandidateSourceIntegrity(candAll);") < src.indexOf("setStats({ totalCand"));
 });
+
+test("Dashboard user-controlled source and assignment keys cannot collide with Object prototype",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+  assert(src.includes("const srcMap: Record<string, { total: number; joined: number }> = Object.create(null);"));
+  assert(src.includes("const rec: Record<string, { count: number; joined: number; name: string }> = Object.create(null);"));
+  assert(src.includes("const stageCount: Record<string, number> = Object.create(null);"));
+  const map=Object.create(null);
+  for(const key of ["__proto__","constructor","toString","standard"]){
+    if(!map[key]) map[key]={total:0};
+    map[key].total++;
+  }
+  assert.equal(Object.keys(map).length,4);
+  assert.deepEqual(Object.values(map).map(x=>x.total),[1,1,1,1]);
+  assert.equal(Object.prototype.total,undefined);
+});
