@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertCandidateSourceIntegrity,
+  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertCandidateSourceIntegrity, linkedId,
   assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportDay, validReportWindow,
 } from "../../src/lib/report-source-integrity.ts";
 import { canReadPipelineReports } from "../../src/lib/crm-report-access.ts";
@@ -216,4 +216,31 @@ test("Dashboard user-controlled source and assignment keys cannot collide with O
   assert.equal(Object.keys(map).length,4);
   assert.deepEqual(Object.values(map).map(x=>x.total),[1,1,1,1]);
   assert.equal(Object.prototype.total,undefined);
+});
+
+test("Report attribution resolves empty legacy UUID aliases without losing valid ID",()=>{
+  assert.equal(linkedId("", "candidate-1"),"candidate-1");
+  assert.equal(linkedId(null, "candidate-1"),"candidate-1");
+  assert.equal(linkedId("candidate-1", ""),"candidate-1");
+  assert.equal(linkedId("candidate-1", "candidate-1"),"candidate-1");
+  assert.equal(linkedId("", "" ),null);
+  assert.throws(()=>linkedId("candidate-A","candidate-B"),/aliases conflict/);
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  for(const alias of ["s","i","o"]){
+    assert(src.includes(`linkedId(${alias}.candidate_uuid, ${alias}.candidate_id)`));
+    assert(src.includes(`linkedId(${alias}.client_uuid, ${alias}.client_id)`));
+    assert(!src.includes(`${alias}.candidate_uuid ?? ${alias}.candidate_id`));
+    assert(!src.includes(`${alias}.client_uuid ?? ${alias}.client_id`));
+  }
+});
+
+test("Report source and recruiter keys never inherit Object prototype properties",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  assert.equal((src.match(/Object\.create\(null\)/g)||[]).length,5);
+  const byRecruiter=Object.create(null);
+  for(const key of ["__proto__","constructor","toString","recruiter-1"]){
+    byRecruiter[key]={added:1};
+  }
+  assert.deepEqual(Object.values(byRecruiter).map(x=>x.added),[1,1,1,1]);
+  assert.equal(Object.prototype.added,undefined);
 });

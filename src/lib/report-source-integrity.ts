@@ -52,7 +52,7 @@ export function assertCandidateSourceIntegrity(candidates: readonly Candidate[])
   }
 }
 
-function linkedId(left: RefId, right: RefId): string | null {
+export function linkedId(left: RefId, right: RefId): string | null {
   // Conflicting legacy and UUID aliases must not silently pick one.
   if (left != null && left !== "" && (typeof left !== "string" || !left.trim()))
     throw new Error("Report record reference is invalid");

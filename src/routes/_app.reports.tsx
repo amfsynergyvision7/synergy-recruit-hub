@@ -15,7 +15,7 @@ import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
 import { readBoundedReportRows } from "@/lib/bounded-report-read";
-import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportWindow } from "@/lib/report-source-integrity";
+import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, linkedId, validReportWindow } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
@@ -177,13 +177,13 @@ function Reports() {
   // why an in-range submission/interview/offer can point at a candidate
   // added outside the window.
   const recruiterOfCandidate = useMemo(() => {
-    const m: Record<string, string | null> = {};
+    const m: Record<string, string | null> = Object.create(null);
     candidates.forEach((c: any) => { m[c.id] = c.assigned_recruiter; });
     return m;
   }, [candidates]);
 
   const clientNames = useMemo(() => {
-    const m: Record<string, string> = {};
+    const m: Record<string, string> = Object.create(null);
     clients.forEach((c: any) => { m[c.id] = c.company_name; });
     return m;
   }, [clients]);
@@ -195,7 +195,7 @@ function Reports() {
 
   // --- Report 1: Candidate pipeline by stage ---
   const pipelineRows = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const counts: Record<string, number> = Object.create(null);
     candidatesInRange.forEach((c: any) => { counts[c.stage] = (counts[c.stage] ?? 0) + 1; });
     const total = candidatesInRange.length;
     return STAGE_ORDER
@@ -209,20 +209,20 @@ function Reports() {
 
   // --- Report 2: Recruiter performance ---
   const recruiterRows = useMemo(() => {
-    const rec: Record<string, { added: number; submissions: number; interviews: number; offers: number; joined: number }> = {};
+    const rec: Record<string, { added: number; submissions: number; interviews: number; offers: number; joined: number }> = Object.create(null);
     const ensure = (id: string) => (rec[id] ??= { added: 0, submissions: 0, interviews: 0, offers: 0, joined: 0 });
 
     candidatesInRange.forEach((c: any) => { ensure(c.assigned_recruiter || UNASSIGNED_REPORT_KEY).added++; });
     submissionsInRange.forEach((s: any) => {
-      const rid = recruiterOfCandidate[s.candidate_uuid ?? s.candidate_id] || UNASSIGNED_REPORT_KEY;
+      const rid = recruiterOfCandidate[linkedId(s.candidate_uuid, s.candidate_id) || ""] || UNASSIGNED_REPORT_KEY;
       ensure(rid).submissions++;
     });
     interviewsInRange.forEach((i: any) => {
-      const rid = recruiterOfCandidate[i.candidate_uuid ?? i.candidate_id] || UNASSIGNED_REPORT_KEY;
+      const rid = recruiterOfCandidate[linkedId(i.candidate_uuid, i.candidate_id) || ""] || UNASSIGNED_REPORT_KEY;
       ensure(rid).interviews++;
     });
     offersInRange.forEach((o: any) => {
-      const rid = recruiterOfCandidate[o.candidate_uuid ?? o.candidate_id] || UNASSIGNED_REPORT_KEY;
+      const rid = recruiterOfCandidate[linkedId(o.candidate_uuid, o.candidate_id) || ""] || UNASSIGNED_REPORT_KEY;
       ensure(rid).offers++;
       if (o.joining_status === "joined") ensure(rid).joined++;
     });
@@ -237,13 +237,13 @@ function Reports() {
 
   // --- Report 3: Client-wise pipeline summary ---
   const clientRows = useMemo(() => {
-    const byClient: Record<string, { submissions: number; interviews: number; offers: number; joined: number }> = {};
+    const byClient: Record<string, { submissions: number; interviews: number; offers: number; joined: number }> = Object.create(null);
     const ensure = (id: string) => (byClient[id] ??= { submissions: 0, interviews: 0, offers: 0, joined: 0 });
 
-    submissionsInRange.forEach((s: any) => { const cid = s.client_uuid ?? s.client_id; if (cid) ensure(cid).submissions++; });
-    interviewsInRange.forEach((i: any) => { const cid = i.client_uuid ?? i.client_id; if (cid) ensure(cid).interviews++; });
+    submissionsInRange.forEach((s: any) => { const cid = linkedId(s.client_uuid, s.client_id); if (cid) ensure(cid).submissions++; });
+    interviewsInRange.forEach((i: any) => { const cid = linkedId(i.client_uuid, i.client_id); if (cid) ensure(cid).interviews++; });
     offersInRange.forEach((o: any) => {
-      const cid = o.client_uuid ?? o.client_id;
+      const cid = linkedId(o.client_uuid, o.client_id);
       if (!cid) return;
       ensure(cid).offers++;
       if (o.joining_status === "joined") ensure(cid).joined++;
