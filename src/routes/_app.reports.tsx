@@ -21,28 +21,33 @@ export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
 const STAGE_ORDER = ALLOWED_REPORT_STAGES;
 
-function localDateIso(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+const reportingDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function reportingDateIso(date: Date): string {
+  const parts = reportingDateFormatter.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return `${year}-${month}-${day}`;
 }
 
 function isoDateNDaysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return localDateIso(d);
+  const date = new Date(`${reportingDateIso(new Date())}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - n);
+  return date.toISOString().slice(0, 10);
 }
 
-/** Whether an ISO timestamp falls within [from, to] — both plain
- * "YYYY-MM-DD" strings interpreted as local-time day boundaries, the same
- * local-time-safe approach scheduling.ts uses for slot handling, so a report
- * for "today" actually means the recruiter's own today rather than shifting
- * by whatever timezone the server happens to run in. */
 function inRange(iso: string | null | undefined, from: string, to: string): boolean {
   if (!iso) return false;
-  const t = new Date(iso).getTime();
-  const fromT = new Date(`${from}T00:00:00`).getTime();
-  const toT = new Date(`${to}T23:59:59.999`).getTime();
-  return t >= fromT && t <= toT;
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return false;
+  const reportingDay = reportingDateIso(date);
+  return reportingDay >= from && reportingDay <= to;
 }
 
 function recruiterLabel(id: string | null): string {
@@ -112,7 +117,7 @@ function Reports() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPipelineReports(user?.id, profile, role);
   const [from, setFrom] = useState(() => isoDateNDaysAgo(30));
-  const [to, setTo] = useState(() => localDateIso(new Date()));
+  const [to, setTo] = useState(() => reportingDateIso(new Date()));
   const validWindow = validReportWindow(from, to);
 
   const { data, isLoading, isError } = useQuery({
@@ -245,8 +250,8 @@ function Reports() {
       ] as (string | number)[]);
   }, [submissionsInRange, interviewsInRange, offersInRange, clientNames]);
 
-  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(localDateIso(new Date())); };
-  const applyAllTime = () => { setFrom("2000-01-01"); setTo(localDateIso(new Date())); };
+  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(reportingDateIso(new Date())); };
+  const applyAllTime = () => { setFrom("2000-01-01"); setTo(reportingDateIso(new Date())); };
 
   if (!allowed)
     return <p className="text-sm text-muted-foreground">Recruitment reporting requires an approved recruiter, operations or administrator role.</p>;
@@ -258,7 +263,7 @@ function Reports() {
       <div>
         <h1 className="text-2xl font-semibold">Reports</h1>
         <p className="text-sm text-muted-foreground">
-          Date-ranged recruitment pipeline reports. Financial and billing reporting remains paused.
+          Recruitment pipeline reports use Asia/Kolkata dates. Financial and billing reporting remains paused.
         </p>
       </div>
 
