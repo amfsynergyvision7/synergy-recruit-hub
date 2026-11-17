@@ -100,6 +100,24 @@ export function assertRecruiterReportSourceIntegrity(source: RecruiterReportSour
   }
 }
 
+/** A missing or unreadable date would silently understate date-window KPIs. */
+export function assertReportEventDates(source: {
+  candidates: readonly { created_at?: string | null }[];
+  submissions: readonly { submission_date?: string | null; created_at?: string | null }[];
+  interviews: readonly { interview_date?: string | null; created_at?: string | null }[];
+  offers: readonly { offer_date?: string | null; created_at?: string | null }[];
+}): void {
+  const requireDate = (value: unknown): void => {
+    if (typeof value !== "string" || !value.trim() ||
+        !Number.isFinite(new Date(value).getTime()))
+      throw new Error("Report event date cannot be verified");
+  };
+  for (const c of source.candidates) requireDate(c.created_at);
+  for (const s of source.submissions) requireDate(s.submission_date ?? s.created_at);
+  for (const i of source.interviews) requireDate(i.interview_date ?? i.created_at);
+  for (const o of source.offers) requireDate(o.offer_date ?? o.created_at);
+}
+
 export function validReportDay(value: string): boolean {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(value + "T00:00:00.000Z");

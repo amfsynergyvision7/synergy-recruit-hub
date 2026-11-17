@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertCandidateSourceIntegrity, linkedId,
+  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertCandidateSourceIntegrity, assertReportEventDates, linkedId,
   assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportDay, validReportWindow,
 } from "../../src/lib/report-source-integrity.ts";
 import { canReadPipelineReports } from "../../src/lib/crm-report-access.ts";
@@ -243,4 +243,23 @@ test("Report source and recruiter keys never inherit Object prototype properties
   }
   assert.deepEqual(Object.values(byRecruiter).map(x=>x.added),[1,1,1,1]);
   assert.equal(Object.prototype.added,undefined);
+});
+
+test("Report rejects missing or corrupt event dates rather than silently dropping KPI rows",()=>{
+  const valid={
+    candidates:[{created_at:"2026-11-16T23:45:00+05:30"}],
+    submissions:[{submission_date:"2026-11-17",created_at:"2026-11-16T09:00:00Z"}],
+    interviews:[{interview_date:null,created_at:"2026-11-16T09:00:00Z"}],
+    offers:[{offer_date:"2026-11-17",created_at:"2026-11-16T09:00:00Z"}],
+  };
+  assert.doesNotThrow(()=>assertReportEventDates(valid));
+  assert.doesNotThrow(()=>assertReportEventDates({...valid,offers:[]}));
+  assert.throws(()=>assertReportEventDates({...valid,candidates:[{created_at:null}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,submissions:[{submission_date:"not-a-date",created_at:"2026-11-16T09:00:00Z"}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,interviews:[{interview_date:null,created_at:""}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,offers:[{offer_date:null,created_at:null}]}),/event date/);
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  assert(src.includes("assertReportEventDates({ candidates, submissions, interviews, offers });"));
+  assert(src.indexOf("assertReportEventDates({ candidates, submissions, interviews, offers });")
+         < src.indexOf("return { candidates, submissions, interviews, offers, clients };"));
 });

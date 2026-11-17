@@ -15,7 +15,7 @@ import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
 import { readBoundedReportRows } from "@/lib/bounded-report-read";
-import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, linkedId, validReportWindow } from "@/lib/report-source-integrity";
+import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, assertReportEventDates, linkedId, validReportWindow } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
@@ -156,6 +156,8 @@ function Reports() {
           assertReportSourceIntegrity({ candidates, submissions, interviews, offers, clients });
         else
           assertRecruiterReportSourceIntegrity({ candidates, submissions, interviews });
+        // A partial date cohort is not a valid KPI, even when row counts match.
+        assertReportEventDates({ candidates, submissions, interviews, offers });
         return { candidates, submissions, interviews, offers, clients };
       } catch {
         // Avoid exposing a raw database error or silently computing on
