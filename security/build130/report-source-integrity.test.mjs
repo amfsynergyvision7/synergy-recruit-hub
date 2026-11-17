@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY,
+  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertCandidateSourceIntegrity, assertReportEventDates, linkedId,
   assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportDay, validReportWindow,
 } from "../../src/lib/report-source-integrity.ts";
 import { canReadPipelineReports } from "../../src/lib/crm-report-access.ts";
@@ -141,7 +141,7 @@ test("Pipeline reports use the fixed Asia/Kolkata business date",()=>{
   assert(page.includes("function reportingDateIso(date: Date)"));
   assert(page.includes("reportingDateFormatter.formatToParts(date)"));
   assert(page.includes("setTo(reportingDateIso(new Date()))"));
-  assert(page.includes("const reportingDay = reportingDateIso(date)"));
+  assert(page.includes("const reportingDay = iso.length === 10 ? iso : reportingDateIso(date)"));
   assert(page.includes("return reportingDay >= from && reportingDay <= to"));
   assert(page.includes("setFrom(isoDateNDaysAgo(days - 1))"));
 });
@@ -172,4 +172,116 @@ test("Build130 source integrity is transport-only, with no privilege or mutation
     assert(!helper.includes(x),x);
   assert(!page.includes('supabase.from("billing")'));
   assert(!page.includes("ctc, salary"));
+});
+
+test("Build130 dashboard profile labels and ranking respect least privilege",()=>{
+ const src=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+ assert(src.includes('if (role === "admin" && recruiterIds.length > 0)'));
+ assert(src.includes(".select('id, full_name', { count: 'exact' })"));
+ assert(src.includes('profilesCount !== profiles.length'));
+ assert(src.includes('name: recruiterFallbackLabel(recruiterId)'));
+ assert(src.includes('b.count - a.count || b.joined - a.joined || a.name.localeCompare(b.name)'));
+ assert(!src.includes('name: recruiterId }'));
+});
+
+test("Dashboard candidate snapshot rejects malformed or incomplete KPI source data",()=>{
+  const valid=[{id:"candidate-a",stage:"lead_received",assigned_recruiter:null},
+               {id:"candidate-b",stage:"joined",assigned_recruiter:"staff-a"}];
+  assert.doesNotThrow(()=>assertCandidateSourceIntegrity(valid));
+  assert.throws(()=>assertCandidateSourceIntegrity([...valid, {...valid[0]}]),/identity/);
+  for(const stage of ["unrecognized", "", null, undefined]){
+    assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],stage}]),/stage or recruiter/);
+  }
+  assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],id:" "}]),/stage or recruiter/);
+  assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],assigned_recruiter:" "}]),/stage or recruiter/);
+});
+
+test("Dashboard checks complete candidate stage snapshot before publishing KPIs",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+  assert(src.includes("assertCandidateSourceIntegrity(candAll);"));
+  assert(src.includes("if (candAll.length !== totalCand)"));
+  assert(src.indexOf("assertCandidateSourceIntegrity(candAll);") < src.indexOf("setStats({ totalCand"));
+});
+
+test("Dashboard user-controlled source and assignment keys cannot collide with Object prototype",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+  assert(src.includes("const srcMap: Record<string, { total: number; joined: number }> = Object.create(null);"));
+  assert(src.includes("const rec: Record<string, { count: number; joined: number; name: string }> = Object.create(null);"));
+  assert(src.includes("const stageCount: Record<string, number> = Object.create(null);"));
+  const map=Object.create(null);
+  for(const key of ["__proto__","constructor","toString","standard"]){
+    if(!map[key]) map[key]={total:0};
+    map[key].total++;
+  }
+  assert.equal(Object.keys(map).length,4);
+  assert.deepEqual(Object.values(map).map(x=>x.total),[1,1,1,1]);
+  assert.equal(Object.prototype.total,undefined);
+});
+
+test("Report attribution resolves empty legacy UUID aliases without losing valid ID",()=>{
+  assert.equal(linkedId("", "candidate-1"),"candidate-1");
+  assert.equal(linkedId(null, "candidate-1"),"candidate-1");
+  assert.equal(linkedId("candidate-1", ""),"candidate-1");
+  assert.equal(linkedId("candidate-1", "candidate-1"),"candidate-1");
+  assert.equal(linkedId("", "" ),null);
+  assert.throws(()=>linkedId("candidate-A","candidate-B"),/aliases conflict/);
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  for(const alias of ["s","i","o"]){
+    assert(src.includes(`linkedId(${alias}.candidate_uuid, ${alias}.candidate_id)`));
+    assert(src.includes(`linkedId(${alias}.client_uuid, ${alias}.client_id)`));
+    assert(!src.includes(`${alias}.candidate_uuid ?? ${alias}.candidate_id`));
+    assert(!src.includes(`${alias}.client_uuid ?? ${alias}.client_id`));
+  }
+});
+
+test("Report source and recruiter keys never inherit Object prototype properties",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  assert.equal((src.match(/Object\.create\(null\)/g)||[]).length,5);
+  const byRecruiter=Object.create(null);
+  for(const key of ["__proto__","constructor","toString","recruiter-1"]){
+    byRecruiter[key]={added:1};
+  }
+  assert.deepEqual(Object.values(byRecruiter).map(x=>x.added),[1,1,1,1]);
+  assert.equal(Object.prototype.added,undefined);
+});
+
+test("Report rejects missing or corrupt event dates rather than silently dropping KPI rows",()=>{
+  const valid={
+    candidates:[{created_at:"2026-11-16T23:45:00+05:30"}],
+    submissions:[{submission_date:"2026-11-17",created_at:"2026-11-16T09:00:00Z"}],
+    interviews:[{interview_date:null,created_at:"2026-11-16T09:00:00Z"}],
+    offers:[{offer_date:"2026-11-17",created_at:"2026-11-16T09:00:00Z"}],
+  };
+  assert.doesNotThrow(()=>assertReportEventDates(valid));
+  assert.doesNotThrow(()=>assertReportEventDates({...valid,offers:[]}));
+  assert.throws(()=>assertReportEventDates({...valid,candidates:[{created_at:null}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,candidates:[{created_at:"2026-02-30"}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,submissions:[{submission_date:"next Tuesday",created_at:"2026-11-17"}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,submissions:[{submission_date:"not-a-date",created_at:"2026-11-16T09:00:00Z"}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,interviews:[{interview_date:null,created_at:""}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,offers:[{offer_date:null,created_at:null}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,candidates:[{created_at:"2026-11-17T00:30:00"}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,offers:[{offer_date:"2026-11-17T01:30:00",created_at:"2026-11-17T01:30:00Z"}]}),/event date/);
+  assert.doesNotThrow(()=>assertReportEventDates({...valid,candidates:[{created_at:"2026-11-16T22:30:00Z"}]}));
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  assert(src.includes("assertReportEventDates({ candidates, submissions, interviews, offers });"));
+  assert(src.indexOf("assertReportEventDates({ candidates, submissions, interviews, offers });")
+         < src.indexOf("return { candidates, submissions, interviews, offers, clients };"));
+});
+
+test("Dashboard refresh lifecycle invalidates admin data on admin-to-operations transition",()=>{
+  const dashboard=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+  assert(dashboard.includes('if (role === "admin" && recruiterIds.length > 0)'));
+  assert(dashboard.includes('}, [allowed, user?.id, role, canReadOutcomes]);'));
+  assert(dashboard.includes("setRecruiters([]);"));
+  assert(dashboard.includes("controller?.abort();"));
+});
+
+test("Reporting event dates require unambiguous zones and preserve SQL DATE calendar days",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  assert(src.includes("iso.length === 10 ? iso : reportingDateIso(date)"));
+  const clean={candidates:[],submissions:[{submission_date:"2026-11-17"}],interviews:[],offers:[]};
+  assert.doesNotThrow(()=>assertReportEventDates(clean));
+  assert.doesNotThrow(()=>assertReportEventDates({...clean,submissions:[{submission_date:"2026-11-16T23:30:00Z"}]}));
+  assert.throws(()=>assertReportEventDates({...clean,submissions:[{submission_date:"2026-11-17T00:30:00"}]}),/event date/);
 });

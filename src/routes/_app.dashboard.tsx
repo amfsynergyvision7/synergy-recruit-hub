@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
 import { readBoundedReportRows } from "@/lib/bounded-report-read";
+import { assertCandidateSourceIntegrity } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
@@ -87,6 +88,10 @@ function ChartSkeleton() {
       ))}
     </div>
   );
+}
+
+function recruiterFallbackLabel(id: string): string {
+  return `Recruiter ${id.slice(0, 8)}…`;
 }
 
 const DASHBOARD_TIME_ZONE = "Asia/Kolkata";
@@ -187,10 +192,16 @@ function Dashboard() {
     // Discard any in-flight records after account or role revocation.
     if (!isCurrent()) return;
 
+    // Reject unknown stages, duplicate IDs and malformed assignments before any
+    // dashboard KPI can silently omit a candidate from its breakdown.
+    assertCandidateSourceIntegrity(candAll);
+    if (candAll.length !== totalCand)
+      throw new Error("Dashboard candidate count is inconsistent");
+
     // Current-stage snapshot per candidate, reused below for the funnel,
     // source effectiveness, and recruiter performance calculations — one
     // query already fetched this (candAll), no extra round-trip needed.
-    const stageCount: Record<string, number> = {};
+    const stageCount: Record<string, number> = Object.create(null);
     candAll.forEach((c:any)=>{ stageCount[c.stage]=(stageCount[c.stage]||0)+1; });
     const exitedCount = (stageCount["rejected"]||0) + (stageCount["dropped"]||0);
     const exitRate = candAll.length > 0 ? Math.round((exitedCount / candAll.length) * 100) : 0;
@@ -238,7 +249,7 @@ function Dashboard() {
     // Sources — raw lead volume (unchanged) plus, new, what fraction of each
     // source's candidates actually reached "joined". A source can produce a
     // lot of leads and still be a weak source if few of them ever get hired.
-    const srcMap: Record<string, { total: number; joined: number }> = {};
+    const srcMap: Record<string, { total: number; joined: number }> = Object.create(null);
     candAll.forEach((c:any)=>{
       const s = c.source || "Unknown";
       if (!srcMap[s]) srcMap[s] = { total: 0, joined: 0 };
@@ -261,43 +272,51 @@ function Dashboard() {
     // candidates are assigned (existing metric — workload/volume) and how
     // many of those actually reached "joined" (new — actual placements,
     // the number that matters more than raw assignment count).
-    const rec: Record<string, { count: number; joined: number; name: string }> = {};
+    const rec: Record<string, { count: number; joined: number; name: string }> = Object.create(null);
     candAll.forEach((c:any) => {
       const recruiterId = c.assigned_recruiter;
       if (!recruiterId) return;
       if (!rec[recruiterId]) {
-        rec[recruiterId] = { count: 0, joined: 0, name: recruiterId };
+        // Operations and recruiter roles are not permitted to enumerate other
+        // users' profiles under the least-privilege profile policy. Keep the
+        // fallback bounded and pseudonymous rather than displaying a full UUID.
+        rec[recruiterId] = { count: 0, joined: 0, name: recruiterFallbackLabel(recruiterId) };
       }
       rec[recruiterId].count++;
       if (c.stage === "joined") rec[recruiterId].joined++;
     });
 
-    // Fetch recruiter names from profiles table
+    // Only administrators may resolve cross-user profile labels. Other roles
+    // already have the authorized candidate assignment IDs they need for the
+    // aggregate, but must not issue a profile-directory query that RLS denies.
     const recruiterIds = Object.keys(rec);
-    if (recruiterIds.length > 0) {
+    if (role === "admin" && recruiterIds.length > 0) {
       if (recruiterIds.length > 100) throw new Error("Dashboard recruiter scope exceeds safe bound");
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError, count: profilesCount } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name', { count: 'exact' })
         .in('id', recruiterIds)
         .abortSignal(signal);
       if (!isCurrent()) return;
-      if (profilesError || !profiles) throw new Error("Recruiter metadata unavailable");
-      if (profiles) {
-        profiles.forEach(profile => {
-          if (rec[profile.id]) {
-            rec[profile.id].name = profile.full_name || profile.id.substring(0,6);
-          }
-        });
-      }
+      if (profilesError || !profiles || profilesCount !== profiles.length)
+        throw new Error("Recruiter metadata unavailable");
+      const seenProfiles = new Set<string>();
+      profiles.forEach(profile => {
+        if (!rec[profile.id] || seenProfiles.has(profile.id))
+          throw new Error("Recruiter metadata identity is inconsistent");
+        seenProfiles.add(profile.id);
+        if (typeof profile.full_name === "string" && profile.full_name.trim())
+          rec[profile.id].name = profile.full_name.trim();
+      });
     }
 
-    // Fixed: Use the name directly, no need to check r.id
-    setRecruiters(Object.values(rec).slice(0,6).map(r => ({
-      name: r.name,
-      count: r.count,
-      joined: r.joined,
-    })));
+    // The card promises performance ranking. Object insertion order is not a
+    // ranking, so use deterministic workload/outcome/name ordering before the
+    // six-row display cap.
+    setRecruiters(Object.values(rec)
+      .sort((a, b) => b.count - a.count || b.joined - a.joined || a.name.localeCompare(b.name))
+      .slice(0,6)
+      .map(r => ({ name: r.name, count: r.count, joined: r.joined })));
     setLoading(false);
   };
 
@@ -347,7 +366,7 @@ function Dashboard() {
       void supabase.removeChannel(ch);
       clearInterval(t);
     };
-  }, [allowed, user?.id, canReadOutcomes]);
+  }, [allowed, user?.id, role, canReadOutcomes]);
 
   if (!allowed) return (
     <p className="text-sm text-muted-foreground">Recruitment dashboard access requires an approved recruiter, operations or administrator role.</p>

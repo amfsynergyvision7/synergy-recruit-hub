@@ -35,7 +35,24 @@ export interface RecruiterReportSources {
   interviews: readonly Related[];
 }
 
-function linkedId(left: RefId, right: RefId): string | null {
+/** Reject incomplete or malformed candidate stage snapshots before any KPI is displayed. */
+export function assertCandidateSourceIntegrity(candidates: readonly Candidate[]): void {
+  const seen = new Set<string>();
+  const stages = new Set(ALLOWED_REPORT_STAGES);
+  for (const row of candidates) {
+    if (typeof row.id !== "string" || !row.id.trim())
+      throw new Error("Report candidate stage or recruiter cannot be verified");
+    if (seen.has(row.id))
+      throw new Error("Report source identity is inconsistent");
+    seen.add(row.id);
+    if (!stages.has(row.stage) ||
+        (row.assigned_recruiter != null &&
+         (typeof row.assigned_recruiter !== "string" || !row.assigned_recruiter.trim())))
+      throw new Error("Report candidate stage or recruiter cannot be verified");
+  }
+}
+
+export function linkedId(left: RefId, right: RefId): string | null {
   // Conflicting legacy and UUID aliases must not silently pick one.
   if (left != null && left !== "" && (typeof left !== "string" || !left.trim()))
     throw new Error("Report record reference is invalid");
@@ -49,15 +66,9 @@ function linkedId(left: RefId, right: RefId): string | null {
 export function assertReportSourceIntegrity(source: ReportSources): void {
   const candidates = new Map(source.candidates.map(c => [c.id, c]));
   const clients = new Set(source.clients.map(c => c.id));
-  const stages = new Set(ALLOWED_REPORT_STAGES);
-  if (candidates.size !== source.candidates.length || clients.size !== source.clients.length)
+  if (clients.size !== source.clients.length)
     throw new Error("Report source identity is inconsistent");
-  for (const row of source.candidates) {
-    if (typeof row.id !== "string" || !row.id.trim() || !stages.has(row.stage) ||
-        (row.assigned_recruiter != null &&
-         (typeof row.assigned_recruiter !== "string" || !row.assigned_recruiter.trim())))
-      throw new Error("Report candidate stage or recruiter cannot be verified");
-  }
+  assertCandidateSourceIntegrity(source.candidates);
   for (const row of source.clients) {
     if (typeof row.id !== "string" || !row.id.trim())
       throw new Error("Report client identity cannot be verified");
@@ -77,15 +88,7 @@ export function assertReportSourceIntegrity(source: ReportSources): void {
 
 export function assertRecruiterReportSourceIntegrity(source: RecruiterReportSources): void {
   const candidates = new Map(source.candidates.map(c => [c.id, c]));
-  const stages = new Set(ALLOWED_REPORT_STAGES);
-  if (candidates.size !== source.candidates.length)
-    throw new Error("Report source identity is inconsistent");
-  for (const row of source.candidates) {
-    if (typeof row.id !== "string" || !row.id.trim() || !stages.has(row.stage) ||
-        (row.assigned_recruiter != null &&
-         (typeof row.assigned_recruiter !== "string" || !row.assigned_recruiter.trim())))
-      throw new Error("Report candidate stage or recruiter cannot be verified");
-  }
+  assertCandidateSourceIntegrity(source.candidates);
   for (const items of [source.submissions, source.interviews]) {
     for (const row of items) {
       if (typeof row.id !== "string" || !row.id.trim())
@@ -95,6 +98,29 @@ export function assertRecruiterReportSourceIntegrity(source: RecruiterReportSour
         throw new Error("Report linked candidate unavailable");
     }
   }
+}
+
+/** A missing or unreadable date would silently understate date-window KPIs. */
+export function assertReportEventDates(source: {
+  candidates: readonly { created_at?: string | null }[];
+  submissions: readonly { submission_date?: string | null; created_at?: string | null }[];
+  interviews: readonly { interview_date?: string | null; created_at?: string | null }[];
+  offers: readonly { offer_date?: string | null; created_at?: string | null }[];
+}): void {
+  const requireDate = (value: unknown): void => {
+    if (typeof value !== "string" || !validReportDay(value.slice(0, 10)))
+      throw new Error("Report event date cannot be verified");
+    if (value.length === 10) return; // SQL DATE: a business calendar day
+    // Zoned timestamps are unambiguous; browser-local timestamps are not.
+    // Reject timezone-less values instead of silently varying KPIs by device.
+    if (!/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) ||
+        !Number.isFinite(new Date(value).getTime()))
+      throw new Error("Report event date cannot be verified");
+  };
+  for (const c of source.candidates) requireDate(c.created_at);
+  for (const s of source.submissions) requireDate(s.submission_date ?? s.created_at);
+  for (const i of source.interviews) requireDate(i.interview_date ?? i.created_at);
+  for (const o of source.offers) requireDate(o.offer_date ?? o.created_at);
 }
 
 export function validReportDay(value: string): boolean {

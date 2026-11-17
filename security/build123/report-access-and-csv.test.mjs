@@ -120,6 +120,6 @@ test("Build123 dashboard auth change resets state and invalidates polling and re
  assert(src.includes("setRecruiters([]);"));
  assert(src.includes("void load(() => active && request === latest && !signal.aborted, signal)"));
  assert(src.includes("active = false;"));
- assert(src.includes("}, [allowed, user?.id, canReadOutcomes]);"));
+ assert(src.includes("}, [allowed, user?.id, role, canReadOutcomes]);"));
  assert(src.includes("supabase.channel(" + String.fromCharCode(96) + "dash-"));
 });
