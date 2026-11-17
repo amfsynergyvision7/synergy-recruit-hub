@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
 import { readBoundedReportRows } from "@/lib/bounded-report-read";
+import { assertCandidateSourceIntegrity } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
@@ -190,6 +191,12 @@ function Dashboard() {
       throw new Error("Dashboard source counts are unavailable");
     // Discard any in-flight records after account or role revocation.
     if (!isCurrent()) return;
+
+    // Reject unknown stages, duplicate IDs and malformed assignments before any
+    // dashboard KPI can silently omit a candidate from its breakdown.
+    assertCandidateSourceIntegrity(candAll);
+    if (candAll.length !== totalCand)
+      throw new Error("Dashboard candidate count is inconsistent");
 
     // Current-stage snapshot per candidate, reused below for the funnel,
     // source effectiveness, and recruiter performance calculations — one

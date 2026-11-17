@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY,
+  ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertCandidateSourceIntegrity,
   assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportDay, validReportWindow,
 } from "../../src/lib/report-source-integrity.ts";
 import { canReadPipelineReports } from "../../src/lib/crm-report-access.ts";
@@ -182,4 +182,23 @@ test("Build130 dashboard profile labels and ranking respect least privilege",()=
  assert(src.includes('name: recruiterFallbackLabel(recruiterId)'));
  assert(src.includes('b.count - a.count || b.joined - a.joined || a.name.localeCompare(b.name)'));
  assert(!src.includes('name: recruiterId }'));
+});
+
+test("Dashboard candidate snapshot rejects malformed or incomplete KPI source data",()=>{
+  const valid=[{id:"candidate-a",stage:"lead_received",assigned_recruiter:null},
+               {id:"candidate-b",stage:"joined",assigned_recruiter:"staff-a"}];
+  assert.doesNotThrow(()=>assertCandidateSourceIntegrity(valid));
+  assert.throws(()=>assertCandidateSourceIntegrity([...valid, {...valid[0]}]),/identity/);
+  for(const stage of ["unrecognized", "", null, undefined]){
+    assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],stage}]),/stage or recruiter/);
+  }
+  assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],id:" "}]),/identity/);
+  assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],assigned_recruiter:" "}]),/stage or recruiter/);
+});
+
+test("Dashboard checks complete candidate stage snapshot before publishing KPIs",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+  assert(src.includes("assertCandidateSourceIntegrity(candAll);"));
+  assert(src.includes("if (candAll.length !== totalCand)"));
+  assert(src.indexOf("assertCandidateSourceIntegrity(candAll);") < src.indexOf("setStats({ totalCand"));
 });

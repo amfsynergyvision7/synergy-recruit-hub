@@ -35,6 +35,21 @@ export interface RecruiterReportSources {
   interviews: readonly Related[];
 }
 
+/** Reject incomplete or malformed candidate stage snapshots before any KPI is displayed. */
+export function assertCandidateSourceIntegrity(candidates: readonly Candidate[]): void {
+  const seen = new Set<string>();
+  const stages = new Set(ALLOWED_REPORT_STAGES);
+  for (const row of candidates) {
+    if (typeof row.id !== "string" || !row.id.trim() || seen.has(row.id))
+      throw new Error("Report source identity is inconsistent");
+    seen.add(row.id);
+    if (!stages.has(row.stage) ||
+        (row.assigned_recruiter != null &&
+         (typeof row.assigned_recruiter !== "string" || !row.assigned_recruiter.trim())))
+      throw new Error("Report candidate stage or recruiter cannot be verified");
+  }
+}
+
 function linkedId(left: RefId, right: RefId): string | null {
   // Conflicting legacy and UUID aliases must not silently pick one.
   if (left != null && left !== "" && (typeof left !== "string" || !left.trim()))
@@ -49,15 +64,9 @@ function linkedId(left: RefId, right: RefId): string | null {
 export function assertReportSourceIntegrity(source: ReportSources): void {
   const candidates = new Map(source.candidates.map(c => [c.id, c]));
   const clients = new Set(source.clients.map(c => c.id));
-  const stages = new Set(ALLOWED_REPORT_STAGES);
-  if (candidates.size !== source.candidates.length || clients.size !== source.clients.length)
+  if (clients.size !== source.clients.length)
     throw new Error("Report source identity is inconsistent");
-  for (const row of source.candidates) {
-    if (typeof row.id !== "string" || !row.id.trim() || !stages.has(row.stage) ||
-        (row.assigned_recruiter != null &&
-         (typeof row.assigned_recruiter !== "string" || !row.assigned_recruiter.trim())))
-      throw new Error("Report candidate stage or recruiter cannot be verified");
-  }
+  assertCandidateSourceIntegrity(source.candidates);
   for (const row of source.clients) {
     if (typeof row.id !== "string" || !row.id.trim())
       throw new Error("Report client identity cannot be verified");
@@ -77,15 +86,7 @@ export function assertReportSourceIntegrity(source: ReportSources): void {
 
 export function assertRecruiterReportSourceIntegrity(source: RecruiterReportSources): void {
   const candidates = new Map(source.candidates.map(c => [c.id, c]));
-  const stages = new Set(ALLOWED_REPORT_STAGES);
-  if (candidates.size !== source.candidates.length)
-    throw new Error("Report source identity is inconsistent");
-  for (const row of source.candidates) {
-    if (typeof row.id !== "string" || !row.id.trim() || !stages.has(row.stage) ||
-        (row.assigned_recruiter != null &&
-         (typeof row.assigned_recruiter !== "string" || !row.assigned_recruiter.trim())))
-      throw new Error("Report candidate stage or recruiter cannot be verified");
-  }
+  assertCandidateSourceIntegrity(source.candidates);
   for (const items of [source.submissions, source.interviews]) {
     for (const row of items) {
       if (typeof row.id !== "string" || !row.id.trim())
