@@ -1,4 +1,5 @@
 import { fetchResumeText } from "./resume-fetch.server";
+import { assertLegacyCandidateAiProcessingReleased } from "./legacy-ai-drive-release-hold.server";
 
 // Server-only Gemini API access. GEMINI_API_KEY must be set as a server
 // environment variable (Vercel project settings, same place SUPABASE_URL /
@@ -40,6 +41,7 @@ function extractOutputText(data: any): string | undefined {
 }
 
 async function callGeminiJSON<T>(input: string, schema: Record<string, unknown>): Promise<T> {
+  assertLegacyCandidateAiProcessingReleased();
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured. Add it as an environment variable and redeploy.");
