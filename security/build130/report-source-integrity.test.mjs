@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY,
-  assertReportSourceIntegrity, validReportDay, validReportWindow,
+  assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportDay, validReportWindow,
 } from "../../src/lib/report-source-integrity.ts";
 import { canReadPipelineReports } from "../../src/lib/crm-report-access.ts";
 
@@ -22,6 +22,25 @@ test("Build130 all current candidate pipeline stages pass strict source integrit
     assert.doesNotThrow(()=>assertReportSourceIntegrity(x),stage);
   }
   assert.equal(ALLOWED_REPORT_STAGES.length,12);
+});
+
+test("Recruiter report integrity does not require denied client or offer rows",()=>{
+  const x=basic();
+  assert.doesNotThrow(()=>assertRecruiterReportSourceIntegrity({
+    candidates:x.candidates,submissions:x.submissions,interviews:x.interviews,
+  }));
+  x.submissions[0].candidate_uuid="hidden-candidate";
+  x.submissions[0].candidate_id="hidden-candidate";
+  assert.throws(()=>assertRecruiterReportSourceIntegrity({
+    candidates:x.candidates,submissions:x.submissions,interviews:x.interviews,
+  }),/linked candidate unavailable/);
+});
+
+test("Recruiter report route never queries denied client and offer sources",()=>{
+  assert(page.includes('const canReadOutcomes = role !== "recruiter"'));
+  assert(page.includes('canReadOutcomes ? readBoundedReportRows((from, to, abort) =>\n            supabase.from("offers")'));
+  assert(page.includes('canReadOutcomes ? readBoundedReportRows((from, to, abort) =>\n            supabase.from("clients")'));
+  assert(page.includes("assertRecruiterReportSourceIntegrity({ candidates, submissions, interviews })"));
 });
 
 test("Build130 unknown stage cannot silently disappear from pipeline share",()=>{
@@ -117,12 +136,23 @@ test("Build130 malformed report date range still allows editing controls but no 
   assert(page.includes('type="date" value={to}'));
 });
 
-test("Build130 date presets use the local date rather than UTC rollover",()=>{
-  assert(page.includes("function localDateIso(date: Date)"));
-  assert(page.includes("date.getFullYear()"));
-  assert(page.includes("date.getMonth() + 1"));
-  assert(page.includes("date.getDate()"));
-  assert(page.includes("setTo(localDateIso(new Date()))"));
+test("Pipeline reports use the fixed Asia/Kolkata business date",()=>{
+  assert(page.includes('timeZone: "Asia/Kolkata"'));
+  assert(page.includes("function reportingDateIso(date: Date)"));
+  assert(page.includes("reportingDateFormatter.formatToParts(date)"));
+  assert(page.includes("setTo(reportingDateIso(new Date()))"));
+  assert(page.includes("const reportingDay = reportingDateIso(date)"));
+  assert(page.includes("return reportingDay >= from && reportingDay <= to"));
+  assert(page.includes("setFrom(isoDateNDaysAgo(days - 1))"));
+});
+
+test("Pipeline event windows use business-event dates with legacy fallback",()=>{
+  assert(page.includes("submission_date, created_at"));
+  assert(page.includes("interview_date, created_at"));
+  assert(page.includes("offer_date, created_at"));
+  assert(page.includes("s.submission_date ?? s.created_at"));
+  assert(page.includes("i.interview_date ?? i.created_at"));
+  assert(page.includes("o.offer_date ?? o.created_at"));
 });
 
 test("Build130 report still denies viewers, finance, suspended and unapproved accounts",()=>{

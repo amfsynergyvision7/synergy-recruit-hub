@@ -89,9 +89,42 @@ function ChartSkeleton() {
   );
 }
 
+const DASHBOARD_TIME_ZONE = "Asia/Kolkata";
+const dashboardMonthFormatter = new Intl.DateTimeFormat("en", {
+  timeZone: DASHBOARD_TIME_ZONE,
+  month: "short",
+});
+
+function dashboardMonthKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DASHBOARD_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return `${year}-${month}`;
+}
+
+function dashboardMonthStartIso(date: Date): string {
+  return new Date(`${dashboardMonthKey(date)}-01T00:00:00+05:30`).toISOString();
+}
+
+function recentDashboardMonths(date: Date): Record<string, { month: string; joined: number }> {
+  const [year, month] = dashboardMonthKey(date).split("-").map(Number);
+  const months: Record<string, { month: string; joined: number }> = {};
+  for (let offset = 5; offset >= 0; offset--) {
+    const first = new Date(Date.UTC(year, month - 1 - offset, 1));
+    const key = first.toISOString().slice(0, 7);
+    months[key] = { month: dashboardMonthFormatter.format(first), joined: 0 };
+  }
+  return months;
+}
+
 function Dashboard() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPipelineReports(user?.id, profile, role);
+  const canReadOutcomes = role !== "recruiter";
   const [stats, setStats] = useState<any>({});
   const [monthly, setMonthly] = useState<any[]>([]);
   const [funnel, setFunnel] = useState<any[]>([]);
@@ -103,7 +136,8 @@ function Dashboard() {
 
   const load = async (isCurrent: () => boolean, signal: AbortSignal) => {
     if (!allowed || !isCurrent()) return;
-    const startMonth = new Date(); startMonth.setDate(1); startMonth.setHours(0,0,0,0);
+    const now = new Date();
+    const startMonth = dashboardMonthStartIso(now);
     const [
       { count: totalCand, error: totalError },
       { count: newCand, error: newError },
@@ -118,33 +152,36 @@ function Dashboard() {
     ] = await Promise.all([
       supabase.from("candidates").select("id", { count: "exact", head: true }).abortSignal(signal),
       supabase.from("candidates").select("id", { count: "exact", head: true })
-        .gte("created_at", startMonth.toISOString()).abortSignal(signal),
+        .gte("created_at", startMonth).abortSignal(signal),
       supabase.from("interviews").select("id", { count: "exact", head: true })
         .eq("status","scheduled").abortSignal(signal),
       supabase.from("interviews").select("id", { count: "exact", head: true })
         .eq("status","completed").abortSignal(signal),
-      supabase.from("offers").select("id", { count: "exact", head: true })
-        .eq("offer_status","released").abortSignal(signal),
-      supabase.from("offers").select("id", { count: "exact", head: true })
-        .eq("joining_status","joined").abortSignal(signal),
-      supabase.from("clients").select("id", { count: "exact", head: true })
-        .eq("status","active").abortSignal(signal),
+      canReadOutcomes ? supabase.from("offers").select("id", { count: "exact", head: true })
+        .eq("offer_status","released").abortSignal(signal) : Promise.resolve({ count: null, error: null }),
+      canReadOutcomes ? supabase.from("offers").select("id", { count: "exact", head: true })
+        .eq("joining_status","joined").abortSignal(signal) : Promise.resolve({ count: null, error: null }),
+      canReadOutcomes ? supabase.from("clients").select("id", { count: "exact", head: true })
+        .eq("status","active").abortSignal(signal) : Promise.resolve({ count: null, error: null }),
       supabase.from("job_openings").select("id", { count: "exact", head: true })
         .eq("status","open").abortSignal(signal),
       readBoundedReportRows((from,to,abort)=>
         supabase.from("candidates")
           .select("id, stage, source, assigned_recruiter, created_at", { count: "exact" })
           .order("id", { ascending: true }).range(from,to).abortSignal(abort),signal),
-      readBoundedReportRows((from,to,abort)=>
+      canReadOutcomes ? readBoundedReportRows((from,to,abort)=>
         supabase.from("offers")
           .select("id, joining_date, joining_status", { count: "exact" })
           .eq("joining_status","joined")
-          .order("id", { ascending: true }).range(from,to).abortSignal(abort),signal),
+          .order("id", { ascending: true }).range(from,to).abortSignal(abort),signal) : Promise.resolve([]),
     ]);
     // PostgREST errors or missing counts must not become zero-valued KPIs.
-    if ([totalError,newError,schedError,doneError,offersError,
-         joinedError,clientsError,jobsError].some(Boolean) ||
-        [totalCand,newCand,intSched,intDone,offers,joined,clients,jobs]
+    const countErrors = [totalError,newError,schedError,doneError,jobsError,
+      ...(canReadOutcomes ? [offersError,joinedError,clientsError] : [])];
+    const counts = [totalCand,newCand,intSched,intDone,jobs,
+      ...(canReadOutcomes ? [offers,joined,clients] : [])];
+    if (countErrors.some(Boolean) ||
+        counts
           .some(n=>!Number.isSafeInteger(n)||n===null||n<0))
       throw new Error("Dashboard source counts are unavailable");
     // Discard any in-flight records after account or role revocation.
@@ -158,21 +195,17 @@ function Dashboard() {
     const exitedCount = (stageCount["rejected"]||0) + (stageCount["dropped"]||0);
     const exitRate = candAll.length > 0 ? Math.round((exitedCount / candAll.length) * 100) : 0;
 
-    setStats({ totalCand, newCand, intSched, intDone, offers, joined, clients, jobs, exitRate });
+    setStats({ totalCand, newCand, intSched, intDone, jobs, exitRate,
+      ...(canReadOutcomes ? { offers, joined, clients } : {}) });
 
     // Monthly joining trend
-    const months: Record<string, number> = {};
-    for (let i=5; i>=0; i--) {
-      const d = new Date(); d.setMonth(d.getMonth()-i);
-      const k = d.toLocaleString("en", { month: "short" });
-      months[k] = 0;
-    }
+    const months = canReadOutcomes ? recentDashboardMonths(now) : {};
     candByMonth.forEach((r:any)=>{
       if (!r.joining_date) return;
-      const k = new Date(r.joining_date).toLocaleString("en",{ month: "short" });
-      if (k in months) months[k]++;
+      const key = String(r.joining_date).slice(0, 7);
+      if (key in months) months[key].joined++;
     });
-    setMonthly(Object.entries(months).map(([m,v])=>({ month:m, joined:v })));
+    setMonthly(Object.values(months));
 
     // Funnel — every forward-moving stage (rejected/dropped are "exits" from
     // the pipeline, reported separately as the Rejected/Dropped KPI above,
@@ -314,7 +347,7 @@ function Dashboard() {
       void supabase.removeChannel(ch);
       clearInterval(t);
     };
-  }, [allowed, user?.id]);
+  }, [allowed, user?.id, canReadOutcomes]);
 
   if (!allowed) return (
     <p className="text-sm text-muted-foreground">Recruitment dashboard access requires an approved recruiter, operations or administrator role.</p>
@@ -335,15 +368,15 @@ function Dashboard() {
         <Kpi label="New This Month" value={stats.newCand ?? 0} icon={UserPlus} tone="cyan" loading={loading}/>
         <Kpi label="Interviews Scheduled" value={stats.intSched ?? 0} icon={CalendarCheck} tone="warning" loading={loading}/>
         <Kpi label="Interviews Completed" value={stats.intDone ?? 0} icon={CheckCircle2} tone="success" loading={loading}/>
-        <Kpi label="Offers Released" value={stats.offers ?? 0} icon={FileSignature} tone="violet" loading={loading}/>
-        <Kpi label="Joined Candidates" value={stats.joined ?? 0} icon={Trophy} tone="success" loading={loading}/>
-        <Kpi label="Active Clients" value={stats.clients ?? 0} icon={Building2} tone="primary" loading={loading}/>
+        {canReadOutcomes && <Kpi label="Offers Released" value={stats.offers ?? 0} icon={FileSignature} tone="violet" loading={loading}/>}
+        {canReadOutcomes && <Kpi label="Joined Candidates" value={stats.joined ?? 0} icon={Trophy} tone="success" loading={loading}/>}
+        {canReadOutcomes && <Kpi label="Active Clients" value={stats.clients ?? 0} icon={Building2} tone="primary" loading={loading}/>}
         <Kpi label="Open Positions" value={stats.jobs ?? 0} icon={Briefcase} tone="cyan" loading={loading}/>
         <Kpi label="Rejected / Dropped" value={`${stats.exitRate ?? 0}%`} hint="of total pipeline" icon={UserX} tone="danger" loading={loading}/>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="card-hover">
+        {canReadOutcomes && <Card className="card-hover">
           <CardHeader><CardTitle>Monthly Joining Trend</CardTitle></CardHeader>
           <CardContent className="h-72">
             {loading ? <ChartSkeleton /> : (
@@ -359,7 +392,7 @@ function Dashboard() {
             </LineChart></ResponsiveContainer>
             )}
           </CardContent>
-        </Card>
+        </Card>}
         <Card className="card-hover">
           <CardHeader>
             <CardTitle>Recruiter Performance</CardTitle>

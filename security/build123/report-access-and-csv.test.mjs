@@ -5,7 +5,7 @@ import {
  FINANCIAL_ANALYTICS_RELEASE_HOLD, canReadPipelineReports, canReadAuditLogs,
  canReadFinancialAnalytics
 } from "../../src/lib/crm-report-access.ts";
-import { rowsToCsv } from "../../src/lib/csv.ts";
+import { rowsToCsv, todayStamp } from "../../src/lib/csv.ts";
 const file=path=>readFileSync(new URL("../../"+path,import.meta.url),"utf8");
 const profile={id:"auth-1",status:"approved",is_active:true};
 test("Build123 reporting requires the exact current approved signed Auth identity",()=>{
@@ -56,6 +56,10 @@ test("Build123 ordinary spreadsheet CSV values stay RFC4180 quoted and number-sh
  assert(csv.includes('"John ""quoted"" Doe",2'));
  assert(csv.includes('"Business\nTwo",1'));
  assert(csv.includes("\r\n"));
+});
+test("CSV export filenames use the Asia/Kolkata business date",()=>{
+ assert.equal(todayStamp(new Date("2026-11-16T18:29:59.999Z")),"2026-11-16");
+ assert.equal(todayStamp(new Date("2026-11-16T18:30:00.000Z")),"2026-11-17");
 });
 test("Build123 audit direct navigation fails closed before any Supabase data read",()=>{
  const audit=file("src/routes/_app.audit.tsx");
@@ -116,6 +120,6 @@ test("Build123 dashboard auth change resets state and invalidates polling and re
  assert(src.includes("setRecruiters([]);"));
  assert(src.includes("void load(() => active && request === latest && !signal.aborted, signal)"));
  assert(src.includes("active = false;"));
- assert(src.includes("}, [allowed, user?.id]);"));
+ assert(src.includes("}, [allowed, user?.id, canReadOutcomes]);"));
  assert(src.includes("supabase.channel(" + String.fromCharCode(96) + "dash-"));
 });

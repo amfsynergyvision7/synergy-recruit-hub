@@ -15,34 +15,39 @@ import { rowsToCsv, downloadCsv, todayStamp } from "@/lib/csv";
 import { useAuth } from "@/hooks/use-auth";
 import { canReadPipelineReports } from "@/lib/crm-report-access";
 import { readBoundedReportRows } from "@/lib/bounded-report-read";
-import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertReportSourceIntegrity, validReportWindow } from "@/lib/report-source-integrity";
+import { ALLOWED_REPORT_STAGES, UNASSIGNED_REPORT_KEY, assertRecruiterReportSourceIntegrity, assertReportSourceIntegrity, validReportWindow } from "@/lib/report-source-integrity";
 
 export const Route = createFileRoute("/_app/reports")({ component: Reports });
 
 const STAGE_ORDER = ALLOWED_REPORT_STAGES;
 
-function localDateIso(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+const reportingDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function reportingDateIso(date: Date): string {
+  const parts = reportingDateFormatter.formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return `${year}-${month}-${day}`;
 }
 
 function isoDateNDaysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return localDateIso(d);
+  const date = new Date(`${reportingDateIso(new Date())}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - n);
+  return date.toISOString().slice(0, 10);
 }
 
-/** Whether an ISO timestamp falls within [from, to] — both plain
- * "YYYY-MM-DD" strings interpreted as local-time day boundaries, the same
- * local-time-safe approach scheduling.ts uses for slot handling, so a report
- * for "today" actually means the recruiter's own today rather than shifting
- * by whatever timezone the server happens to run in. */
 function inRange(iso: string | null | undefined, from: string, to: string): boolean {
   if (!iso) return false;
-  const t = new Date(iso).getTime();
-  const fromT = new Date(`${from}T00:00:00`).getTime();
-  const toT = new Date(`${to}T23:59:59.999`).getTime();
-  return t >= fromT && t <= toT;
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return false;
+  const reportingDay = reportingDateIso(date);
+  return reportingDay >= from && reportingDay <= to;
 }
 
 function recruiterLabel(id: string | null): string {
@@ -111,8 +116,9 @@ function ReportTable({ title, description, headers, rows, filenamePrefix, loadin
 function Reports() {
   const { user, profile, role } = useAuth();
   const allowed = canReadPipelineReports(user?.id, profile, role);
+  const canReadOutcomes = role !== "recruiter";
   const [from, setFrom] = useState(() => isoDateNDaysAgo(30));
-  const [to, setTo] = useState(() => localDateIso(new Date()));
+  const [to, setTo] = useState(() => reportingDateIso(new Date()));
   const validWindow = validReportWindow(from, to);
 
   const { data, isLoading, isError } = useQuery({
@@ -131,22 +137,25 @@ function Reports() {
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
           readBoundedReportRows((from, to, abort) =>
             supabase.from("submissions")
-              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, created_at", { count: "exact" })
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, submission_date, created_at", { count: "exact" })
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
           readBoundedReportRows((from, to, abort) =>
             supabase.from("interviews")
-              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, created_at", { count: "exact" })
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, status, interview_date, created_at", { count: "exact" })
               .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
-          readBoundedReportRows((from, to, abort) =>
+          canReadOutcomes ? readBoundedReportRows((from, to, abort) =>
             supabase.from("offers")
-              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, created_at", { count: "exact" })
-              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
-          readBoundedReportRows((from, to, abort) =>
+              .select("id, candidate_uuid, candidate_id, client_uuid, client_id, offer_status, joining_status, offer_date, created_at", { count: "exact" })
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal) : Promise.resolve([]),
+          canReadOutcomes ? readBoundedReportRows((from, to, abort) =>
             supabase.from("clients")
               .select("id, company_name", { count: "exact" })
-              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal),
+              .order("id", { ascending: true }).range(from, to).abortSignal(abort), signal) : Promise.resolve([]),
         ]);
-        assertReportSourceIntegrity({ candidates, submissions, interviews, offers, clients });
+        if (canReadOutcomes)
+          assertReportSourceIntegrity({ candidates, submissions, interviews, offers, clients });
+        else
+          assertRecruiterReportSourceIntegrity({ candidates, submissions, interviews });
         return { candidates, submissions, interviews, offers, clients };
       } catch {
         // Avoid exposing a raw database error or silently computing on
@@ -180,9 +189,9 @@ function Reports() {
   }, [clients]);
 
   const candidatesInRange = useMemo(() => validWindow ? candidates.filter((c: any) => inRange(c.created_at, from, to)) : [], [candidates, from, to, validWindow]);
-  const submissionsInRange = useMemo(() => validWindow ? submissions.filter((s: any) => inRange(s.created_at, from, to)) : [], [submissions, from, to, validWindow]);
-  const interviewsInRange = useMemo(() => validWindow ? interviews.filter((i: any) => inRange(i.created_at, from, to)) : [], [interviews, from, to, validWindow]);
-  const offersInRange = useMemo(() => validWindow ? offers.filter((o: any) => inRange(o.created_at, from, to)) : [], [offers, from, to, validWindow]);
+  const submissionsInRange = useMemo(() => validWindow ? submissions.filter((s: any) => inRange(s.submission_date ?? s.created_at, from, to)) : [], [submissions, from, to, validWindow]);
+  const interviewsInRange = useMemo(() => validWindow ? interviews.filter((i: any) => inRange(i.interview_date ?? i.created_at, from, to)) : [], [interviews, from, to, validWindow]);
+  const offersInRange = useMemo(() => validWindow ? offers.filter((o: any) => inRange(o.offer_date ?? o.created_at, from, to)) : [], [offers, from, to, validWindow]);
 
   // --- Report 1: Candidate pipeline by stage ---
   const pipelineRows = useMemo(() => {
@@ -220,8 +229,11 @@ function Reports() {
 
     return Object.entries(rec)
       .sort((a, b) => b[1].added - a[1].added)
-      .map(([id, v]) => [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined] as (string | number)[]);
-  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate]);
+      .map(([id, v]) => canReadOutcomes
+        ? [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews, v.offers, v.joined]
+        : [id === UNASSIGNED_REPORT_KEY ? "Unassigned" : recruiterLabel(id), v.added, v.submissions, v.interviews]
+      );
+  }, [candidatesInRange, submissionsInRange, interviewsInRange, offersInRange, recruiterOfCandidate, canReadOutcomes]);
 
   // --- Report 3: Client-wise pipeline summary ---
   const clientRows = useMemo(() => {
@@ -245,8 +257,8 @@ function Reports() {
       ] as (string | number)[]);
   }, [submissionsInRange, interviewsInRange, offersInRange, clientNames]);
 
-  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(localDateIso(new Date())); };
-  const applyAllTime = () => { setFrom("2000-01-01"); setTo(localDateIso(new Date())); };
+  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days - 1)); setTo(reportingDateIso(new Date())); };
+  const applyAllTime = () => { setFrom("2000-01-01"); setTo(reportingDateIso(new Date())); };
 
   if (!allowed)
     return <p className="text-sm text-muted-foreground">Recruitment reporting requires an approved recruiter, operations or administrator role.</p>;
@@ -258,7 +270,7 @@ function Reports() {
       <div>
         <h1 className="text-2xl font-semibold">Reports</h1>
         <p className="text-sm text-muted-foreground">
-          Date-ranged recruitment pipeline reports. Financial and billing reporting remains paused.
+          Recruitment pipeline reports use Asia/Kolkata dates. Financial and billing reporting remains paused.
         </p>
       </div>
 
@@ -298,14 +310,16 @@ function Reports() {
       <ReportTable
         title="Recruiter Performance"
         description="Activity attributed to each recruiter's assigned candidates within the window."
-        headers={["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]}
+        headers={canReadOutcomes
+          ? ["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews", "Offers", "Joined"]
+          : ["Recruiter (ID)", "Candidates Added", "Submissions", "Interviews"]}
         rows={recruiterRows}
         filenamePrefix="recruiter-performance"
         loading={isLoading}
         emptyLabel="No recruiter activity in this window."
       />
 
-      <ReportTable
+      {canReadOutcomes && <ReportTable
         title="Client-wise Pipeline Summary"
         description="Submissions, interviews, and outcomes per client within the window."
         headers={["Client", "Submissions", "Interviews", "Offers", "Joined"]}
@@ -313,7 +327,7 @@ function Reports() {
         filenamePrefix="client-pipeline-summary"
         loading={isLoading}
         emptyLabel="No client activity in this window."
-      />
+      />}
         </>
       )}
 
