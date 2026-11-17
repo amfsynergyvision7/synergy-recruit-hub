@@ -40,7 +40,9 @@ export function assertCandidateSourceIntegrity(candidates: readonly Candidate[])
   const seen = new Set<string>();
   const stages = new Set(ALLOWED_REPORT_STAGES);
   for (const row of candidates) {
-    if (typeof row.id !== "string" || !row.id.trim() || seen.has(row.id))
+    if (typeof row.id !== "string" || !row.id.trim())
+      throw new Error("Report candidate stage or recruiter cannot be verified");
+    if (seen.has(row.id))
       throw new Error("Report source identity is inconsistent");
     seen.add(row.id);
     if (!stages.has(row.stage) ||

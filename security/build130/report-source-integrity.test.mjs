@@ -192,7 +192,7 @@ test("Dashboard candidate snapshot rejects malformed or incomplete KPI source da
   for(const stage of ["unrecognized", "", null, undefined]){
     assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],stage}]),/stage or recruiter/);
   }
-  assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],id:" "}]),/identity/);
+  assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],id:" "}]),/stage or recruiter/);
   assert.throws(()=>assertCandidateSourceIntegrity([{...valid[0],assigned_recruiter:" "}]),/stage or recruiter/);
 });
 
