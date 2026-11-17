@@ -126,6 +126,15 @@ test("Pipeline reports use the fixed Asia/Kolkata business date",()=>{
   assert(page.includes("return reportingDay >= from && reportingDay <= to"));
 });
 
+test("Pipeline event windows use business-event dates with legacy fallback",()=>{
+  assert(page.includes("submission_date, created_at"));
+  assert(page.includes("interview_date, created_at"));
+  assert(page.includes("offer_date, created_at"));
+  assert(page.includes("s.submission_date ?? s.created_at"));
+  assert(page.includes("i.interview_date ?? i.created_at"));
+  assert(page.includes("o.offer_date ?? o.created_at"));
+});
+
 test("Build130 report still denies viewers, finance, suspended and unapproved accounts",()=>{
   const approved={id:"auth-a",status:"approved",is_active:true};
   for(const role of ["admin","operations","recruiter"])
