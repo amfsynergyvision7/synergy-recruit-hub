@@ -34,7 +34,7 @@ function businessText(text,max) {
   if(!s || /[\u0000-\u001f\u007f<>{}]/u.test(s)) return false;
   // Never let synthetically invented people/phone/email/contact claims
   // piggyback on a company identity, location or industry.
-  return !/[@]|\+?\d[\d() -]{7,}\d/u.test(s);
+  return !/[@]|\b(?:mailto|tel):|\+?\d[\d() -]{7,}\d/iu.test(s);
 }
 function canonicalWebsite(input) {
   const url=syntheticHttpsUrl(input);

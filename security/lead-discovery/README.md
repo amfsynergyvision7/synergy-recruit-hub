@@ -43,3 +43,58 @@ node --test security/build122/lead-review-and-handoff.test.mjs
 - Review decisions, rejections and preview creation are traced with deterministic SHA-256 hash-chained audit events. The chain is tamper-evident in the printed preview; its chain is **not an externally signed or persisted compliance ledger**.
 - No live business sourcing/ICP whitelist approval (LD02), operational sales contact, CRM write, public database insert, email or outreach occurs. An actual growth/CRM owner must separately authorize live integration.
 
+
+## Build165 — Category C consolidation: LD02 + LD05 (NO LIVE SOURCING)
+
+**New current focus: Category C, AI Lead Discovery (6/10 accepted, 3/5 official milestones).** All cross-category engineering is paused except independent critical security monitoring. This package does not request network access, scrape real sources, extract personal contacts, send messages or write CRM.
+
+Two owner-review packets have been added: `LD02-ICP-SOURCE-APPROVAL.md` plus `lead-policy.review.json` (still no approved ICP/whitelist/retention), and `LD05-KPI-ACCEPTANCE.md` plus `kpi-acceptance.review.json` (still no approved KPI thresholds or real source sample). Source constraints are grounded in the connected CEO-only pilot draft documents, **not treated as approved operating policy**.
+
+A real runnable, offline-only synthetic metrics program now computes aggregate provenance, evidence freshness, deduplication, review completion and no-send handoff preview yield with safe denominators. No operational conversion metrics are invented. Run `node security/lead-discovery/metrics.mjs security/lead-discovery/manifest.synthetic.json security/lead-discovery/review-decisions.synthetic.json 2026-11-15`.
+
+`category-c-v1.json` tracks official LD01–05 status and two remaining gated subpackages. This is an engineering evidence packet; official score increases to 8/10 or 10/10 **only with individually supported owner acceptance and valid verification**. Critical production audit Issue #19 remains HOLD; unrelated draft security changes are not included here.
+
+**Current category dashboard:** [Category C milestone / substep tracker](./CATEGORY-C-STATUS.md), CI-reconciled against the frozen 100-point scorecard. The two remaining LD acceptance gates are explicitly open.
+
+## Build166 — LD02/LD05 technical hardening (same Category C focus)
+
+The offline KPI engine now checks source-derived business identities, every reviewer decision's source and audit event, the exact no-send handoff identity, and denies mismatched counters and fabricated approvals. `approval-preflight.mjs` reports exact missing LD02/LD05 policy, evidence, threshold and owner fields. **This is a negative-readiness diagnostic, not an approval engine.** No new independent gate closes merely because these tests pass.
+
+```sh
+node security/lead-discovery/approval-preflight.mjs
+node --test security/build166-lead-category/contract.test.mjs
+```
+
+Category C remains 6/10 officially accepted and the review packet 4/8 owner-gated steps source-evidenced; no real lead lookup, contact or CRM access is activated.
+
+## Build167 — separately curated synthetic KPI reference and owner closure packet
+
+A separately hand-authored (but not human-signed) `curated-reference.synthetic.json` is cross-reconciled by `reconcile.mjs` with the exact fictional discovery/review ledger. All 30 expected source, business identity, status and metric checks must agree. Failure is explicit and CI-tested. The category status generator now uses the correct frozen rubric field `title` instead of displaying `undefined`; it keeps the 43-gate weighted score unchanged. See [Owner-ready LD02+LD05 closure instructions](./LD02-LD05-OWNER-CLOSURE.md). No real samples or approvals exist.
+
+## Build168 — owner acceptance evidence intake without false signoff
+
+The draft-only, zero-network `acceptance-handoff.mjs` checks the **specific LD02 and LD05 owner submission shapes** and identifies outstanding independent-source and consent requirements. It rejects malformed or secret-bearing links, mismatched scope fingerprints, duplicate signoff refs, contradictory aggregate business sample counts and any contact/CRM effects. This is a **negative/structural preflight**, not a signature authority or production activation.
+
+Run `node security/lead-discovery/acceptance-handoff.mjs`; the default deliberately reports both milestones not independently accepted. Only company-level aggregate sample counts can enter `ld05-independent-sample.review.json`; detailed person data and actual company/contact records are prohibited. `ld02-independent-evidence.review.json` is unsubmitted, with no inferred market policy or signatures.
+
+The LD02 real-source whitelist now accepts only canonical HTTPS **business origins** (domain only), rejects source paths, query tokens and private/reserved hosts. Specific domains, lawful terms, retention, independent Growth/Privacy and Growth/BI decisions are still missing. This is **acceptance handoff readiness, not acceptance**, and the official Category C score remains **6/10**. No further pre-approval code batches are planned without specific reported defects.
+
+## Build172 — original Category C integration PR privacy patch also applied
+
+The source-only `syntheticHttpsUrl` parser on PR #20 is now the **same bytes** as PR #22: it rejects query delimiters/parameters, percent-encoded or contact-bearing synthetic paths and malformed or punycode synthetic host labels, preventing accidental echoing of tokens in offline source-evidence metadata. The seven additional tests preserve the original safe fictional sites and fail closed on contaminated provenance, without live access. PR #20 is engineering-review-ready but has no independent review or operating source approvals; it is not a production rollout or authorization. Main remains unprotected and PR #22 remains Draft.
+
+## Build173 — synchronized privacy and conflicting duplicate integrity fix
+
+The discovery parser now excludes names, cities and industry strings containing email, telephone patterns, `mailto:`/`tel:` contact schemes or template markup **before** output serialization. It also rejects any conflicting name, industry or location for two sources claiming the same reserved-domain company rather than silently trusting the first. Review-stage checks preserve the same privacy restriction.
+
+The original fictional fixture had conflicting duplicate Acacia names; the second name was corrected to the already accepted fictional company name without changing source URLs, dates, identity, population, KPI baseline or curated expected outcomes. No real business identities or human signatures were introduced. The 16 additional tests (15 original regressions plus one corrected-fixture check) run in the integration PR CI. This remains source-only, unmerged and unapproved for live use; LD02/LD05 require independent Growth/Privacy/BI evidence.
+
+## Build174 — deterministic fictional company identity and strict bounded JSON-LD
+
+The offline parser emits canonical non-www company origins irrespective of which fictional source appears first, requires an actual `script` tag with a real `type=application/ld+json` attribute, and caps traversal at 2,500 nodes per synthetic HTML source rather than attempting unbounded array-spread operations. Matching tests on PR #22 validate the www-first end-to-end audit and KPI path, spoofed attributes, excess graph size, and unchanged baseline. No live source discovery, external messaging, CRM writes or approval was added. The engineering review here remains nonproduction and unmerged.
+
+## Build175 — source provenance ambiguity and company-only identity guard
+
+The Category C parser now validates one unambiguous inline JSON-LD `type` attribute with a bounded, quote-aware attribute walk and excludes external-script `src`, event-handler metadata and malformed duplicate `type` declarations from *synthetic* source evidence. An entity containing both `Person` and `Organization` schema types can no longer be cast to a company lead. A new regression suite checks these cases, preserves original fictitious company/KPI evidence and confirms no network, CRM or outbound side effects.
+
+This safety fix is mirrored byte-for-byte in the direct-main Draft PR #22 and does not supply Growth/Privacy-approved real sourcing decisions or Growth/BI-accepted real KPIs. No merge, production, real contacts or financial actions are authorized.

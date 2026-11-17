@@ -14,14 +14,18 @@ import { isIP } from "node:net";
 
 export const LIMITS = Object.freeze({
   sources: 12, htmlBytes: 250_000, scriptsPerSource: 25,
-  entitiesPerSource: 200, leadName: 120, location: 90,
+  entitiesPerSource: 200, jsonLdNodesPerSource: 2500, leadName: 120, location: 90,
 });
 const MAX_MANIFEST_BYTES = 40_000;
 
 function safeString(input, limit) {
   if (typeof input !== "string") return null;
   const value = input.normalize("NFC").trim().replace(/\s+/g, " ");
-  if (!value || value.length > limit || /[<>\u0000-\u001f\u007f]/u.test(value)) return null;
+  // Company name, city and industry are organization-level metadata only.
+  // Reject embedded contact fields at discovery, not merely at later review:
+  // discovery output is itself a serializable, inspectable report.
+  if (!value || value.length > limit ||
+      /[<>{}\u0000-\u001f\u007f@]|\b(?:mailto|tel):|\+?\d[\d() -]{7,}\d/iu.test(value)) return null;
   return value;
 }
 
@@ -30,11 +34,21 @@ export function syntheticHttpsUrl(input) {
   let parsed;
   try { parsed = new URL(input); } catch { return null; }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password ||
-      parsed.port || parsed.hash || isIP(parsed.hostname)) return null;
-  const host = parsed.hostname.toLowerCase();
+      parsed.port || parsed.hash || isIP(parsed.hostname) ||
+      // URL.search can be empty for a trailing '?' even though the URL
+      // contains an untrusted query delimiter; reject both forms.
+      input.includes("?")) return null;
+  const host = parsed.hostname.toLowerCase(),path = parsed.pathname;
   // Reserved .invalid DNS name: no live company or person can be contacted.
-  if (!host.endsWith(".example.invalid") || host.startsWith(".") ||
-      host.includes("..") || host.split(".").some(s => !/^[a-z0-9-]+$/.test(s))) return null;
+  // Keep source provenance free of query tokens, encoded contact fragments,
+  // Unicode/punycode identity tricks and noncanonical DNS labels. These are
+  // intentionally strict synthetic-only URL semantics, not a live web policy.
+  if (!host.endsWith(".example.invalid") || host.length > 253 ||
+      host.startsWith(".") || host.includes("..") ||
+      host.split(".").some(s => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(s) ||
+        s.startsWith("xn--")) ||
+      path.length > 160 || !/^\/[A-Za-z0-9._/-]*$/.test(path) ||
+      path.includes("//")) return null;
   return parsed;
 }
 
@@ -44,24 +58,59 @@ export function normalizeCapturedDate(input) {
   return Number.isFinite(d.getTime()) && d.toISOString().slice(0,10) === input ? input : null;
 }
 
+function trustedInlineJsonLdAttributes(attributes) {
+  // Treat the HTML script start tag as a bounded, unambiguous attribute list.
+  // Loose substring matching can mistake type= embedded in another quoted
+  // attribute for actual JSON-LD evidence.
+  let remaining=attributes.trimStart(),type=null,count=0;
+  while (remaining) {
+    const match=/^([a-z][a-z0-9:_-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>]+))(?=\s|$)/iu.exec(remaining);
+    if(!match||++count>16)return false;
+    const key=match[1].toLowerCase(),value=match[2]??match[3]??match[4];
+    if(key==="type") {
+      if(type!==null)return false; // duplicate type: ambiguous source semantics
+      type=value.toLowerCase();
+    }
+    // External scripts, handler attributes or malformed metadata must not
+    // be treated as immutable inline business provenance.
+    if(key==="src"||key.startsWith("on"))return false;
+    remaining=remaining.slice(match[0].length).trimStart();
+  }
+  return type==="application/ld+json";
+}
+
 function readBusinessEntities(html) {
   const entities=[];
-  const scripts=html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/giu);
-  let n=0;
+  // An actual <script> tag with a real type= attribute is required.
+  // Script lookalikes or data-type/prototype attributes cannot count as proof.
+  const scripts=html.matchAll(/<script(?=[\s>])([^>]*)>([\s\S]*?)<\/script\s*>/giu);
+  let n=0,visited=0;
   for (const match of scripts) {
     const attributes=match[1];
-    if (!/\btype\s*=\s*(?:"application\/ld\+json"|'application\/ld\+json'|application\/ld\+json)(?:\s|$)/iu.test(attributes)) continue;
+    if (!trustedInlineJsonLdAttributes(attributes)) continue;
     if (++n > LIMITS.scriptsPerSource) throw new Error("Too many structured-data scripts");
     let value;
     try { value=JSON.parse(match[2]); } catch { throw new Error("Invalid snapshot JSON-LD"); }
     const stack=[value];
     while (stack.length) {
+      if (++visited>LIMITS.jsonLdNodesPerSource)
+        throw new Error("Too many structured-data nodes");
       const entry=stack.pop();
-      if (Array.isArray(entry)) { stack.push(...entry); continue; }
+      if (Array.isArray(entry)) {
+        // Avoid unbounded spread arguments and unreviewable nested graph work.
+        if (entry.length>LIMITS.jsonLdNodesPerSource ||
+            stack.length+entry.length>LIMITS.jsonLdNodesPerSource)
+          throw new Error("Too many structured-data nodes");
+        for (const node of entry) stack.push(node);
+        continue;
+      }
       if (!entry || typeof entry!=="object") continue;
       const type=entry["@type"],types=Array.isArray(type)?type:[type];
-      if (types.includes("Organization") || types.includes("LocalBusiness") ||
-          types.includes("Corporation")) entities.push(entry);
+      // A mixed Person/Organization type cannot safely establish a company-
+      // only entity: reject the ambiguous individual record entirely.
+      if(!types.includes("Person") &&
+         (types.includes("Organization") || types.includes("LocalBusiness") ||
+          types.includes("Corporation"))) entities.push(entry);
       if (entry["@graph"]) stack.push(entry["@graph"]);
       if (entities.length > LIMITS.entitiesPerSource) throw new Error("Too many structured-data entities");
     }
@@ -95,13 +144,21 @@ export function discoverFromSnapshots(snapshots) {
       const proof={source_url:src.href, captured_on:date, evidence_type:"JSON-LD Organization"};
       const previous=byDomain.get(canonicalDomain);
       if(previous) {
+        // Domain identity alone does NOT establish that competing organization
+        // claims agree. Refuse the whole snapshot instead of silently taking
+        // the first source's name, location or industry as ground truth.
+        if (previous.company_name!==name || previous.location!==city ||
+            previous.industry!==industry)
+          throw new Error("Conflicting duplicate company metadata requires manual source reconciliation");
         duplicates++;
         if (!previous.evidence.some(x=>x.source_url===proof.source_url && x.captured_on===date))
           previous.evidence.push(proof);
         continue;
       }
       byDomain.set(canonicalDomain,{
-        company_name:name, business_website:site.origin,
+        // Deduplicate and *emit* the same canonical identity, whether the
+        // first fictional snapshot used www. or a bare business hostname.
+        company_name:name, business_website:"https://"+canonicalDomain,
         location:city, industry, verified_hiring_signal:false,
         research_status:"synthetic_only_needs_human_review",
         outreach_authorized:false, crm_write_authorized:false,

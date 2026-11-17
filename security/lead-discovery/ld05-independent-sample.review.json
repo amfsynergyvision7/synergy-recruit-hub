@@ -1,0 +1,28 @@
+{
+  "schema": "LD05-INDEPENDENT-KPI-ACCEPTANCE-V1",
+  "status": "NOT_SUBMITTED",
+  "approved_kpi_policy_url": null,
+  "independent_growth_review_url": null,
+  "independent_bi_review_url": null,
+  "authorized_business_only_source_approval_url": null,
+  "independently_checked_aggregate_reference_url": null,
+  "cutoff_on": null,
+  "data_summary": {
+    "source_observation_count": null,
+    "unique_business_count": null,
+    "verified_public_source_count": null,
+    "manually_reviewed_business_count": null,
+    "qualified_business_count": null,
+    "false_positive_count": null,
+    "duplicates_excluded_count": null,
+    "independently_reconciled_mismatch_count": null
+  },
+  "data_protection": {
+    "personal_contacts_collected": false,
+    "outbound_messages": 0,
+    "crm_writes": 0
+  },
+  "owner_verification_performed": false,
+  "review_only": true,
+  "note": "Metadata-only, no business identities, person details, candidate records, actual leads or external effects. Empty by design until lawful source approval."
+}

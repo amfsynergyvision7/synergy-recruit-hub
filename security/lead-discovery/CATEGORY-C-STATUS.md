@@ -1,0 +1,74 @@
+# Category C — AI Lead Discovery (current focused workstream)
+
+**Build 168 | 15 November 2026 | Official acceptance: 6/10 (60%) | Release HOLD.**
+
+This is the **only active development category** for Build 168; critical production audit security remains an independently owned release blocker, not a parallel development sprint.
+
+## Category completion
+**3/5 official milestones accepted.** The remaining gates are **LD02** and **LD05**, 2 weighted points each. Passing tests and draft policies do not close them.
+
+| Formal milestone | Exit criterion | Acceptance status | Points |
+|---|---|---|---:|
+| LD01 | Lead-research governance draft | Accepted | 2/2 |
+| LD02 | Lead ICP and source whitelist approved | Open | 0/2 |
+| LD03 | Traceable lead discovery implementation | Accepted | 2/2 |
+| LD04 | Human lead review and CRM handoff | Accepted | 2/2 |
+| LD05 | Lead discovery KPIs accepted | Open | 0/2 |
+
+## Remaining two milestones — tracked substeps
+
+**4/8 source/preparation tasks evidenced, 4/8 still pending.** This engineering count is not the official 60% acceptance score and is not proof of a live lead pipeline.
+
+| Substep | Requirement | Evidence stage |
+|---|---|---|
+| LD02-P1 | Owner-controlled lead outreach guardrails REVIEW DRAFT exists | Source prepared |
+| LD02-P2 | Required signed decisions and exclusions packet specified | Source prepared |
+| LD02-P3 | Real ICP industries, personas and permitted sources specifically approved | Independent acceptance needed |
+| LD02-P4 | Privacy/legal exclusions, permissible processing and retention signed | Independent acceptance needed |
+| LD05-P1 | Source-linked aggregate metric definitions prepared | Source prepared |
+| LD05-P2 | Synthetic no-send KPIs passed CI; independently curated fictional source and KPI reference checked, not real sample | Source prepared |
+| LD05-P3 | Source quality, freshness and conversion metric thresholds approved | Independent acceptance needed |
+| LD05-P4 | Authorized live business-source pilot, independent reconciled observations and growth/BI signoff | Independent acceptance needed |
+
+### LD02 outstanding decisions
+Growth and Privacy/Compliance owners must individually approve specific industry/persona/geo ICP, public-business-only source domains, exclusions, permitted use and retention. The [guardrails document](https://docs.google.com/document/d/1i5SVldFxYaSi2Ew1i4YJ0pUAxtGTXJ2AyKRGck8w6Gk/edit) is labelled REVIEW DRAFT. Unspecified selections cannot be inferred from blanket authorizations.
+
+### LD05 outstanding acceptance
+Growth and BI owners must agree source quality, freshness, yield and conversion formulas, thresholds, human sample validation and real authorized business-only data evidence. The [CEO KPI design](https://docs.google.com/document/d/1FWA-0AtMrE4C6DAMQISnj6_1DBfICG7TIQkKUs6AO_o/edit) is also a REVIEW DRAFT. [Synthetic KPI program](./metrics.mjs) is executable with local fictional snapshots; no real revenue, contacts, replies, meetings, CRM writes or outreach are represented.
+
+## Build168 owner decision handoff — no additional accepted milestone
+
+**Technical preparation:** the exact LD02 and LD05 evidence templates are now machine-checked against the draft policy scope fingerprint and permitted sample counts. The owner handoff is **READY FOR EXTERNAL INPUT**, not submitted, signed or operationally accepted. This does not change the six already-completed offline controls or the **4/8** owner/preparation checklist.
+
+| Remaining gate | Owner submission file | Current acceptance |
+|---|---|---|
+| LD02: approved ICP, domains, lawful business research and retention | [LD02 independent evidence](./ld02-independent-evidence.review.json) | **Not submitted** — Growth + Privacy |
+| LD05: real authorized company-only sample, six KPI targets and independent reconciliation | [LD05 independent sample](./ld05-independent-sample.review.json) | **Not submitted** — Growth + BI |
+
+Run `node security/lead-discovery/acceptance-handoff.mjs` for missing evidence fields; all approval results remain `false` even if draft metadata is filled, until independently verified externally. No production/staging writes, real sourcing, messaging or CRM activation.
+
+## Build167 completed offline technical controls — separate from required owner approvals
+
+**6/6 synthetic engineering integrity controls verified offline.** This includes source provenance, two-stage review, KPI calculation, audit-to-handoff integrity, owner decision-gap checks and a separately curated fictional source/KPI reference rehearsal. It does not verify live business observations. These checks do **not** close either of the two remaining official milestones, permit sourcing real businesses, or replace independently verifiable Growth/Privacy/BI acceptance.
+
+| Technical control | Evidence | Status |
+|---|---|---|
+| C-ENG01: Synthetic source discovery with provenance and duplicate control | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782) | Verified offline |
+| C-ENG02: Separate synthetic Growth/CRM review and no-send handoff | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782) | Verified offline |
+| C-ENG03: Synthetic KPI numerator, denominator and freshness computation | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43702502782) | Verified offline |
+| C-ENG04: Source-derived audit/lead/handoff tamper reconciliation | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075) | Verified offline |
+| C-ENG05: LD02/LD05 draft approval completeness and safety gate preflight | [Focused CI](https://github.com/amfsynergyvision7/synergy-recruit-hub/actions/runs/43703552075) | Verified offline |
+| C-ENG06: Separately hand-curated synthetic source/KPI and review-outcome reconciliation | [Focused PR](https://github.com/amfsynergyvision7/synergy-recruit-hub/pull/20) | Verified offline |
+
+### Build 165 verified engineering
+- LD02: specific approval and source-whitelist review packet prepared, still unsigned
+- LD05: aggregate-only synthetic metrics implementation and adversarial tests added
+- Existing LD01, LD03, LD04 remain accepted; official category score **6/10 (+0)**
+- No production lead discovery, contact outreach, CRM write, or modification of audit-security release holds
+
+### Build estimate and completion condition
+**One review/acceptance cycle per remaining milestone (roughly 1–2 owner-gated delivery batches after scope choices and authorized observation evidence)** is a planning scenario, not a calendar countdown. If real approvals/data remain unavailable, the category cannot be truthfully declared 10/10 regardless of additional engineering builds.
+
+**Overall programme:** 26/100 accepted, 12/43 fixed milestones evidenced, 31 open; main remains unprotected, the critical audit-security issue still holds production release. Category C completion does **not** imply production deployment eligibility.
+
+Future build reports will keep Category C active until LD02 and LD05 receive their required independent acceptance, or will explicitly record the external blocker rather than silently switching categories.
