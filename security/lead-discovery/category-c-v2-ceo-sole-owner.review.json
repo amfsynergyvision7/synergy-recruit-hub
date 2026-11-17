@@ -1,6 +1,6 @@
 {
   "schema": "CATEGORY-C-CEO-OWNER-ACCEPTANCE-V2",
-  "version": "2.0-proposed-governance-change",
+  "version": "2.0-CEO-authorized-nonproduction-business-governance",
   "recorded_date": "2026-11-17",
   "authorization_source": "Explicit Founder/CEO instruction in ChatGPT active conversation, requesting replacement of separate unstaffed internal signoffs and permitting research.",
   "authorization_identity_limit": "User asserted Founder/CEO role; not an independently verified digital signature.",
@@ -83,5 +83,7 @@
     "https://data.gov.in/catalog/company-master-data",
     "https://data.gov.in/catalog/udyam-registration-msme-registration",
     "https://data.gov.in/Godl"
-  ]
+  ],
+  "governance_status": "EFFECTIVE_FOR_CEO_CONTROLLED_INTERNAL_NO_SEND_RESEARCH_ONLY",
+  "operational_acceptance_status": "NOT_ACCEPTED_PENDING_SOURCE_RIGHTS_AND_OBSERVED_KPI_EVIDENCE"
 }
