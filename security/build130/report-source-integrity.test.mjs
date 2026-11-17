@@ -141,7 +141,7 @@ test("Pipeline reports use the fixed Asia/Kolkata business date",()=>{
   assert(page.includes("function reportingDateIso(date: Date)"));
   assert(page.includes("reportingDateFormatter.formatToParts(date)"));
   assert(page.includes("setTo(reportingDateIso(new Date()))"));
-  assert(page.includes("const reportingDay = reportingDateIso(date)"));
+  assert(page.includes("const reportingDay = iso.length === 10 ? iso : reportingDateIso(date)"));
   assert(page.includes("return reportingDay >= from && reportingDay <= to"));
   assert(page.includes("setFrom(isoDateNDaysAgo(days - 1))"));
 });
@@ -260,8 +260,28 @@ test("Report rejects missing or corrupt event dates rather than silently droppin
   assert.throws(()=>assertReportEventDates({...valid,submissions:[{submission_date:"not-a-date",created_at:"2026-11-16T09:00:00Z"}]}),/event date/);
   assert.throws(()=>assertReportEventDates({...valid,interviews:[{interview_date:null,created_at:""}]}),/event date/);
   assert.throws(()=>assertReportEventDates({...valid,offers:[{offer_date:null,created_at:null}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,candidates:[{created_at:"2026-11-17T00:30:00"}]}),/event date/);
+  assert.throws(()=>assertReportEventDates({...valid,offers:[{offer_date:"2026-11-17T01:30:00",created_at:"2026-11-17T01:30:00Z"}]}),/event date/);
+  assert.doesNotThrow(()=>assertReportEventDates({...valid,candidates:[{created_at:"2026-11-16T22:30:00Z"}]}));
   const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
   assert(src.includes("assertReportEventDates({ candidates, submissions, interviews, offers });"));
   assert(src.indexOf("assertReportEventDates({ candidates, submissions, interviews, offers });")
          < src.indexOf("return { candidates, submissions, interviews, offers, clients };"));
+});
+
+test("Dashboard refresh lifecycle invalidates admin data on admin-to-operations transition",()=>{
+  const dashboard=readFileSync(new URL("../../src/routes/_app.dashboard.tsx",import.meta.url),"utf8");
+  assert(dashboard.includes('if (role === "admin" && recruiterIds.length > 0)'));
+  assert(dashboard.includes('}, [allowed, user?.id, role, canReadOutcomes]);'));
+  assert(dashboard.includes("setRecruiters([]);"));
+  assert(dashboard.includes("controller?.abort();"));
+});
+
+test("Reporting event dates require unambiguous zones and preserve SQL DATE calendar days",()=>{
+  const src=readFileSync(new URL("../../src/routes/_app.reports.tsx",import.meta.url),"utf8");
+  assert(src.includes("iso.length === 10 ? iso : reportingDateIso(date)"));
+  const clean={candidates:[],submissions:[{submission_date:"2026-11-17"}],interviews:[],offers:[]};
+  assert.doesNotThrow(()=>assertReportEventDates(clean));
+  assert.doesNotThrow(()=>assertReportEventDates({...clean,submissions:[{submission_date:"2026-11-16T23:30:00Z"}]}));
+  assert.throws(()=>assertReportEventDates({...clean,submissions:[{submission_date:"2026-11-17T00:30:00"}]}),/event date/);
 });

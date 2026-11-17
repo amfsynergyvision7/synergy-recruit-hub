@@ -46,7 +46,9 @@ function inRange(iso: string | null | undefined, from: string, to: string): bool
   if (!iso) return false;
   const date = new Date(iso);
   if (!Number.isFinite(date.getTime())) return false;
-  const reportingDay = reportingDateIso(date);
+  // SQL DATE is a calendar day, not an instant to timezone-convert.
+  // Timestamp inputs have already been validated as explicitly zoned.
+  const reportingDay = iso.length === 10 ? iso : reportingDateIso(date);
   return reportingDay >= from && reportingDay <= to;
 }
 

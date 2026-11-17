@@ -108,9 +108,12 @@ export function assertReportEventDates(source: {
   offers: readonly { offer_date?: string | null; created_at?: string | null }[];
 }): void {
   const requireDate = (value: unknown): void => {
-    if (typeof value !== "string" ||
-        !validReportDay(value.slice(0, 10)) ||
-        !(value.length === 10 || value[10] === "T" || value[10] === " ") ||
+    if (typeof value !== "string" || !validReportDay(value.slice(0, 10)))
+      throw new Error("Report event date cannot be verified");
+    if (value.length === 10) return; // SQL DATE: a business calendar day
+    // Zoned timestamps are unambiguous; browser-local timestamps are not.
+    // Reject timezone-less values instead of silently varying KPIs by device.
+    if (!/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) ||
         !Number.isFinite(new Date(value).getTime()))
       throw new Error("Report event date cannot be verified");
   };

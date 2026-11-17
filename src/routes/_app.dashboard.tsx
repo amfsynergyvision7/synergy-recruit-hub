@@ -366,7 +366,7 @@ function Dashboard() {
       void supabase.removeChannel(ch);
       clearInterval(t);
     };
-  }, [allowed, user?.id, canReadOutcomes]);
+  }, [allowed, user?.id, role, canReadOutcomes]);
 
   if (!allowed) return (
     <p className="text-sm text-muted-foreground">Recruitment dashboard access requires an approved recruiter, operations or administrator role.</p>
