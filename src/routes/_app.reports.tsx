@@ -250,7 +250,7 @@ function Reports() {
       ] as (string | number)[]);
   }, [submissionsInRange, interviewsInRange, offersInRange, clientNames]);
 
-  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days)); setTo(reportingDateIso(new Date())); };
+  const applyPreset = (days: number) => { setFrom(isoDateNDaysAgo(days - 1)); setTo(reportingDateIso(new Date())); };
   const applyAllTime = () => { setFrom("2000-01-01"); setTo(reportingDateIso(new Date())); };
 
   if (!allowed)
