@@ -42,6 +42,7 @@
 // leaving SMTP_FROM_EMAIL unset — its from address too) — nothing in this
 // file needs to change.
 import nodemailer from "nodemailer";
+import { assertCrmLegacyOutboundEmailReleased } from "./legacy-outbound-email-release-hold.server";
 
 export interface SendEmailResult {
   success: boolean;
@@ -80,6 +81,8 @@ export async function sendEmail(opts: {
   // (easy to introduce when copy-pasting into Vercel's env var UI) is
   // invisible in the dashboard but turns an otherwise-correct address into
   // something the SMTP server's strict parser rejects.
+  // Defense in depth: hold at the SMTP boundary as well as the CRM route.
+  assertCrmLegacyOutboundEmailReleased();
   const user = process.env.SMTP_USER?.trim();
   const pass = process.env.SMTP_PASSWORD?.trim();
   if (!user || !pass) {
