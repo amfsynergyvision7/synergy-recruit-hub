@@ -1,0 +1,87 @@
+{
+  "schema": "CATEGORY-C-CEO-OWNER-ACCEPTANCE-V2",
+  "version": "2.0-proposed-governance-change",
+  "recorded_date": "2026-11-17",
+  "authorization_source": "Explicit Founder/CEO instruction in ChatGPT active conversation, requesting replacement of separate unstaffed internal signoffs and permitting research.",
+  "authorization_identity_limit": "User asserted Founder/CEO role; not an independently verified digital signature.",
+  "effective_scope": "CEO-led decisions for strictly internal no-send, company-only lead research; does not override laws, third-party licenses or production code/security independent review.",
+  "signoff_policy": {
+    "business_icp": "Founder/CEO sole accountable approver",
+    "business_source_policy": "Founder/CEO sole accountable approver, subject to external-source terms and dataset-specific rights verification",
+    "business_kpis": "Founder/CEO sole accountable reviewer of measured results and approved targets",
+    "no_fabricated_signatures": true,
+    "external_security_review_still_required": true,
+    "source_law_and_privacy_still_required": true
+  },
+  "pilot_limits": {
+    "geography": [
+      "Kolkata",
+      "West Bengal"
+    ],
+    "industries": [
+      "BPO/KPO",
+      "Customer experience services"
+    ],
+    "source_scope": [
+      {
+        "domain": "data.gov.in",
+        "purpose": "Manual catalog and licensed official company-data resource research only; resource terms/access review still needed",
+        "external_source_rights_verified_for_actual_rows": false
+      },
+      {
+        "domain": "jobs.concentrix.com",
+        "purpose": "Manual public job fact observation only, no copy/scrape/import",
+        "external_source_rights_verified_for_actual_rows": false
+      },
+      {
+        "domain": "www.startek.com",
+        "purpose": "Manual public organization fact observation only, no copy/scrape/import",
+        "external_source_rights_verified_for_actual_rows": false
+      },
+      {
+        "domain": "www.tp.com",
+        "purpose": "Manual public organization fact observation only, no copy/scrape/import",
+        "external_source_rights_verified_for_actual_rows": false
+      }
+    ],
+    "allowed_fields": [
+      "organization_name",
+      "sector",
+      "region",
+      "public_source_url",
+      "business_evidence_date",
+      "observed_on"
+    ],
+    "disallowed": [
+      "natural_person_name",
+      "personal_email",
+      "telephone",
+      "candidate_data",
+      "personal_profile",
+      "unverified_hiring_claims"
+    ],
+    "maximum_records": 10,
+    "retention_days": 30,
+    "outbound_allowed": false,
+    "crm_write_allowed": false,
+    "autonomous_scraping_allowed": false
+  },
+  "acceptance_review": {
+    "original_v1_is_unchanged": true,
+    "v1_category_c_points": 6,
+    "v1_LD02_points": 0,
+    "v1_LD05_points": 0,
+    "status": "CEO_AUTHORISED_REVIEW_ROUTE_RECORDED_BUT_OPERATIONAL_SOURCE_AND_KPI_ACCEPTANCE_OPEN",
+    "LD02_v2": "CEO delegated policy selection and limited research; full operational dataset rights and source configuration unverified, do not claim completed",
+    "LD05_v2": "Three source-linked factual spot checks, zero licensed dataset company rows, no approved real KPI cohort, no meeting outcomes; NOT COMPLETE",
+    "v2_points_awarded": null,
+    "reason": "Avoid score inflation or pretending the original independent-signature criteria were met."
+  },
+  "reference_documents": [
+    "https://docs.google.com/document/d/1i5SVldFxYaSi2Ew1i4YJ0pUAxtGTXJ2AyKRGck8w6Gk/edit",
+    "https://docs.google.com/document/d/1FWA-0AtMrE4C6DAMQISnj6_1DBfICG7TIQkKUs6AO_o/edit",
+    "https://data.gov.in/catalog/company-master-data",
+    "https://data.gov.in/catalog/udyam-registration-msme-registration",
+    "https://data.gov.in/Godl"
+  ]
+}
