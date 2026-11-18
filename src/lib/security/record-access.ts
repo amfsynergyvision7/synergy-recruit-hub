@@ -10,6 +10,11 @@ export async function requireCrmRecordAccess(
   table: "candidates" | "job_openings" | "clients",
   recordId: string,
 ): Promise<void> {
+  // Bind the requested identity to the authenticated JWT, not a caller-provided user ID.
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) {
+    throw new Error("Access denied: authenticated user mismatch.");
+  }
   const { data: profile, error: profileError } = await supabase
     .from("profiles").select("id, is_active, status").eq("id", userId).maybeSingle();
   if (profileError || !profile || profile.is_active !== true || profile.status !== "approved") {
