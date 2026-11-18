@@ -36,3 +36,11 @@ test('SEC-11 email endpoint denies before recipient or CRM record lookup',()=>{
  const lookup=endpoint.indexOf('await requireCrmRecordAccess(');
  assert.ok(denial >= 0 && lookup >= 0 && denial < lookup);
 });
+
+test('SEC-12 record helper verifies JWT identity before profile, role or record reads',()=>{
+ const identity=access.indexOf('supabase.auth.getUser()');
+ const mismatch=access.indexOf('authData.user.id !== userId');
+ const profile=access.indexOf('.from("profiles")');
+ assert.ok(identity >= 0 && mismatch > identity && profile > mismatch);
+ assert.match(access,/authenticated user mismatch/);
+});
