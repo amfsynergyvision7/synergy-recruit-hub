@@ -47,3 +47,12 @@ Status: **NOT APPROVED FOR PRODUCTION**. This document is a working evidence reg
 
 ## Release decision
 **HOLD.** Source-level assertions, isolated RLS tests and successful Preview builds do not establish full end-to-end readiness. Maintain the deny-by-default gates and preserve production isolation.
+
+## Verification checkpoint — 2026-11-19
+- The latest authorized-branch Vercel Preview for commit `b0980f082e32e32e27e59aa8377796a22ea781fc` is **READY** (deployment `dpl_FNDqydK4ofPrdGtgCN95N3fSmrr1`); its predecessor `8c5cae29fb7cde50ef5b5629c19d13e65e768091` is also **READY**. Build events confirm invocation of `node --test`, successful application build and `Deployment completed`, but do not expose a full test pass/fail summary. Do not claim a new test count.
+- Build tracing emitted unresolved optional-dependency warnings for `@opentelemetry/api`, `bufferutil`, and `utf-8-validate`; investigate runtime necessity before acceptance. A READY deployment alone does not resolve these warnings.
+- GitHub's commit-workflow lookup for `b0980f08` returned no runs, but this endpoint is limited to pull-request-triggered runs. The push-triggered Actions workflow is therefore **unverified**, not failed.
+- Read-only isolated Supabase catalog inspection: all eight `security_lab` ordinary tables have RLS and FORCE RLS enabled; four have zero policies. No isolated DB writes were made in this checkpoint.
+- Branch comparison: authorized branch is 58 commits ahead of `main`, zero behind, with 22 changed files. `security-isolation-test` diverges (68 commits ahead and 58 behind relative to the authorized branch); do not wholesale merge. Its extra SQL fixtures require per-file review and isolated execution.
+- Source review confirms `requireCrmRecordAccess` verifies `auth.getUser()` identity before profile, role and record queries. This is source-level verification only; negative runtime tests with distinct JWTs remain necessary.
+- **Release HOLD** remains mandatory until full synthetic CRM schema, multi-role runtime authorization, migration/rollback, audit and outbox-worker tests, independent CI results and release approvals are verified.
